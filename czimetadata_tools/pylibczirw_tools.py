@@ -2,9 +2,9 @@
 
 #################################################################
 # File        : pylibczirw_tools.py
-# Version     : 0.0.7
+# Version     : 0.0.9
 # Author      : sebi06
-# Date        : 24.01.2022
+# Date        : 02.02.2022
 #
 # Disclaimer: This code is purely experimental. Feel free to
 # use it at your own risk.
@@ -70,16 +70,16 @@ def read_mdarray(filename: str,
 
                 image2d = image2d[..., 0:mdata.image.SizeY, 0:mdata.image.SizeX, :]
 
-            # array6d[s, t, z, c, ...] = image2d[..., 0]
             array_md[s, t, z, c, ...] = image2d
 
         if remove_Adim:
-            dimstring = "STZCYX"
+            dimstring.replace("A", "")
             array_md = np.squeeze(array_md, axis=-1)
 
     return array_md, dimstring
 
 
+###### EXPERIMENTAL #####
 def read_mdarray_lazy(filename: str, remove_Adim: bool = True) -> Tuple[da.Array, str]:
 
     def read_5d(filename: str,

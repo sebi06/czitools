@@ -2,9 +2,9 @@
 
 #################################################################
 # File        : napari_tools.py
-# Version     : 0.1.1
+# Version     : 0.1.3
 # Author      : sebi06
-# Date        : 24.01.2022
+# Date        : 02.02.2022
 #
 # Disclaimer: This code is purely experimental. Feel free to
 # use it at your own risk.
@@ -40,15 +40,11 @@ from PyQt5.QtWidgets import (
 )
 
 from PyQt5.QtCore import Qt, QDir, QSortFilterProxyModel
-from PyQt5.QtCore import pyqtSlot
 from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtGui import QFont
-try:
-    from pylibCZIrw import czi as pyczi
-    from czitools import pylibczirw_metadata as czimd
-except ImportError as e:
-    print("aicspylibCZI could be loaded.", e)
-from czitools import czi_metadata as czimd_aics
+#from pylibCZIrw import czi as pyczi
+from czitools import pylibczirw_metadata as czimd
+#from czitools import czi_metadata as czimd_aics
 from czitools import misc
 import numpy as np
 from typing import List, Dict, Tuple, Optional, Type, Any, Union
@@ -109,11 +105,8 @@ class TableWidget(QWidget):
         item2.setFont(fnt)
         self.mdtable.setHorizontalHeaderItem(1, item2)
 
-# old
-# def show(viewer: Any, array: np.ndarray, metadata: Union[type[czimd.CziMetadata], type[czimd_aics.CziMetadata]],
 
-
-def show(viewer: Any, array: np.ndarray, metadata: Union[type[czimd.CziMetadata], type[czimd_aics.CziMetadata]],
+def show(viewer: Any, array: np.ndarray, metadata: czimd.CziMetadata,
          dim_order: dict,
          blending: str = "additive",
          contrast: str = "calc",
@@ -154,8 +147,8 @@ def show(viewer: Any, array: np.ndarray, metadata: Union[type[czimd.CziMetadata]
     scalefactors[dim_order["Z"]] = metadata.scale.ratio["zx"]
 
     # remove C dimension from scalefactor
-    scalefactors_ch = scalefactors.copy()
-    del scalefactors_ch[dim_order["C"]]
+    #scalefactors_ch = scalefactors.copy()
+    #del scalefactors_ch[dim_order["C"]]
 
     # add Qt widget for metadata
     if add_mdtable:
@@ -167,10 +160,7 @@ def show(viewer: Any, array: np.ndarray, metadata: Union[type[czimd.CziMetadata]
                                       area="right")
 
         # add the metadata and adapt the table
-        if isinstance(metadata, czimd.CziMetadata):
-            mdbrowser.update_metadata(czimd.create_mdict_complete(metadata))
-        if isinstance(metadata, czimd_aics.CziMetadata):
-            mdbrowser.update_metadata(czimd_aics.create_mdict_complete(metadata))
+        mdbrowser.update_metadata(czimd.obj2dict(metadata, sort=True))
 
         # mdbrowser.update_metadata(misc.sort_dict_by_key(metadata.metadict))
         mdbrowser.update_style()
@@ -201,7 +191,7 @@ def show(viewer: Any, array: np.ndarray, metadata: Union[type[czimd.CziMetadata]
         # actually show the image array
         print("Adding Channel  :", chname)
         print("Shape Channel   :", ch, channel.shape)
-        print("Scaling Factors :", scalefactors_ch)
+        print("Scaling Factors :", scalefactors)
 
         if contrast == "calc":
             # really calculate the min and max values - might be slow
@@ -211,7 +201,7 @@ def show(viewer: Any, array: np.ndarray, metadata: Union[type[czimd.CziMetadata]
             # add channel to napari viewer
             new_layer = viewer.add_image(channel,
                                          name=chname,
-                                         scale=scalefactors_ch,
+                                         scale=scalefactors,
                                          contrast_limits=sc,
                                          blending=blending,
                                          gamma=gamma)
@@ -223,7 +213,7 @@ def show(viewer: Any, array: np.ndarray, metadata: Union[type[czimd.CziMetadata]
             # add channel to napari viewer
             new_layer = viewer.add_image(channel,
                                          name=chname,
-                                         scale=scalefactors_ch,
+                                         scale=scalefactors,
                                          blending=blending,
                                          gamma=gamma)
         if contrast == "from_czi":
@@ -242,7 +232,7 @@ def show(viewer: Any, array: np.ndarray, metadata: Union[type[czimd.CziMetadata]
             # add channel to Napari viewer
             new_layer = viewer.add_image(channel,
                                          name=chname,
-                                         scale=scalefactors_ch,
+                                         scale=scalefactors,
                                          contrast_limits=[lower, higher],
                                          blending=blending,
                                          gamma=gamma)
@@ -257,6 +247,11 @@ def show(viewer: Any, array: np.ndarray, metadata: Union[type[czimd.CziMetadata]
         # get the label of the sliders (as a tuple) ad rename it
         sliderlabels = rename_sliders(viewer.dims.axis_labels, dim_order)
         viewer.dims.axis_labels = sliderlabels
+
+    # workaround because of: https://forum.image.sc/t/napari-3d-view-shows-flat-z-stack/62744/9?u=sebi06
+    od = list(viewer.dims.order)
+    od[dim_order["C"]], od[dim_order["Z"]] = od[dim_order["Z"]], od[dim_order["C"]]
+    viewer.dims.order = tuple(od)
 
     return napari_layers
 

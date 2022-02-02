@@ -2,9 +2,9 @@
 
 #################################################################
 # File        : misc.py
-# Version     : 0.0.5
+# Version     : 0.0.7
 # Author      : sebi06
-# Date        : 14.12.2021
+# Date        : 01.02.2022
 #
 # Disclaimer: The code is purely experimental. Feel free to
 # use it at your own risk.
@@ -26,7 +26,6 @@ import xml.etree.ElementTree as ET
 from aicspylibczi import CziFile
 from aicsimageio import AICSImage
 import dateutil.parser as dt
-from czitools import czi_metadata as czimd_aics
 from czitools import pylibczirw_metadata as czimd
 from tqdm.contrib.itertools import product
 from typing import List, Dict, Tuple, Optional, Type, Any, Union
@@ -166,33 +165,6 @@ def sort_dict_by_key(unsorted_dict: Dict) -> Dict:
     return sorted_dict
 
 
-def writexml_czi(filename: str, xmlsuffix: str = '_CZI_MetaData.xml') -> str:
-    """Write XML information of CZI to disk
-
-    :param filename: CZI image filename
-    :type filename: str
-    :param xmlsuffix: suffix for the XML file that will be created, defaults to '_CZI_MetaData.xml'
-    :type xmlsuffix: str, optional
-    :return: filename of the XML file
-    :rtype: str
-    """
-
-    # get metadata dictionary using aicspylibczi
-    aicsczi = CziFile(filename)
-    metadata_xmlstr = ET.tostring(aicsczi.meta)
-
-    # change file name
-    xmlfile = filename.replace('.czi', xmlsuffix)
-
-    # get tree from string
-    tree = ET.ElementTree(ET.fromstring(metadata_xmlstr))
-
-    # write XML file to same folder
-    tree.write(xmlfile, encoding='utf-8', method='xml')
-
-    return xmlfile
-
-
 def addzeros(number: int) -> str:
     """Convert a number into a string and add leading zeros.
     Typically used to construct filenames with equal lengths.
@@ -291,31 +263,12 @@ def get_planetable(czifile: str,
     # define subblock counter
     sbcount = -1
 
-    # check fort non existing dimensions
-    if metadata.dims.SizeS is None:
-        sizeS = 1
-    else:
-        sizeS = metadata.dims.SizeS
-
-    if metadata.dims.SizeM is None:
-        sizeM = 1
-    else:
-        sizeM = metadata.dims.SizeM
-
-    if metadata.dims.SizeT is None:
-        sizeT = 1
-    else:
-        sizeT = metadata.dims.SizeT
-
-    if metadata.dims.SizeZ is None:
-        sizeZ = 1
-    else:
-        sizeZ = metadata.dims.SizeZ
-
-    if metadata.dims.SizeC is None:
-        sizeC = 1
-    else:
-        sizeC = metadata.dims.SizeC
+    # check if dimensions are None (because they do not exist for that image)
+    sizeC = check_dimsize(metadata.image.SizeC, set2value=1)
+    sizeZ = check_dimsize(metadata.image.SizeZ, set2value=1)
+    sizeT = check_dimsize(metadata.image.SizeT, set2value=1)
+    sizeS = check_dimsize(metadata.image.SizeS, set2value=1)
+    sizeM = check_dimsize(metadata.image.SizeM, set2value=1)
 
     def getsbinfo(subblock: Any) -> Tuple[float, float, float, float]:
         try:
@@ -346,7 +299,7 @@ def get_planetable(czifile: str,
         return timestamp, xpos, ypos, zpos
 
     # in case the CZI has the M-Dimension
-    if metadata.isMosaic:
+    if metadata.ismosaic:
 
         for s, m, t, z, c in product(range(sizeS),
                                      range(sizeM),
@@ -354,6 +307,7 @@ def get_planetable(czifile: str,
                                      range(sizeZ),
                                      range(sizeC)):
             sbcount += 1
+            print("Reading sublock : ", sbcount)
 
             # get x, y, width and height for a specific tile
             tilebbox = aicsczi.get_mosaic_tile_bounding_box(S=s,
@@ -390,7 +344,7 @@ def get_planetable(czifile: str,
                                     'height': tilebbox.h},
                                    ignore_index=True)
 
-    if not metadata.isMosaic:
+    if not metadata.ismosaic:
 
         for s, t, z, c in product(range(sizeS),
                                   range(sizeT),

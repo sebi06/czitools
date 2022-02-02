@@ -30,6 +30,27 @@ from typing import List, Dict, Tuple, Optional, Type, Any, Union
 from dataclasses import dataclass, field
 
 
+class CziMetadataComplete:
+    def __init__(self, filename: str):
+
+        # get metadata dictionary using pylibCZIrw
+        with pyczi.open_czi(filename) as czidoc:
+            md_dict = czidoc.metadata
+
+        self.md = DictObj(md_dict)
+
+
+class DictObj:
+    # based upon: https://joelmccune.com/python-dictionary-as-object/
+    def __init__(self, in_dict: dict):
+        assert isinstance(in_dict, dict)
+        for key, val in in_dict.items():
+            if isinstance(val, (list, tuple)):
+                setattr(self, key, [DictObj(x) if isinstance(x, dict) else x for x in val])
+            else:
+                setattr(self, key, DictObj(val) if isinstance(val, dict) else val)
+
+
 class CziMetadata:
 
     def __init__(self, filename: str) -> None:
@@ -1023,97 +1044,51 @@ class CziScene:
         # TODO : And scene dimensions to CziScene class
 
 
-def create_mdict_complete(metadata: Union[str, CziMetadata], sort: bool = True) -> Dict:
-    """
-    Created a metadata dictionary. Accepts a filename of a CZI file or
-    a CziMetadata class
+def obj2dict(obj: Any, sort: bool = True) -> Dict[str, Any]:
+    # https://stackoverflow.com/questions/7963762/what-is-the-most-economical-way-to-convert-nested-python-objects-to-dictionaries
 
-    Args:
-        metadata: filename or CziMetadata class
-        sort: sort the dictionary
-
-    Returns: dictionary with the metadata
-
-    """
-    if isinstance(metadata, str):
-        # get metadata dictionary using pylibCZIrw
-        metadata = CziMetadata(metadata)
-
-    # create a dictionary with the metadata
-
-    # Attemtion: the list of keys is not complete!
-    md_dict = {"Directory": metadata.info.dirname,
-               "Filename": metadata.info.filename,
-               "AcqDate": metadata.info.acquisition_date,
-               "SW-Name": metadata.info.software_name,
-               "SW-Version": metadata.info.software_version,
-               "aics_dims": metadata.aics_dimstring,
-               "aics_dims_shape": metadata.aics_dims_shape,
-               "aics_size": metadata.aics_size,
-               "aics_ismosaic": metadata.aics_ismosaic,
-               "aics_dim_order": metadata.aics_dim_order,
-               "aics_dim_index": metadata.aics_dim_index,
-               "aics_dim_valid": metadata.aics_dim_valid,
-               "SizeX": metadata.image.SizeX,
-               "SizeY": metadata.image.SizeY,
-               "SizeZ": metadata.image.SizeZ,
-               "SizeC": metadata.image.SizeC,
-               "SizeT": metadata.image.SizeT,
-               "SizeS": metadata.image.SizeS,
-               "SizeB": metadata.image.SizeB,
-               "SizeM": metadata.image.SizeM,
-               "SizeH": metadata.image.SizeH,
-               "SizeI": metadata.image.SizeI,
-               "isRGB": metadata.isRGB,
-               "isMosaic": metadata.ismosaic,
-               "ObjNA": metadata.objective.NA,
-               "ObjMag": metadata.objective.mag,
-               "ObjID": metadata.objective.ID,
-               "ObjName": metadata.objective.name,
-               "ObjImmersion": metadata.objective.immersion,
-               "TubelensMag": metadata.objective.tubelensmag,
-               "ObjNominalMag": metadata.objective.nominalmag,
-               "XScale": metadata.scale.X,
-               "YScale": metadata.scale.Y,
-               "ZScale": metadata.scale.Z,
-               "XScaleUnit": metadata.scale.XUnit,
-               "YScaleUnit": metadata.scale.YUnit,
-               "ZScaleUnit": metadata.scale.ZUnit,
-               "scale_ratio": metadata.scale.ratio,
-               "DetectorModel": metadata.detector.model,
-               "DetectorName": metadata.detector.name,
-               "DetectorID": metadata.detector.ID,
-               "DetectorType": metadata.detector.modeltype,
-               "InstrumentID": metadata.detector.instrumentID,
-               "ChannelsNames": metadata.channelinfo.names,
-               "ChannelShortNames": metadata.channelinfo.shortnames,
-               "ChannelColors": metadata.channelinfo.colors,
-               "bbox_all_scenes": metadata.bbox.all_scenes,
-               "WellArrayNames": metadata.sample.well_array_names,
-               "WellIndicies": metadata.sample.well_indices,
-               "WellPositionNames": metadata.sample.well_position_names,
-               "WellRowID": metadata.sample.well_rowID,
-               "WellColumnID": metadata.sample.well_colID,
-               "WellCounter": metadata.sample.well_counter,
-               "SceneCenterStageX": metadata.sample.scene_stageX,
-               "SceneCenterStageY": metadata.sample.scene_stageX
-               }
-
-    # check fro extra entries when reading mosaic file with a scale factor
-    if hasattr(metadata.image, "SizeX_sf"):
-        md_dict["SizeX sf"] = metadata.image.SizeX_sf
-        md_dict["SizeY sf"] = metadata.image.SizeY_sf
-        md_dict["XScale sf"] = metadata.scale.X_sf
-        md_dict["YScale sf"] = metadata.scale.Y_sf
-        md_dict["ratio sf"] = metadata.scale.ratio_sf
-        md_dict["scalefactorXY"] = metadata.scale.scalefactorXY
-
-    # add info for bounding boxes
-    md_dict["bbox_all_scenes"] = metadata.bbox.all_scenes
-    md_dict["bbox_total_rect"] = metadata.bbox.total_rect
-    md_dict["bbox_total"] = metadata.bbox.total_bounding_box
+    if not hasattr(obj, "__dict__"):
+        return obj
+    result = {}
+    for key, val in obj.__dict__.items():
+        if key.startswith("_"):
+            continue
+        element = []
+        if isinstance(val, list):
+            for item in val:
+                element.append(obj2dict(item))
+        else:
+            element = obj2dict(val)
+        result[key] = element
 
     if sort:
-        return misc.sort_dict_by_key(md_dict)
+        return misc.sort_dict_by_key(result)
     if not sort:
-        return md_dict
+        return result
+
+
+def writexml(filename: str, xmlsuffix: str = '_CZI_MetaData.xml') -> str:
+    """Write XML information of CZI to disk
+
+    :param filename: CZI image filename
+    :type filename: str
+    :param xmlsuffix: suffix for the XML file that will be created, defaults to '_CZI_MetaData.xml'
+    :type xmlsuffix: str, optional
+    :return: filename of the XML file
+    :rtype: str
+    """
+
+    # get the raw metadata as a XML or dictionary
+    with pyczi.open_czi(filename) as czidoc:
+        metadata_xmlstr = czidoc.raw_metadata
+
+    # change file name
+    xmlfile = filename.replace('.czi', xmlsuffix)
+
+    # get tree from string
+    tree = ET.ElementTree(ET.fromstring(metadata_xmlstr))
+
+    # write XML file to same folder
+    tree.write(xmlfile, encoding='utf-8', method='xml')
+
+    return xmlfile
