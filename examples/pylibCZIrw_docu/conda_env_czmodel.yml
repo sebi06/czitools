@@ -3,19 +3,22 @@ name: czmodel
 channels:
   - defaults
 dependencies:
-  - python=3.8
+  - python=3.9
   - conda
   - pip
   - jupyter
   - matplotlib
   - nb-conda-kernels
-  - cudatoolkit=10
+  - cudatoolkit=11
   - cudnn
   - scikit-learn
+  - xmltodict
+  - tqdm
 
   - pip:
-      - czmodel==1.1.0
+      - czmodel
       - livelossplot
+      - onnxruntime-gpu
 
 # Create an environment
 # conda env create --file conda_env_czmodel.yml
