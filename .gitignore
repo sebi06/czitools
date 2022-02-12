@@ -141,4 +141,4 @@ examples/pylibCZIrw_docu/newCZI_zscenes.czi
 .idea/inspectionProfiles/.fuse_hidden000001bf00000082
 
 # fuse crap
-.fuse_hidden
+.fuse_hidden*
