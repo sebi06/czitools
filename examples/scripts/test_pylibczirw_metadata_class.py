@@ -2,9 +2,9 @@
 
 #################################################################
 # File        : test_pylibczirw_metadata_class.py
-# Version     : 0.0.2
+# Version     : 0.0.4
 # Author      : sebi06
-# Date        : 24.12.2022
+# Date        : 14.02.2022
 #
 # Disclaimer: This code is purely experimental. Feel free to
 # use it at your own risk.
@@ -27,7 +27,7 @@ filename = misc.openfile(directory=defaultdir,
 print(filename)
 
 # get the complete metadata at once as one big class
-mdata = czimd.CziMetadata(filename)
+mdata_sel = czimd.CziMetadata(filename)
 
 # get only specific metadata
 czi_dimensions = czimd.CziDimensions(filename)
@@ -48,14 +48,14 @@ czi_detectors = czimd.CziDetector(filename)
 czi_microscope = czimd.CziMicroscope(filename)
 czi_sample = czimd.CziSampleInfo(filename)
 
-# get the metadata as a dictionary
-mdict = czimd.create_mdict_complete(filename, sort=False)
-for k,v in mdict.items():
+# get selected metadata as a dictionary
+mdata_sel_dict = czimd.obj2dict(mdata_sel)
+for k,v in mdata_sel_dict.items():
     print(k, " : ", v)
 
 # and convert to pd.DataFrame
-df_md = misc.md2dataframe(mdict)
+df_md = misc.md2dataframe(mdata_sel_dict)
 print(df_md)
 
-# write metadata as XML to disk
-xmlfile = misc.writexml_czi(filename)
+# try to write XML to file
+xmlfile = czimd.writexml(filename)
