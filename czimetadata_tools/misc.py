@@ -26,7 +26,7 @@ import xml.etree.ElementTree as ET
 from aicspylibczi import CziFile
 from aicsimageio import AICSImage
 import dateutil.parser as dt
-from czitools import pylibczirw_metadata as czimd
+from czimetadata_tools import pylibczirw_metadata as czimd
 from tqdm.contrib.itertools import product
 from typing import List, Dict, Tuple, Optional, Type, Any, Union
 
