@@ -201,18 +201,18 @@ class CziDimensions:
                 setattr(self, key, dim_dict[key])
 
     # Information official CZI Dimension Characters:
-    # "X":"Width"
-    # "Y":"Height"
-    # "C":"Channel"
-    # "Z":"Slice"        # depth
-    # "T":"Time"
-    # "R":"Rotation"
-    # "S":"Scene"        # contiguous regions of interest in a mosaic image
-    # "I":"Illumination" # direction
-    # "B":"Block"        # acquisition
-    # "M":"Mosaic"       # index of tile for compositing a scene
-    # "H":"Phase"        # e.g. Airy detector fibers
-    # "V":"View"         # e.g. for SPIM
+    # "X":"Width"        :
+    # "Y":"Height"       :
+    # "C":"Channel"      :
+    # "Z":"Slice"        :
+    # "T":"Time"         :
+    # "R":"Rotation"     :
+    # "S":"Scene"        : contiguous regions of interest in a mosaic image
+    # "I":"Illumination" : direction
+    # "B":"Block"        : acquisition
+    # "M":"Mosaic"       : index of tile for compositing a scene
+    # "H":"Phase"        : e.g. Airy detector fibers
+    # "V":"View"         : e.g. for SPIM
 
     @staticmethod
     def get_image_dimensions(raw_metadata: Dict[Any, Any]) -> Dict[Any, Union[int, None]]:
