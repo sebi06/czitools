@@ -191,21 +191,6 @@ class CziMetadata:
 
 
 class CziDimensions:
-    """
-    Information official CZI Dimension Characters:
-    - "X":"Width"
-    - "Y":"Height"
-    - "C":"Channel"
-    - "Z":"Slice"        # depth
-    - "T":"Time"
-    - "R":"Rotation"
-    - "S":"Scene"        # contiguous regions of interest in a mosaic image
-    - "I":"Illumination" # direction
-    - "B":"Block"        # acquisition
-    - "M":"Mosaic"       # index of tile for compositing a scene
-    - "H":"Phase"        # e.g. Airy detector fibers
-    - "V":"View"         # e.g. for SPIM
-    """
 
     def __init__(self, filename: str) -> None:
 
@@ -214,6 +199,20 @@ class CziDimensions:
 
             for key in dim_dict:
                 setattr(self, key, dim_dict[key])
+
+    # Information official CZI Dimension Characters:
+    # "X":"Width"
+    # "Y":"Height"
+    # "C":"Channel"
+    # "Z":"Slice"        # depth
+    # "T":"Time"
+    # "R":"Rotation"
+    # "S":"Scene"        # contiguous regions of interest in a mosaic image
+    # "I":"Illumination" # direction
+    # "B":"Block"        # acquisition
+    # "M":"Mosaic"       # index of tile for compositing a scene
+    # "H":"Phase"        # e.g. Airy detector fibers
+    # "V":"View"         # e.g. for SPIM
 
     @staticmethod
     def get_image_dimensions(raw_metadata: Dict[Any, Any]) -> Dict[Any, Union[int, None]]:
@@ -256,21 +255,21 @@ class CziDimensions:
 
 # class CziBoundingBox:
 #     def __init__(self, filename: str) -> None:
-
+#
 #         with pyczi.open_czi(filename) as czidoc:
-
+#
 #             try:
 #                 self.all_scenes = czidoc.scenes_bounding_rectangle
 #             except Exception as e:
 #                 self.all_scenes = None
 #                 print("Scenes Bounding rectangle not found.", e)
-
+#
 #             try:
 #                 self.total_rect = czidoc.total_bounding_rectangle
 #             except Exception as e:
 #                 self.total_rect = None
 #                 print("Total Bounding rectangle not found.", e)
-
+#
 #             try:
 #                 self.total_bounding_box = czidoc.total_bounding_box
 #             except Exception as e:
