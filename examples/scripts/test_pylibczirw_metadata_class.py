@@ -12,8 +12,8 @@
 #################################################################
 
 from __future__ import annotations
-from czitools import pylibczirw_metadata as czimd
-from czitools import misc
+from czimetadata_tools import pylibczirw_metadata as czimd
+from czimetadata_tools import misc
 
 # adapt to your needs
 defaultdir = r"C:\Testdata_Zeiss\CZI_Testfiles"
@@ -50,7 +50,7 @@ czi_sample = czimd.CziSampleInfo(filename)
 
 # get selected metadata as a dictionary
 mdata_sel_dict = czimd.obj2dict(mdata_sel)
-for k,v in mdata_sel_dict.items():
+for k, v in mdata_sel_dict.items():
     print(k, " : ", v)
 
 # and convert to pd.DataFrame

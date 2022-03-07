@@ -11,9 +11,9 @@
 #
 #################################################################
 
-from czitools import pylibczirw_metadata as czimd
-from czitools import pylibczirw_tools
-from czitools import napari_tools
+from czimetadata_tools import pylibczirw_metadata as czimd
+from czimetadata_tools import pylibczirw_tools
+from czimetadata_tools import napari_tools
 import napari
 import numpy as np
 

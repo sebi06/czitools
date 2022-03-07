@@ -43,9 +43,9 @@ from PyQt5.QtCore import Qt, QDir, QSortFilterProxyModel
 from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtGui import QFont
 #from pylibCZIrw import czi as pyczi
-from czitools import pylibczirw_metadata as czimd
+from czimetadata_tools import pylibczirw_metadata as czimd
 #from czitools import czi_metadata as czimd_aics
-from czitools import misc
+from czimetadata_tools import misc
 import numpy as np
 from typing import List, Dict, Tuple, Optional, Type, Any, Union
 

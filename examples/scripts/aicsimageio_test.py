@@ -12,14 +12,14 @@
 #################################################################
 
 import napari
-from czitools import czi_metadata as czimd_aics
+from czimetadata_tools import pylibczirw_metadata as czimd
 from aicsimageio import AICSImage
-from czitools import misc, napari_tools
+from czimetadata_tools import misc, napari_tools
 
-filename = r'd:\Testdata_Zeiss\CZI_Testfiles\testwell96.czi'
+filename = r".\testdata\w96_A1 + A2.czi"
 
 # get the complete metadata at once as one big class
-mdata = czimd_aics.CziMetadata(filename)
+mdata = czimd.CziMetadata(filename)
 
 # test using AICSImageIO
 aics_img = AICSImage(filename)
@@ -31,7 +31,7 @@ for k, v in aics_img.dims.items():
 stack = misc.get_daskstack(aics_img)
 
 mdata.aics_dimstring = "S" + aics_img.dims.order
-dim_order, dim_index, dim_valid = czimd_aics.CziMetadata.get_dimorder(mdata.aics_dimstring)
+dim_order, dim_index, dim_valid = czimd.CziMetadata.get_dimorder(mdata.aics_dimstring)
 
 # start the napari viewer and show the image
 viewer = napari.Viewer()
