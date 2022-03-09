@@ -8,9 +8,7 @@ from tqdm.contrib.itertools import product  # type: ignore  # No stubs provided 
 from scipy.fft import fft2, ifft2  # pylint: disable=no-name-in-module # type: ignore
 
 
-def _get_image_dimensions(
-    czidoc: pyczi.CziReader,
-) -> Tuple[Optional[int], Optional[int], Optional[int], Optional[int]]:
+def _get_image_dimensions(czidoc: pyczi.CziReader) -> Tuple[Optional[int], Optional[int], Optional[int], Optional[int]]:
     """Determine the image dimensions.
 
     Arguments:
@@ -103,7 +101,7 @@ def _whitening(image: np.ndarray, order: int, spatial_axis: int) -> np.ndarray:
         profile_start[unselected_spatial_axis] = mags_half_unselected_spatial_axis - 10
         profile_end = [list(mags.shape)[0], list(mags.shape)[1]]
         profile_end[unselected_spatial_axis] = mags_half_unselected_spatial_axis + 10
-        profile = np.log(mags[profile_start[0] : profile_end[0], profile_start[1] : profile_end[1]])
+        profile = np.log(mags[profile_start[0]: profile_end[0], profile_start[1]: profile_end[1]])
         profile = np.average(profile, axis=unselected_spatial_axis)
 
         # do a polynomial fit

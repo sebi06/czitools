@@ -2,9 +2,9 @@
 
 #################################################################
 # File        : pylibczirw_metadata.py
-# Version     : 0.1.1
+# Version     : 0.1.2
 # Author      : sebi06
-# Date        : 2.01.2022
+# Date        : 09.03.2022
 #
 # Disclaimer: The code is purely experimental. Feel free to
 # use it at your own risk.
@@ -13,18 +13,18 @@
 
 from __future__ import annotations
 import os
-import sys
+#import sys
 from pathlib import Path
-import xmltodict
+#import xmltodict
 from collections import Counter
 import xml.etree.ElementTree as ET
 from pylibCZIrw import czi as pyczi
-from aicspylibczi import CziFile
+#from aicspylibczi import CziFile
 from tqdm.contrib.itertools import product
-import pandas as pd
+#import pandas as pd
 from czimetadata_tools import misc
 import numpy as np
-import dateutil.parser as dt
+#import dateutil.parser as dt
 import pydash
 from typing import List, Dict, Tuple, Optional, Type, Any, Union
 from dataclasses import dataclass, field
@@ -253,29 +253,6 @@ class CziDimensions:
         return dim_dict
 
 
-# class CziBoundingBox:
-#     def __init__(self, filename: str) -> None:
-#
-#         with pyczi.open_czi(filename) as czidoc:
-#
-#             try:
-#                 self.all_scenes = czidoc.scenes_bounding_rectangle
-#             except Exception as e:
-#                 self.all_scenes = None
-#                 print("Scenes Bounding rectangle not found.", e)
-#
-#             try:
-#                 self.total_rect = czidoc.total_bounding_rectangle
-#             except Exception as e:
-#                 self.total_rect = None
-#                 print("Total Bounding rectangle not found.", e)
-#
-#             try:
-#                 self.total_bounding_box = czidoc.total_bounding_box
-#             except Exception as e:
-#                 self.total_bounding_box = None
-#                 print("Total Bounding Box not found.", e)
-
 @dataclass
 class CziBoundingBox:
     filename: str
@@ -452,50 +429,35 @@ class CziScaling:
         with pyczi.open_czi(filename) as czidoc:
             md_dict = czidoc.metadata
 
-        # get the XY scaling information
-        try:
-            self.X = float(md_dict["ImageDocument"]["Metadata"]["Scaling"]["Items"]["Distance"][0]["Value"]) * 1000000
-            self.Y = float(md_dict["ImageDocument"]["Metadata"]["Scaling"]["Items"]["Distance"][1]["Value"]) * 1000000
-            self.X = np.round(self.X, 3)
-            self.Y = np.round(self.Y, 3)
-        except (KeyError, TypeError) as e:
-            print("Error extracting XY Scale  :", e)
-            self.X = 1.0
-            self.Y = 1.0
-
-        try:
-            self.XUnit = md_dict["ImageDocument"]["Metadata"]["Scaling"]["Items"]["Distance"][0]["DefaultUnitFormat"]
-            self.YUnit = md_dict["ImageDocument"]["Metadata"]["Scaling"]["Items"]["Distance"][1]["DefaultUnitFormat"]
-        except (KeyError, TypeError) as e:
-            print("Error extracting XY ScaleUnit :", e)
-            self.XUnit = None
-            self.YUnit = None
-
-        # get the Z scaling information
-        try:
-            self.Z = float(md_dict["ImageDocument"]["Metadata"]["Scaling"]["Items"]["Distance"][2]["Value"]) * 1000000
-            self.Z = np.round(self.Z, 3)
-            # additional check for faulty z-scaling
-            if self.Z == 0.0:
-                self.Z = 1.0
+        def _safe_get_scale(distances_: List[Dict[Any, Any]], idx: int) -> Optional[float]:
             try:
-                self.ZUnit = md_dict["ImageDocument"]["Metadata"]["Scaling"]["Items"]["Distance"][2]["DefaultUnitFormat"]
-            except (IndexError, KeyError, TypeError) as e:
-                print("Error extracting Z ScaleUnit :", e)
-                self.ZUnit = self.XUnit
-        except (IndexError, KeyError, TypeError) as e:
-            print("Error extracting Z Scale  :", e)
-            # set to isotropic scaling if it was single plane only
-            self.Z = self.X
-            self.ZUnit = self.XUnit
+                return np.round(float(distances_[idx]["Value"]) * 1000000, 3) if distances_[idx]["Value"] is not None else None
+            except IndexError:
+                if dim2none:
+                    return None
+                if not dim2none:
+                    # use scaling = 1.0 micron as fallback
+                    return 1.0
 
-        # convert scale unit to avoid encoding problems
-        if self.XUnit == "µm":
-            self.XUnit = "micron"
-        if self.YUnit == "µm":
-            self.YUnit = "micron"
-        if self.ZUnit == "µm":
-            self.ZUnit = "micron"
+        try:
+            distances = md_dict["ImageDocument"]["Metadata"]["Scaling"]["Items"]["Distance"]
+        except KeyError:
+            if dim2none:
+                self.X = None
+                self.Y = None
+                self.Z = None
+            if not dim2none:
+                self.X = 1.0
+                self.Y = 1.0
+                self.Z = 1.0
+
+        # get the scaling in [micron] - inside CZI the default is [m]
+        self.X = _safe_get_scale(distances, 0)
+        self.Y = _safe_get_scale(distances, 1)
+        self.Z = _safe_get_scale(distances, 2)
+
+        # set the scaling unit to [micron]
+        self.Unit = "micron"
 
         # get scaling ratio
         self.ratio = self.get_scale_ratio(scalex=self.X,
@@ -522,15 +484,23 @@ class CziScaling:
         return scale_ratio
 
 
+@dataclass
 class CziInfo:
-    def __init__(self, filename: str) -> None:
+    filepath: str
+    dirname: str = field(init=False)
+    filename: str = field(init=False)
+    software_name: str = field(init=False)
+    softname_version: str = field(init=False)
+    acquisition_date: str = field(init=False)
+
+    def __post_init__(self):
 
         # get directory and filename etc.
-        self.dirname = os.path.dirname(filename)
-        self.filename = os.path.basename(filename)
+        self.dirname = os.path.dirname(self.filepath)
+        self.filename = os.path.basename(self.filepath)
 
         # get metadata dictionary using pylibCZIrw
-        with pyczi.open_czi(filename) as czidoc:
+        with pyczi.open_czi(self.filepath) as czidoc:
             md_dict = czidoc.metadata
 
         # get acquisition data and SW version

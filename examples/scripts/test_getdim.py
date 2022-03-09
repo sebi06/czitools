@@ -14,6 +14,7 @@ print(dim_dict)
 
 czi_dimensions = czimd.CziDimensions(filepath)
 czi_scale = czimd.CziScaling(filepath)
+czi_info = czimd.CziInfo(filepath)
 
 print(czi_dimensions.__dict__)
 print(czi_scale.__dict__)
