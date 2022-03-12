@@ -2,9 +2,9 @@
 
 #################################################################
 # File        : napari_tools.py
-# Version     : 0.1.3
+# Version     : 0.1.4
 # Author      : sebi06
-# Date        : 02.02.2022
+# Date        : 12.03.2022
 #
 # Disclaimer: This code is purely experimental. Feel free to
 # use it at your own risk.
@@ -160,7 +160,10 @@ def show(viewer: Any, array: np.ndarray, metadata: czimd.CziMetadata,
                                       area="right")
 
         # add the metadata and adapt the table
-        mdbrowser.update_metadata(czimd.obj2dict(metadata, sort=True))
+
+        # create dictionary with some metadata
+        mdict = create_mdict_napari(metadata, sort=True)
+        mdbrowser.update_metadata(mdict)
 
         # mdbrowser.update_metadata(misc.sort_dict_by_key(metadata.metadict))
         mdbrowser.update_style()
@@ -285,3 +288,67 @@ def rename_sliders(sliders: Tuple, dim_order: Dict) -> Tuple:
     sliders = tuple(tmp_sliders)
 
     return sliders
+
+
+def create_mdict_napari(metadata: czimd.CziMetadata,
+                        sort: bool = True) -> Dict:
+    """
+    Created a metadata dictionary to be displayed in napari
+
+    Args:
+        metadata: CziMetadata class
+        sort: sort the dictionary
+
+    Returns: dictionary with the metadata
+
+    """
+
+    # create a dictionary with the metadata
+    md_dict = {'Directory': metadata.info.dirname,
+               'Filename': metadata.info.filename,
+               'AcqDate': metadata.info.acquisition_date,
+               'SizeX': metadata.image.SizeX,
+               'SizeY': metadata.image.SizeY,
+               'SizeZ': metadata.image.SizeZ,
+               'SizeC': metadata.image.SizeC,
+               'SizeT': metadata.image.SizeT,
+               'SizeS': metadata.image.SizeS,
+               'SizeB': metadata.image.SizeB,
+               'SizeM': metadata.image.SizeM,
+               'SizeH': metadata.image.SizeH,
+               'SizeI': metadata.image.SizeI,
+               'isRGB': metadata.isRGB,
+               'ismosaic': metadata.ismosaic,
+               'ObjNA': metadata.objective.NA,
+               'ObjMag': metadata.objective.mag,
+               'TubelensMag': metadata.objective.tubelensmag,
+               'XScale': metadata.scale.X,
+               'YScale': metadata.scale.Y,
+               'ZScale': metadata.scale.Z,
+               'ChannelsNames': metadata.channelinfo.names,
+               'ChannelShortNames': metadata.channelinfo.shortnames,
+               'bbox_all_scenes': metadata.bbox.all_scenes,
+               'WellArrayNames': metadata.sample.well_array_names,
+               'WellIndicies': metadata.sample.well_indices,
+               'WellPositionNames': metadata.sample.well_position_names,
+               'WellRowID': metadata.sample.well_rowID,
+               'WellColumnID': metadata.sample.well_colID,
+               'WellCounter': metadata.sample.well_counter,
+               'SceneCenterStageX': metadata.sample.scene_stageX,
+               'SceneCenterStageY': metadata.sample.scene_stageX
+               }
+
+    # check fro extra entries when reading mosaic file with a scale factor
+    if hasattr(metadata.image, "SizeX_sf"):
+        md_dict['SizeX sf'] = metadata.image.SizeX_sf
+        md_dict['SizeY sf'] = metadata.image.SizeY_sf
+        md_dict['XScale sf'] = metadata.scale.X_sf
+        md_dict['YScale sf'] = metadata.scale.Y_sf
+        md_dict['ratio sf'] = metadata.scale.ratio_sf
+        md_dict['scalefactorXY'] = metadata.scale.scalefactorXY
+
+    if sort:
+        return misc.sort_dict_by_key(md_dict)
+    if not sort:
+        return md_dict
+

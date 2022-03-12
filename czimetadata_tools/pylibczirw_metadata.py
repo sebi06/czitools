@@ -13,18 +13,13 @@
 
 from __future__ import annotations
 import os
-#import sys
-from pathlib import Path
-#import xmltodict
+#from pathlib import Path
 from collections import Counter
 import xml.etree.ElementTree as ET
 from pylibCZIrw import czi as pyczi
-#from aicspylibczi import CziFile
 from tqdm.contrib.itertools import product
-#import pandas as pd
 from czimetadata_tools import misc
 import numpy as np
-#import dateutil.parser as dt
 import pydash
 from typing import List, Dict, Tuple, Optional, Type, Any, Union
 from dataclasses import dataclass, field
@@ -53,7 +48,7 @@ class DictObj:
 
 class CziMetadata:
 
-    def __init__(self, filename: str) -> None:
+    def __init__(self, filename: str, dim2none: bool = False) -> None:
 
         # get metadata dictionary using pylibCZIrw
         with pyczi.open_czi(filename) as czidoc:
@@ -120,7 +115,7 @@ class CziMetadata:
             self.channelinfo = CziChannelInfo(filename)
 
             # get scaling info
-            self.scale = CziScaling(filename)
+            self.scale = CziScaling(filename, dim2none=dim2none)
 
             # get objetive information
             self.objective = CziObjectives(filename)
@@ -215,7 +210,8 @@ class CziDimensions:
     # "V":"View"         : e.g. for SPIM
 
     @staticmethod
-    def get_image_dimensions(raw_metadata: Dict[Any, Any]) -> Dict[Any, Union[int, None]]:
+    def get_image_dimensions(raw_metadata: Dict[Any, Any],
+                             dim2none: bool = True) -> Dict[Any, Union[int, None]]:
         """Determine the image dimensions.
 
         Arguments:

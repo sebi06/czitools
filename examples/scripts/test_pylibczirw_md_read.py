@@ -2,9 +2,9 @@
 
 #################################################################
 # File        : test_pylibczirw_md_read.py
-# Version     : 0.0.1
+# Version     : 0.0.2
 # Author      : sebi06
-# Date        : 24.01.2022
+# Date        : 12.03.2022
 #
 # Disclaimer: This code is purely experimental. Feel free to
 # use it at your own risk.
