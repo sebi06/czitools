@@ -2,9 +2,9 @@
 
 #################################################################
 # File        : pylibczirw_metadata.py
-# Version     : 0.1.2
+# Version     : 0.1.3
 # Author      : sebi06
-# Date        : 09.03.2022
+# Date        : 12.03.2022
 #
 # Disclaimer: The code is purely experimental. Feel free to
 # use it at your own risk.
@@ -455,6 +455,14 @@ class CziScaling:
         self.X = _safe_get_scale(distances, 0)
         self.Y = _safe_get_scale(distances, 1)
         self.Z = _safe_get_scale(distances, 2)
+
+        # safety check incase a scale = 0
+        if self.X == 0.0:
+            self.X = 1.0
+        if self.Y == 0.0:
+            self.Y = 1.0
+        if self.Z == 0.0:
+            self.Z = 1.0
 
         # set the scaling unit to [micron]
         self.Unit = "micron"

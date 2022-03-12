@@ -15,8 +15,8 @@ from __future__ import annotations
 
 import pylibCZIrw.czi
 from pylibCZIrw import czi as pyczi
-from czitools import pylibczirw_metadata as czimd
-from czitools import misc
+from czimetadata_tools import pylibczirw_metadata as czimd
+from czimetadata_tools import misc
 import numpy as np
 from typing import List, Dict, Tuple, Optional, Type, Any, Union
 from tqdm.contrib.itertools import product
