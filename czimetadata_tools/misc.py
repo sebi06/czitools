@@ -2,9 +2,9 @@
 
 #################################################################
 # File        : misc.py
-# Version     : 0.0.7
+# Version     : 0.0.9
 # Author      : sebi06
-# Date        : 01.02.2022
+# Date        : 13.03.2022
 #
 # Disclaimer: The code is purely experimental. Feel free to
 # use it at your own risk.
@@ -15,6 +15,7 @@ from __future__ import annotations
 import os
 from tkinter import filedialog
 from tkinter import *
+from types import NoneType
 import zarr
 import pandas as pd
 import dask
@@ -219,17 +220,34 @@ def get_fname_woext(filepath: str) -> str:
 
 
 def check_dimsize(mdata_entry: Union[int, None], set2value: int = 1) -> int:
+    """Check is a value is None and replace with a specific number
+
+    Args:
+        mdata_entry (Union[int, None]): value to be checked
+        set2value (int, optional): value used to replace None with. Defaults to 1.
+
+    Returns:
+        int: new_value
+    """
 
     # check if the dimension entry is None
     if mdata_entry is None:
-        size = set2value
+        new_value = set2value
     if mdata_entry is not None:
-        size = mdata_entry
+        new_value = mdata_entry
 
-    return size
+    return new_value
 
 
 def get_daskstack(aics_img: AICSImage) -> List:
+    """Get all scenes of an image as dask stack
+
+    Args:
+        aics_img (AICSImage): the AICSImageIO object
+
+    Returns:
+        List: List of dask arrays
+    """
 
     stacks = []
     for scene in aics_img.scenes:
