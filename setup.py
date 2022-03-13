@@ -28,7 +28,8 @@ REQUIRED = [
     "pydash>=5.0.2",
     "aicspylibczi>=3.0.4",
     "tqdm>=4.61.2",
-    "pylibczirw>=1.0.0",
+    "pylibczirw",
+    "cztile"
 ]
 
 # What packages are optional?
