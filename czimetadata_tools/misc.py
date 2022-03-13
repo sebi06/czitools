@@ -157,6 +157,13 @@ def md2dataframe(md_dict: Dict,
 
 
 def sort_dict_by_key(unsorted_dict: Dict) -> Dict:
+    """Sort a dictionary by its keys.
+
+    :param unsorted_dict: the unsorted dictionary
+    :type unsorted_dict: dict
+    :return: sorted_dict - sorted dictionary
+    :rtype: dict
+    """
     sorted_keys = sorted(unsorted_dict.keys(), key=lambda x: x.lower())
     sorted_dict = {}
     for key in sorted_keys:
@@ -167,7 +174,7 @@ def sort_dict_by_key(unsorted_dict: Dict) -> Dict:
 
 def addzeros(number: int) -> str:
     """Convert a number into a string and add leading zeros.
-    Typically used to construct filenames with equal lengths.
+    Used to construct filenames with equal lengths.
 
     :param number: the number
     :type number: int
@@ -177,11 +184,11 @@ def addzeros(number: int) -> str:
 
     if number < 10:
         zerostring = '0000' + str(number)
-    if number >= 10 and number < 100:
+    if 10 <= number < 100:
         zerostring = '000' + str(number)
-    if number >= 100 and number < 1000:
+    if 100 <= number < 1000:
         zerostring = '00' + str(number)
-    if number >= 1000 and number < 10000:
+    if 1000 <= number < 10000:
         zerostring = '0' + str(number)
 
     return zerostring
