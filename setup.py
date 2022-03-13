@@ -26,6 +26,7 @@ REQUIRED = [
     "setuptools>=52.0.0",
     "xmltodict>=0.12.0",
     "pydash>=5.0.2",
+    "aicsimageio[all]",
     "aicspylibczi>=3.0.4",
     "tqdm>=4.61.2",
     "pylibczirw",
