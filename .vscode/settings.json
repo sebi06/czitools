@@ -1,7 +1,16 @@
 {
+<<<<<<< Updated upstream
     "python.linting.mypyEnabled": false,
     "python.linting.enabled": true,
     "python.linting.pycodestyleEnabled": true,
     "python.linting.pylintEnabled": false,
     "python.linting.flake8Enabled": false
 }
+=======
+  "python.linting.mypyEnabled": false,
+  "python.linting.enabled": true,
+  "python.linting.pycodestyleEnabled": false,
+  "python.linting.pylintEnabled": false,
+  "python.linting.flake8Enabled": true
+}
+>>>>>>> Stashed changes
