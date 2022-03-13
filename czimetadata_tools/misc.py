@@ -15,7 +15,7 @@ from __future__ import annotations
 import os
 from tkinter import filedialog
 from tkinter import *
-from types import NoneType
+#from types import NoneType
 import zarr
 import pandas as pd
 import dask

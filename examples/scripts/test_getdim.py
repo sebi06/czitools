@@ -12,6 +12,8 @@ with pyczi.open_czi(filepath) as czidoc_r:
 
 print(dim_dict)
 
+czimd_complete = czimd.CziMetadataComplete(filepath)
+
 czi_dimensions = czimd.CziDimensions(filepath)
 czi_scale = czimd.CziScaling(filepath)
 czi_info = czimd.CziInfo(filepath)

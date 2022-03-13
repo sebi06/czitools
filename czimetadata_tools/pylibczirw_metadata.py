@@ -26,6 +26,9 @@ from dataclasses import dataclass, field
 
 
 class CziMetadataComplete:
+    """Get the complete CZI metadata as an object created based on the
+    dictionary created from the XML data.
+    """    
     def __init__(self, filename: str):
 
         # get metadata dictionary using pylibCZIrw
@@ -36,6 +39,8 @@ class CziMetadataComplete:
 
 
 class DictObj:
+    """Create an object based on a dictionary
+    """    
     # based upon: https://joelmccune.com/python-dictionary-as-object/
     def __init__(self, in_dict: dict):
         assert isinstance(in_dict, dict)
