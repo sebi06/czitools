@@ -36,28 +36,28 @@ def read_mdarray(filename: str,
         if mdata.image.SizeS is not None:
             # get size for a single scene using the 1st
             # works only if scene shape is consistent
-            sizeX = mdata.bbox.all_scenes[0].w
-            sizeY = mdata.bbox.all_scenes[0].h
+            size_x = mdata.bbox.all_scenes[0].w
+            size_y = mdata.bbox.all_scenes[0].h
 
         if mdata.image.SizeS is None:
-            sizeX = mdata.image.SizeX
-            sizeY = mdata.image.SizeY
+            size_x = mdata.image.SizeX
+            size_y = mdata.image.SizeY
 
         # check if dimensions are None (because they do not exist for that image)
-        sizeC = misc.check_dimsize(mdata.image.SizeC, set2value=1)
-        sizeZ = misc.check_dimsize(mdata.image.SizeZ, set2value=1)
-        sizeT = misc.check_dimsize(mdata.image.SizeT, set2value=1)
-        sizeS = misc.check_dimsize(mdata.image.SizeS, set2value=1)
+        size_c = misc.check_dimsize(mdata.image.SizeC, set2value=1)
+        size_z = misc.check_dimsize(mdata.image.SizeZ, set2value=1)
+        size_t = misc.check_dimsize(mdata.image.SizeT, set2value=1)
+        size_s = misc.check_dimsize(mdata.image.SizeS, set2value=1)
 
         # define the dimension order to be STZCYXA
         dimstring = "STZCYXA"
-        array_md = np.empty([sizeS, sizeT, sizeZ, sizeC, sizeY, sizeX, 3 if mdata.isRGB else 1], dtype=mdata.npdtype)
+        array_md = np.empty([size_s, size_t, size_z, size_c, size_y, size_x, 3 if mdata.isRGB else 1], dtype=mdata.npdtype)
 
         # read array for the scene
-        for s, t, z, c in product(range(sizeS),
-                                  range(sizeT),
-                                  range(sizeZ),
-                                  range(sizeC)):
+        for s, t, z, c in product(range(size_s),
+                                  range(size_t),
+                                  range(size_z),
+                                  range(size_c)):
 
             if mdata.image.SizeS is None:
                 image2d = czidoc.read(plane={'T': t, 'Z': z, 'C': c})

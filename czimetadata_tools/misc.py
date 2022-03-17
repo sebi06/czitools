@@ -138,8 +138,8 @@ def md2dataframe(md_dict: Dict,
                  keycol: str = "Value") -> pd.DataFrame:
     """Convert the metadata dictionary to a Pandas DataFrame.
 
-    :param metadata: MeteData dictionary
-    :type metadata: dict
+    :param md_dict: MeteData dictionary
+    :type md_dict: dict
     :param paramcol: Name of Columns for the MetaData Parameters, defaults to "Parameter"
     :type paramcol: str, optional
     :param keycol: Name of Columns for the MetaData Values, defaults to "Value"
@@ -173,7 +173,7 @@ def sort_dict_by_key(unsorted_dict: Dict) -> Dict:
     return sorted_dict
 
 
-def addzeros(number: int) -> str:
+def addzeros(number: int) -> Optional[str]:
     """Convert a number into a string and add leading zeros.
     Used to construct filenames with equal lengths.
 
@@ -183,13 +183,17 @@ def addzeros(number: int) -> str:
     :rtype: str
     """
 
+    zerostring = None
+
     if number < 10:
-        zerostring = '0000' + str(number)
+        zerostring = '00000' + str(number)
     if 10 <= number < 100:
-        zerostring = '000' + str(number)
+        zerostring = '0000' + str(number)
     if 100 <= number < 1000:
-        zerostring = '00' + str(number)
+        zerostring = '000' + str(number)
     if 1000 <= number < 10000:
+        zerostring = '00' + str(number)
+    if 10000 <= number < 100000:
         zerostring = '0' + str(number)
 
     return zerostring
@@ -232,11 +236,9 @@ def check_dimsize(mdata_entry: Union[int, None], set2value: int = 1) -> int:
 
     # check if the dimension entry is None
     if mdata_entry is None:
-        new_value = set2value
+        return set2value
     if mdata_entry is not None:
-        new_value = mdata_entry
-
-    return new_value
+        return mdata_entry
 
 
 def get_daskstack(aics_img: AICSImage) -> List:

@@ -2,9 +2,9 @@
 
 #################################################################
 # File        : pylibczirw_metadata.py
-# Version     : 0.1.3
+# Version     : 0.1.4
 # Author      : sebi06
-# Date        : 12.03.2022
+# Date        : 17.03.2022
 #
 # Disclaimer: The code is purely experimental. Feel free to
 # use it at your own risk.
@@ -67,7 +67,7 @@ class CziMetadata:
             # get dimensions
             self.pyczi_dims = czidoc.total_bounding_box
 
-            # get some additional metadata using aipylibczi
+            # get some additional metadata using aicspylibczi
             try:
                 from aicspylibczi import CziFile
 
@@ -141,9 +141,10 @@ class CziMetadata:
 
     # can be also used without creating an instance of the class
     @staticmethod
-    def get_dtype_fromstring(pixeltype: str) -> Tuple[np.dtype, int]:
+    def get_dtype_fromstring(pixeltype: str) -> Tuple[Optional[np.dtype], Optional[int]]:
 
-        dytpe = None
+        dtype = None
+        maxvalue = None
 
         if pixeltype == "gray16" or pixeltype == "Gray16":
             dtype = np.dtype(np.uint16)
@@ -196,6 +197,21 @@ class CziDimensions:
 
     def __init__(self, filename: str) -> None:
 
+        self.SizeX = None
+        self.SizeY = None
+        self.SizeS = None
+        self.SizeT = None
+        self.SizeZ = None
+        self.SizeC = None
+        self.SizeM = None
+        self.SizeR = None
+        self.SizeH = None
+        self.SizeI = None
+        self.SizeV = None
+        self.SizeB = None
+        self.SizeX_sf = None
+        self.SizeY_sf = None
+
         with pyczi.open_czi(filename) as czidoc_r:
             dim_dict = self.get_image_dimensions(czidoc_r.metadata)
 
@@ -205,12 +221,12 @@ class CziDimensions:
     # Information official CZI Dimension Characters:
     # "X":"Width"        :
     # "Y":"Height"       :
-    # "C":"Channel"      :
-    # "Z":"Slice"        :
-    # "T":"Time"         :
+    # "C":"Channel"      : number of channels
+    # "Z":"Slice"        : number of z-planes
+    # "T":"Time"         : number of time points
     # "R":"Rotation"     :
     # "S":"Scene"        : contiguous regions of interest in a mosaic image
-    # "I":"Illumination" : SPIM direction
+    # "I":"Illumination" : SPIM direction for LightSheet
     # "B":"Block"        : acquisition
     # "M":"Mosaic"       : index of tile for compositing a scene
     # "H":"Phase"        : e.g. Airy detector fibers
@@ -225,7 +241,7 @@ class CziDimensions:
             raw_metadata: The CZI meta-data to derive the image dimensions from.
 
         Returns:
-            The dimensions dictionary.
+            The dimension dictionary.
         """
 
         def _safe_get(key: str) -> Optional[int]:
@@ -259,9 +275,9 @@ class CziDimensions:
 @dataclass
 class CziBoundingBox:
     filename: str
-    all_scenes: Dict[int, pyczi.Rectangle] = field(init=False)
-    total_rect: pyczi.Rectangle = field(init=False)
-    total_bounding_box: Dict[str, tuple] = field(init=False)
+    all_scenes: Optional[Dict[int, pyczi.Rectangle]] = field(init=False)
+    total_rect: Optional[pyczi.Rectangle] = field(init=False)
+    total_bounding_box: Optional[Dict[str, tuple]] = field(init=False)
 
     def __post_init__(self):
         with pyczi.open_czi(self.filename) as czidoc:
@@ -429,6 +445,11 @@ class CziScaling:
     def __init__(self, filename: str, dim2none: bool = True) -> None:
 
         # get metadata dictionary using pylibCZIrw
+        self.scalefactorXY = None
+        self.ratio_sf = None
+        self.Y_sf = None
+        self.X_sf = None
+
         with pyczi.open_czi(filename) as czidoc:
             md_dict = czidoc.metadata
 
@@ -459,7 +480,7 @@ class CziScaling:
         self.Y = _safe_get_scale(distances, 1)
         self.Z = _safe_get_scale(distances, 2)
 
-        # safety check incase a scale = 0
+        # safety check in case a scale = 0
         if self.X == 0.0:
             self.X = 1.0
         if self.Y == 0.0:
@@ -825,7 +846,7 @@ class CziSampleInfo:
 
         try:
             # get S-Dimension
-            sizeS = np.int(md_dict["ImageDocument"]["Metadata"]["Information"]["Image"]["SizeS"])
+            SizeS = np.int(md_dict["ImageDocument"]["Metadata"]["Information"]["Image"]["SizeS"])
             print("Trying to extract Scene and Well information if existing ...")
 
             # extract well information from the dictionary
@@ -834,7 +855,7 @@ class CziSampleInfo:
             # loop over all detected scenes
             for s in range(sizeS):
 
-                if sizeS == 1:
+                if SizeS == 1:
                     well = allscenes
                     try:
                         self.well_array_names.append(allscenes["ArrayName"])
@@ -897,7 +918,7 @@ class CziSampleInfo:
                         self.scene_stageX.append(0.0)
                         self.scene_stageY.append(0.0)
 
-                if sizeS > 1:
+                if SizeS > 1:
                     try:
                         well = allscenes[s]
                         self.well_array_names.append(well["ArrayName"])
