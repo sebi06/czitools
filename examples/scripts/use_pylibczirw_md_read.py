@@ -15,13 +15,13 @@ from czimetadata_tools import pylibczirw_metadata as czimd
 from czimetadata_tools import pylibczirw_tools
 from czimetadata_tools import napari_tools
 import napari
-import numpy as np
 
 #filename = r'C:\Testdata_Zeiss\CZI_Testfiles\CellDivision_T=3_Z=5_CH=2_X=240_Y=170.czi'
 #filename = r'C:\Testdata_Zeiss\CZI_Testfiles\testwell96.czi'
 #filename = r"C:\Testdata_Zeiss\CZI_Testfiles\tobacco_z=10_tiles.czi"
 #filename = r"C:\Testdata_Zeiss\CZI_Testfiles\S=2_3x3_T=3_Z=4_CH=2.czi"
-filename = r"E:\testpictures\Testdata_Zeiss\CZI_Testfiles\FoLu_mCherryEB3_GFPMito_2_Airyscan Processing.czi"
+#filename = r"E:\testpictures\Testdata_Zeiss\CZI_Testfiles\FoLu_mCherryEB3_GFPMito_2_Airyscan Processing.czi"
+filename = r"D:\Testdata_Zeiss\LightSheet_Z1\LightSheetDirection\Tiling2x2_z-stack_dual_Site.czi"
 
 # get the complete metadata at once as one big class
 mdata = czimd.CziMetadata(filename)
