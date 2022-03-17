@@ -2,9 +2,9 @@
 
 #################################################################
 # File        : test_czimetadata_class.py
-# Version     : 0.0.6
+# Version     : 0.0.7
 # Author      : sebi06
-# Date        : 24.01.2022
+# Date        : 17.03.2022
 #
 # Disclaimer: This code is purely experimental. Feel free to
 # use it at your own risk.
@@ -12,8 +12,8 @@
 #################################################################
 
 from __future__ import annotations
-from czitools import czi_metadata as czimd
-from czitools import czi_read as czird
+from czimetadata_tools import pylibczirw_metadata as czimd
+from czimetadata_tools import pylibczirw_tools as czit
 import napari
 from aicspylibczi import CziFile
 from czitools import misc, napari_tools
@@ -51,17 +51,21 @@ czi_addmd = czimd.CziAddMetaData(filename)
 # get the complete metadata at once as one big class
 mdata = czimd.CziMetadata(filename)
 
-# get the metadata as a dictionary
-mdict = czimd.create_mdict_complete(filename, sort=False)
-for k, v in mdict.items():
+# get selected metadata as a dictionary
+mdata_dict = czimd.create_mdict_red(mdata)
+for k, v in mdata_dict.items():
     print(k, " : ", v)
 
+print("---------------------------------------------------")
+
 # and convert to pd.DataFrame
-df_md = misc.md2dataframe(mdict)
-print(df_md[:10])
+df_md = misc.md2dataframe(mdata_dict)
+print(df_md[:4])
+
+print("---------------------------------------------------")
 
 # write metadata as XML to disk
-xmlfile = misc.writexml_czi(filename)
+xmlfile = czimd.writexml(filename)
 
 # get the planetable for the CZI file and save it (optional)
 pt, csvfile = czimd.aics_get_planetable(filename,
@@ -80,7 +84,7 @@ print("Scene DimString :", scene.single_scene_dimstr)
 print("Scene Shape :", scene.shape_single_scene)
 
 # read pixel data
-all_scenes, _ = czird.read(filename)
+all_scenes, _ = czit.read(filename)
 
 # show array inside napari viewer
 viewer = napari.Viewer()

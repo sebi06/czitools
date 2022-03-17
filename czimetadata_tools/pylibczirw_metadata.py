@@ -28,7 +28,8 @@ from dataclasses import dataclass, field
 class CziMetadataComplete:
     """Get the complete CZI metadata as an object created based on the
     dictionary created from the XML data.
-    """    
+    """
+
     def __init__(self, filename: str):
 
         # get metadata dictionary using pylibCZIrw
@@ -40,8 +41,9 @@ class CziMetadataComplete:
 
 class DictObj:
     """Create an object based on a dictionary
-    """    
+    """
     # based upon: https://joelmccune.com/python-dictionary-as-object/
+
     def __init__(self, in_dict: dict):
         assert isinstance(in_dict, dict)
         for key, val in in_dict.items():
@@ -208,7 +210,7 @@ class CziDimensions:
     # "T":"Time"         :
     # "R":"Rotation"     :
     # "S":"Scene"        : contiguous regions of interest in a mosaic image
-    # "I":"Illumination" : direction
+    # "I":"Illumination" : SPIM direction
     # "B":"Block"        : acquisition
     # "M":"Mosaic"       : index of tile for compositing a scene
     # "H":"Phase"        : e.g. Airy detector fibers
@@ -1070,3 +1072,66 @@ def writexml(filename: str, xmlsuffix: str = '_CZI_MetaData.xml') -> str:
     tree.write(xmlfile, encoding='utf-8', method='xml')
 
     return xmlfile
+
+
+def create_mdict_red(metadata: CziMetadata,
+                     sort: bool = True) -> Dict:
+    """
+    Created a metadata dictionary to be displayed in napari
+
+    Args:
+        metadata: CziMetadata class
+        sort: sort the dictionary
+
+    Returns: dictionary with the metadata
+
+    """
+
+    # create a dictionary with the metadata
+    md_dict = {'Directory': metadata.info.dirname,
+               'Filename': metadata.info.filename,
+               'AcqDate': metadata.info.acquisition_date,
+               'SizeX': metadata.image.SizeX,
+               'SizeY': metadata.image.SizeY,
+               'SizeZ': metadata.image.SizeZ,
+               'SizeC': metadata.image.SizeC,
+               'SizeT': metadata.image.SizeT,
+               'SizeS': metadata.image.SizeS,
+               'SizeB': metadata.image.SizeB,
+               'SizeM': metadata.image.SizeM,
+               'SizeH': metadata.image.SizeH,
+               'SizeI': metadata.image.SizeI,
+               'isRGB': metadata.isRGB,
+               'ismosaic': metadata.ismosaic,
+               'ObjNA': metadata.objective.NA,
+               'ObjMag': metadata.objective.mag,
+               'TubelensMag': metadata.objective.tubelensmag,
+               'XScale': metadata.scale.X,
+               'YScale': metadata.scale.Y,
+               'ZScale': metadata.scale.Z,
+               'ChannelsNames': metadata.channelinfo.names,
+               'ChannelShortNames': metadata.channelinfo.shortnames,
+               'bbox_all_scenes': metadata.bbox.all_scenes,
+               'WellArrayNames': metadata.sample.well_array_names,
+               'WellIndicies': metadata.sample.well_indices,
+               'WellPositionNames': metadata.sample.well_position_names,
+               'WellRowID': metadata.sample.well_rowID,
+               'WellColumnID': metadata.sample.well_colID,
+               'WellCounter': metadata.sample.well_counter,
+               'SceneCenterStageX': metadata.sample.scene_stageX,
+               'SceneCenterStageY': metadata.sample.scene_stageX
+               }
+
+    # check fro extra entries when reading mosaic file with a scale factor
+    if hasattr(metadata.image, "SizeX_sf"):
+        md_dict['SizeX sf'] = metadata.image.SizeX_sf
+        md_dict['SizeY sf'] = metadata.image.SizeY_sf
+        md_dict['XScale sf'] = metadata.scale.X_sf
+        md_dict['YScale sf'] = metadata.scale.Y_sf
+        md_dict['ratio sf'] = metadata.scale.ratio_sf
+        md_dict['scalefactorXY'] = metadata.scale.scalefactorXY
+
+    if sort:
+        return misc.sort_dict_by_key(md_dict)
+    if not sort:
+        return md_dict
