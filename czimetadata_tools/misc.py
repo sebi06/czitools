@@ -2,9 +2,9 @@
 
 #################################################################
 # File        : misc.py
-# Version     : 0.0.9
+# Version     : 0.0.7
 # Author      : sebi06
-# Date        : 13.03.2022
+# Date        : 01.02.2022
 #
 # Disclaimer: The code is purely experimental. Feel free to
 # use it at your own risk.
@@ -15,7 +15,6 @@ from __future__ import annotations
 import os
 from tkinter import filedialog
 from tkinter import *
-#from types import NoneType
 import zarr
 import pandas as pd
 import dask
@@ -138,8 +137,8 @@ def md2dataframe(md_dict: Dict,
                  keycol: str = "Value") -> pd.DataFrame:
     """Convert the metadata dictionary to a Pandas DataFrame.
 
-    :param md_dict: MeteData dictionary
-    :type md_dict: dict
+    :param metadata: MeteData dictionary
+    :type metadata: dict
     :param paramcol: Name of Columns for the MetaData Parameters, defaults to "Parameter"
     :type paramcol: str, optional
     :param keycol: Name of Columns for the MetaData Values, defaults to "Value"
@@ -158,13 +157,6 @@ def md2dataframe(md_dict: Dict,
 
 
 def sort_dict_by_key(unsorted_dict: Dict) -> Dict:
-    """Sort a dictionary by its keys.
-
-    :param unsorted_dict: the unsorted dictionary
-    :type unsorted_dict: dict
-    :return: sorted_dict - sorted dictionary
-    :rtype: dict
-    """
     sorted_keys = sorted(unsorted_dict.keys(), key=lambda x: x.lower())
     sorted_dict = {}
     for key in sorted_keys:
@@ -173,9 +165,9 @@ def sort_dict_by_key(unsorted_dict: Dict) -> Dict:
     return sorted_dict
 
 
-def addzeros(number: int) -> Optional[str]:
+def addzeros(number: int) -> str:
     """Convert a number into a string and add leading zeros.
-    Used to construct filenames with equal lengths.
+    Typically used to construct filenames with equal lengths.
 
     :param number: the number
     :type number: int
@@ -183,17 +175,13 @@ def addzeros(number: int) -> Optional[str]:
     :rtype: str
     """
 
-    zerostring = None
-
     if number < 10:
-        zerostring = '00000' + str(number)
-    if 10 <= number < 100:
         zerostring = '0000' + str(number)
-    if 100 <= number < 1000:
+    if number >= 10 and number < 100:
         zerostring = '000' + str(number)
-    if 1000 <= number < 10000:
+    if number >= 100 and number < 1000:
         zerostring = '00' + str(number)
-    if 10000 <= number < 100000:
+    if number >= 1000 and number < 10000:
         zerostring = '0' + str(number)
 
     return zerostring
@@ -224,32 +212,17 @@ def get_fname_woext(filepath: str) -> str:
 
 
 def check_dimsize(mdata_entry: Union[int, None], set2value: int = 1) -> int:
-    """Check is a value is None and replace with a specific number
-
-    Args:
-        mdata_entry (Union[int, None]): value to be checked
-        set2value (int, optional): value used to replace None with. Defaults to 1.
-
-    Returns:
-        int: new_value
-    """
 
     # check if the dimension entry is None
     if mdata_entry is None:
-        return set2value
+        size = set2value
     if mdata_entry is not None:
-        return mdata_entry
+        size = mdata_entry
+
+    return size
 
 
 def get_daskstack(aics_img: AICSImage) -> List:
-    """Get all scenes of an image as dask stack
-
-    Args:
-        aics_img (AICSImage): the AICSImageIO object
-
-    Returns:
-        List: List of dask arrays
-    """
 
     stacks = []
     for scene in aics_img.scenes:
@@ -531,3 +504,12 @@ def save_planetable(df: pd.DataFrame,
     df.to_csv(csvfile, sep=separator, index=index)
 
     return csvfile
+
+
+def expand5d(array):
+
+    array = np.expand_dims(array, axis=-3)
+    array = np.expand_dims(array, axis=-4)
+    array5d = np.expand_dims(array, axis=-5)
+
+    return array5d
