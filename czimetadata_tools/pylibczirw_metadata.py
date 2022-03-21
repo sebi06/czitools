@@ -2,9 +2,9 @@
 
 #################################################################
 # File        : pylibczirw_metadata.py
-# Version     : 0.1.4
+# Version     : 0.1.5
 # Author      : sebi06
-# Date        : 17.03.2022
+# Date        : 21.03.2022
 #
 # Disclaimer: The code is purely experimental. Feel free to
 # use it at your own risk.
@@ -834,6 +834,9 @@ class CziSampleInfo:
         with pyczi.open_czi(filename) as czidoc:
             md_dict = czidoc.metadata
 
+        dim_dict = CziDimensions.get_image_dimensions(md_dict)
+        sizeS = dim_dict["SizeS"]
+
         # check for well information
         self.well_array_names = []
         self.well_indices = []
@@ -844,9 +847,7 @@ class CziSampleInfo:
         self.scene_stageX = []
         self.scene_stageY = []
 
-        try:
-            # get S-Dimension
-            SizeS = np.int(md_dict["ImageDocument"]["Metadata"]["Information"]["Image"]["SizeS"])
+        if sizeS is not None:
             print("Trying to extract Scene and Well information if existing ...")
 
             # extract well information from the dictionary
@@ -855,7 +856,7 @@ class CziSampleInfo:
             # loop over all detected scenes
             for s in range(sizeS):
 
-                if SizeS == 1:
+                if sizeS == 1:
                     well = allscenes
                     try:
                         self.well_array_names.append(allscenes["ArrayName"])
@@ -918,7 +919,7 @@ class CziSampleInfo:
                         self.scene_stageX.append(0.0)
                         self.scene_stageY.append(0.0)
 
-                if SizeS > 1:
+                if sizeS > 1:
                     try:
                         well = allscenes[s]
                         self.well_array_names.append(well["ArrayName"])
@@ -986,8 +987,8 @@ class CziSampleInfo:
                 # count the number of different wells
                 self.number_wells = len(self.well_counter.keys())
 
-        except (KeyError, TypeError) as e:
-            print("No valid Scene or Well information found:", e)
+        else:
+            print("No Scene or Well information found:", e)
 
 
 class CziAddMetaData:
