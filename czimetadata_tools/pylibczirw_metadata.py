@@ -2,7 +2,7 @@
 
 #################################################################
 # File        : pylibczirw_metadata.py
-# Version     : 0.1.5
+# Version     : 0.1.6
 # Author      : sebi06
 # Date        : 21.03.2022
 #
@@ -18,7 +18,7 @@ from collections import Counter
 import xml.etree.ElementTree as ET
 from pylibCZIrw import czi as pyczi
 from tqdm.contrib.itertools import product
-from czimetadata_tools import misc
+import misc
 import numpy as np
 import pydash
 from typing import List, Dict, Tuple, Optional, Type, Any, Union
@@ -455,7 +455,8 @@ class CziScaling:
 
         def _safe_get_scale(distances_: List[Dict[Any, Any]], idx: int) -> Optional[float]:
             try:
-                return np.round(float(distances_[idx]["Value"]) * 1000000, 3) if distances_[idx]["Value"] is not None else None
+                # return np.round(float(distances_[idx]["Value"]) * 1000000, 6) if distances_[idx]["Value"] is not None else None
+                return float(distances_[idx]["Value"]) * 1000000 if distances_[idx]["Value"] is not None else None
             except IndexError:
                 if dim2none:
                     return None
