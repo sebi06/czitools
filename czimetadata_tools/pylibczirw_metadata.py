@@ -2,9 +2,9 @@
 
 #################################################################
 # File        : pylibczirw_metadata.py
-# Version     : 0.1.6
+# Version     : 0.1.7
 # Author      : sebi06
-# Date        : 21.03.2022
+# Date        : 22.03.2022
 #
 # Disclaimer: The code is purely experimental. Feel free to
 # use it at your own risk.
@@ -989,7 +989,7 @@ class CziSampleInfo:
                 self.number_wells = len(self.well_counter.keys())
 
         else:
-            print("No Scene or Well information found:", e)
+            print("No Scene or Well information found.")
 
 
 class CziAddMetaData:
