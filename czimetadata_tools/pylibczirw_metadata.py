@@ -13,12 +13,14 @@
 
 from __future__ import annotations
 import os
-#from pathlib import Path
 from collections import Counter
 import xml.etree.ElementTree as ET
-import pylibCZIrw import czi as pyczi
+from pylibCZIrw import czi as pyczi
 from tqdm.contrib.itertools import product
-from czimetadata_tools import misc
+try:
+    from czimetadata_tools import misc
+except ImportError:
+    import misc
 import numpy as np
 import pydash
 from typing import List, Dict, Tuple, Optional, Type, Any, Union

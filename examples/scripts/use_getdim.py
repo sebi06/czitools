@@ -1,4 +1,7 @@
-from czimetadata_tools import pylibczirw_metadata as czimd
+try:
+    from czimetadata_tools import pylibczirw_metadata as czimd
+except ImportError:
+    import pylibczirw_metadata as czimd
 from pylibCZIrw import czi as pyczi
 import os
 from pathlib import Path
