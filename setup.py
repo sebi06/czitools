@@ -14,7 +14,7 @@ from setuptools import find_packages, setup, Command
 
 # Package meta-data.
 NAME = "czimetadata_tools"
-DESCRIPTION = "Tools to simplify reading CZI (Carl Zeiss Image) metainformation in Python"
+DESCRIPTION = "Tools to simplify reading CZI (Carl Zeiss Image) metadata in Python"
 URL = "https://github.com/sebi06/czimetadata_tools"
 EMAIL = "sebrhode@gmail.com"
 AUTHOR = "Sebastian Rhode"
