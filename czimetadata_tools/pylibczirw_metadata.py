@@ -2,9 +2,9 @@
 
 #################################################################
 # File        : pylibczirw_metadata.py
-# Version     : 0.1.7
+# Version     : 0.1.8
 # Author      : sebi06
-# Date        : 22.03.2022
+# Date        : 22.04.2022
 #
 # Disclaimer: The code is purely experimental. Feel free to
 # use it at your own risk.
@@ -468,6 +468,12 @@ class CziScaling:
 
         try:
             distances = md_dict["ImageDocument"]["Metadata"]["Scaling"]["Items"]["Distance"]
+
+            # get the scaling in [micron] - inside CZI the default is [m]
+            self.X = _safe_get_scale(distances, 0)
+            self.Y = _safe_get_scale(distances, 1)
+            self.Z = _safe_get_scale(distances, 2)
+        
         except KeyError:
             if dim2none:
                 self.X = None
@@ -478,10 +484,10 @@ class CziScaling:
                 self.Y = 1.0
                 self.Z = 1.0
 
-        # get the scaling in [micron] - inside CZI the default is [m]
-        self.X = _safe_get_scale(distances, 0)
-        self.Y = _safe_get_scale(distances, 1)
-        self.Z = _safe_get_scale(distances, 2)
+        ## get the scaling in [micron] - inside CZI the default is [m]
+        #self.X = _safe_get_scale(distances, 0)
+        #self.Y = _safe_get_scale(distances, 1)
+        #self.Z = _safe_get_scale(distances, 2)
 
         # safety check in case a scale = 0
         if self.X == 0.0:
@@ -917,7 +923,7 @@ class CziSampleInfo:
                         sy = allscenes["CenterPosition"].split(",")[1]
                         self.scene_stageX.append(np.double(sx))
                         self.scene_stageY.append(np.double(sy))
-                    except (TypeError, (KeyError, TypeError)) as e:
+                    except (TypeError, KeyError) as e:
                         print("Stage Positions XY not found :", e)
                         self.scene_stageX.append(0.0)
                         self.scene_stageY.append(0.0)
