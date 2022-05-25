@@ -148,5 +148,5 @@ examples/pylibCZIrw_docu/newCZI_zscenes.czi
 /.vscode/
 
 # skip folders
-**/pylibCZIrw_docu/
-**/experimental/
+examples/pylibCZIrw_docu/**
+experimental/**
