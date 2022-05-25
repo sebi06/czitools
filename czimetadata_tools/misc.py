@@ -2,9 +2,7 @@
 
 #################################################################
 # File        : misc.py
-# Version     : 0.0.7
 # Author      : sebi06
-# Date        : 01.02.2022
 #
 # Disclaimer: The code is purely experimental. Feel free to
 # use it at your own risk.
@@ -328,21 +326,39 @@ def get_planetable(czifile: str,
             # get information from subblock
             timestamp, xpos, ypos, zpos = getsbinfo(sb)
 
-            df_czi = df_czi.append({'Subblock': sbcount,
-                                    'Scene': s,
-                                    'Tile': m,
-                                    'T': t,
-                                    'Z': z,
-                                    'C': c,
-                                    'X[micron]': xpos,
-                                    'Y[micron]': ypos,
-                                    'Z[micron]': zpos,
-                                    'Time[s]': timestamp,
-                                    'xstart': tilebbox.x,
-                                    'ystart': tilebbox.y,
-                                    'width': tilebbox.w,
-                                    'height': tilebbox.h},
-                                   ignore_index=True)
+            # df_czi = df_czi.append({'Subblock': sbcount,
+            #                         'Scene': s,
+            #                         'Tile': m,
+            #                         'T': t,
+            #                         'Z': z,
+            #                         'C': c,
+            #                         'X[micron]': xpos,
+            #                         'Y[micron]': ypos,
+            #                         'Z[micron]': zpos,
+            #                         'Time[s]': timestamp,
+            #                         'xstart': tilebbox.x,
+            #                         'ystart': tilebbox.y,
+            #                         'width': tilebbox.w,
+            #                         'height': tilebbox.h},
+            #                         ignore_index=True)
+
+            plane = pd.DataFrame({'Subblock': sbcount,
+                                  'Scene': s,
+                                  'Tile': m,
+                                  'T': t,
+                                  'Z': z,
+                                  'C': c,
+                                  'X[micron]': xpos,
+                                  'Y[micron]': ypos,
+                                  'Z[micron]': zpos,
+                                  'Time[s]': timestamp,
+                                  'xstart': tilebbox.x,
+                                  'ystart': tilebbox.y,
+                                  'width': tilebbox.w,
+                                  'height': tilebbox.h},
+                                  index=[0])
+
+            df_czi = pd.concat([df_czi, plane], ignore_index=True)
 
     if not metadata.ismosaic:
 
@@ -369,21 +385,40 @@ def get_planetable(czifile: str,
             # get information from subblock
             timestamp, xpos, ypos, zpos = getsbinfo(sb)
 
-            df_czi = df_czi.append({'Subblock': sbcount,
-                                    'Scene': s,
-                                    'Tile': 0,
-                                    'T': t,
-                                    'Z': z,
-                                    'C': c,
-                                    'X[micron]': xpos,
-                                    'Y[micron]': ypos,
-                                    'Z[micron]': zpos,
-                                    'Time[s]': timestamp,
-                                    'xstart': tilebbox.x,
-                                    'ystart': tilebbox.y,
-                                    'width': tilebbox.w,
-                                    'height': tilebbox.h},
-                                   ignore_index=True)
+            # df_czi = df_czi.append({'Subblock': sbcount,
+            #                         'Scene': s,
+            #                         'Tile': 0,
+            #                         'T': t,
+            #                         'Z': z,
+            #                         'C': c,
+            #                         'X[micron]': xpos,
+            #                         'Y[micron]': ypos,
+            #                         'Z[micron]': zpos,
+            #                         'Time[s]': timestamp,
+            #                         'xstart': tilebbox.x,
+            #                         'ystart': tilebbox.y,
+            #                         'width': tilebbox.w,
+            #                         'height': tilebbox.h},
+            #                        ignore_index=True)
+
+            plane = pd.DataFrame({'Subblock': sbcount,
+                                  'Scene': s,
+                                  'Tile': 0,
+                                  'T': t,
+                                  'Z': z,
+                                  'C': c,
+                                  'X[micron]': xpos,
+                                  'Y[micron]': ypos,
+                                  'Z[micron]': zpos,
+                                  'Time[s]': timestamp,
+                                  'xstart': tilebbox.x,
+                                  'ystart': tilebbox.y,
+                                  'width': tilebbox.w,
+                                  'height': tilebbox.h},
+                                  index=[0])
+
+            #df_czi = pd.concat([df_czi, plane], ignore_index=True)
+            df_czi = pd.concat([df_czi, plane], ignore_index=True)
 
     # cast data  types
     df_czi = df_czi.astype({'Subblock': 'int32',

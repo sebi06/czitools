@@ -30,7 +30,8 @@ REQUIRED = [
     "aicspylibczi>=3.0.4",
     "tqdm>=4.61.2",
     "pylibczirw",
-    "cztile"
+    "cztile",
+    "ipyfilechooser"
 ]
 
 # What packages are optional?
