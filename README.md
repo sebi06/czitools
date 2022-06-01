@@ -54,4 +54,4 @@ layers = napari_tools.show(viewer, mdarray, mdata,
 napari.run()
 ```
 
-![5D CZI inside Napari](images/czi_napari1.png)
+![5D CZI inside Napari](docs/images/czi_napari1.png)
