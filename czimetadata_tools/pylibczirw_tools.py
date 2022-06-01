@@ -9,9 +9,6 @@
 #
 #################################################################
 
-from __future__ import annotations
-
-import pylibCZIrw.czi
 from pylibCZIrw import czi as pyczi
 from czimetadata_tools import pylibczirw_metadata as czimd
 from czimetadata_tools import misc
