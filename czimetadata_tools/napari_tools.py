@@ -2,9 +2,7 @@
 
 #################################################################
 # File        : napari_tools.py
-# Version     : 0.1.5
 # Author      : sebi06
-# Date        : 17.03.2022
 #
 # Disclaimer: This code is purely experimental. Feel free to
 # use it at your own risk.
@@ -221,8 +219,10 @@ def show(viewer: Any, array: np.ndarray, metadata: czimd.CziMetadata,
                                          gamma=gamma)
         if contrast == "from_czi":
             # guess an appropriate scaling from the display setting embedded in the CZI
-            lower = np.round(metadata.channelinfo.clims[ch][0] * metadata.maxrange, 0)
-            higher = np.round(metadata.channelinfo.clims[ch][1] * metadata.maxrange, 0)
+            lower = np.round(
+                metadata.channelinfo.clims[ch][0] * metadata.maxrange, 0)
+            higher = np.round(
+                metadata.channelinfo.clims[ch][1] * metadata.maxrange, 0)
 
             # simple validity check
             if lower >= higher:
@@ -230,7 +230,8 @@ def show(viewer: Any, array: np.ndarray, metadata: czimd.CziMetadata,
                 lower = 0
                 higher = np.round(metadata.maxrange * 0.25, 0)
 
-            print("Display Scaling from CZI for CH:", ch, "Min-Max", lower, higher)
+            print("Display Scaling from CZI for CH:",
+                  ch, "Min-Max", lower, higher)
 
             # add channel to Napari viewer
             new_layer = viewer.add_image(channel,

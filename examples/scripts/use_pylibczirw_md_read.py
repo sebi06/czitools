@@ -26,8 +26,8 @@ filepath = os.path.join(basedir, r"testdata/S=2_3x3_CH=2.czi")
 mdata = czimd.CziMetadata(filepath)
 
 # return a 7d array with dimension order STZCYXA
-#mdarray, dimstring = pylibczirw_tools.read_mdarray(filepath)
-mdarray, dimstring = pylibczirw_tools.read_mdarray_lazy(filepath)
+mdarray, dimstring = pylibczirw_tools.read_mdarray(filepath)
+#mdarray, dimstring = pylibczirw_tools.read_mdarray_lazy(filepath)
 
 # remove A dimension do display the array inside Napari
 dim_order, dim_index, dim_valid = czimd.CziMetadata.get_dimorder(dimstring)

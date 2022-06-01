@@ -2,9 +2,7 @@
 
 #################################################################
 # File        : pylibczirw_tools.py
-# Version     : 0.0.9
 # Author      : sebi06
-# Date        : 02.02.2022
 #
 # Disclaimer: This code is purely experimental. Feel free to
 # use it at your own risk.
@@ -51,7 +49,8 @@ def read_mdarray(filename: str,
 
         # define the dimension order to be STZCYXA
         dimstring = "STZCYXA"
-        array_md = np.empty([size_s, size_t, size_z, size_c, size_y, size_x, 3 if mdata.isRGB else 1], dtype=mdata.npdtype)
+        array_md = np.empty([size_s, size_t, size_z, size_c, size_y,
+                            size_x, 3 if mdata.isRGB else 1], dtype=mdata.npdtype)
 
         # read array for the scene
         for s, t, z, c in product(range(size_s),
@@ -68,7 +67,8 @@ def read_mdarray(filename: str,
             if (mdata.bbox.total_bounding_box["X"][1] > mdata.image.SizeX or
                     mdata.bbox.total_bounding_box["Y"][1] > mdata.image.SizeY):
 
-                image2d = image2d[..., 0:mdata.image.SizeY, 0:mdata.image.SizeX, :]
+                image2d = image2d[..., 0:mdata.image.SizeY,
+                                  0:mdata.image.SizeX, :]
 
             array_md[s, t, z, c, ...] = image2d
 
@@ -102,11 +102,13 @@ def read_mdarray_lazy(filename: str, remove_Adim: bool = True) -> Tuple[da.Array
                 if mdata.image.SizeS is None:
                     image2d = czidoc.read()
                 else:
-                    image2d = czidoc.read(plane={'T': t, 'Z': z, 'C': c}, scene=s)
+                    image2d = czidoc.read(
+                        plane={'T': t, 'Z': z, 'C': c}, scene=s)
 
                 # check if the image2d is really not too big
                 if mdata.pyczi_dims["X"][1] > mdata.image.SizeX or mdata.pyczi_dims["Y"][1] > mdata.image.SizeY:
-                    image2d = image2d[..., 0:mdata.image.SizeY, 0:mdata.image.SizeX, :]
+                    image2d = image2d[..., 0:mdata.image.SizeY,
+                                      0:mdata.image.SizeX, :]
 
                 array_md[t, z, c, ...] = image2d
 
@@ -144,9 +146,11 @@ def read_mdarray_lazy(filename: str, remove_Adim: bool = True) -> Tuple[da.Array
 
     # create dask stack of lazy image readers
     lazy_process_image = dask.delayed(read_5d)  # lazy reader
-    lazy_arrays = [lazy_process_image(filename, sizes, s, mdata, remove_Adim) for s in range(sizeS)]
+    lazy_arrays = [lazy_process_image(
+        filename, sizes, s, mdata, remove_Adim) for s in range(sizeS)]
 
-    dask_arrays = [da.from_delayed(lazy_array, shape=sp, dtype=mdata.npdtype) for lazy_array in lazy_arrays]
+    dask_arrays = [da.from_delayed(
+        lazy_array, shape=sp, dtype=mdata.npdtype) for lazy_array in lazy_arrays]
 
     # Stack into one large dask.array
     array_md = da.stack(dask_arrays, axis=0)

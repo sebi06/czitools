@@ -2,9 +2,7 @@
 
 #################################################################
 # File        : pylibczirw_metadata.py
-# Version     : 0.1.8
 # Author      : sebi06
-# Date        : 22.04.2022
 #
 # Disclaimer: The code is purely experimental. Feel free to
 # use it at your own risk.
@@ -16,11 +14,8 @@ import os
 from collections import Counter
 import xml.etree.ElementTree as ET
 from pylibCZIrw import czi as pyczi
-from tqdm.contrib.itertools import product
-try:
-    from czimetadata_tools import misc
-except ImportError:
-    import misc
+#from tqdm.contrib.itertools import product
+from czimetadata_tools import misc
 import numpy as np
 import pydash
 from typing import List, Dict, Tuple, Optional, Type, Any, Union
@@ -50,9 +45,11 @@ class DictObj:
         assert isinstance(in_dict, dict)
         for key, val in in_dict.items():
             if isinstance(val, (list, tuple)):
-                setattr(self, key, [DictObj(x) if isinstance(x, dict) else x for x in val])
+                setattr(self, key, [DictObj(x) if isinstance(
+                    x, dict) else x for x in val])
             else:
-                setattr(self, key, DictObj(val) if isinstance(val, dict) else val)
+                setattr(self, key, DictObj(val)
+                        if isinstance(val, dict) else val)
 
 
 class CziMetadata:
@@ -80,7 +77,8 @@ class CziMetadata:
                 self.aics_dims_shape = aicsczi.get_dims_shape()
                 self.aics_size = aicsczi.size
                 self.aics_ismosaic = aicsczi.is_mosaic()
-                self.aics_dim_order, self.aics_dim_index, self.aics_dim_valid = self.get_dimorder(aicsczi.dims)
+                self.aics_dim_order, self.aics_dim_index, self.aics_dim_valid = self.get_dimorder(
+                    aicsczi.dims)
                 self.aics_posC = self.aics_dim_order["C"]
 
             except ImportError as e:
@@ -106,7 +104,8 @@ class CziMetadata:
                 self.isRGB = True
 
             # determine pixel type for CZI array
-            self.npdtype, self.maxvalue = self.get_dtype_fromstring(self.pixeltype)
+            self.npdtype, self.maxvalue = self.get_dtype_fromstring(
+                self.pixeltype)
 
             # get the dimensions and order
             self.image = CziDimensions(filename)
@@ -181,7 +180,8 @@ class CziMetadata:
         """
 
         dimindex_list = []
-        dims = ["R", "I", "M", "H", "V", "B", "S", "T", "C", "Z", "Y", "X", "A"]
+        dims = ["R", "I", "M", "H", "V", "B",
+                "S", "T", "C", "Z", "Y", "X", "A"]
         dims_dict = {}
 
         # loop over all dimensions and find the index
@@ -318,7 +318,8 @@ class CziChannelInfo:
         channels_gamma = []
 
         try:
-            sizeC = np.int(md_dict["ImageDocument"]["Metadata"]["Information"]["Image"]["SizeC"])
+            sizeC = np.int(md_dict["ImageDocument"]
+                           ["Metadata"]["Information"]["Image"]["SizeC"])
         except (KeyError, TypeError) as e:
             sizeC = 1
 
@@ -331,7 +332,8 @@ class CziChannelInfo:
             except (KeyError, TypeError) as e:
                 print("Channel shortname not found :", e)
                 try:
-                    channels.append(md_dict["ImageDocument"]["Metadata"]["DisplaySetting"]["Channels"]["Channel"]["DyeName"])
+                    channels.append(md_dict["ImageDocument"]["Metadata"]
+                                    ["DisplaySetting"]["Channels"]["Channel"]["DyeName"])
                 except (KeyError, TypeError) as e:
                     print("Channel dye not found :", e)
                     channels.append("Dye-CH1")
@@ -358,11 +360,13 @@ class CziChannelInfo:
 
             # get contrast setting fro DisplaySetting
             try:
-                low = np.float(md_dict["ImageDocument"]["Metadata"]["DisplaySetting"]["Channels"]["Channel"]["Low"])
+                low = np.float(md_dict["ImageDocument"]["Metadata"]
+                               ["DisplaySetting"]["Channels"]["Channel"]["Low"])
             except (KeyError, TypeError) as e:
                 low = 0.1
             try:
-                high = np.float(md_dict["ImageDocument"]["Metadata"]["DisplaySetting"]["Channels"]["Channel"]["High"])
+                high = np.float(md_dict["ImageDocument"]["Metadata"]
+                                ["DisplaySetting"]["Channels"]["Channel"]["High"])
             except (KeyError, TypeError) as e:
                 high = 0.5
 
@@ -473,7 +477,7 @@ class CziScaling:
             self.X = _safe_get_scale(distances, 0)
             self.Y = _safe_get_scale(distances, 1)
             self.Z = _safe_get_scale(distances, 2)
-        
+
         except KeyError:
             if dim2none:
                 self.X = None
@@ -484,7 +488,7 @@ class CziScaling:
                 self.Y = 1.0
                 self.Z = 1.0
 
-        ## get the scaling in [micron] - inside CZI the default is [m]
+        # get the scaling in [micron] - inside CZI the default is [m]
         #self.X = _safe_get_scale(distances, 0)
         #self.Y = _safe_get_scale(distances, 1)
         #self.Z = _safe_get_scale(distances, 2)
@@ -580,7 +584,8 @@ class CziObjectives:
             # get objective data
             try:
                 if isinstance(md_dict["ImageDocument"]["Metadata"]["Information"]["Instrument"]["Objectives"]["Objective"], list):
-                    num_obj = len(md_dict["ImageDocument"]["Metadata"]["Information"]["Instrument"]["Objectives"]["Objective"])
+                    num_obj = len(md_dict["ImageDocument"]["Metadata"]
+                                  ["Information"]["Instrument"]["Objectives"]["Objective"])
                 else:
                     num_obj = 1
             except (KeyError, TypeError) as e:
@@ -596,7 +601,8 @@ class CziObjectives:
                     self.name.append(None)
 
                 try:
-                    self.immersion = md_dict["ImageDocument"]["Metadata"]["Information"]["Instrument"]["Objectives"]["Objective"]["Immersion"]
+                    self.immersion = md_dict["ImageDocument"]["Metadata"]["Information"][
+                        "Instrument"]["Objectives"]["Objective"]["Immersion"]
                 except (KeyError, TypeError) as e:
                     print("No Objective Immersion :", e)
                     self.immersion = None
@@ -618,7 +624,8 @@ class CziObjectives:
                     self.tubelensmag = np.float(
                         md_dict["ImageDocument"]["Metadata"]["Information"]["Instrument"]["TubeLenses"]["TubeLens"]["Magnification"])
                 except (KeyError, TypeError) as e:
-                    print("No Tubelens Mag. :", e, "Using Default Value = 1.0.")
+                    print("No Tubelens Mag. :", e,
+                          "Using Default Value = 1.0.")
                     self.tubelensmag = 1.0
 
                 try:
@@ -633,7 +640,8 @@ class CziObjectives:
                     if self.tubelensmag is not None:
                         self.mag = self.nominalmag * self.tubelensmag
                     if self.tubelensmag is None:
-                        print("Using Tublens Mag = 1.0 for calculating Objective Magnification.")
+                        print(
+                            "Using Tublens Mag = 1.0 for calculating Objective Magnification.")
                         self.mag = self.nominalmag * 1.0
 
                 except (KeyError, TypeError) as e:
@@ -680,7 +688,8 @@ class CziObjectives:
                             md_dict["ImageDocument"]["Metadata"]["Information"]["Instrument"]["TubeLenses"]["TubeLens"][o][
                                 "Magnification"]))
                     except (KeyError, TypeError) as e:
-                        print("No Tubelens Mag. :", e, "Using Default Value = 1.0.")
+                        print("No Tubelens Mag. :", e,
+                              "Using Default Value = 1.0.")
                         self.tubelensmag.append(1.0)
 
                     try:
@@ -688,14 +697,17 @@ class CziObjectives:
                             md_dict["ImageDocument"]["Metadata"]["Information"]["Instrument"]["Objectives"]["Objective"][o][
                                 "NominalMagnification"]))
                     except (KeyError, TypeError) as e:
-                        print("No Nominal Mag. :", e, "Using Default Value = 1.0.")
+                        print("No Nominal Mag. :", e,
+                              "Using Default Value = 1.0.")
                         self.nominalmag.append(1.0)
 
                     try:
                         if self.tubelensmag is not None:
-                            self.mag.append(self.nominalmag[o] * self.tubelensmag[o])
+                            self.mag.append(
+                                self.nominalmag[o] * self.tubelensmag[o])
                         if self.tubelensmag is None:
-                            print("Using Tublens Mag = 1.0 for calculating Objective Magnification.")
+                            print(
+                                "Using Tublens Mag = 1.0 for calculating Objective Magnification.")
                             self.mag.append(self.nominalmag[o] * 1.0)
 
                     except (KeyError, TypeError) as e:
@@ -878,7 +890,8 @@ class CziSampleInfo:
                                 self.well_array_names.append(well["@Name"])
                             except (KeyError, TypeError) as e:
                                 # print("Well @Name not found :", e)
-                                print("Well Name not found :", e, "Using A1 instead")
+                                print("Well Name not found :",
+                                      e, "Using A1 instead")
                                 self.well_array_names.append("A1")
 
                     try:
@@ -900,13 +913,15 @@ class CziSampleInfo:
                             self.well_position_names.append("P1")
 
                     try:
-                        self.well_colID.append(np.int(allscenes["Shape"]["ColumnIndex"]))
+                        self.well_colID.append(
+                            np.int(allscenes["Shape"]["ColumnIndex"]))
                     except (KeyError, TypeError) as e:
                         print("Well ColumnIDs not found :", e)
                         self.well_colID.append(0)
 
                     try:
-                        self.well_rowID.append(np.int(allscenes["Shape"]["RowIndex"]))
+                        self.well_rowID.append(
+                            np.int(allscenes["Shape"]["RowIndex"]))
                     except (KeyError, TypeError) as e:
                         print("Well RowIDs not found :", e)
                         self.well_rowID.append(0)
@@ -963,13 +978,15 @@ class CziSampleInfo:
                             self.well_position_names.append(None)
 
                     try:
-                        self.well_colID.append(np.int(well["Shape"]["ColumnIndex"]))
+                        self.well_colID.append(
+                            np.int(well["Shape"]["ColumnIndex"]))
                     except (KeyError, TypeError) as e:
                         print("Well ColumnIDs not found :", e)
                         self.well_colID.append(None)
 
                     try:
-                        self.well_rowID.append(np.int(well["Shape"]["RowIndex"]))
+                        self.well_rowID.append(
+                            np.int(well["Shape"]["RowIndex"]))
                     except (KeyError, TypeError) as e:
                         print("Well RowIDs not found :", e)
                         self.well_rowID.append(None)
