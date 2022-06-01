@@ -318,8 +318,8 @@ class CziChannelInfo:
         channels_gamma = []
 
         try:
-            sizeC = np.int(md_dict["ImageDocument"]
-                           ["Metadata"]["Information"]["Image"]["SizeC"])
+            sizeC = int(md_dict["ImageDocument"]
+                        ["Metadata"]["Information"]["Image"]["SizeC"])
         except (KeyError, TypeError) as e:
             sizeC = 1
 
@@ -420,12 +420,12 @@ class CziChannelInfo:
 
                 # get contrast setting fro DisplaySetting
                 try:
-                    low = np.float(
+                    low = float(
                         md_dict["ImageDocument"]["Metadata"]["DisplaySetting"]["Channels"]["Channel"][ch]["Low"])
                 except (KeyError, TypeError) as e:
                     low = 0.0
                 try:
-                    high = np.float(
+                    high = float(
                         md_dict["ImageDocument"]["Metadata"]["DisplaySetting"]["Channels"]["Channel"][ch]["High"])
                 except (KeyError, TypeError) as e:
                     high = 0.5
@@ -434,7 +434,7 @@ class CziChannelInfo:
 
                 # get the gamma values
                 try:
-                    channels_gamma.append(np.float(
+                    channels_gamma.append(float(
                         md_dict["ImageDocument"]["Metadata"]["DisplaySetting"]["Channels"]["Channel"][ch]["Gamma"]))
                 except (KeyError, TypeError) as e:
                     channels_gamma.append(0.85)
