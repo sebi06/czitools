@@ -1,4 +1,3 @@
-from matplotlib.patches import Rectangle
 from czimetadata_tools import pylibczirw_metadata as czimd
 import os
 from pathlib import Path
