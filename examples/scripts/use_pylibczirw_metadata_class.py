@@ -2,16 +2,14 @@
 
 #################################################################
 # File        : use_pylibczirw_metadata_class.py
-# Version     : 0.0.4
 # Author      : sebi06
-# Date        : 14.02.2022
 #
 # Disclaimer: This code is purely experimental. Feel free to
 # use it at your own risk.
 #
 #################################################################
 
-from __future__ import annotations
+from pylibCZIrw import czi as pyczi
 from czimetadata_tools import pylibczirw_metadata as czimd
 from czimetadata_tools import misc
 import os
@@ -19,8 +17,6 @@ from pathlib import Path
 
 # adapt to your needs
 defaultdir = os.path.join(Path(__file__).resolve().parents[2], "testdata")
-#defaultdir = r"C:\Testdata_Zeiss\CZI_Testfiles"
-
 
 # open s simple dialog to select a CZI file
 filepath = misc.openfile(directory=defaultdir,
@@ -29,7 +25,7 @@ filepath = misc.openfile(directory=defaultdir,
                          extension="*.czi")
 print(filepath)
 
-# get the complete metadata at once as one big class
+# get the metadata at once as one big class
 mdata_sel = czimd.CziMetadata(filepath)
 
 # get only specific metadata
@@ -41,7 +37,7 @@ print("SizeC: ", czi_dimensions.SizeC)
 print("SizeY: ", czi_dimensions.SizeY)
 print("SizeX: ", czi_dimensions.SizeX)
 
-# and get more info
+# and get more info about various aspects of the CZI
 czi_scaling = czimd.CziScaling(filepath)
 czi_channels = czimd.CziChannelInfo(filepath)
 czi_bbox = czimd.CziBoundingBox(filepath)
@@ -62,3 +58,53 @@ print(df_md)
 
 # try to write XML to file
 xmlfile = czimd.writexml(filepath)
+
+# open a CZI file for reading
+with pyczi.open_czi(filepath) as czidoc_r:
+
+    # get the metadata as a dictionary
+    metadata_parsed = czidoc_r.metadata
+
+    # get a dictionary with the dimensions by parsing the dictionary
+    dim_dict = czimd.CziDimensions.get_image_dimensions(metadata_parsed)
+    print(dim_dict)
+
+# get the complete metadata from the CZI as one big object
+czimd_complete = czimd.CziMetadataComplete(filepath)
+
+# just read the number of channels
+print("Number of Channels:",
+      czimd_complete.md.ImageDocument.Metadata.Information.Image.SizeC)
+
+# get an object containing only the dimension information
+czi_dimensions = czimd.CziDimensions(filepath)
+print("Number of Channels:", czi_dimensions.SizeC)
+
+# get an object containing only the dimension information
+czi_scale = czimd.CziScaling(filepath)
+
+# get an object containing additional general information
+czi_info = czimd.CziInfo(filepath)
+
+# get an object containing information about the sample
+czi_sample = czimd.CziSampleInfo(filepath)
+
+# show those information as a dictionary
+print(czi_dimensions.__dict__)
+print(czi_scale.__dict__)
+print(czi_sample.__dict__)
+
+# get the complete data about the bounding boxes
+czi_bbox = czimd.CziBoundingBox(filepath)
+
+# dshow the total bounding box for all dimensions
+print(czi_bbox.total_bounding_box)
+
+# show the bbox for the scenes
+print(czi_bbox.all_scenes)
+
+# show the total rectangle for all scenes
+print(czi_bbox.total_rect)
+
+# show just the number of channels
+print(type(czi_bbox.total_bounding_box["C"]))

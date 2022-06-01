@@ -40,9 +40,7 @@ from PyQt5.QtWidgets import (
 from PyQt5.QtCore import Qt, QDir, QSortFilterProxyModel
 from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtGui import QFont
-#from pylibCZIrw import czi as pyczi
 from czimetadata_tools import pylibczirw_metadata as czimd
-#from czitools import czi_metadata as czimd_aics
 from czimetadata_tools import misc
 import numpy as np
 from typing import List, Dict, Tuple, Optional, Type, Any, Union
@@ -144,10 +142,6 @@ def show(viewer: Any, array: np.ndarray, metadata: czimd.CziMetadata,
     # modify the tuple for the scales for napari
     scalefactors[dim_order["Z"]] = metadata.scale.ratio["zx"]
 
-    # remove C dimension from scalefactor
-    #scalefactors_ch = scalefactors.copy()
-    #del scalefactors_ch[dim_order["C"]]
-
     # add Qt widget for metadata
     if add_mdtable:
 
@@ -157,13 +151,9 @@ def show(viewer: Any, array: np.ndarray, metadata: czimd.CziMetadata,
                                       name="mdbrowser",
                                       area="right")
 
-        # add the metadata and adapt the table
-
         # create dictionary with some metadata
         mdict = czimd.create_mdict_red(metadata, sort=True)
         mdbrowser.update_metadata(mdict)
-
-        # mdbrowser.update_metadata(misc.sort_dict_by_key(metadata.metadict))
         mdbrowser.update_style()
 
     # add all channels as individual layers
