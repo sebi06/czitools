@@ -2,6 +2,10 @@
 
 This repository provided a collection of tools Tools to simplify reading CZI (Carl Zeiss Image) pixel and metadata in Python.
 
+## Reading the metadata
+
+Please check [use_pylibczirw_metadata_class.py](examples/scripts/use_pylibczirw_metadata_class.py) for some examples.
+
 ```python
 # get the metadata at once as one big class
 mdata_sel = czimd.CziMetadata(filepath)
@@ -25,10 +29,6 @@ czi_detectors = czimd.CziDetector(filepath)
 czi_microscope = czimd.CziMicroscope(filepath)
 czi_sample = czimd.CziSampleInfo(filepath)
 ```
-
-## Reading the metadata
-
-Please check [use_pylibczirw_metadata_class.py](examples/scripts/use_pylibczirw_metadata_class.py) for some examples.
 
 ## Reading CZI pixeldata
 
