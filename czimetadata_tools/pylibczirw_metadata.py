@@ -14,7 +14,6 @@ import os
 from collections import Counter
 import xml.etree.ElementTree as ET
 from pylibCZIrw import czi as pyczi
-#from tqdm.contrib.itertools import product
 from czimetadata_tools import misc
 import numpy as np
 import pydash
