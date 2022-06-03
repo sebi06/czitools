@@ -12,23 +12,27 @@
 from czimetadata_tools import pylibczirw_metadata as czimd
 from czimetadata_tools import pylibczirw_tools
 from czimetadata_tools import napari_tools
+from czimetadata_tools import misc
 import napari
 import os
 from pathlib import Path
 
-basedir = Path(__file__).resolve().parents[2]
-#filepath = os.path.join(basedir, r"testdata/WP96_4Pos_B4-10_DAPI.czi")
-#filepath = os.path.join(basedir, r"testdata/S=2_3x3_CH=2.czi")
-#filepath = os.path.join(basedir, r"testdata/w96_A1+A2.czi")
-filepath = os.path.join(
-    basedir, r"data/CellDivision_T=3_Z=5_CH=2_X=240_Y=170.czi")
+# adapt to your needs
+defaultdir = os.path.join(Path(__file__).resolve().parents[1], "data")
+
+# open s simple dialog to select a CZI file
+filepath = misc.openfile(directory=defaultdir,
+                         title="Open CZI Image File",
+                         ftypename="CZI Files",
+                         extension="*.czi")
+print(filepath)
 
 # get the complete metadata at once as one big class
 mdata = czimd.CziMetadata(filepath)
 
 # return a array with dimension order STZCYX(A)
-mdarray, dimstring = pylibczirw_tools.read_mdarray(filepath, remove_Adim=True)
-#mdarray, dimstring = pylibczirw_tools.read_mdarray_lazy(filepath)
+#mdarray, dimstring = pylibczirw_tools.read_mdarray(filepath, remove_Adim=True)
+mdarray, dimstring = pylibczirw_tools.read_mdarray_lazy(filepath, remove_Adim=True)
 
 # remove A dimension do display the array inside Napari
 dim_order, dim_index, dim_valid = czimd.CziMetadata.get_dimorder(dimstring)

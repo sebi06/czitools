@@ -9,7 +9,7 @@ basedir = Path(__file__).resolve().parents[1]
 filepath = os.path.join(basedir, r"data/w96_A1+A2.czi")
 
 
-def test_scaling():
+def test_bounding_box():
 
     czi_bbox = czimd.CziBoundingBox(filepath)
 

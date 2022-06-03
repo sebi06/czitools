@@ -64,13 +64,12 @@ def read_mdarray(filename: str,
             if (mdata.bbox.total_bounding_box["X"][1] > mdata.image.SizeX or
                     mdata.bbox.total_bounding_box["Y"][1] > mdata.image.SizeY):
 
-                image2d = image2d[..., 0:mdata.image.SizeY,
-                                  0:mdata.image.SizeX, :]
+                image2d = image2d[..., 0:mdata.image.SizeY, 0:mdata.image.SizeX, :]
 
             array_md[s, t, z, c, ...] = image2d
 
         if remove_Adim:
-            dimstring.replace("A", "")
+            dimstring = dimstring.replace("A", "")
             array_md = np.squeeze(array_md, axis=-1)
 
     return array_md, dimstring
@@ -104,8 +103,7 @@ def read_mdarray_lazy(filename: str, remove_Adim: bool = True) -> Tuple[da.Array
 
                 # check if the image2d is really not too big
                 if mdata.pyczi_dims["X"][1] > mdata.image.SizeX or mdata.pyczi_dims["Y"][1] > mdata.image.SizeY:
-                    image2d = image2d[..., 0:mdata.image.SizeY,
-                                      0:mdata.image.SizeX, :]
+                    image2d = image2d[..., 0:mdata.image.SizeY, 0:mdata.image.SizeX, :]
 
                 array_md[t, z, c, ...] = image2d
 
@@ -152,7 +150,10 @@ def read_mdarray_lazy(filename: str, remove_Adim: bool = True) -> Tuple[da.Array
     # Stack into one large dask.array
     array_md = da.stack(dask_arrays, axis=0)
 
+    # define the dimension order to be STZCYXA
+    dimstring = "STZCYXA"
+
     if remove_Adim:
-        dimstring = "STZCYX"
+        dimstring = dimstring.replace("A", "")
 
     return array_md, dimstring

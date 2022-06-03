@@ -608,8 +608,8 @@ class CziObjectives:
                     self.immersion = None
 
                 try:
-                    self.NA = np.float(md_dict["ImageDocument"]["Metadata"]["Information"]
-                                       ["Instrument"]["Objectives"]["Objective"]["LensNA"])
+                    self.NA = float(md_dict["ImageDocument"]["Metadata"]["Information"]
+                                    ["Instrument"]["Objectives"]["Objective"]["LensNA"])
                 except (KeyError, TypeError) as e:
                     print("No Objective NA :", e)
                     self.NA = None
@@ -621,7 +621,7 @@ class CziObjectives:
                     self.ID = None
 
                 try:
-                    self.tubelensmag = np.float(
+                    self.tubelensmag = float(
                         md_dict["ImageDocument"]["Metadata"]["Information"]["Instrument"]["TubeLenses"]["TubeLens"]["Magnification"])
                 except (KeyError, TypeError) as e:
                     print("No Tubelens Mag. :", e,
@@ -629,7 +629,7 @@ class CziObjectives:
                     self.tubelensmag = 1.0
 
                 try:
-                    self.nominalmag = np.float(
+                    self.nominalmag = float(
                         md_dict["ImageDocument"]["Metadata"]["Information"]["Instrument"]["Objectives"]["Objective"][
                             "NominalMagnification"])
                 except (KeyError, TypeError) as e:
@@ -979,14 +979,14 @@ class CziSampleInfo:
 
                     try:
                         self.well_colID.append(
-                            np.int(well["Shape"]["ColumnIndex"]))
+                            int(well["Shape"]["ColumnIndex"]))
                     except (KeyError, TypeError) as e:
                         print("Well ColumnIDs not found :", e)
                         self.well_colID.append(None)
 
                     try:
                         self.well_rowID.append(
-                            np.int(well["Shape"]["RowIndex"]))
+                            int(well["Shape"]["RowIndex"]))
                     except (KeyError, TypeError) as e:
                         print("Well RowIDs not found :", e)
                         self.well_rowID.append(None)

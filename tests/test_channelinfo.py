@@ -9,7 +9,7 @@ filepath = os.path.join(
     basedir, r"data/CellDivision_T=3_Z=5_CH=2_X=240_Y=170.czi")
 
 
-def test_scaling():
+def test_channelinfo():
 
     czi_channels = czimd.CziChannelInfo(filepath)
 
