@@ -1,6 +1,6 @@
 # czitools
 
-This repository provided a collection of tools Tools to simplify reading CZI (Carl Zeiss Image) pixel and metadata in Python.
+This repository provided a collection of tools to simplify reading CZI (Carl Zeiss Image) pixel and metadata in Python. In addition it also conatins some other usefule utilities to visualize CZI images inside Napari and other things.
 
 ## Reading the metadata
 
