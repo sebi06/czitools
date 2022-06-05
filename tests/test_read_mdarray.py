@@ -1,6 +1,6 @@
 
-from czimetadata_tools import pylibczirw_metadata as czimd
-from czimetadata_tools import pylibczirw_tools
+from czitools.metadata import pylibczirw_metadata as czimd
+from czitools.imagedata import pylibczirw_tools
 import os
 from pathlib import Path
 

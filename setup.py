@@ -13,9 +13,9 @@ from shutil import rmtree
 from setuptools import find_packages, setup, Command
 
 # Package meta-data.
-NAME = "czimetadata_tools"
-DESCRIPTION = "Tools to simplify reading CZI (Carl Zeiss Image) metadata in Python"
-URL = "https://github.com/sebi06/czimetadata_tools"
+NAME = "czitools"
+DESCRIPTION = "Tools to simplify reading CZI (Carl Zeiss Image) meta-and pixeldata in Python"
+URL = "https://github.com/sebi06/czitools"
 EMAIL = "sebrhode@gmail.com"
 AUTHOR = "Sebastian Rhode"
 REQUIRES_PYTHON = ">=3.9.0"

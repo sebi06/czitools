@@ -10,8 +10,8 @@
 #################################################################
 
 from pylibCZIrw import czi as pyczi
-from czimetadata_tools import pylibczirw_metadata as czimd
-from czimetadata_tools import misc
+from czitools.metadata import pylibczirw_metadata as czimd
+from czitools.utils import misc
 import os
 from pathlib import Path
 

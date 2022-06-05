@@ -10,12 +10,14 @@
 #################################################################
 
 from pylibCZIrw import czi as pyczi
-from czimetadata_tools import misc
+from czitools.utils import misc
 import os
 from pathlib import Path
 
 # adapt to your needs
 defaultdir = os.path.join(Path(__file__).resolve().parents[1], "data")
+
+print("Default Directory:", defaultdir)
 
 # open s simple dialog to select a CZI file
 filepath = misc.openfile(directory=defaultdir,
