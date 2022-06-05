@@ -31,6 +31,7 @@ REQUIRED = [
     "tqdm>=4.61.2",
     "pylibczirw",
     "cztile",
+    "numpy"
 ]
 
 # What packages are optional?
