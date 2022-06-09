@@ -103,8 +103,7 @@ class CziMetadata:
                 self.isRGB = True
 
             # determine pixel type for CZI array
-            self.npdtype, self.maxvalue = self.get_dtype_fromstring(
-                self.pixeltype)
+            self.npdtype, self.maxvalue = self.get_dtype_fromstring(self.pixeltype)
 
             # get the dimensions and order
             self.image = CziDimensions(filename)
@@ -160,7 +159,7 @@ class CziMetadata:
             maxvalue = 255
         if pixeltype == "bgr96float" or pixeltype == "Bgr96Float":
             dtype = np.dtype(np.uint16)
-            maxvalue = 265535
+            maxvalue = 65535
 
         return dtype, maxvalue
 
@@ -359,13 +358,13 @@ class CziChannelInfo:
 
             # get contrast setting fro DisplaySetting
             try:
-                low = np.float(md_dict["ImageDocument"]["Metadata"]
-                               ["DisplaySetting"]["Channels"]["Channel"]["Low"])
+                low = float(md_dict["ImageDocument"]["Metadata"]
+                            ["DisplaySetting"]["Channels"]["Channel"]["Low"])
             except (KeyError, TypeError) as e:
                 low = 0.1
             try:
-                high = np.float(md_dict["ImageDocument"]["Metadata"]
-                                ["DisplaySetting"]["Channels"]["Channel"]["High"])
+                high = float(md_dict["ImageDocument"]["Metadata"]
+                             ["DisplaySetting"]["Channels"]["Channel"]["High"])
             except (KeyError, TypeError) as e:
                 high = 0.5
 
@@ -374,7 +373,7 @@ class CziChannelInfo:
             # get the gamma values
             try:
                 channels_gamma.append(
-                    np.float(md_dict["ImageDocument"]["Metadata"]["DisplaySetting"]["Channels"]["Channel"]["Gamma"]))
+                    float(md_dict["ImageDocument"]["Metadata"]["DisplaySetting"]["Channels"]["Channel"]["Gamma"]))
             except (KeyError, TypeError) as e:
                 channels_gamma.append(0.85)
 
