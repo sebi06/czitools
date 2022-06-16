@@ -38,7 +38,7 @@ czi_sample = czimd.CziSampleInfo(filepath)
 
 ## Reading CZI pixeldata
 
-While the [pylibCZIrw](https://pypi.org/project/pylibCZIrw/) is focussing on reading individual planes it is also helpful to read CZI pixel data as a STZCYX(A) stack. Please check [use_pylibczirw_md_read.py](examples/scripts/use_pylibczirw_md_read.py) for some examples.
+While the [pylibCZIrw](https://pypi.org/project/pylibCZIrw/) is focussing on reading individual planes it is also helpful to read CZI pixel data as a STZCYX(A) stack. Please check [use_pylibczirw_md_read.py](https://github.com/sebi06/czitools/raw/main/demo/scripts/use_pylibczirw_md_read.py) for some examples.
 
 ```python
 # return a array with dimension order STZCYX(A)
@@ -60,4 +60,4 @@ layers = napari_tools.show(viewer, mdarray, mdata,
 napari.run()
 ```
 
-![5D CZI inside Napari](docs/images/czi_napari1.png)
+![5D CZI inside Napari](https://github.com/sebi06/czitools/raw/main/docs/images/czi_napari1.png)
