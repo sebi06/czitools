@@ -1,5 +1,5 @@
-# 0.0.1 - June 1st 2022
+# 0.0.4 - June 17th 2022
 
-## Initial Release
+## Pre-Release
 
-- This is the initial release of the package
+- This is the pre-release czitools package v0.0.4
