@@ -187,8 +187,8 @@ def addzeros(number: int) -> str:
 
 def get_fname_woext(filepath: str) -> str:
     """Get the complete path of a file without the extension
-    It also will works for extensions like c:\myfile.abc.xyz
-    The output will be: c:\myfile
+    It also will works for extensions like myfile.abc.xyz
+    The output will be: myfile
 
     :param filepath: complete fiepath
     :type filepath: str

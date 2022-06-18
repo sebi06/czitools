@@ -26,7 +26,7 @@ class CziMetadataComplete:
     dictionary created from the XML data.
     """
 
-    def __init__(self, filename: str):
+    def __init__(self, filename: str) -> None:
 
         # get metadata dictionary using pylibCZIrw
         with pyczi.open_czi(filename) as czidoc:
@@ -40,18 +40,18 @@ class DictObj:
     """
     # based upon: https://joelmccune.com/python-dictionary-as-object/
 
-    def __init__(self, in_dict: dict):
+    def __init__(self, in_dict: dict) -> None:
         assert isinstance(in_dict, dict)
         for key, val in in_dict.items():
             if isinstance(val, (list, tuple)):
-                setattr(self, key, [DictObj(x) if isinstance(
-                    x, dict) else x for x in val])
+                setattr(self, key, [DictObj(x) if isinstance(x, dict) else x for x in val])
             else:
-                setattr(self, key, DictObj(val)
-                        if isinstance(val, dict) else val)
+                setattr(self, key, DictObj(val) if isinstance(val, dict) else val)
 
 
 class CziMetadata:
+    """Create a CziMetadata object from the filename
+    """
 
     def __init__(self, filename: str, dim2none: bool = False) -> None:
 
