@@ -9,7 +9,7 @@ on:
       - master
       - main
     tags:
-      - "v*" # Push events to matching v*, i.e. v1.0, v20.15.10
+      - "testpypi-v*" # Push events to matching testpypi-v*, i.e. testpypi-v1.0
   pull_request:
     branches:
       - master
@@ -20,11 +20,10 @@ jobs:
   test:
     name: ${{ matrix.platform }} py${{ matrix.python-version }}
     runs-on: ${{ matrix.platform }}
-    if: contains(github.ref, 'tags')
     strategy:
       matrix:
-        platform: [ubuntu-latest, windows-latest]
-        python-version: [3.8, 3.9]
+        platform: [ubuntu-latest]
+        python-version: [3.9]
 
     steps:
       - uses: actions/checkout@v3
@@ -53,7 +52,7 @@ jobs:
         uses: codecov/codecov-action@v2
 
   deploy:
-    # this will run when you have tagged a commit, starting with "v*"
+    # this will run when you have tagged a commit, starting with "testpypi-*"
     # and requires that you have put your twine API key in your
     # github secrets (see readme for details)
     needs: [test]
@@ -72,7 +71,7 @@ jobs:
       - name: Build and publish
         env:
           TWINE_USERNAME: __token__
-          TWINE_PASSWORD: ${{ secrets.TWINE_PYPI_TOKEN }}
+          TWINE_PASSWORD: ${{ secrets.TWINE_TESTPYPI_TOKEN }}
         run: |
           git tag
           python setup.py sdist bdist_wheel

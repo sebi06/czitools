@@ -1,1 +1,7 @@
 include README.md LICENSE
+
+recursive-exclude * __pycache__
+recursive-exclude * *.py[co]
+recursive-exclude * *.czi
+recursive-exclude * *MetaData.xml
+recursive-exclude * *.csv
