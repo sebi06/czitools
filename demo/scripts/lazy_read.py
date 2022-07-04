@@ -13,7 +13,6 @@ from pylibCZIrw import czi as pyczi
 import napari
 
 
-
 # get the CZI filepath
 filepath = r"E:\testpictures\Testdata_Zeiss\CZI_Testfiles\S=2_3x3_T=3_Z=4_CH=2.czi"
 print("File exists:", os.path.exists(filepath))
@@ -26,31 +25,31 @@ def read_4d(filename: str,
             mdata: czimd.CziMetadata,
             remove_Adim: bool = True) -> np.ndarray:
 
-        array_4d = da.empty([sizes[0], sizes[1], sizes[2], sizes[3], 3 if mdata.isRGB else 1],
-                            dtype=mdata.npdtype)
+    array_4d = da.empty([sizes[0], sizes[1], sizes[2], sizes[3], 3 if mdata.isRGB else 1],
+                        dtype=mdata.npdtype)
 
-        # open the CZI document to read the
-        with pyczi.open_czi(filename) as czidoc:
+    # open the CZI document to read the
+    with pyczi.open_czi(filename) as czidoc:
 
-            # read array for the scene
-            for z, c in product(range(sizes[0]),
-                                   range(sizes[1])):
+        # read array for the scene
+        for z, c in product(range(sizes[0]),
+                            range(sizes[1])):
 
-                if mdata.image.SizeS is None:
-                    image2d = czidoc.read()
-                else:
-                    image2d = czidoc.read(plane={"T": t, "Z": z, "C": c}, scene=s)
+            if mdata.image.SizeS is None:
+                image2d = czidoc.read()
+            else:
+                image2d = czidoc.read(plane={"T": t, "Z": z, "C": c}, scene=s)
 
-                # check if the image2d is really not too big
-                if mdata.pyczi_dims["X"][1] > mdata.image.SizeX or mdata.pyczi_dims["Y"][1] > mdata.image.SizeY:
-                    image2d = image2d[..., 0:mdata.image.SizeY, 0:mdata.image.SizeX, :]
+            # check if the image2d is really not too big
+            if mdata.pyczi_dims["X"][1] > mdata.image.SizeX or mdata.pyczi_dims["Y"][1] > mdata.image.SizeY:
+                image2d = image2d[..., 0:mdata.image.SizeY, 0:mdata.image.SizeX, :]
 
-                array_4d[z, c, ...] = image2d
+            array_4d[z, c, ...] = image2d
 
-        if remove_Adim:
-            array_4d = np.squeeze(array_4d, axis=-1)
+    if remove_Adim:
+        array_4d = np.squeeze(array_4d, axis=-1)
 
-        return array_4d
+    return array_4d
 
 
 def read_lazy_ZCYX(filename: str,
@@ -69,7 +68,8 @@ def read_lazy_ZCYX(filename: str,
 
     # create dask stack of lazy image readers
     lazy_process_image = dask.delayed(read_4d)  # lazy reader
-    lazy_arrays = [lazy_process_image(filename, sizes, s, t, mdata, remove_Adim=remove_Adim) for t in range(sizeT)]
+    lazy_arrays = [lazy_process_image(filename, sizes, s, t, mdata,
+                                      remove_Adim=remove_Adim) for t in range(sizeT)]
 
     dask_arrays = [da.from_delayed(
         lazy_array, shape=sp, dtype=dtype) for lazy_array in lazy_arrays]
@@ -89,12 +89,12 @@ remove_Adim = True
 if mdata.image.SizeS is not None:
     # get size for a single scene using the 1st
     # works only if scene shape is consistent
-    sizeX = mdata.bbox.all_scenes[0].w
-    sizeY = mdata.bbox.all_scenes[0].h
+    sizeX = mdata.bbox.scenes_bounding_rect[0].w
+    sizeY = mdata.bbox.scenes_bounding_rect[0].h
 
 if mdata.image.SizeS is None:
-    sizeX = mdata.image.SizeX
-    sizeY = mdata.image.SizeY
+    sizeX = mdata.bbox.total_bounding_rectangle.w
+    sizeY = mdata.bbox.total_bounding_rectangle.h
 
 # check if dimensions are None (because they do not exist for that image)
 sizeC = misc.check_dimsize(mdata.image.SizeC, set2value=1)
@@ -113,16 +113,17 @@ for s in range(sizeS):
 
     lazy_process_image = dask.delayed(read_lazy_ZCYX)
     lazy_arrays = [lazy_process_image(filepath, s,
-                                       sizeT=sizeT,
-                                       sizeZ=sizeZ,
-                                       sizeC=sizeC,
-                                       sizeY=sizeY,
-                                       sizeX=sizeX,
-                                       isRGB=mdata.isRGB,
-                                       dtype=mdata.npdtype,
-                                       remove_Adim=True) for s in range(sizeS)]
+                                      sizeT=sizeT,
+                                      sizeZ=sizeZ,
+                                      sizeC=sizeC,
+                                      sizeY=sizeY,
+                                      sizeX=sizeX,
+                                      isRGB=mdata.isRGB,
+                                      dtype=mdata.npdtype,
+                                      remove_Adim=True) for s in range(sizeS)]
 
-    dask_arrays = [da.from_delayed(lazy_array, shape=sp, dtype=mdata.npdtype) for lazy_array in lazy_arrays]
+    dask_arrays = [da.from_delayed(lazy_array, shape=sp, dtype=mdata.npdtype)
+                   for lazy_array in lazy_arrays]
 
     ls_STZCYX = da.stack(dask_arrays, axis=0)
 
@@ -146,4 +147,3 @@ layers = napari_tools.show(viewer, ls_STZCYX, mdata,
                            name_sliders=True)
 
 napari.run()
-

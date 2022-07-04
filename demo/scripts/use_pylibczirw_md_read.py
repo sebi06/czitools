@@ -31,15 +31,20 @@ print(filepath)
 mdata = czimd.CziMetadata(filepath)
 
 # return a array with dimension order STZCYX(A)
-#mdarray, dimstring = pylibczirw_tools.read_mdarray(filepath, remove_Adim=True)
-mdarray, dimstring = pylibczirw_tools.read_mdarray_lazy(filepath, remove_Adim=True)
+array6d, dimstring = pylibczirw_tools.read_6darray(filepath,
+                                                   dimorder="STCZYX",
+                                                   output_dask=False,
+                                                   remove_Adim=True)
+
+
+#array6d, dimstring = pylibczirw_tools.read_mdarray_lazy(filepath, remove_Adim=True)
 
 # remove A dimension do display the array inside Napari
 dim_order, dim_index, dim_valid = czimd.CziMetadata.get_dimorder(dimstring)
 
 # show array inside napari viewer
 viewer = napari.Viewer()
-layers = napari_tools.show(viewer, mdarray, mdata,
+layers = napari_tools.show(viewer, array6d, mdata,
                            dim_order=dim_order,
                            blending="additive",
                            contrast='napari_auto',

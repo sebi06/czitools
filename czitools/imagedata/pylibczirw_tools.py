@@ -19,8 +19,30 @@ import dask
 import dask.array as da
 
 
-def read_mdarray(filename: str,
-                 remove_Adim: bool = True) -> Tuple[np.ndarray, str]:
+def read_6darray(filename: str,
+                 dimorder: str = "STCZYX",
+                 output_dask: bool = False,
+                 chunks_auto: bool = False,
+                 remove_Adim: bool = True) -> Tuple[Union[np.ndarray, da.Array], str]:
+    """Read a CZI image file as 6D numpy or dask array.
+    Important: Currently supported are only scenes with equal size.
+
+    Args:
+        filename (str): filepath for the CZI image
+        dimorder (str, optional): Order of dimensions for the output array. Defaults to "STCZYX".
+        output_dask (bool, optional): If True the output will be a dask array. Defaults to False.
+        chunks_auto (bool, optional): Use a chunk size create automatically if True and otherwise use the array shape. Default to False.
+        remove_Adim (bool, optional): If true the dimension for the pixel type will be removed. Defaults to True.
+
+    Returns:
+        Tuple[np.ndarray, str]: output as 6D numpy or dask array
+    """
+
+    valid_dimorders = ["STCZYX", "STZCYX"]
+
+    if dimorder not in valid_dimorders:
+        print("Invalid dimension order:", dimorder)
+        return None
 
     # get the complete metadata at once as one big class
     mdata = czimd.CziMetadata(filename)
@@ -31,12 +53,21 @@ def read_mdarray(filename: str,
         if mdata.image.SizeS is not None:
             # get size for a single scene using the 1st
             # works only if scene shape is consistent
-            size_x = mdata.bbox.all_scenes[0].w
-            size_y = mdata.bbox.all_scenes[0].h
+            #size_x = mdata.bbox.all_scenes[0].w
+            #size_y = mdata.bbox.all_scenes[0].h
+            # use the size of the 1st scenes_bounding_rectangle
+            size_x = czidoc.scenes_bounding_rectangle[0].w
+            size_y = czidoc.scenes_bounding_rectangle[0].h
 
         if mdata.image.SizeS is None:
-            size_x = mdata.image.SizeX
-            size_y = mdata.image.SizeY
+
+            # use the size from the metadata
+            #size_x = mdata.image.SizeX
+            #size_y = mdata.image.SizeY
+
+            # use the size of the total_bounding_rectangle
+            size_x = czidoc.total_bounding_rectangle.w
+            size_y = czidoc.total_bounding_rectangle.h
 
         # check if dimensions are None (because they do not exist for that image)
         size_c = misc.check_dimsize(mdata.image.SizeC, set2value=1)
@@ -44,35 +75,83 @@ def read_mdarray(filename: str,
         size_t = misc.check_dimsize(mdata.image.SizeT, set2value=1)
         size_s = misc.check_dimsize(mdata.image.SizeS, set2value=1)
 
-        # define the dimension order to be STZCYXA
-        dimstring = "STZCYXA"
-        array_md = np.empty([size_s, size_t, size_z, size_c, size_y,
-                            size_x, 3 if mdata.isRGB else 1], dtype=mdata.npdtype)
+        if dimorder == "STZCYX":
 
-        # read array for the scene
-        for s, t, z, c in product(range(size_s),
-                                  range(size_t),
-                                  range(size_z),
-                                  range(size_c)):
+            # define the dimension order to be STZCYXA
+            dimstring = "STZCYXA"
 
-            if mdata.image.SizeS is None:
-                image2d = czidoc.read(plane={'T': t, 'Z': z, 'C': c})
-            else:
-                image2d = czidoc.read(plane={'T': t, 'Z': z, 'C': c}, scene=s)
+            shape = [size_s, size_t, size_z, size_c, size_y, size_x, 3 if mdata.isRGB else 1]
 
-            # check if the image2d is really not too big
-            if (mdata.bbox.total_bounding_box["X"][1] > mdata.image.SizeX or
-                    mdata.bbox.total_bounding_box["Y"][1] > mdata.image.SizeY):
+            if not output_dask:
+                array6d = np.empty(shape, dtype=mdata.npdtype)
+            if output_dask:
+                if chunks_auto:
+                    array6d = da.empty(shape, dtype=mdata.npdtype, chunks="auto")
+                if not chunks_auto:
+                    array6d = da.empty(shape, dtype=mdata.npdtype, chunks=shape)
 
-                image2d = image2d[..., 0:mdata.image.SizeY, 0:mdata.image.SizeX, :]
+            # read array for the scene
+            for s, t, z, c in product(range(size_s),
+                                      range(size_t),
+                                      range(size_z),
+                                      range(size_c)):
 
-            array_md[s, t, z, c, ...] = image2d
+                # read a 2D image plane from the CZI
+                if mdata.image.SizeS is None:
+                    image2d = czidoc.read(plane={'T': t, 'Z': z, 'C': c})
+                else:
+                    image2d = czidoc.read(plane={'T': t, 'Z': z, 'C': c}, scene=s)
+
+                # # check if the image2d is really not too big
+                # if (mdata.bbox.total_bounding_box["X"][1] > mdata.image.SizeX or
+                #         mdata.bbox.total_bounding_box["Y"][1] > mdata.image.SizeY):
+
+                #     image2d = image2d[..., 0:mdata.image.SizeY, 0:mdata.image.SizeX, :]
+
+                # insert 2D image plane into the array6d
+                array6d[s, t, z, c, ...] = image2d
+
+        if dimorder == "STCZYX":
+
+            # define the dimension order to be STCZYXA
+            dimstring = "STCZYXA"
+
+            shape = [size_s, size_t, size_c, size_z, size_y, size_x, 3 if mdata.isRGB else 1]
+
+            if not output_dask:
+                array6d = np.empty(shape, dtype=mdata.npdtype)
+            if output_dask:
+                if chunks_auto:
+                    array6d = da.empty(shape, dtype=mdata.npdtype, chunks="auto")
+                if not chunks_auto:
+                    array6d = da.empty(shape, dtype=mdata.npdtype, chunks=shape)
+
+            # read array for the scene
+            for s, t, c, z in product(range(size_s),
+                                      range(size_t),
+                                      range(size_c),
+                                      range(size_z)):
+
+                # read a 2D image plane from the CZI
+                if mdata.image.SizeS is None:
+                    image2d = czidoc.read(plane={'T': t, 'Z': z, 'C': c})
+                else:
+                    image2d = czidoc.read(plane={'T': t, 'Z': z, 'C': c}, scene=s)
+
+                # # check if the image2d is really not too big
+                # if (mdata.bbox.total_bounding_box["X"][1] > mdata.image.SizeX or
+                #        mdata.bbox.total_bounding_box["Y"][1] > mdata.image.SizeY):
+
+                #     image2d = image2d[..., 0:mdata.image.SizeY, 0:mdata.image.SizeX, :]
+
+                # insert 2D image plane into the array6d
+                array6d[s, t, c, z, ...] = image2d
 
         if remove_Adim:
             dimstring = dimstring.replace("A", "")
-            array_md = np.squeeze(array_md, axis=-1)
+            array6d = np.squeeze(array6d, axis=-1)
 
-    return array_md, dimstring
+    return array6d, dimstring
 
 
 ###### EXPERIMENTAL #####
@@ -118,12 +197,12 @@ def read_mdarray_lazy(filename: str, remove_Adim: bool = True) -> Tuple[da.Array
     if mdata.image.SizeS is not None:
         # get size for a single scene using the 1st
         # works only if scene shape is consistent
-        sizeX = mdata.bbox.all_scenes[0].w
-        sizeY = mdata.bbox.all_scenes[0].h
+        sizeX = mdata.bbox.scenes_total_rect[0].w
+        sizeY = mdata.bbox.scenes_total_rect[0].h
 
     if mdata.image.SizeS is None:
-        sizeX = mdata.image.SizeX
-        sizeY = mdata.image.SizeY
+        sizeX = mdata.bbox.total_bounding_rectangle.w
+        sizeY = mdata.bbox.total_bounding_rectangle.h
 
     # check if dimensions are None (because they do not exist for that image)
     sizeC = misc.check_dimsize(mdata.image.SizeC, set2value=1)

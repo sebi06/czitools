@@ -101,7 +101,7 @@ czi_bbox = czimd.CziBoundingBox(filepath)
 print(czi_bbox.total_bounding_box)
 
 # show the bbox for the scenes
-print(czi_bbox.all_scenes)
+print(czi_bbox.total_bounding_rectangle)
 
 # show the total rectangle for all scenes
 print(czi_bbox.total_rect)

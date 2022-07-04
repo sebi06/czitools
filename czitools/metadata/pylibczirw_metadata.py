@@ -275,7 +275,7 @@ class CziDimensions:
 @dataclass
 class CziBoundingBox:
     filename: str
-    all_scenes: Optional[Dict[int, pyczi.Rectangle]] = field(init=False)
+    scenes_bounding_rect: Optional[Dict[int, pyczi.Rectangle]] = field(init=False)
     total_rect: Optional[pyczi.Rectangle] = field(init=False)
     total_bounding_box: Optional[Dict[str, tuple]] = field(init=False)
 
@@ -283,9 +283,9 @@ class CziBoundingBox:
         with pyczi.open_czi(self.filename) as czidoc:
 
             try:
-                self.all_scenes = czidoc.scenes_bounding_rectangle
+                self.scenes_bounding_rect = czidoc.scenes_bounding_rectangle
             except Exception as e:
-                self.all_scenes = None
+                self.scenes_bounding_rect = None
                 print("Scenes Bounding rectangle not found.", e)
 
             try:
@@ -1280,7 +1280,6 @@ def create_mdict_red(metadata: CziMetadata,
                'ZScale': metadata.scale.Z,
                'ChannelsNames': metadata.channelinfo.names,
                'ChannelDyes': metadata.channelinfo.dyes,
-               'bbox_all_scenes': metadata.bbox.all_scenes,
                'WellArrayNames': metadata.sample.well_array_names,
                'WellIndicies': metadata.sample.well_indices,
                'WellPositionNames': metadata.sample.well_position_names,
