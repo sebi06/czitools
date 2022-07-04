@@ -188,7 +188,7 @@ class CziMetadata:
             dimindex_list.append(dimstring.find(d))
 
         # check if a dimension really exists
-        numvalid_dims = sum(i > 0 for i in dimindex_list)
+        numvalid_dims = sum(i >= 0 for i in dimindex_list)
 
         return dims_dict, dimindex_list, numvalid_dims
 

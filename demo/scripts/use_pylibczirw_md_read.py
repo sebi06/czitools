@@ -31,8 +31,8 @@ print(filepath)
 mdata = czimd.CziMetadata(filepath)
 
 # return a array with dimension order STZCYX(A)
-mdarray, dimstring = pylibczirw_tools.read_mdarray(filepath, remove_Adim=True)
-#mdarray, dimstring = pylibczirw_tools.read_mdarray_lazy(filepath, remove_Adim=True)
+#mdarray, dimstring = pylibczirw_tools.read_mdarray(filepath, remove_Adim=True)
+mdarray, dimstring = pylibczirw_tools.read_mdarray_lazy(filepath, remove_Adim=True)
 
 # remove A dimension do display the array inside Napari
 dim_order, dim_index, dim_valid = czimd.CziMetadata.get_dimorder(dimstring)
