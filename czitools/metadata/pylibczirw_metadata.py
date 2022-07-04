@@ -114,6 +114,9 @@ class CziMetadata:
             else:
                 self.ismosaic = True
 
+            # check for consistent scene shape
+            self.scene_shape_is_consistent = self.__check_scenes_shape(czidoc, self.image.SizeS)
+
             # get the bounding boxes
             self.bbox = CziBoundingBox(filename)
 
@@ -192,6 +195,41 @@ class CziMetadata:
 
         return dims_dict, dimindex_list, numvalid_dims
 
+    def __check_scenes_shape(self,
+                             czidoc: pyczi.CziReader,
+                             size_s: Union[int, None]) -> bool:
+        """Check if all scenes have the same shape.
+
+        Args:
+            czidoc (pyczi.CziReader): CziReader to read the properties
+            size_s (Union[int, None]): Size of scene dimension
+
+        Returns:
+            bool: True is all scenes have identical XY shape
+        """
+        scene_width = []
+        scene_height = []
+        scene_shape_is_consistent = False
+
+        if size_s is not None:
+
+            for s in range(size_s):
+                scene_width.append(czidoc.scenes_bounding_rectangle[s].w)
+                scene_height.append(czidoc.scenes_bounding_rectangle[s].h)
+
+            # check if all entries in list are the same
+            sw = scene_width.count(scene_width[0]) == len(scene_width)
+            sh = scene_height.count(scene_height[0]) == len(scene_height)
+
+            # only if entries for X and Y are all the same than the shape is consistent
+            if sw == True and sh == True:
+                scene_shape_is_consistent = True
+
+        else:
+            scene_shape_is_consistent = True
+
+        return scene_shape_is_consistent
+
 
 class CziDimensions:
 
@@ -218,19 +256,19 @@ class CziDimensions:
             for key in dim_dict:
                 setattr(self, key, dim_dict[key])
 
-    # Information official CZI Dimension Characters:
-    # "X":"Width"        :
-    # "Y":"Height"       :
-    # "C":"Channel"      : number of channels
-    # "Z":"Slice"        : number of z-planes
-    # "T":"Time"         : number of time points
-    # "R":"Rotation"     :
-    # "S":"Scene"        : contiguous regions of interest in a mosaic image
-    # "I":"Illumination" : SPIM direction for LightSheet
-    # "B":"Block"        : acquisition
-    # "M":"Mosaic"       : index of tile for compositing a scene
-    # "H":"Phase"        : e.g. Airy detector fibers
-    # "V":"View"         : e.g. for SPIM
+        # Information official CZI Dimension Characters:
+        # "X":"Width"        :
+        # "Y":"Height"       :
+        # "C":"Channel"      : number of channels
+        # "Z":"Slice"        : number of z-planes
+        # "T":"Time"         : number of time points
+        # "R":"Rotation"     :
+        # "S":"Scene"        : contiguous regions of interest in a mosaic image
+        # "I":"Illumination" : SPIM direction for LightSheet
+        # "B":"Block"        : acquisition
+        # "M":"Mosaic"       : index of tile for compositing a scene
+        # "H":"Phase"        : e.g. Airy detector fibers
+        # "V":"View"         : e.g. for SPIM
 
     @staticmethod
     def get_image_dimensions(raw_metadata: Dict[Any, Any],
