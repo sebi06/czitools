@@ -14,7 +14,7 @@ import napari
 
 
 # get the CZI filepath
-filepath = r"E:\testpictures\Testdata_Zeiss\CZI_Testfiles\S=2_3x3_T=3_Z=4_CH=2.czi"
+filepath = r"c:\Testdata_ZEISS\CZI_Testfiles\S=2_3x3_T=3_Z=4_CH=2.czi"
 print("File exists:", os.path.exists(filepath))
 
 
@@ -136,9 +136,13 @@ if remove_Adim:
 # remove A dimension do display the array inside Napari
 dim_order, dim_index, dim_valid = czimd.CziMetadata.get_dimorder(dimstring)
 
+# added for testing
+test_array = dask.array.random.random(
+    size=(2, 3, 4, 2, 1792, 1792), chunks=(2, 3, 4, 2, 1792, 1792))
+
 # show array inside napari viewer
 viewer = napari.Viewer()
-layers = napari_tools.show(viewer, ls_STZCYX, mdata,
+layers = napari_tools.show(viewer, test_array, mdata,
                            dim_order=dim_order,
                            blending="additive",
                            contrast='napari_auto',
