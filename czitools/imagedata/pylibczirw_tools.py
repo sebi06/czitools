@@ -299,9 +299,9 @@ def read_mdarray_lazy(filename: str, remove_Adim: bool = True) -> Tuple[da.Array
                     image2d = czidoc.read(
                         plane={'T': t, 'Z': z, 'C': c}, scene=s)
 
-                # check if the image2d is really not too big
-                if mdata.pyczi_dims["X"][1] > mdata.image.SizeX or mdata.pyczi_dims["Y"][1] > mdata.image.SizeY:
-                    image2d = image2d[..., 0:mdata.image.SizeY, 0:mdata.image.SizeX, :]
+                # # check if the image2d is really not too big
+                # if mdata.pyczi_dims["X"][1] > mdata.image.SizeX or mdata.pyczi_dims["Y"][1] > mdata.image.SizeY:
+                #     image2d = image2d[..., 0:mdata.image.SizeY, 0:mdata.image.SizeX, :]
 
                 array_md[t, z, c, ...] = image2d
 
@@ -313,15 +313,30 @@ def read_mdarray_lazy(filename: str, remove_Adim: bool = True) -> Tuple[da.Array
     # get the metadata
     mdata = czimd.CziMetadata(filename)
 
-    if mdata.image.SizeS is not None:
-        # get size for a single scene using the 1st
-        # works only if scene shape is consistent
-        sizeX = mdata.bbox.scenes_total_rect[0].w
-        sizeY = mdata.bbox.scenes_total_rect[0].h
+    # open the CZI document to read the
+    with pyczi.open_czi(filename) as czidoc:
 
-    if mdata.image.SizeS is None:
-        sizeX = mdata.bbox.total_bounding_rectangle.w
-        sizeY = mdata.bbox.total_bounding_rectangle.h
+        if mdata.image.SizeS is not None:
+
+            # use the size of the 1st scenes_bounding_rectangle
+            sizeX = czidoc.scenes_bounding_rectangle[0].w
+            sizeY = czidoc.scenes_bounding_rectangle[0].h
+
+        if mdata.image.SizeS is None:
+
+            # use the size of the total_bounding_rectangle
+            sizeX = czidoc.total_bounding_rectangle.w
+            sizeY = czidoc.total_bounding_rectangle.h
+
+    # if mdata.image.SizeS is not None:
+    #     # get size for a single scene using the 1st
+    #     # works only if scene shape is consistent
+    #     sizeX = mdata.bbox.scenes_total_rect[0].w
+    #     sizeY = mdata.bbox.scenes_total_rect[0].h
+
+    # if mdata.image.SizeS is None:
+    #     sizeX = mdata.bbox.total_bounding_rectangle.w
+    #     sizeY = mdata.bbox.total_bounding_rectangle.h
 
     # check if dimensions are None (because they do not exist for that image)
     sizeC = misc.check_dimsize(mdata.image.SizeC, set2value=1)

@@ -66,4 +66,7 @@ def test_dimorder():
     assert(md.aics_dim_order == {'R': -1, 'I': -1, 'M': 5, 'H': 0, 'V': -1,
            'B': -1, 'S': 1, 'T': 2, 'C': 3, 'Z': 4, 'Y': 6, 'X': 7, 'A': -1})
     assert(md.aics_dim_index == [-1, -1, 5, 0, -1, -1, 1, 2, 3, 4, 6, 7, -1])
-    assert(md.aics_dim_valid == 7)
+    assert(md.aics_dim_valid == 8)
+
+
+test_dimorder()

@@ -13,12 +13,8 @@ def test_bounding_box():
 
     czi_bbox = czimd.CziBoundingBox(filepath)
 
-    print("BBox - total_bounding_rectangle: ", czi_bbox.total_bounding_rectangle)
-    print("BBox - total_bounding_box: ", czi_bbox.total_bounding_box)
-    print("BBox - total_rect: ", czi_bbox.total_rect)
-
-    assert (czi_bbox.total_bounding_rectangle[0] == czi.Rectangle(x=0, y=0, w=1960, h=1416))
-    assert (czi_bbox.total_bounding_rectangle[1] == czi.Rectangle(x=19758, y=24, w=1960, h=1416))
+    assert (czi_bbox.scenes_bounding_rect[0] == czi.Rectangle(x=0, y=0, w=1960, h=1416))
+    assert (czi_bbox.scenes_bounding_rect[1] == czi.Rectangle(x=19758, y=24, w=1960, h=1416))
     assert (czi_bbox.total_bounding_box == {'T': (0, 1),
                                             'Z': (0, 1),
                                             'C': (0, 2),
