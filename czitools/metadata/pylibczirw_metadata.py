@@ -114,6 +114,9 @@ class CziMetadata:
             else:
                 self.ismosaic = True
 
+            # check for consistent scene shape
+            self.scene_shape_is_consistent = self.__check_scenes_shape(czidoc, self.image.SizeS)
+
             # get the bounding boxes
             self.bbox = CziBoundingBox(filename)
 
@@ -188,9 +191,44 @@ class CziMetadata:
             dimindex_list.append(dimstring.find(d))
 
         # check if a dimension really exists
-        numvalid_dims = sum(i > 0 for i in dimindex_list)
+        numvalid_dims = sum(i >= 0 for i in dimindex_list)
 
         return dims_dict, dimindex_list, numvalid_dims
+
+    def __check_scenes_shape(self,
+                             czidoc: pyczi.CziReader,
+                             size_s: Union[int, None]) -> bool:
+        """Check if all scenes have the same shape.
+
+        Args:
+            czidoc (pyczi.CziReader): CziReader to read the properties
+            size_s (Union[int, None]): Size of scene dimension
+
+        Returns:
+            bool: True is all scenes have identical XY shape
+        """
+        scene_width = []
+        scene_height = []
+        scene_shape_is_consistent = False
+
+        if size_s is not None:
+
+            for s in range(size_s):
+                scene_width.append(czidoc.scenes_bounding_rectangle[s].w)
+                scene_height.append(czidoc.scenes_bounding_rectangle[s].h)
+
+            # check if all entries in list are the same
+            sw = scene_width.count(scene_width[0]) == len(scene_width)
+            sh = scene_height.count(scene_height[0]) == len(scene_height)
+
+            # only if entries for X and Y are all the same than the shape is consistent
+            if sw == True and sh == True:
+                scene_shape_is_consistent = True
+
+        else:
+            scene_shape_is_consistent = True
+
+        return scene_shape_is_consistent
 
 
 class CziDimensions:
@@ -218,19 +256,19 @@ class CziDimensions:
             for key in dim_dict:
                 setattr(self, key, dim_dict[key])
 
-    # Information official CZI Dimension Characters:
-    # "X":"Width"        :
-    # "Y":"Height"       :
-    # "C":"Channel"      : number of channels
-    # "Z":"Slice"        : number of z-planes
-    # "T":"Time"         : number of time points
-    # "R":"Rotation"     :
-    # "S":"Scene"        : contiguous regions of interest in a mosaic image
-    # "I":"Illumination" : SPIM direction for LightSheet
-    # "B":"Block"        : acquisition
-    # "M":"Mosaic"       : index of tile for compositing a scene
-    # "H":"Phase"        : e.g. Airy detector fibers
-    # "V":"View"         : e.g. for SPIM
+        # Information official CZI Dimension Characters:
+        # "X":"Width"        :
+        # "Y":"Height"       :
+        # "C":"Channel"      : number of channels
+        # "Z":"Slice"        : number of z-planes
+        # "T":"Time"         : number of time points
+        # "R":"Rotation"     :
+        # "S":"Scene"        : contiguous regions of interest in a mosaic image
+        # "I":"Illumination" : SPIM direction for LightSheet
+        # "B":"Block"        : acquisition
+        # "M":"Mosaic"       : index of tile for compositing a scene
+        # "H":"Phase"        : e.g. Airy detector fibers
+        # "V":"View"         : e.g. for SPIM
 
     @staticmethod
     def get_image_dimensions(raw_metadata: Dict[Any, Any],
@@ -275,7 +313,7 @@ class CziDimensions:
 @dataclass
 class CziBoundingBox:
     filename: str
-    all_scenes: Optional[Dict[int, pyczi.Rectangle]] = field(init=False)
+    scenes_bounding_rect: Optional[Dict[int, pyczi.Rectangle]] = field(init=False)
     total_rect: Optional[pyczi.Rectangle] = field(init=False)
     total_bounding_box: Optional[Dict[str, tuple]] = field(init=False)
 
@@ -283,9 +321,9 @@ class CziBoundingBox:
         with pyczi.open_czi(self.filename) as czidoc:
 
             try:
-                self.all_scenes = czidoc.scenes_bounding_rectangle
+                self.scenes_bounding_rect = czidoc.scenes_bounding_rectangle
             except Exception as e:
-                self.all_scenes = None
+                self.scenes_bounding_rect = None
                 print("Scenes Bounding rectangle not found.", e)
 
             try:
@@ -309,62 +347,72 @@ class CziChannelInfo:
             md_dict = czidoc.metadata
 
         # create empty lists for channel related information
-        channels = []
         channels_names = []
+        channels_dyes = []
         channels_colors = []
         channels_contrast = []
         channels_gamma = []
 
         try:
-            sizeC = int(md_dict["ImageDocument"]
-                        ["Metadata"]["Information"]["Image"]["SizeC"])
+            sizeC = int(md_dict["ImageDocument"]["Metadata"]["Information"]["Image"]["SizeC"])
         except (KeyError, TypeError) as e:
             sizeC = 1
 
-        # in case of only one channel
+        # get channel part of dict
+        try:
+            channel_dict = md_dict["ImageDocument"]["Metadata"]["Information"]["Image"]["Dimensions"]["Channels"]["Channel"]
+        except (KeyError, TypeError) as e:
+            print("No Channel section found inside the Dimension metadata")
+            channel_dict = {}
+
+        try:
+            disp_setting = md_dict["ImageDocument"]["Metadata"]["DisplaySetting"]
+        except (KeyError, TypeError) as e:
+            print("No DisplaySetting section found inside the metadata")
+            disp_setting = {}
+
         if sizeC == 1:
-            # get name for dye
+
+            # get the channel names for a single channel
             try:
-                channels.append(
-                    md_dict["ImageDocument"]["Metadata"]["DisplaySetting"]["Channels"]["Channel"]["ShortName"])
+                channels_names.append(channel_dict["@Name"])
+            except (KeyError, TypeError) as e:
+                try:
+                    channels_names.append(channel_dict["Name"])
+                except (KeyError, TypeError) as e:
+                    try:
+                        channels_names.append(disp_setting["Channels"]["Channel"]["@Name"])
+                    except (KeyError, TypeError) as e:
+                        try:
+                            channels_names.append(disp_setting["Channels"]["Channel"]["Name"])
+                        except (KeyError, TypeError) as e:
+                            channels_names.append("CH1")
+
+            # get the dye name for a single channel
+            try:
+                channels_dyes.append(disp_setting["Channels"]["Channel"]["ShortName"])
             except (KeyError, TypeError) as e:
                 print("Channel shortname not found :", e)
                 try:
-                    channels.append(md_dict["ImageDocument"]["Metadata"]
-                                    ["DisplaySetting"]["Channels"]["Channel"]["DyeName"])
+                    channels_dyes.append(disp_setting["Channels"]["Channel"]["DyeName"])
                 except (KeyError, TypeError) as e:
                     print("Channel dye not found :", e)
-                    channels.append("Dye-CH1")
-
-            # get channel name
-            try:
-                channels_names.append(
-                    md_dict["ImageDocument"]["Metadata"]["DisplaySetting"]["Channels"]["Channel"]["Name"])
-            except (KeyError, TypeError) as e:
-                try:
-                    channels_names.append(
-                        md_dict["ImageDocument"]["Metadata"]["DisplaySetting"]["Channels"]["Channel"]["@Name"])
-                except (KeyError, TypeError) as e:
-                    print("Channel name found :", e)
-                    channels_names.append("CH1")
+                    channels_dyes.append("Dye-CH1")
 
             # get channel color
             try:
-                channels_colors.append(
-                    md_dict["ImageDocument"]["Metadata"]["DisplaySetting"]["Channels"]["Channel"]["Color"])
+                channels_colors.append(disp_setting["Channels"]["Channel"]["Color"])
             except (KeyError, TypeError) as e:
                 print("Channel color not found :", e)
                 channels_colors.append("#80808000")
 
             # get contrast setting fro DisplaySetting
             try:
-                low = float(md_dict["ImageDocument"]["Metadata"]
-                            ["DisplaySetting"]["Channels"]["Channel"]["Low"])
+                low = float(disp_setting["Channels"]["Channel"]["Low"])
             except (KeyError, TypeError) as e:
                 low = 0.1
             try:
-                high = float(md_dict["ImageDocument"]["Metadata"]
-                             ["DisplaySetting"]["Channels"]["Channel"]["High"])
+                high = float(disp_setting["Channels"]["Channel"]["High"])
             except (KeyError, TypeError) as e:
                 high = 0.5
 
@@ -372,45 +420,45 @@ class CziChannelInfo:
 
             # get the gamma values
             try:
-                channels_gamma.append(
-                    float(md_dict["ImageDocument"]["Metadata"]["DisplaySetting"]["Channels"]["Channel"]["Gamma"]))
+                channels_gamma.append(float(disp_setting["Channels"]["Channel"]["Gamma"]))
             except (KeyError, TypeError) as e:
                 channels_gamma.append(0.85)
 
-        # in case of two or more channels
         if sizeC > 1:
-            # loop over all channels
+
             for ch in range(sizeC):
-                # get name for dyes
+
+                # get the channel names for > 1 channels
                 try:
-                    channels.append(
-                        md_dict["ImageDocument"]["Metadata"]["DisplaySetting"]["Channels"]["Channel"][ch]["ShortName"])
+                    channels_names.append(channel_dict[ch]["@Name"])
+                except (KeyError, TypeError) as e:
+                    try:
+                        channels_names.append(channel_dict[ch]["Name"])
+                    except (KeyError, TypeError) as e:
+                        try:
+                            channels_names.append(disp_setting["Channels"]["Channel"][ch]["@Name"])
+                        except (KeyError, TypeError) as e:
+                            try:
+                                channels_names.append(
+                                    disp_setting["Channels"]["Channel"][ch]["Name"])
+                            except (KeyError, TypeError) as e:
+                                channels_names.append("CH" + str(ch+1))
+
+                # get the dye names for > 1 channels
+                try:
+                    channels_dyes.append(disp_setting["Channels"]["Channel"][ch]["ShortName"])
                 except (KeyError, TypeError) as e:
                     print("Channel shortname not found :", e)
                     try:
-                        channels.append(
-                            md_dict["ImageDocument"]["Metadata"]["DisplaySetting"]["Channels"]["Channel"][ch][
-                                "DyeName"])
+                        channels_dyes.append(disp_setting["Channels"]["Channel"][ch][
+                            "DyeName"])
                     except (KeyError, TypeError) as e:
                         print("Channel dye not found :", e)
-                        channels.append("Dye-CH" + str(ch))
-
-                # get channel names
-                try:
-                    channels_names.append(
-                        md_dict["ImageDocument"]["Metadata"]["DisplaySetting"]["Channels"]["Channel"][ch]["Name"])
-                except (KeyError, TypeError) as e:
-                    try:
-                        channels_names.append(
-                            md_dict["ImageDocument"]["Metadata"]["DisplaySetting"]["Channels"]["Channel"][ch]["@Name"])
-                    except (KeyError, TypeError) as e:
-                        print("Channel name not found :", e)
-                        channels_names.append("CH" + str(ch))
+                        channels_dyes.append("Dye-CH" + str(ch))
 
                 # get channel colors
                 try:
-                    channels_colors.append(
-                        md_dict["ImageDocument"]["Metadata"]["DisplaySetting"]["Channels"]["Channel"][ch]["Color"])
+                    channels_colors.append(disp_setting["Channels"]["Channel"][ch]["Color"])
                 except (KeyError, TypeError) as e:
                     print("Channel color not found :", e)
                     # use grayscale instead
@@ -418,13 +466,11 @@ class CziChannelInfo:
 
                 # get contrast setting fro DisplaySetting
                 try:
-                    low = float(
-                        md_dict["ImageDocument"]["Metadata"]["DisplaySetting"]["Channels"]["Channel"][ch]["Low"])
+                    low = float(disp_setting["Channels"]["Channel"][ch]["Low"])
                 except (KeyError, TypeError) as e:
                     low = 0.0
                 try:
-                    high = float(
-                        md_dict["ImageDocument"]["Metadata"]["DisplaySetting"]["Channels"]["Channel"][ch]["High"])
+                    high = float(disp_setting["Channels"]["Channel"][ch]["High"])
                 except (KeyError, TypeError) as e:
                     high = 0.5
 
@@ -432,13 +478,128 @@ class CziChannelInfo:
 
                 # get the gamma values
                 try:
-                    channels_gamma.append(float(
-                        md_dict["ImageDocument"]["Metadata"]["DisplaySetting"]["Channels"]["Channel"][ch]["Gamma"]))
+                    channels_gamma.append(float(disp_setting["Channels"]["Channel"][ch]["Gamma"]))
                 except (KeyError, TypeError) as e:
                     channels_gamma.append(0.85)
 
+        # # in case of only one channel
+        # if sizeC == 1:
+        #     # get name for dye
+        #     try:
+        #         channels.append(md_dict["ImageDocument"]["Metadata"]
+        #                         ["DisplaySetting"]["Channels"]["Channel"]["ShortName"])
+        #     except (KeyError, TypeError) as e:
+        #         print("Channel shortname not found :", e)
+        #         try:
+        #             channels.append(md_dict["ImageDocument"]["Metadata"]
+        #                             ["DisplaySetting"]["Channels"]["Channel"]["DyeName"])
+        #         except (KeyError, TypeError) as e:
+        #             print("Channel dye not found :", e)
+        #             channels.append("Dye-CH1")
+
+        #     # get channel name
+        #     try:
+        #         channels_names.append(
+        #             md_dict["ImageDocument"]["Metadata"]["DisplaySetting"]["Channels"]["Channel"]["Name"])
+        #     except (KeyError, TypeError) as e:
+        #         try:
+        #             channels_names.append(
+        #                 md_dict["ImageDocument"]["Metadata"]["DisplaySetting"]["Channels"]["Channel"]["@Name"])
+        #         except (KeyError, TypeError) as e:
+        #             print("Channel name found :", e)
+        #             channels_names.append("CH1")
+
+        #     # get channel color
+        #     try:
+        #         channels_colors.append(
+        #             md_dict["ImageDocument"]["Metadata"]["DisplaySetting"]["Channels"]["Channel"]["Color"])
+        #     except (KeyError, TypeError) as e:
+        #         print("Channel color not found :", e)
+        #         channels_colors.append("#80808000")
+
+        #     # get contrast setting fro DisplaySetting
+        #     try:
+        #         low = float(md_dict["ImageDocument"]["Metadata"]
+        #                     ["DisplaySetting"]["Channels"]["Channel"]["Low"])
+        #     except (KeyError, TypeError) as e:
+        #         low = 0.1
+        #     try:
+        #         high = float(md_dict["ImageDocument"]["Metadata"]
+        #                      ["DisplaySetting"]["Channels"]["Channel"]["High"])
+        #     except (KeyError, TypeError) as e:
+        #         high = 0.5
+
+        #     channels_contrast.append([low, high])
+
+        #     # get the gamma values
+        #     try:
+        #         channels_gamma.append(
+        #             float(md_dict["ImageDocument"]["Metadata"]["DisplaySetting"]["Channels"]["Channel"]["Gamma"]))
+        #     except (KeyError, TypeError) as e:
+        #         channels_gamma.append(0.85)
+
+        # # in case of two or more channels
+        # if sizeC > 1:
+        #     # loop over all channels
+        #     for ch in range(sizeC):
+        #         # get name for dyes
+        #         try:
+        #             channels.append(
+        #                 md_dict["ImageDocument"]["Metadata"]["DisplaySetting"]["Channels"]["Channel"][ch]["ShortName"])
+        #         except (KeyError, TypeError) as e:
+        #             print("Channel shortname not found :", e)
+        #             try:
+        #                 channels.append(
+        #                     md_dict["ImageDocument"]["Metadata"]["DisplaySetting"]["Channels"]["Channel"][ch][
+        #                         "DyeName"])
+        #             except (KeyError, TypeError) as e:
+        #                 print("Channel dye not found :", e)
+        #                 channels.append("Dye-CH" + str(ch))
+
+        #         # get channel names
+        #         try:
+        #             channels_names.append(
+        #                 md_dict["ImageDocument"]["Metadata"]["DisplaySetting"]["Channels"]["Channel"][ch]["Name"])
+        #         except (KeyError, TypeError) as e:
+        #             try:
+        #                 channels_names.append(
+        #                     md_dict["ImageDocument"]["Metadata"]["DisplaySetting"]["Channels"]["Channel"][ch]["@Name"])
+        #             except (KeyError, TypeError) as e:
+        #                 print("Channel name not found :", e)
+        #                 channels_names.append("CH" + str(ch))
+
+        #         # get channel colors
+        #         try:
+        #             channels_colors.append(
+        #                 md_dict["ImageDocument"]["Metadata"]["DisplaySetting"]["Channels"]["Channel"][ch]["Color"])
+        #         except (KeyError, TypeError) as e:
+        #             print("Channel color not found :", e)
+        #             # use grayscale instead
+        #             channels_colors.append("80808000")
+
+        #         # get contrast setting fro DisplaySetting
+        #         try:
+        #             low = float(
+        #                 md_dict["ImageDocument"]["Metadata"]["DisplaySetting"]["Channels"]["Channel"][ch]["Low"])
+        #         except (KeyError, TypeError) as e:
+        #             low = 0.0
+        #         try:
+        #             high = float(
+        #                 md_dict["ImageDocument"]["Metadata"]["DisplaySetting"]["Channels"]["Channel"][ch]["High"])
+        #         except (KeyError, TypeError) as e:
+        #             high = 0.5
+
+        #         channels_contrast.append([low, high])
+
+        #         # get the gamma values
+        #         try:
+        #             channels_gamma.append(float(
+        #                 md_dict["ImageDocument"]["Metadata"]["DisplaySetting"]["Channels"]["Channel"][ch]["Gamma"]))
+        #         except (KeyError, TypeError) as e:
+        #             channels_gamma.append(0.85)
+
         # write channels information (as lists) into metadata dictionary
-        self.shortnames = channels
+        self.dyes = channels_dyes
         self.names = channels_names
         self.colors = channels_colors
         self.clims = channels_contrast
@@ -487,9 +648,9 @@ class CziScaling:
                 self.Z = 1.0
 
         # get the scaling in [micron] - inside CZI the default is [m]
-        #self.X = _safe_get_scale(distances, 0)
-        #self.Y = _safe_get_scale(distances, 1)
-        #self.Z = _safe_get_scale(distances, 2)
+        # self.X = _safe_get_scale(distances, 0)
+        # self.Y = _safe_get_scale(distances, 1)
+        # self.Z = _safe_get_scale(distances, 2)
 
         # safety check in case a scale = 0
         if self.X == 0.0:
@@ -1156,8 +1317,7 @@ def create_mdict_red(metadata: CziMetadata,
                'YScale': metadata.scale.Y,
                'ZScale': metadata.scale.Z,
                'ChannelsNames': metadata.channelinfo.names,
-               'ChannelShortNames': metadata.channelinfo.shortnames,
-               'bbox_all_scenes': metadata.bbox.all_scenes,
+               'ChannelDyes': metadata.channelinfo.dyes,
                'WellArrayNames': metadata.sample.well_array_names,
                'WellIndicies': metadata.sample.well_indices,
                'WellPositionNames': metadata.sample.well_position_names,
