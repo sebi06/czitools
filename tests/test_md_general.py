@@ -1,5 +1,6 @@
 
 from czitools.metadata import pylibczirw_metadata as czimd
+from pylibCZIrw import czi as pyczi
 import os
 from pathlib import Path
 import numpy as np
@@ -69,4 +70,20 @@ def test_dimorder():
     assert(md.aics_dim_valid == 8)
 
 
-test_dimorder()
+def test_scene_shape():
+
+    files = [r"data/S=3_1Pos_2Mosaic_T=2=Z=3_CH=2_sm.czi",
+             r"data/CellDivision_T=3_Z=5_CH=2_X=240_Y=170.czi",
+             r"data/WP96_4Pos_B4-10_DAPI.czi"]
+
+    shapes = [False, True, True]
+
+    for file, sc in zip(files, shapes):
+
+        # get the CZI filepath
+        filepath = os.path.join(basedir, file)
+
+        # get the complete metadata at once as one big class
+        md = czimd.CziMetadata(filepath)
+
+        assert(md.scene_shape_is_consistent == sc)
