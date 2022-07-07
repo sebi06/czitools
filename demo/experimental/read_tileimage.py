@@ -20,7 +20,8 @@ import napari
 #filepath = r"C:\Testdata_Zeiss\CZI_Testfiles\OverViewScan.czi"
 #filepath = r"C:\Testdata_Zeiss\CZI_Testfiles\S=2_3x3_T=3_Z=4_CH=2.czi"
 #filepath = r"C:\Testdata_Zeiss\CZI_Testfiles\CellDivision_T=10_Z=15_CH=2_DCV_small.czi"
-filepath = r"C:\Users\m1srh\Documents\Github\czitools\data\S=3_1Pos_2Mosaic_T=2=Z=3_CH=2_sm.czi"
+#filepath = r"C:\Users\m1srh\Documents\Github\czitools\data\S=3_1Pos_2Mosaic_T=2=Z=3_CH=2_sm.czi"
+filepath = r"D:\Testdata_Zeiss\CZI_Testfiles\ECA90_4_9.czi"
 
 # get the complete metadata at once as one big class
 mdata = czimd.CziMetadata(filepath)
