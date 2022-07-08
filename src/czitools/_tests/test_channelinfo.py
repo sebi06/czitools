@@ -18,7 +18,7 @@ def test_channelinfo():
     assert (czi_channels.dyes == ["AF555", "AF488"])
 
     # get the CZI filepath
-    filepath = os.path.join(basedir, r"data\Al2O3_SE_020_sp.czi")
+    filepath = os.path.join(basedir, r"data/Al2O3_SE_020_sp.czi")
     czi_channels = czimd.CziChannelInfo(filepath)
 
     assert (czi_channels.clims == [[0.1, 0.5]])
@@ -28,7 +28,7 @@ def test_channelinfo():
     assert (czi_channels.dyes == ["Dye1"])
 
     # get the CZI filepath
-    filepath = os.path.join(basedir, r"data\w96_A1+A2.czi")
+    filepath = os.path.join(basedir, r"data/w96_A1+A2.czi")
     czi_channels = czimd.CziChannelInfo(filepath)
 
     assert (czi_channels.clims == [[0.000871455799315693, 0.044245974575704575], [
