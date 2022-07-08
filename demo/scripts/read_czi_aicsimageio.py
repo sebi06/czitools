@@ -10,14 +10,14 @@
 #################################################################
 
 import napari
-from czitools.metadata import pylibczirw_metadata as czimd
+from czitools import pylibczirw_metadata as czimd
 from aicsimageio import AICSImage
-from czitools.utils import misc, napari_tools
+from czitools import misc, napari_tools
 import os
 from pathlib import Path
 
 # adapt to your needs
-defaultdir = os.path.join(Path(__file__).resolve().parents[1], "data")
+defaultdir = os.path.join(Path(__file__).resolve().parents[2], "data")
 
 # open s simple dialog to select a CZI file
 filepath = misc.openfile(directory=defaultdir,
