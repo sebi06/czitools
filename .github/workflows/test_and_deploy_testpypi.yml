@@ -8,6 +8,7 @@ on:
     branches:
       - master
       - main
+      - work-in-progress
     tags:
       - "testpypi-v*" # Push events to matching testpypi-v*, i.e. testpypi-v1.0
   pull_request:
