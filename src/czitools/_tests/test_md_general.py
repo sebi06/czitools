@@ -1,5 +1,5 @@
 
-from czitools.metadata import pylibczirw_metadata as czimd
+from czitools import pylibczirw_metadata as czimd
 from pylibCZIrw import czi as pyczi
 import os
 from pathlib import Path
@@ -11,7 +11,7 @@ basedir = Path(__file__).resolve().parents[1]
 def test_pixeltypes():
 
     # get the CZI filepath
-    filepath = os.path.join(basedir, r"data/Tumor_HE_RGB.czi")
+    filepath = os.path.join(basedir, r"_data/Tumor_HE_RGB.czi")
     md = czimd.CziMetadata(filepath)
 
     print("PixelTypes: ", md.pixeltypes)
@@ -61,7 +61,7 @@ def test_pixeltypes():
 def test_dimorder():
 
     # get the CZI filepath
-    filepath = os.path.join(basedir, r"data/S=2_3x3_CH=2.czi")
+    filepath = os.path.join(basedir, r"_data/S=2_3x3_CH=2.czi")
     md = czimd.CziMetadata(filepath)
 
     assert(md.aics_dim_order == {'R': -1, 'I': -1, 'M': 5, 'H': 0, 'V': -1,
@@ -72,9 +72,9 @@ def test_dimorder():
 
 def test_scene_shape():
 
-    files = [r"data/S=3_1Pos_2Mosaic_T=2=Z=3_CH=2_sm.czi",
-             r"data/CellDivision_T=3_Z=5_CH=2_X=240_Y=170.czi",
-             r"data/WP96_4Pos_B4-10_DAPI.czi"]
+    files = [r"_data/S=3_1Pos_2Mosaic_T=2=Z=3_CH=2_sm.czi",
+             r"_data/CellDivision_T=3_Z=5_CH=2_X=240_Y=170.czi",
+             r"_data/WP96_4Pos_B4-10_DAPI.czi"]
 
     shapes = [False, True, True]
 

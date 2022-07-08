@@ -10,8 +10,8 @@
 #################################################################
 
 from pylibCZIrw import czi as pyczi
-from czitools.metadata import pylibczirw_metadata as czimd
-from czitools.utils import misc
+from czitools import pylibczirw_metadata as czimd
+from czitools import misc
 import numpy as np
 from typing import List, Dict, Tuple, Optional, Type, Any, Union
 from tqdm.contrib.itertools import product

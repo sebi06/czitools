@@ -1,4 +1,4 @@
-from czitools.metadata import pylibczirw_metadata as czimd
+from czitools import pylibczirw_metadata as czimd
 import os
 from pathlib import Path
 from pylibCZIrw import czi
@@ -6,7 +6,7 @@ from pylibCZIrw import czi
 basedir = Path(__file__).resolve().parents[1]
 
 # get the CZI filepath
-filepath = os.path.join(basedir, r"data/w96_A1+A2.czi")
+filepath = os.path.join(basedir, r"_data/w96_A1+A2.czi")
 
 
 def test_bounding_box():

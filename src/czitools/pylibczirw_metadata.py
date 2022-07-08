@@ -14,7 +14,7 @@ import os
 from collections import Counter
 import xml.etree.ElementTree as ET
 from pylibCZIrw import czi as pyczi
-from czitools.utils import misc
+from czitools import misc
 import numpy as np
 import pydash
 from typing import List, Dict, Tuple, Optional, Type, Any, Union
