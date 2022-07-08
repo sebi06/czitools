@@ -1,19 +1,21 @@
 # This workflows will upload a Python Package using Twine when a release is created
 # For more information see: https://help.github.com/en/actions/language-and-framework-guides/using-python-with-github-actions#publishing-to-package-registries
 
-name: tests_and_deploy_testpypi
+name: test_and_deploy_testpypi
 
 on:
   push:
     branches:
-      - master
-      - main
+    #  - master
+    #  - main
+      - work-in-progress
     tags:
       - "testpypi-v*" # Push events to matching testpypi-v*, i.e. testpypi-v1.0
   pull_request:
     branches:
-      - master
-      - main
+    #  - master
+    #  - main
+      - work-in-progress
   workflow_dispatch:
 
 jobs:
@@ -59,41 +61,20 @@ jobs:
     runs-on: ubuntu-latest
     if: contains(github.ref, 'tags')
     steps:
-      - uses: actions/checkout@master
+      - uses: actions/checkout@v2
       - name: Set up Python
-        uses: actions/setup-python@v3
+        uses: actions/setup-python@v2
         with:
           python-version: "3.x"
-      - name: Install pypa/build
-        run: >-
-          python -m
-          pip install --upgrade pip
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
           pip install -U setuptools setuptools_scm wheel twine
-          pip install
-          build
-          --user
-      - name: Build a binary wheel and a source tarball
-        run: >-
-          python -m
-          build
-          --sdist
-          --wheel
-          --outdir dist/
-          .
-      #- name: Install dependencies
-      #  run: |
-      #    python -m
-      #    pip install --upgrade pip
-      #    pip install -U setuptools setuptools_scm wheel twine
       - name: Build and publish
-        uses: pypa/gh-action-pypi-publish@master
-        with:
-          password: ${{ secrets.TWINE_TESTPYPI_TOKEN }}
-          repository_url: https://test.pypi.org/legacy/ 
-        #env:
-        #  TWINE_USERNAME: __token__
-        #  TWINE_PASSWORD: ${{ secrets.TWINE_TESTPYPI_TOKEN }}
-        #run: |
-        #  git tag
-        #  python setup.py sdist bdist_wheel
-        #  twine upload dist/*
+        env:
+          TWINE_USERNAME: __token__
+          TWINE_PASSWORD: ${{ secrets.TWINE_TESTPYPI_TOKEN }}
+        run: |
+          git tag
+          python setup.py sdist bdist_wheel
+          twine upload dist/*
