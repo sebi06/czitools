@@ -6,8 +6,8 @@ name: tests_and_deploy_testpypi
 on:
   push:
     branches:
-      - master
-      - main
+    #  - master
+    #  - main
       - work-in-progress
     tags:
       - "testpypi-v*" # Push events to matching testpypi-v*, i.e. testpypi-v1.0
@@ -60,7 +60,7 @@ jobs:
     runs-on: ubuntu-latest
     if: contains(github.ref, 'tags')
     steps:
-      - uses: actions/checkou@v2
+      - uses: actions/checkout@v2
       - name: Set up Python
         uses: actions/setup-python@v2
         with:
