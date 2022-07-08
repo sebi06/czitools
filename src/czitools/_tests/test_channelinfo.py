@@ -8,7 +8,7 @@ basedir = Path(__file__).resolve().parents[3]
 def test_channelinfo():
 
     # get the CZI filepath
-    filepath = os.path.join(basedir, r"data\CellDivision_T=3_Z=5_CH=2_X=240_Y=170.czi")
+    filepath = os.path.join(basedir, r"data/CellDivision_T=3_Z=5_CH=2_X=240_Y=170.czi")
     czi_channels = czimd.CziChannelInfo(filepath)
 
     assert (czi_channels.clims == [[0.0, 0.05983062485694667], [0.0, 0.24975967040512703]])
