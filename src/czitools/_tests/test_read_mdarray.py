@@ -3,13 +3,13 @@ from czitools import pylibczirw_tools
 import os
 from pathlib import Path
 
-basedir = Path(__file__).resolve().parents[1]
+basedir = Path(__file__).resolve().parents[3]
 
 
 def test_read_mdarray_1():
 
     # get the CZI filepath
-    filepath = os.path.join(basedir, r"_data/w96_A1+A2.czi")
+    filepath = os.path.join(basedir, r"data/w96_A1+A2.czi")
 
     mdarray, dimstring = pylibczirw_tools.read_6darray(filepath,
                                                        output_dask=False,
@@ -33,7 +33,7 @@ def test_read_mdarray_1():
 def test_read_mdarray_2():
 
     # get the CZI filepath
-    filepath = os.path.join(basedir, r"_data/S=2_3x3_CH=2.czi")
+    filepath = os.path.join(basedir, r"data/S=2_3x3_CH=2.czi")
 
     mdarray, dimstring = pylibczirw_tools.read_6darray(filepath,
                                                        output_dask=False,
@@ -57,7 +57,7 @@ def test_read_mdarray_2():
 def test_read_mdarray_lazy_1():
 
     # get the CZI filepath
-    filepath = os.path.join(basedir, r"_data/w96_A1+A2.czi")
+    filepath = os.path.join(basedir, r"data/w96_A1+A2.czi")
 
     mdarray, dimstring = pylibczirw_tools.read_mdarray_lazy(filepath, remove_Adim=False)
 

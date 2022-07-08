@@ -10,13 +10,13 @@
 #################################################################
 
 from pylibCZIrw import czi as pyczi
-from czitools.metadata import pylibczirw_metadata as czimd
-from czitools.utils import misc
+from czitools import pylibczirw_metadata as czimd
+from czitools import misc
 import os
 from pathlib import Path
 
 # adapt to your needs
-defaultdir = os.path.join(Path(__file__).resolve().parents[1], "data")
+defaultdir = os.path.join(Path(__file__).resolve().parents[2], "data")
 
 # open s simple dialog to select a CZI file
 filepath = misc.openfile(directory=defaultdir,
@@ -101,10 +101,10 @@ czi_bbox = czimd.CziBoundingBox(filepath)
 print(czi_bbox.total_bounding_box)
 
 # show the bbox for the scenes
-print(czi_bbox.total_bounding_rectangle)
+print(czi_bbox.scenes_bounding_rect)
 
 # show the total rectangle for all scenes
 print(czi_bbox.total_rect)
 
 # show just the number of channels
-print(type(czi_bbox.total_bounding_box["C"]))
+print(czi_bbox.total_bounding_box["C"])

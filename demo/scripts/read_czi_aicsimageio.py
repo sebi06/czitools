@@ -17,7 +17,7 @@ import os
 from pathlib import Path
 
 # adapt to your needs
-defaultdir = os.path.join(Path(__file__).resolve().parents[1], "_data")
+defaultdir = os.path.join(Path(__file__).resolve().parents[2], "data")
 
 # open s simple dialog to select a CZI file
 filepath = misc.openfile(directory=defaultdir,

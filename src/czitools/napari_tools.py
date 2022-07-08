@@ -40,8 +40,8 @@ from PyQt5.QtWidgets import (
 from PyQt5.QtCore import Qt, QDir, QSortFilterProxyModel
 from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtGui import QFont
-from czitools.metadata import pylibczirw_metadata as czimd
-from czitools.utils import misc
+from czitools import pylibczirw_metadata as czimd
+from czitools import misc
 import numpy as np
 from typing import List, Dict, Tuple, Optional, Type, Any, Union
 

@@ -3,10 +3,10 @@ import os
 from pathlib import Path
 from pylibCZIrw import czi
 
-basedir = Path(__file__).resolve().parents[1]
+basedir = Path(__file__).resolve().parents[3]
 
 # get the CZI filepath
-filepath = os.path.join(basedir, r"_data/w96_A1+A2.czi")
+filepath = os.path.join(basedir, r"data/w96_A1+A2.czi")
 
 
 def test_bounding_box():
