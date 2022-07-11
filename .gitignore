@@ -154,3 +154,4 @@ examples/pylibCZIrw_docu/newCZI_zscenes.czi
 /.vscode/
 **/experimental/**
 **/demo/pylibCZIrw_docu/**
+demo/experimental/
