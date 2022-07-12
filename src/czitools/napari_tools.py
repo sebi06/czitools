@@ -44,6 +44,7 @@ from czitools import pylibczirw_metadata as czimd
 from czitools import misc
 import numpy as np
 from typing import List, Dict, Tuple, Optional, Type, Any, Union
+from napari.utils.colormaps import Colormap
 
 
 class TableWidget(QWidget):
@@ -120,7 +121,7 @@ def show(viewer: Any, array: np.ndarray, metadata: czimd.CziMetadata,
     :param blending: blending mode for viewer
     :param contrast: method to be used to calculate an appropriate display scaling.
     - "calc" : real min & max calculation (might be slow) be calculated (slow)
-    - "napari_auto" : let Napari figure out a display scaling. Will look in the center of an image !
+    - "napari_auto" : Let Napari figure out a display scaling. Will look in the center of an image !
     - "from_czi" : use the display scaling from ZEN stored inside the CZI metadata
     :param gamma: gamma value for the Viewer for all layers
     :param add_mdtable: option to show the CziMetadata as a table widget
@@ -162,6 +163,8 @@ def show(viewer: Any, array: np.ndarray, metadata: czimd.CziMetadata,
     else:
         sizeC = metadata.image.SizeC
 
+    #import webcolors
+
     # loop over all channels and add them as layers
     for ch in range(sizeC):
 
@@ -172,6 +175,10 @@ def show(viewer: Any, array: np.ndarray, metadata: czimd.CziMetadata,
             print(e)
             # or use CH1 etc. as string for the name
             chname = "CH" + str(ch + 1)
+
+        # inside the CZI metadata colors are defined as ARGB hexstring
+        rgb = "#" + metadata.channelinfo.colors[ch][3:]
+        ncmap = Colormap(["#000000", rgb], name="cm_" + chname)
 
         # cut out channel
         if metadata.image.SizeC is not None:
@@ -195,7 +202,8 @@ def show(viewer: Any, array: np.ndarray, metadata: czimd.CziMetadata,
                                          scale=scalefactors,
                                          contrast_limits=sc,
                                          blending=blending,
-                                         gamma=gamma)
+                                         gamma=gamma,
+                                         colormap=ncmap)
 
         if contrast == "napari_auto":
             # let Napari figure out what the best display scaling is
@@ -206,7 +214,8 @@ def show(viewer: Any, array: np.ndarray, metadata: czimd.CziMetadata,
                                          name=chname,
                                          scale=scalefactors,
                                          blending=blending,
-                                         gamma=gamma)
+                                         gamma=gamma,
+                                         colormap=ncmap)
         if contrast == "from_czi":
             # guess an appropriate scaling from the display setting embedded in the CZI
             lower = np.round(
@@ -229,7 +238,8 @@ def show(viewer: Any, array: np.ndarray, metadata: czimd.CziMetadata,
                                          scale=scalefactors,
                                          contrast_limits=[lower, higher],
                                          blending=blending,
-                                         gamma=gamma)
+                                         gamma=gamma,
+                                         colormap=ncmap)
 
         # append the current layer
         napari_layers.append(new_layer)
