@@ -34,7 +34,8 @@ mdata = czimd.CziMetadata(filepath)
 array6d, dimstring = pylibczirw_tools.read_6darray(filepath,
                                                    dimorder="STCZYX",
                                                    output_dask=False,
-                                                   remove_Adim=True)
+                                                   remove_Adim=True,
+                                                   T=0)
 
 
 #array6d, dimstring = pylibczirw_tools.read_mdarray_lazy(filepath, remove_Adim=True)

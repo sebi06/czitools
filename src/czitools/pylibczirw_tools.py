@@ -23,7 +23,8 @@ def read_6darray(filename: str,
                  dimorder: str = "STCZYX",
                  output_dask: bool = False,
                  chunks_auto: bool = False,
-                 remove_Adim: bool = True) -> Tuple[Union[np.ndarray, da.Array], str]:
+                 remove_Adim: bool = True,
+                 **kwargs: int) -> Tuple[Union[np.ndarray, da.Array], str]:
     """Read a CZI image file as 6D numpy or dask array.
     Important: Currently supported are only scenes with equal size.
 
@@ -33,6 +34,8 @@ def read_6darray(filename: str,
         output_dask (bool, optional): If True the output will be a dask array. Defaults to False.
         chunks_auto (bool, optional): Use a chunk size create automatically if True and otherwise use the array shape. Default to False.
         remove_Adim (bool, optional): If true the dimension for the pixel type will be removed. Defaults to True.
+        kwargs (int, optional): Allowed kwargs are S, T, Z, C and values must be >=0 (zero-based).
+                                Will be used to read only a substack from the array
 
     Returns:
         Tuple[np.ndarray, str]: output as 6D numpy or dask array
@@ -80,6 +83,19 @@ def read_6darray(filename: str,
         size_t = misc.check_dimsize(mdata.image.SizeT, set2value=1)
         size_s = misc.check_dimsize(mdata.image.SizeS, set2value=1)
 
+        # check for additional **kwargs to create substacks
+        if kwargs is not None and "S" in kwargs:
+            size_s = kwargs["S"] + 1
+        
+        if kwargs is not None and "T" in kwargs:
+            size_t = kwargs["T"] + 1
+
+        if kwargs is not None and "Z" in kwargs:
+            size_z = kwargs["Z"] + 1
+        
+        if kwargs is not None and "C" in kwargs:
+            size_c = kwargs["C"] + 1
+
         if dimorder == "STZCYX":
 
             # define the dimension order to be STZCYXA
@@ -102,6 +118,9 @@ def read_6darray(filename: str,
                                       range(size_c)):
 
                 # read a 2D image plane from the CZI
+
+                print("Read 2d plane STZC:", s, t, z, c)
+
                 if mdata.image.SizeS is None:
                     image2d = czidoc.read(plane={'T': t, 'Z': z, 'C': c})
                 else:
@@ -138,6 +157,9 @@ def read_6darray(filename: str,
                                       range(size_z)):
 
                 # read a 2D image plane from the CZI
+
+                print("Read 2d plane STCZ:", s, t, z, c)
+
                 if mdata.image.SizeS is None:
                     image2d = czidoc.read(plane={'T': t, 'Z': z, 'C': c})
                 else:
