@@ -117,6 +117,7 @@ def show(viewer: Any, array: np.ndarray, metadata: czimd.CziMetadata,
     :param viewer: Napari viewer object
     :param array: multi-dimensional array containing the pixel data
     :param metadata: CziMetadata class
+    :param dim_string: the dimension string for the array to be shown
     :param blending: blending mode for viewer
     :param contrast: method to be used to calculate an appropriate display scaling.
     - "calc" : real min & max calculation (might be slow) be calculated (slow)
@@ -142,6 +143,11 @@ def show(viewer: Any, array: np.ndarray, metadata: czimd.CziMetadata,
     scalefactors = [1.0] * len(array.shape)
 
     # modify the tuple for the scales for napari
+
+    # the "strange factor" is added due to an open (rounding) bug on the Napari side:
+    # https://github.com/napari/napari/issues/4861
+    # https://forum.image.sc/t/image-layer-in-napari-showing-the-wrong-dimension-size-one-plane-is-missing/69939/12
+
     scalefactors[dim_order["Z"]] = metadata.scale.ratio["zx"] * 1.0000001
 
     # add Qt widget for metadata

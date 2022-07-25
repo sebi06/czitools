@@ -149,7 +149,7 @@ def read_6darray(filename: str,
 
 def read_5darray(filename: str,
                  scene: int = 0,
-                 order5d: str = "TCZYX",
+                 output_order: str = "TCZYX",
                  output_dask: bool = False,
                  chunks_auto: bool = False,
                  remove_Adim: bool = True) -> Tuple[Union[np.ndarray, da.Array], str]:
@@ -158,7 +158,7 @@ def read_5darray(filename: str,
 
     Args:
         filename (str): filepath for the CZI image
-        order5d (str, optional): Order of dimensions for the output array. Defaults to "TCZYX".
+        output_order (str, optional): Order of dimensions for the output array. Defaults to "TCZYX".
         output_dask (bool, optional): If True the output will be a dask array. Defaults to False.
         chunks_auto (bool, optional): Use a chunk size create automatically if True and otherwise use the array shape. Default to False.
         remove_Adim (bool, optional): If true the dimension for the pixel type will be removed. Defaults to True.
@@ -170,15 +170,11 @@ def read_5darray(filename: str,
     # get the complete metadata at once as one big class
     mdata = czimd.CziMetadata(filename)
 
-    valid_order5d = ["TCZYX", "TZCYX"]
+    valid_order = ["TCZYX", "TZCYX"]
 
-    if order5d not in valid_order5d:
-        print("Invalid dimension order:", order5d)
+    if output_order not in valid_order:
+        print("Invalid dimension order:", output_order)
         return np.array([]), ""
-
-    # update entries with respect to the desired 5d array
-    mdata.dim_order5d, mdata.dim_index5d, mdata.dim_valid6d = czimd.CziMetadata.get_dimorder(
-        order5d)
 
     # open the CZI document to read the
     with pyczi.open_czi(filename) as czidoc:
@@ -228,18 +224,18 @@ def read_5darray(filename: str,
             array5d[t, z, c, ...] = image2d
 
             # change the dimension order if needed
-        if order5d == "TZCYX":
-            dim_string5d = "TZCYXA"
+        if output_order == "TZCYX":
+            dim_string = "TZCYXA"
 
-        if order5d == "TCZYX":
-            dim_string5d = "TCZYXA"
+        if output_order == "TCZYX":
+            dim_string = "TCZYXA"
             array5d = np.swapaxes(array5d, 1, 2)
 
         if remove_Adim:
-            dim_string5d = dim_string5d.replace("A", "")
+            dim_string = dim_string.replace("A", "")
             array5d = np.squeeze(array5d, axis=-1)
 
-    return array5d, dim_string5d
+    return array5d, mdata, dim_string
 
 
 ###### EXPERIMENTAL #####
