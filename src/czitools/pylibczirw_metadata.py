@@ -167,7 +167,7 @@ class CziMetadata:
         return dtype, maxvalue
 
     @staticmethod
-    def get_dimorder(dimstring: str) -> Tuple[Dict, List, int]:
+    def get_dimorder(dim_string: str) -> Tuple[Dict, List, int]:
         """Get the order of dimensions from dimension string
 
         :param dimstring: string containing the dimensions
@@ -187,13 +187,34 @@ class CziMetadata:
 
         # loop over all dimensions and find the index
         for d in dims:
-            dims_dict[d] = dimstring.find(d)
-            dimindex_list.append(dimstring.find(d))
+            dims_dict[d] = dim_string.find(d)
+            dimindex_list.append(dim_string.find(d))
 
         # check if a dimension really exists
         numvalid_dims = sum(i >= 0 for i in dimindex_list)
 
         return dims_dict, dimindex_list, numvalid_dims
+
+    @staticmethod
+    def get_dim_string(dim_order: Dict, num_dims: int = 6) -> str:
+        """Create dimension 5d or 6d string based on the dictionary with the dimension order
+
+        Args:
+            dim_order (Dict): Dictionary with all dimensions and their indices
+
+        Returns:
+            str: dimension string for a 5d or 6d array, e.g. "TCZYX" or STCZYX"
+        """
+
+        dim_string = ""
+
+        for d in range(num_dims):
+
+            # get the key from dim_orders and add to string
+            k = [key for key, value in dim_order.items() if value == d][0]
+            dim_string = dim_string + k
+
+        return dim_string
 
     def __check_scenes_shape(self,
                              czidoc: pyczi.CziReader,

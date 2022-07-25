@@ -104,7 +104,7 @@ class TableWidget(QWidget):
 
 
 def show(viewer: Any, array: np.ndarray, metadata: czimd.CziMetadata,
-         dim_order: dict,
+         dim_string: str,
          blending: str = "additive",
          contrast: str = "calc",
          gamma: float = 0.85,
@@ -117,7 +117,6 @@ def show(viewer: Any, array: np.ndarray, metadata: czimd.CziMetadata,
     :param viewer: Napari viewer object
     :param array: multi-dimensional array containing the pixel data
     :param metadata: CziMetadata class
-    :param dim_order: Dictionary with the dimension order.
     :param blending: blending mode for viewer
     :param contrast: method to be used to calculate an appropriate display scaling.
     - "calc" : real min & max calculation (might be slow) be calculated (slow)
@@ -128,6 +127,8 @@ def show(viewer: Any, array: np.ndarray, metadata: czimd.CziMetadata,
     :param name_sliders: option to use the dimension letters as slider labels for the viewer
     :return:
     """
+
+    dim_order, dim_index, dim_valid = czimd.CziMetadata.get_dimorder(dim_string)
 
     # check if contrast mode
     if contrast not in ["calc", "napari_auto", "from_czi"]:
@@ -141,7 +142,7 @@ def show(viewer: Any, array: np.ndarray, metadata: czimd.CziMetadata,
     scalefactors = [1.0] * len(array.shape)
 
     # modify the tuple for the scales for napari
-    scalefactors[dim_order["Z"]] = metadata.scale.ratio["zx"]
+    scalefactors[dim_order["Z"]] = metadata.scale.ratio["zx"] * 1.0000001
 
     # add Qt widget for metadata
     if add_mdtable:
@@ -162,8 +163,6 @@ def show(viewer: Any, array: np.ndarray, metadata: czimd.CziMetadata,
         sizeC = 1
     else:
         sizeC = metadata.image.SizeC
-
-    #import webcolors
 
     # loop over all channels and add them as layers
     for ch in range(sizeC):
@@ -253,9 +252,11 @@ def show(viewer: Any, array: np.ndarray, metadata: czimd.CziMetadata,
         viewer.dims.axis_labels = sliderlabels
 
     # workaround because of: https://forum.image.sc/t/napari-3d-view-shows-flat-z-stack/62744/9?u=sebi06
-    od = list(viewer.dims.order)
-    od[dim_order["C"]], od[dim_order["Z"]] = od[dim_order["Z"]], od[dim_order["C"]]
-    viewer.dims.order = tuple(od)
+    if dim_string == "STZCYX" or dim_string == "TZCYX":
+
+        od = list(viewer.dims.order)
+        od[dim_order["C"]], od[dim_order["Z"]] = od[dim_order["Z"]], od[dim_order["C"]]
+        viewer.dims.order = tuple(od)
 
     return napari_layers
 
