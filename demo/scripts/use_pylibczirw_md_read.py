@@ -27,25 +27,19 @@ filepath = misc.openfile(directory=defaultdir,
                          extension="*.czi")
 print(filepath)
 
-# get the complete metadata at once as one big class
-mdata = czimd.CziMetadata(filepath)
-
 # return a array with dimension order STZCYX(A)
-array6d, dimstring = pylibczirw_tools.read_6darray(filepath,
-                                                   dimorder="STCZYX",
-                                                   output_dask=False,
-                                                   remove_Adim=True)
-
-
-#array6d, dimstring = pylibczirw_tools.read_mdarray_lazy(filepath, remove_Adim=True)
-
-# remove A dimension do display the array inside Napari
-dim_order, dim_index, dim_valid = czimd.CziMetadata.get_dimorder(dimstring)
+array6d, mdata, dim_string6d = pylibczirw_tools.read_6darray(filepath,
+                                                             output_order="STCZYX",
+                                                             output_dask=False,
+                                                             remove_Adim=True,
+                                                             # T=0,
+                                                             # Z=0
+                                                             )
 
 # show array inside napari viewer
 viewer = napari.Viewer()
 layers = napari_tools.show(viewer, array6d, mdata,
-                           dim_order=dim_order,
+                           dim_string=dim_string6d,
                            blending="additive",
                            contrast='napari_auto',
                            gamma=0.85,

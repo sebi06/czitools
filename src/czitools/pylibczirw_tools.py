@@ -20,32 +20,35 @@ import dask.array as da
 
 
 def read_6darray(filename: str,
-                 dimorder: str = "STCZYX",
+                 output_order: str = "STZCYX",
                  output_dask: bool = False,
                  chunks_auto: bool = False,
-                 remove_Adim: bool = True) -> Tuple[Union[np.ndarray, da.Array], str]:
+                 remove_Adim: bool = True,
+                 **kwargs: int) -> Tuple[Union[np.ndarray, da.Array], czimd.CziMetadata, str]:
     """Read a CZI image file as 6D numpy or dask array.
     Important: Currently supported are only scenes with equal size.
 
     Args:
         filename (str): filepath for the CZI image
-        dimorder (str, optional): Order of dimensions for the output array. Defaults to "STCZYX".
+        output_order (str, optional): Order of dimensions for the output array. Defaults to "STZCYX".
         output_dask (bool, optional): If True the output will be a dask array. Defaults to False.
         chunks_auto (bool, optional): Use a chunk size create automatically if True and otherwise use the array shape. Default to False.
         remove_Adim (bool, optional): If true the dimension for the pixel type will be removed. Defaults to True.
+        kwargs (int, optional): Allowed kwargs are S, T, Z, C and values must be >=0 (zero-based).
+                                Will be used to read only a substack from the array
 
     Returns:
-        Tuple[np.ndarray, str]: output as 6D numpy or dask array
+        Tuple[np.ndarray, czimd.Metadata, dim_order6d]: output as 6D numpy or dask array and metadata 
     """
-
-    valid_dimorders = ["STCZYX", "STZCYX"]
-
-    if dimorder not in valid_dimorders:
-        print("Invalid dimension order:", dimorder)
-        return np.array([]), ""
 
     # get the complete metadata at once as one big class
     mdata = czimd.CziMetadata(filename)
+
+    valid_order = ["STCZYX", "STZCYX"]
+
+    if output_order not in valid_order:
+        print("Invalid dimension order 6D:", output_order)
+        return np.array([]), ""
 
     if not mdata.scene_shape_is_consistent:
         print("Scenes have inconsistent shape. Cannot read 6D array")
@@ -80,88 +83,73 @@ def read_6darray(filename: str,
         size_t = misc.check_dimsize(mdata.image.SizeT, set2value=1)
         size_s = misc.check_dimsize(mdata.image.SizeS, set2value=1)
 
-        if dimorder == "STZCYX":
+        # check for additional **kwargs to create substacks
+        if kwargs is not None and mdata.image.SizeS is not None and "S" in kwargs:
+            size_s = kwargs["S"] + 1
+            mdata.image.SizeS = 1
 
-            # define the dimension order to be STZCYXA
-            dimstring = "STZCYXA"
+        if kwargs is not None and "T" in kwargs:
+            size_t = kwargs["T"] + 1
+            mdata.image.SizeT = 1
 
-            shape = [size_s, size_t, size_z, size_c, size_y, size_x, 3 if mdata.isRGB else 1]
+        if kwargs is not None and "Z" in kwargs:
+            size_z = kwargs["Z"] + 1
+            mdata.image.SizeZ = 1
 
-            if not output_dask:
-                array6d = np.empty(shape, dtype=mdata.npdtype)
-            if output_dask:
-                if chunks_auto:
-                    array6d = da.empty(shape, dtype=mdata.npdtype, chunks="auto")
-                if not chunks_auto:
-                    array6d = da.empty(shape, dtype=mdata.npdtype, chunks=shape)
+        if kwargs is not None and "C" in kwargs:
+            size_c = kwargs["C"] + 1
+            mdata.image.SizeC = 1
 
-            # read array for the scene
-            for s, t, z, c in product(range(size_s),
-                                      range(size_t),
-                                      range(size_z),
-                                      range(size_c)):
+        # assume default dimorder = STZCYX(A)
+        shape = [size_s, size_t, size_z, size_c, size_y, size_x, 3 if mdata.isRGB else 1]
 
-                # read a 2D image plane from the CZI
-                if mdata.image.SizeS is None:
-                    image2d = czidoc.read(plane={'T': t, 'Z': z, 'C': c})
-                else:
-                    image2d = czidoc.read(plane={'T': t, 'Z': z, 'C': c}, scene=s)
+        if not output_dask:
+            array6d = np.empty(shape, dtype=mdata.npdtype)
+        if output_dask:
+            if chunks_auto:
+                array6d = da.empty(shape, dtype=mdata.npdtype, chunks="auto")
+            if not chunks_auto:
+                array6d = da.empty(shape, dtype=mdata.npdtype, chunks=shape)
 
-                # # check if the image2d is really not too big
-                # if (mdata.bbox.total_bounding_box["X"][1] > mdata.image.SizeX or
-                #         mdata.bbox.total_bounding_box["Y"][1] > mdata.image.SizeY):
+        # read array for the scene
+        for s, t, z, c in product(range(size_s),
+                                  range(size_t),
+                                  range(size_z),
+                                  range(size_c)):
 
-                #     image2d = image2d[..., 0:mdata.image.SizeY, 0:mdata.image.SizeX, :]
+            # read a 2D image plane from the CZI
+            if mdata.image.SizeS is None:
+                image2d = czidoc.read(plane={'T': t, 'Z': z, 'C': c})
+            else:
+                image2d = czidoc.read(plane={'T': t, 'Z': z, 'C': c}, scene=s)
 
-                # insert 2D image plane into the array6d
-                array6d[s, t, z, c, ...] = image2d
+            # # check if the image2d is really not too big
+            # if (mdata.bbox.total_bounding_box["X"][1] > mdata.image.SizeX or
+            #         mdata.bbox.total_bounding_box["Y"][1] > mdata.image.SizeY):
 
-        if dimorder == "STCZYX":
+            #     image2d = image2d[..., 0:mdata.image.SizeY, 0:mdata.image.SizeX, :]
 
-            # define the dimension order to be STCZYXA
-            dimstring = "STCZYXA"
+            # insert 2D image plane into the array6d
+            array6d[s, t, z, c, ...] = image2d
 
-            shape = [size_s, size_t, size_c, size_z, size_y, size_x, 3 if mdata.isRGB else 1]
+        # change the dimension order if needed
+        if output_order == "STZCYX":
+            dim_string = "STZCYXA"
 
-            if not output_dask:
-                array6d = np.empty(shape, dtype=mdata.npdtype)
-            if output_dask:
-                if chunks_auto:
-                    array6d = da.empty(shape, dtype=mdata.npdtype, chunks="auto")
-                if not chunks_auto:
-                    array6d = da.empty(shape, dtype=mdata.npdtype, chunks=shape)
-
-            # read array for the scene
-            for s, t, c, z in product(range(size_s),
-                                      range(size_t),
-                                      range(size_c),
-                                      range(size_z)):
-
-                # read a 2D image plane from the CZI
-                if mdata.image.SizeS is None:
-                    image2d = czidoc.read(plane={'T': t, 'Z': z, 'C': c})
-                else:
-                    image2d = czidoc.read(plane={'T': t, 'Z': z, 'C': c}, scene=s)
-
-                # # check if the image2d is really not too big
-                # if (mdata.bbox.total_bounding_box["X"][1] > mdata.image.SizeX or
-                #        mdata.bbox.total_bounding_box["Y"][1] > mdata.image.SizeY):
-
-                #     image2d = image2d[..., 0:mdata.image.SizeY, 0:mdata.image.SizeX, :]
-
-                # insert 2D image plane into the array6d
-                array6d[s, t, c, z, ...] = image2d
+        if output_order == "STCZYX":
+            dim_string = "STCZYXA"
+            array6d = np.swapaxes(array6d, 2, 3)
 
         if remove_Adim:
-            dimstring = dimstring.replace("A", "")
+            dim_string = dim_string.replace("A", "")
             array6d = np.squeeze(array6d, axis=-1)
 
-    return array6d, dimstring
+    return array6d, mdata, dim_string
 
 
 def read_5darray(filename: str,
                  scene: int = 0,
-                 dimorder: str = "TCZYX",
+                 output_order: str = "TCZYX",
                  output_dask: bool = False,
                  chunks_auto: bool = False,
                  remove_Adim: bool = True) -> Tuple[Union[np.ndarray, da.Array], str]:
@@ -170,7 +158,7 @@ def read_5darray(filename: str,
 
     Args:
         filename (str): filepath for the CZI image
-        dimorder (str, optional): Order of dimensions for the output array. Defaults to "TCZYX".
+        output_order (str, optional): Order of dimensions for the output array. Defaults to "TCZYX".
         output_dask (bool, optional): If True the output will be a dask array. Defaults to False.
         chunks_auto (bool, optional): Use a chunk size create automatically if True and otherwise use the array shape. Default to False.
         remove_Adim (bool, optional): If true the dimension for the pixel type will be removed. Defaults to True.
@@ -179,14 +167,14 @@ def read_5darray(filename: str,
         Tuple[np.ndarray, str]: output as 5D numpy or dask array
     """
 
-    valid_dimorders = ["TCZYX", "TZCYX"]
-
-    if dimorder not in valid_dimorders:
-        print("Invalid dimension order:", dimorder)
-        return np.array([]), ""
-
     # get the complete metadata at once as one big class
     mdata = czimd.CziMetadata(filename)
+
+    valid_order = ["TCZYX", "TZCYX"]
+
+    if output_order not in valid_order:
+        print("Invalid dimension order:", output_order)
+        return np.array([]), ""
 
     # open the CZI document to read the
     with pyczi.open_czi(filename) as czidoc:
@@ -208,69 +196,46 @@ def read_5darray(filename: str,
         size_z = misc.check_dimsize(mdata.image.SizeZ, set2value=1)
         size_t = misc.check_dimsize(mdata.image.SizeT, set2value=1)
 
-        if dimorder == "TZCYX":
+        # define the dimension order to be TZCYXA
+        dimstring = "TZCYXA"
 
-            # define the dimension order to be TZCYXA
-            dimstring = "TZCYXA"
+        shape = [size_t, size_z, size_c, size_y, size_x, 3 if mdata.isRGB else 1]
 
-            shape = [size_t, size_z, size_c, size_y, size_x, 3 if mdata.isRGB else 1]
+        if not output_dask:
+            array5d = np.empty(shape, dtype=mdata.npdtype)
+        if output_dask:
+            if chunks_auto:
+                array5d = da.empty(shape, dtype=mdata.npdtype, chunks="auto")
+            if not chunks_auto:
+                array5d = da.empty(shape, dtype=mdata.npdtype, chunks=shape)
 
-            if not output_dask:
-                array5d = np.empty(shape, dtype=mdata.npdtype)
-            if output_dask:
-                if chunks_auto:
-                    array5d = da.empty(shape, dtype=mdata.npdtype, chunks="auto")
-                if not chunks_auto:
-                    array5d = da.empty(shape, dtype=mdata.npdtype, chunks=shape)
+        # read array for the scene
+        for t, z, c in product(range(size_t),
+                               range(size_z),
+                               range(size_c)):
 
-            # read array for the scene
-            for t, z, c in product(range(size_t),
-                                   range(size_z),
-                                   range(size_c)):
+            # read a 2D image plane from the CZI
+            if mdata.image.SizeS is None:
+                image2d = czidoc.read(plane={'T': t, 'Z': z, 'C': c})
+            else:
+                image2d = czidoc.read(plane={'T': t, 'Z': z, 'C': c}, scene=scene)
 
-                # read a 2D image plane from the CZI
-                if mdata.image.SizeS is None:
-                    image2d = czidoc.read(plane={'T': t, 'Z': z, 'C': c})
-                else:
-                    image2d = czidoc.read(plane={'T': t, 'Z': z, 'C': c}, scene=scene)
+            # insert 2D image plane into the array6d
+            array5d[t, z, c, ...] = image2d
 
-                # insert 2D image plane into the array6d
-                array5d[t, z, c, ...] = image2d
+            # change the dimension order if needed
+        if output_order == "TZCYX":
+            dim_string = "TZCYXA"
 
-        if dimorder == "TCZYX":
-
-            # define the dimension order to be TCZYXA
-            dimstring = "TCZYXA"
-
-            shape = [size_t, size_c, size_z, size_y, size_x, 3 if mdata.isRGB else 1]
-
-            if not output_dask:
-                array5d = np.empty(shape, dtype=mdata.npdtype)
-            if output_dask:
-                if chunks_auto:
-                    array5d = da.empty(shape, dtype=mdata.npdtype, chunks="auto")
-                if not chunks_auto:
-                    array5d = da.empty(shape, dtype=mdata.npdtype, chunks=shape)
-
-            # read array for the scene
-            for t, c, z in product(range(size_t),
-                                   range(size_c),
-                                   range(size_z)):
-
-                # read a 2D image plane from the CZI
-                if mdata.image.SizeS is None:
-                    image2d = czidoc.read(plane={'T': t, 'Z': z, 'C': c})
-                else:
-                    image2d = czidoc.read(plane={'T': t, 'Z': z, 'C': c}, scene=scene)
-
-                # insert 2D image plane into the array6d
-                array5d[t, c, z, ...] = image2d
+        if output_order == "TCZYX":
+            dim_string = "TCZYXA"
+            array5d = np.swapaxes(array5d, 1, 2)
 
         if remove_Adim:
-            dimstring = dimstring.replace("A", "")
+            dim_string = dim_string.replace("A", "")
             array5d = np.squeeze(array5d, axis=-1)
 
-    return array5d, dimstring
+    return array5d, mdata, dim_string
 
 
 ###### EXPERIMENTAL #####
