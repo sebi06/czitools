@@ -42,18 +42,16 @@ While the [pylibCZIrw](https://pypi.org/project/pylibCZIrw/) is focussing on rea
 
 ```python
 # return a array with dimension order STZCYX(A)
-array6d, dimstring = pylibczirw_tools.read_6darray(filepath,
-                                                   dimorder="STCZYX",
-                                                   output_dask=False,
-                                                   remove_Adim=True)
-
-# remove A dimension do display the array inside Napari
-dim_order, dim_index, dim_valid = czimd.CziMetadata.get_dimorder(dimstring)
+array6d, mdata, dim_string6d = pylibczirw_tools.read_6darray(filepath,
+                                                             output_order="STZCYX",
+                                                             output_dask=False,
+                                                             remove_Adim=True
+                                                             )
 
 # show array inside napari viewer
 viewer = napari.Viewer()
-layers = napari_tools.show(viewer, mdarray, mdata,
-                           dim_order=dim_order,
+layers = napari_tools.show(viewer, array6d, mdata,
+                           dim_string=dim_string6d,
                            blending="additive",
                            contrast='napari_auto',
                            gamma=0.85,
