@@ -84,7 +84,7 @@ def read_6darray(filename: str,
         size_s = misc.check_dimsize(mdata.image.SizeS, set2value=1)
 
         # check for additional **kwargs to create substacks
-        if kwargs is not None and "S" in kwargs:
+        if kwargs is not None and mdata.image.SizeS is not None and "S" in kwargs:
             size_s = kwargs["S"] + 1
             mdata.image.SizeS = 1
 

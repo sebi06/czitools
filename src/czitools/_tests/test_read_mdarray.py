@@ -72,3 +72,38 @@ def test_read_mdarray_lazy_1():
     assert (mdarray.shape == (2, 1, 1, 2, 1416, 1960))
     assert (mdarray.ndim == 6)
     assert (mdarray.chunksize == (1, 1, 1, 2, 1416, 1960))
+
+
+def test_read_mdarray_substack():
+
+    # get the CZI filepath
+    filepath = os.path.join(basedir, r"data/w96_A1+A2.czi")
+
+    # read only a specific scene from the CZI
+    mdarray, mdata, dimstring = pylibczirw_tools.read_6darray(filepath,
+                                                              output_order="STCZYX",
+                                                              output_dask=False,
+                                                              chunks_auto=False,
+                                                              remove_Adim=False,
+                                                              S=0)
+
+    assert (dimstring == "STCZYXA")
+    assert (mdarray.shape == (1, 1, 2, 1, 1416, 1960, 1))
+    assert (mdata.image.SizeS == 1)
+
+    # get the CZI filepath
+    filepath = os.path.join(basedir, r"data/CellDivision_T=3_Z=5_CH=2_X=240_Y=170.czi")
+
+    # read only a specific scene from the CZI
+    mdarray, mdata, dimstring = pylibczirw_tools.read_6darray(filepath,
+                                                              output_order="STZCYX",
+                                                              output_dask=True,
+                                                              chunks_auto=False,
+                                                              remove_Adim=False,
+                                                              S=0,
+                                                              T=0,
+                                                              Z=0)
+
+    assert (dimstring == "STZCYXA")
+    assert (mdarray.shape == (1, 1, 1, 2, 170, 240, 1))
+    assert (mdata.image.SizeS is None)
