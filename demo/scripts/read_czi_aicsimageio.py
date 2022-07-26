@@ -38,13 +38,12 @@ for k, v in aics_img.dims.items():
 # get the stack as dask array
 stack = misc.get_daskstack(aics_img)
 
-mdata.aics_dimstring = "S" + aics_img.dims.order
-dim_order, dim_index, dim_valid = czimd.CziMetadata.get_dimorder(mdata.aics_dimstring)
+dim_string6d = "S" + aics_img.dims.order
 
 # start the napari viewer and show the image
 viewer = napari.Viewer()
 layers = napari_tools.show(viewer, stack, mdata,
-                           dim_order=dim_order,
+                           dim_string=dim_string6d,
                            blending="additive",
                            contrast="napari_auto",
                            gamma=0.85,
