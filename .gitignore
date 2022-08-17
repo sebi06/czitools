@@ -156,3 +156,4 @@ examples/pylibCZIrw_docu/newCZI_zscenes.czi
 **/demo/pylibCZIrw_docu/**
 demo/experimental/
 demo/experimental/**
+data/*.zarr
