@@ -132,13 +132,6 @@ examples/pylibCZIrw_docu/newczi_tilewise.czi
 examples/pylibCZIrw_docu/newCZI_z=16_ch=3.czi
 examples/pylibCZIrw_docu/newCZI_zloc.czi
 examples/pylibCZIrw_docu/newCZI_zscenes.czi
-.idea/.fuse_hidden000001a80000007b
-.idea/.fuse_hidden000001bd0000007c
-.idea/.fuse_hidden000001c00000007d
-.idea/.fuse_hidden000001c10000007e
-.idea/.fuse_hidden000001c20000007f
-.idea/inspectionProfiles/.fuse_hidden000001be00000081
-.idea/inspectionProfiles/.fuse_hidden000001bf00000082
 
 # fuse crap
 .fuse_hidden*
