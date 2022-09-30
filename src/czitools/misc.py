@@ -239,7 +239,8 @@ def get_planetable(czifile: str,
                    index: bool = True) -> Tuple[pd.DataFrame, Optional[str]]:
 
     # get the czi metadata
-    metadata = czimd.CziMetadata(czifile)
+    #metadata = czimd.CziMetadata(czifile)
+    czi_dimensions = czimd.CziDimensions(czifile)
     aicsczi = CziFile(czifile)
 
     # initialize the plane table
@@ -262,11 +263,17 @@ def get_planetable(czifile: str,
     sbcount = -1
 
     # check if dimensions are None (because they do not exist for that image)
-    sizeC = check_dimsize(metadata.image.SizeC, set2value=1)
-    sizeZ = check_dimsize(metadata.image.SizeZ, set2value=1)
-    sizeT = check_dimsize(metadata.image.SizeT, set2value=1)
-    sizeS = check_dimsize(metadata.image.SizeS, set2value=1)
-    sizeM = check_dimsize(metadata.image.SizeM, set2value=1)
+    # size_c = check_dimsize(metadata.image.SizeC, set2value=1)
+    # size_z = check_dimsize(metadata.image.SizeZ, set2value=1)
+    # size_t = check_dimsize(metadata.image.SizeT, set2value=1)
+    # size_s = check_dimsize(metadata.image.SizeS, set2value=1)
+    # size_m = check_dimsize(metadata.image.SizeM, set2value=1)
+
+    size_c = check_dimsize(czi_dimensions.SizeC, set2value=1)
+    size_z = check_dimsize(czi_dimensions.SizeZ, set2value=1)
+    size_t = check_dimsize(czi_dimensions.SizeT, set2value=1)
+    size_s = check_dimsize(czi_dimensions.SizeS, set2value=1)
+    size_m = check_dimsize(czi_dimensions.SizeM, set2value=1)
 
     def getsbinfo(subblock: Any) -> Tuple[float, float, float, float]:
         try:
@@ -297,13 +304,14 @@ def get_planetable(czifile: str,
         return timestamp, xpos, ypos, zpos
 
     # in case the CZI has the M-Dimension
-    if metadata.ismosaic:
+    #if metadata.ismosaic:
+    if czi_dimensions.SizeM is not None:
 
-        for s, m, t, z, c in product(range(sizeS),
-                                     range(sizeM),
-                                     range(sizeT),
-                                     range(sizeZ),
-                                     range(sizeC)):
+        for s, m, t, z, c in product(range(size_s),
+                                     range(size_m),
+                                     range(size_t),
+                                     range(size_z),
+                                     range(size_c)):
             sbcount += 1
             print("Reading sublock : ", sbcount)
 
@@ -360,12 +368,13 @@ def get_planetable(czifile: str,
 
             df_czi = pd.concat([df_czi, plane], ignore_index=True)
 
-    if not metadata.ismosaic:
+    #if not metadata.ismosaic:
+    if czi_dimensions.SizeM is None:
 
-        for s, t, z, c in product(range(sizeS),
-                                  range(sizeT),
-                                  range(sizeZ),
-                                  range(sizeC)):
+        for s, t, z, c in product(range(size_s),
+                                  range(size_t),
+                                  range(size_z),
+                                  range(size_c)):
             sbcount += 1
 
             # get x, y, width and height for a specific tile

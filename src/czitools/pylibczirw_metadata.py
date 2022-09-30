@@ -201,6 +201,7 @@ class CziMetadata:
 
         Args:
             dim_order (Dict): Dictionary with all dimensions and their indices
+            num_dims (int): Number of dimensions contained inside the string
 
         Returns:
             str: dimension string for a 5d or 6d array, e.g. "TCZYX" or STCZYX"
@@ -292,12 +293,11 @@ class CziDimensions:
         # "V":"View"         : e.g. for SPIM
 
     @staticmethod
-    def get_image_dimensions(raw_metadata: Dict[Any, Any],
-                             dim2none: bool = True) -> Dict[Any, Union[int, None]]:
+    def get_image_dimensions(raw_metadata: Dict[Any, Any]) -> Dict[Any, Union[int, None]]:
         """Determine the image dimensions.
 
         Arguments:
-            raw_metadata: The CZI meta-data to derive the image dimensions from.
+            raw_metadata: The CZI meta-data to get the image dimensions from.
 
         Returns:
             The dimension dictionary.
@@ -1036,7 +1036,7 @@ class CziSampleInfo:
             md_dict = czidoc.metadata
 
         dim_dict = CziDimensions.get_image_dimensions(md_dict)
-        sizeS = dim_dict["SizeS"]
+        size_s = dim_dict["SizeS"]
 
         # check for well information
         self.well_array_names = []
@@ -1047,17 +1047,23 @@ class CziSampleInfo:
         self.well_counter = []
         self.scene_stageX = []
         self.scene_stageY = []
+        self.image_stageX = None
+        self.image_stageY = None
 
-        if sizeS is not None:
+        if size_s is not None:
             print("Trying to extract Scene and Well information if existing ...")
 
             # extract well information from the dictionary
+            allscenes: Union[Dict, List]
+            well: Union[Dict, List]
+
+            # get the information from the dictionary (based on the XML)
             allscenes = md_dict["ImageDocument"]["Metadata"]["Information"]["Image"]["Dimensions"]["S"]["Scenes"]["Scene"]
 
             # loop over all detected scenes
-            for s in range(sizeS):
+            for s in range(size_s):
 
-                if sizeS == 1:
+                if size_s == 1:
                     well = allscenes
                     try:
                         self.well_array_names.append(allscenes["ArrayName"])
@@ -1094,20 +1100,20 @@ class CziSampleInfo:
 
                     try:
                         self.well_colID.append(
-                            np.int(allscenes["Shape"]["ColumnIndex"]))
+                            int(allscenes["Shape"]["ColumnIndex"]))
                     except (KeyError, TypeError) as e:
                         print("Well ColumnIDs not found :", e)
                         self.well_colID.append(0)
 
                     try:
                         self.well_rowID.append(
-                            np.int(allscenes["Shape"]["RowIndex"]))
+                            int(allscenes["Shape"]["RowIndex"]))
                     except (KeyError, TypeError) as e:
                         print("Well RowIDs not found :", e)
                         self.well_rowID.append(0)
 
                     try:
-                        # count the content of the list, e.g. how many time a certain well was detected
+                        # count the content of the list, e.g. how many times a certain well was detected
                         self.well_counter = Counter(self.well_array_names)
                     except (KeyError, TypeError):
                         self.well_counter.append(Counter({"A1": 1}))
@@ -1123,9 +1129,9 @@ class CziSampleInfo:
                         self.scene_stageX.append(0.0)
                         self.scene_stageY.append(0.0)
 
-                if sizeS > 1:
+                if size_s > 1:
+                    well = allscenes[s]
                     try:
-                        well = allscenes[s]
                         self.well_array_names.append(well["ArrayName"])
                     except (KeyError, TypeError) as e:
                         try:
@@ -1171,7 +1177,7 @@ class CziSampleInfo:
                         print("Well RowIDs not found :", e)
                         self.well_rowID.append(None)
 
-                    # count the content of the list, e.g. how many time a certain well was detected
+                    # count the content of the list, e.g. how many times a certain well was detected
                     self.well_counter = Counter(self.well_array_names)
 
                     # try:
@@ -1194,7 +1200,15 @@ class CziSampleInfo:
                 self.number_wells = len(self.well_counter.keys())
 
         else:
-            print("No Scene or Well information found.")
+            print("No Scene or Well information found. Try to read XY Stage Coordinates from subblocks.")
+            try:
+                # read the data from CSV file
+                planetable, csvfile = misc.get_planetable(filename, savetable=False)
+                self.image_stageX = float(planetable["X[micron]"][0])
+                self.image_stageY = float(planetable["Y[micron]"][0])
+
+            except Exception as e:
+                print(e)
 
 
 class CziAddMetaData:
