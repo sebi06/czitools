@@ -236,10 +236,10 @@ def get_planetable(czifile: str,
                    norm_time: bool = True,
                    savetable: bool = False,
                    separator: str = ',',
+                   read_one_only: bool = False,
                    index: bool = True) -> Tuple[pd.DataFrame, Optional[str]]:
 
     # get the czi metadata
-    #metadata = czimd.CziMetadata(czifile)
     czi_dimensions = czimd.CziDimensions(czifile)
     aicsczi = CziFile(czifile)
 
@@ -263,12 +263,6 @@ def get_planetable(czifile: str,
     sbcount = -1
 
     # check if dimensions are None (because they do not exist for that image)
-    # size_c = check_dimsize(metadata.image.SizeC, set2value=1)
-    # size_z = check_dimsize(metadata.image.SizeZ, set2value=1)
-    # size_t = check_dimsize(metadata.image.SizeT, set2value=1)
-    # size_s = check_dimsize(metadata.image.SizeS, set2value=1)
-    # size_m = check_dimsize(metadata.image.SizeM, set2value=1)
-
     size_c = check_dimsize(czi_dimensions.SizeC, set2value=1)
     size_z = check_dimsize(czi_dimensions.SizeZ, set2value=1)
     size_t = check_dimsize(czi_dimensions.SizeT, set2value=1)
@@ -303,9 +297,8 @@ def get_planetable(czifile: str,
 
         return timestamp, xpos, ypos, zpos
 
-    # in case the CZI has the M-Dimension
-    #if metadata.ismosaic:
-    if czi_dimensions.SizeM is not None:
+    # do if the data is not a mosaic
+    if size_m > 1:
 
         for s, m, t, z, c in product(range(size_s),
                                      range(size_m),
@@ -334,22 +327,6 @@ def get_planetable(czifile: str,
             # get information from subblock
             timestamp, xpos, ypos, zpos = getsbinfo(sb)
 
-            # df_czi = df_czi.append({'Subblock': sbcount,
-            #                         'Scene': s,
-            #                         'Tile': m,
-            #                         'T': t,
-            #                         'Z': z,
-            #                         'C': c,
-            #                         'X[micron]': xpos,
-            #                         'Y[micron]': ypos,
-            #                         'Z[micron]': zpos,
-            #                         'Time[s]': timestamp,
-            #                         'xstart': tilebbox.x,
-            #                         'ystart': tilebbox.y,
-            #                         'width': tilebbox.w,
-            #                         'height': tilebbox.h},
-            #                         ignore_index=True)
-
             plane = pd.DataFrame({'Subblock': sbcount,
                                   'Scene': s,
                                   'Tile': m,
@@ -368,8 +345,11 @@ def get_planetable(czifile: str,
 
             df_czi = pd.concat([df_czi, plane], ignore_index=True)
 
-    #if not metadata.ismosaic:
-    if czi_dimensions.SizeM is None:
+            if read_one_only:
+                break
+
+    # do if the data is not a mosaic
+    if size_m == 1:
 
         for s, t, z, c in product(range(size_s),
                                   range(size_t),
@@ -394,22 +374,6 @@ def get_planetable(czifile: str,
             # get information from subblock
             timestamp, xpos, ypos, zpos = getsbinfo(sb)
 
-            # df_czi = df_czi.append({'Subblock': sbcount,
-            #                         'Scene': s,
-            #                         'Tile': 0,
-            #                         'T': t,
-            #                         'Z': z,
-            #                         'C': c,
-            #                         'X[micron]': xpos,
-            #                         'Y[micron]': ypos,
-            #                         'Z[micron]': zpos,
-            #                         'Time[s]': timestamp,
-            #                         'xstart': tilebbox.x,
-            #                         'ystart': tilebbox.y,
-            #                         'width': tilebbox.w,
-            #                         'height': tilebbox.h},
-            #                        ignore_index=True)
-
             plane = pd.DataFrame({'Subblock': sbcount,
                                   'Scene': s,
                                   'Tile': 0,
@@ -426,8 +390,10 @@ def get_planetable(czifile: str,
                                   'height': tilebbox.h},
                                  index=[0])
 
-            #df_czi = pd.concat([df_czi, plane], ignore_index=True)
             df_czi = pd.concat([df_czi, plane], ignore_index=True)
+
+            if read_one_only:
+                break
 
     # cast data  types
     df_czi = df_czi.astype({'Subblock': 'int32',

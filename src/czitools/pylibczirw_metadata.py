@@ -1203,7 +1203,10 @@ class CziSampleInfo:
             print("No Scene or Well information found. Try to read XY Stage Coordinates from subblocks.")
             try:
                 # read the data from CSV file
-                planetable, csvfile = misc.get_planetable(filename, savetable=False)
+                planetable, csvfile = misc.get_planetable(filename,
+                                                          read_one_only=True,
+                                                          savetable=False)
+
                 self.image_stageX = float(planetable["X[micron]"][0])
                 self.image_stageY = float(planetable["Y[micron]"][0])
 
