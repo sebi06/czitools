@@ -115,7 +115,7 @@ class CziMetadata:
                 self.ismosaic = True
 
             # check for consistent scene shape
-            self.scene_shape_is_consistent = self.__check_scenes_shape(czidoc, self.image.SizeS)
+            self.scene_shape_is_consistent = self.check_scenes_shape(czidoc, size_s=self.image.SizeS)
 
             # get the bounding boxes
             self.bbox = CziBoundingBox(filename)
@@ -170,8 +170,8 @@ class CziMetadata:
     def get_dimorder(dim_string: str) -> Tuple[Dict, List, int]:
         """Get the order of dimensions from dimension string
 
-        :param dimstring: string containing the dimensions
-        :type dimstring: str
+        :param dim_string: string containing the dimensions
+        :type dim_string: str
         :return: dims_dict - dictionary with the dimensions and its positions
         :rtype: dict
         :return: dimindex_list - list with indices of dimensions
@@ -217,9 +217,9 @@ class CziMetadata:
 
         return dim_string
 
-    def __check_scenes_shape(self,
-                             czidoc: pyczi.CziReader,
-                             size_s: Union[int, None]) -> bool:
+    @staticmethod
+    def check_scenes_shape(czidoc: pyczi.CziReader,
+                           size_s: Union[int, None]) -> bool:
         """Check if all scenes have the same shape.
 
         Args:
@@ -243,8 +243,8 @@ class CziMetadata:
             sw = scene_width.count(scene_width[0]) == len(scene_width)
             sh = scene_height.count(scene_height[0]) == len(scene_height)
 
-            # only if entries for X and Y are all the same than the shape is consistent
-            if sw == True and sh == True:
+            # only if entries for X and Y are all the same as the shape is consistent
+            if sw is True and sh is True:
                 scene_shape_is_consistent = True
 
         else:
@@ -503,122 +503,6 @@ class CziChannelInfo:
                 except (KeyError, TypeError) as e:
                     channels_gamma.append(0.85)
 
-        # # in case of only one channel
-        # if sizeC == 1:
-        #     # get name for dye
-        #     try:
-        #         channels.append(md_dict["ImageDocument"]["Metadata"]
-        #                         ["DisplaySetting"]["Channels"]["Channel"]["ShortName"])
-        #     except (KeyError, TypeError) as e:
-        #         print("Channel shortname not found :", e)
-        #         try:
-        #             channels.append(md_dict["ImageDocument"]["Metadata"]
-        #                             ["DisplaySetting"]["Channels"]["Channel"]["DyeName"])
-        #         except (KeyError, TypeError) as e:
-        #             print("Channel dye not found :", e)
-        #             channels.append("Dye-CH1")
-
-        #     # get channel name
-        #     try:
-        #         channels_names.append(
-        #             md_dict["ImageDocument"]["Metadata"]["DisplaySetting"]["Channels"]["Channel"]["Name"])
-        #     except (KeyError, TypeError) as e:
-        #         try:
-        #             channels_names.append(
-        #                 md_dict["ImageDocument"]["Metadata"]["DisplaySetting"]["Channels"]["Channel"]["@Name"])
-        #         except (KeyError, TypeError) as e:
-        #             print("Channel name found :", e)
-        #             channels_names.append("CH1")
-
-        #     # get channel color
-        #     try:
-        #         channels_colors.append(
-        #             md_dict["ImageDocument"]["Metadata"]["DisplaySetting"]["Channels"]["Channel"]["Color"])
-        #     except (KeyError, TypeError) as e:
-        #         print("Channel color not found :", e)
-        #         channels_colors.append("#80808000")
-
-        #     # get contrast setting fro DisplaySetting
-        #     try:
-        #         low = float(md_dict["ImageDocument"]["Metadata"]
-        #                     ["DisplaySetting"]["Channels"]["Channel"]["Low"])
-        #     except (KeyError, TypeError) as e:
-        #         low = 0.1
-        #     try:
-        #         high = float(md_dict["ImageDocument"]["Metadata"]
-        #                      ["DisplaySetting"]["Channels"]["Channel"]["High"])
-        #     except (KeyError, TypeError) as e:
-        #         high = 0.5
-
-        #     channels_contrast.append([low, high])
-
-        #     # get the gamma values
-        #     try:
-        #         channels_gamma.append(
-        #             float(md_dict["ImageDocument"]["Metadata"]["DisplaySetting"]["Channels"]["Channel"]["Gamma"]))
-        #     except (KeyError, TypeError) as e:
-        #         channels_gamma.append(0.85)
-
-        # # in case of two or more channels
-        # if sizeC > 1:
-        #     # loop over all channels
-        #     for ch in range(sizeC):
-        #         # get name for dyes
-        #         try:
-        #             channels.append(
-        #                 md_dict["ImageDocument"]["Metadata"]["DisplaySetting"]["Channels"]["Channel"][ch]["ShortName"])
-        #         except (KeyError, TypeError) as e:
-        #             print("Channel shortname not found :", e)
-        #             try:
-        #                 channels.append(
-        #                     md_dict["ImageDocument"]["Metadata"]["DisplaySetting"]["Channels"]["Channel"][ch][
-        #                         "DyeName"])
-        #             except (KeyError, TypeError) as e:
-        #                 print("Channel dye not found :", e)
-        #                 channels.append("Dye-CH" + str(ch))
-
-        #         # get channel names
-        #         try:
-        #             channels_names.append(
-        #                 md_dict["ImageDocument"]["Metadata"]["DisplaySetting"]["Channels"]["Channel"][ch]["Name"])
-        #         except (KeyError, TypeError) as e:
-        #             try:
-        #                 channels_names.append(
-        #                     md_dict["ImageDocument"]["Metadata"]["DisplaySetting"]["Channels"]["Channel"][ch]["@Name"])
-        #             except (KeyError, TypeError) as e:
-        #                 print("Channel name not found :", e)
-        #                 channels_names.append("CH" + str(ch))
-
-        #         # get channel colors
-        #         try:
-        #             channels_colors.append(
-        #                 md_dict["ImageDocument"]["Metadata"]["DisplaySetting"]["Channels"]["Channel"][ch]["Color"])
-        #         except (KeyError, TypeError) as e:
-        #             print("Channel color not found :", e)
-        #             # use grayscale instead
-        #             channels_colors.append("80808000")
-
-        #         # get contrast setting fro DisplaySetting
-        #         try:
-        #             low = float(
-        #                 md_dict["ImageDocument"]["Metadata"]["DisplaySetting"]["Channels"]["Channel"][ch]["Low"])
-        #         except (KeyError, TypeError) as e:
-        #             low = 0.0
-        #         try:
-        #             high = float(
-        #                 md_dict["ImageDocument"]["Metadata"]["DisplaySetting"]["Channels"]["Channel"][ch]["High"])
-        #         except (KeyError, TypeError) as e:
-        #             high = 0.5
-
-        #         channels_contrast.append([low, high])
-
-        #         # get the gamma values
-        #         try:
-        #             channels_gamma.append(float(
-        #                 md_dict["ImageDocument"]["Metadata"]["DisplaySetting"]["Channels"]["Channel"][ch]["Gamma"]))
-        #         except (KeyError, TypeError) as e:
-        #             channels_gamma.append(0.85)
-
         # write channels information (as lists) into metadata dictionary
         self.dyes = channels_dyes
         self.names = channels_names
@@ -641,7 +525,6 @@ class CziScaling:
 
         def _safe_get_scale(distances_: List[Dict[Any, Any]], idx: int) -> Optional[float]:
             try:
-                # return np.round(float(distances_[idx]["Value"]) * 1000000, 6) if distances_[idx]["Value"] is not None else None
                 return float(distances_[idx]["Value"]) * 1000000 if distances_[idx]["Value"] is not None else None
             except IndexError:
                 if dim2none:
@@ -667,11 +550,6 @@ class CziScaling:
                 self.X = 1.0
                 self.Y = 1.0
                 self.Z = 1.0
-
-        # get the scaling in [micron] - inside CZI the default is [m]
-        # self.X = _safe_get_scale(distances, 0)
-        # self.Y = _safe_get_scale(distances, 1)
-        # self.Z = _safe_get_scale(distances, 2)
 
         # safety check in case a scale = 0
         if self.X == 0.0:
@@ -701,7 +579,7 @@ class CziScaling:
         try:
             # get the factor between XY scaling
             scale_ratio["xy"] = np.round(scalex / scaley, 3)
-            # get the scalefactor between XZ scaling
+            # get the scale factor between XZ scaling
             scale_ratio["zx"] = np.round(scalez / scalex, 3)
         except (KeyError, TypeError) as e:
             print(e, "Using defaults = 1.0")
@@ -714,9 +592,9 @@ class CziInfo:
     filepath: str
     dirname: str = field(init=False)
     filename: str = field(init=False)
-    software_name: str = field(init=False)
-    softname_version: str = field(init=False)
-    acquisition_date: str = field(init=False)
+    software_name: Union[str, None] = field(init=False)
+    softname_version: Union[str, None] = field(init=False)
+    acquisition_date: Union[str, None] = field(init=False)
 
     def __post_init__(self):
 

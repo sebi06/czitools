@@ -135,8 +135,8 @@ def md2dataframe(md_dict: Dict,
                  keycol: str = "Value") -> pd.DataFrame:
     """Convert the metadata dictionary to a Pandas DataFrame.
 
-    :param metadata: MeteData dictionary
-    :type metadata: dict
+    :param md_dict: MeteData dictionary
+    :type md_dict: dict
     :param paramcol: Name of Columns for the MetaData Parameters, defaults to "Parameter"
     :type paramcol: str, optional
     :param keycol: Name of Columns for the MetaData Values, defaults to "Value"
@@ -173,13 +173,15 @@ def addzeros(number: int) -> str:
     :rtype: str
     """
 
+    zerostring = None
+
     if number < 10:
         zerostring = '0000' + str(number)
-    if number >= 10 and number < 100:
+    if 10 <= number < 100:
         zerostring = '000' + str(number)
-    if number >= 100 and number < 1000:
+    if 100 <= number < 1000:
         zerostring = '00' + str(number)
-    if number >= 1000 and number < 10000:
+    if 1000 <= number < 10000:
         zerostring = '0' + str(number)
 
     return zerostring
@@ -209,15 +211,13 @@ def get_fname_woext(filepath: str) -> str:
     return filepath_woext
 
 
-def check_dimsize(mdata_entry: Union[int, None], set2value: int = 1) -> int:
+def check_dimsize(mdata_entry: Union[int, None], set2value: int = 1) -> Union[int, None]:
 
     # check if the dimension entry is None
     if mdata_entry is None:
-        size = set2value
+        return set2value
     if mdata_entry is not None:
-        size = mdata_entry
-
-    return size
+        return mdata_entry
 
 
 def get_daskstack(aics_img: AICSImage) -> List:
