@@ -659,11 +659,14 @@ class CziObjectives:
             if num_obj == 1:
                 try:
                     self.name.append(
-                        md_dict["ImageDocument"]["Metadata"]["Information"]["Instrument"]["Objectives"]["Objective"]["Name"])
+                        md_dict["ImageDocument"]["Metadata"]["Information"]["Instrument"]["Objectives"]["Objective"]["@Name"])
                 except (KeyError, TypeError) as e:
-                    #logger.error("No Objective Name :" + str(e))
-                    logger.error("No Objective Name : " + str(e))
-                    self.name.append(None)
+                    try:
+                        self.name.append(md_dict["ImageDocument"]["Metadata"]["Information"]
+                                         ["Instrument"]["Objectives"]["Objective"]["Name"])
+                    except (KeyError, TypeError) as e:
+                        logger.error("No Objective Name : " + str(e))
+                        self.name.append(None)
 
                 try:
                     self.immersion = md_dict["ImageDocument"]["Metadata"]["Information"][
@@ -680,10 +683,13 @@ class CziObjectives:
                     self.NA = None
 
                 try:
-                    self.ID = md_dict["ImageDocument"]["Metadata"]["Information"]["Instrument"]["Objectives"]["Objective"]["Id"]
+                    self.ID = md_dict["ImageDocument"]["Metadata"]["Information"]["Instrument"]["Objectives"]["Objective"]["@Id"]
                 except (KeyError, TypeError) as e:
-                    logger.error("No Objective ID :" + str(e))
-                    self.ID = None
+                    try:
+                        self.ID = md_dict["ImageDocument"]["Metadata"]["Information"]["Instrument"]["Objectives"]["Objective"]["Id"]
+                    except (KeyError, TypeError) as e:
+                        logger.error("No Objective ID :" + str(e))
+                        self.ID = None
 
                 try:
                     self.tubelensmag = float(
@@ -808,19 +814,27 @@ class CziDetector:
 
                 # check for detector ID
                 try:
-                    self.ID.append(
-                        md_dict["ImageDocument"]["Metadata"]["Information"]["Instrument"]["Detectors"]["Detector"]["Id"])
+                    self.ID.append(md_dict["ImageDocument"]["Metadata"]["Information"]
+                                   ["Instrument"]["Detectors"]["Detector"]["@Id"])
                 except (KeyError, TypeError) as e:
-                    logger.error("DetectorID not found :" + str(e))
-                    self.ID.append(None)
+                    try:
+                        self.ID.append(md_dict["ImageDocument"]["Metadata"]
+                                       ["Information"]["Instrument"]["Detectors"]["Detector"]["Id"])
+                    except (KeyError, TypeError) as e:
+                        logger.error("DetectorID not found :" + str(e))
+                        self.ID.append(None)
 
                 # check for detector Name
                 try:
-                    self.name.append(
-                        md_dict["ImageDocument"]["Metadata"]["Information"]["Instrument"]["Detectors"]["Detector"]["Name"])
+                    self.name.append(md_dict["ImageDocument"]["Metadata"]["Information"]
+                                     ["Instrument"]["Detectors"]["Detector"]["@Name"])
                 except (KeyError, TypeError) as e:
-                    logger.error("DetectorName not found :" + str(e))
-                    self.name.append(None)
+                    try:
+                        self.name.append(
+                            md_dict["ImageDocument"]["Metadata"]["Information"]["Instrument"]["Detectors"]["Detector"]["Name"])
+                    except (KeyError, TypeError) as e:
+                        logger.error("DetectorName not found :" + str(e))
+                        self.name.append(None)
 
                 # check for detector model
                 try:
@@ -834,10 +848,14 @@ class CziDetector:
                 # check for detector modeltype
                 try:
                     self.modeltype.append(
-                        md_dict["ImageDocument"]["Metadata"]["Information"]["Instrument"]["Detectors"]["Detector"]["Type"])
+                        md_dict["ImageDocument"]["Metadata"]["Information"]["Instrument"]["Detectors"]["Detector"]["@Type"])
                 except (KeyError, TypeError) as e:
-                    logger.error("DetectorType not found :" + str(e))
-                    self.modeltype.append(None)
+                    try:
+                        self.modeltype.append(
+                            md_dict["ImageDocument"]["Metadata"]["Information"]["Instrument"]["Detectors"]["Detector"]["Type"])
+                    except (KeyError, TypeError) as e:
+                        logger.error("DetectorType not found :" + str(e))
+                        self.modeltype.append(None)
 
             if num_detectors > 1:
                 for d in range(num_detectors):
@@ -863,8 +881,7 @@ class CziDetector:
                     # check for detector model
                     try:
                         self.model.append(
-                            md_dict["ImageDocument"]["Metadata"]["Information"]["Instrument"]["Detectors"]["Detector"][d][
-                                "Manufacturer"]["Model"])
+                            md_dict["ImageDocument"]["Metadata"]["Information"]["Instrument"]["Detectors"]["Detector"][d]["Manufacturer"]["Model"])
                     except (KeyError, TypeError) as e:
                         logger.error("DetectorModel not found :" + str(e))
                         self.model.append(None)
@@ -872,8 +889,7 @@ class CziDetector:
                     # check for detector modeltype
                     try:
                         self.modeltype.append(
-                            md_dict["ImageDocument"]["Metadata"]["Information"]["Instrument"]["Detectors"]["Detector"][d][
-                                "Type"])
+                            md_dict["ImageDocument"]["Metadata"]["Information"]["Instrument"]["Detectors"]["Detector"][d]["Type"])
                     except (KeyError, TypeError) as e:
                         logger.error("DetectorType not found :" + str(e))
                         self.modeltype.append(None)
@@ -894,23 +910,23 @@ class CziMicroscope:
 
             # check for detector ID
             try:
-                self.ID = md_dict["ImageDocument"]["Metadata"]["Information"]["Instrument"]["Microscopes"]["Microscope"][
-                    "Id"]
+                self.ID = md_dict["ImageDocument"]["Metadata"]["Information"]["Instrument"]["Microscopes"]["Microscope"]["@Id"]
             except (KeyError, TypeError) as e:
                 try:
-                    self.ID = md_dict["ImageDocument"]["Metadata"]["Information"]["Instrument"]["Microscopes"]["Microscope"][
-                        "@Id"]
+                    self.ID = md_dict["ImageDocument"]["Metadata"]["Information"]["Instrument"]["Microscopes"]["Microscope"]["Id"]
                 except (KeyError, TypeError) as e:
                     logger.error("Microscope ID not found :" + str(e))
                     self.ID = None
 
             # check for microscope system name
             try:
-                self.Name = md_dict["ImageDocument"]["Metadata"]["Information"]["Instrument"]["Microscopes"]["Microscope"][
-                    "System"]
+                self.Name = md_dict["ImageDocument"]["Metadata"]["Information"]["Instrument"]["Microscopes"]["Microscope"]["@Name"]
             except (KeyError, TypeError) as e:
-                logger.error("Microscope System Name not found :" + str(e))
-                self.Name = None
+                try:
+                    self.Name = md_dict["ImageDocument"]["Metadata"]["Information"]["Instrument"]["Microscopes"]["Microscope"]["Name"]
+                except (KeyError, TypeError) as e:
+                    logger.error("Microscope System Name not found :" + str(e))
+                    self.Name = None
 
 
 class CziSampleInfo:
@@ -954,29 +970,29 @@ class CziSampleInfo:
                         self.well_array_names.append(allscenes["ArrayName"])
                     except (KeyError, TypeError) as e:
                         try:
-                            self.well_array_names.append(well["Name"])
+                            self.well_array_names.append(well["@Name"])
                         except (KeyError, TypeError) as e:
                             try:
-                                self.well_array_names.append(well["@Name"])
+                                self.well_array_names.append(well["Name"])
                             except (KeyError, TypeError) as e:
                                 logger.error("Well Name not found :",
                                              e, "Using A1 instead")
                                 self.well_array_names.append("A1")
 
                     try:
-                        self.well_indices.append(allscenes["Index"])
+                        self.well_indices.append(allscenes["@Index"])
                     except (KeyError, TypeError) as e:
                         try:
-                            self.well_indices.append(allscenes["@Index"])
+                            self.well_indices.append(allscenes["Index"])
                         except (KeyError, TypeError) as e:
                             logger.error("Well Index not found :" + str(e))
                             self.well_indices.append(1)
 
                     try:
-                        self.well_position_names.append(allscenes["Name"])
+                        self.well_position_names.append(allscenes["@Name"])
                     except (KeyError, TypeError) as e:
                         try:
-                            self.well_position_names.append(allscenes["@Name"])
+                            self.well_position_names.append(allscenes["Name"])
                         except (KeyError, TypeError) as e:
                             logger.error("Well Position Names not found :" + str(e))
                             self.well_position_names.append("P1")
@@ -1018,28 +1034,28 @@ class CziSampleInfo:
                         self.well_array_names.append(well["ArrayName"])
                     except (KeyError, TypeError) as e:
                         try:
-                            self.well_array_names.append(well["Name"])
+                            self.well_array_names.append(well["@Name"])
                         except (KeyError, TypeError) as e:
                             try:
-                                self.well_array_names.append(well["@Name"])
+                                self.well_array_names.append(well["Name"])
                             except (KeyError, TypeError) as e:
                                 logger.error("Well Name not found. Using A1 instead")
                                 self.well_array_names.append("A1")
 
                     # get the well information
                     try:
-                        self.well_indices.append(well["Index"])
+                        self.well_indices.append(well["@Index"])
                     except (KeyError, TypeError) as e:
                         try:
-                            self.well_indices.append(well["@Index"])
+                            self.well_indices.append(well["Index"])
                         except (KeyError, TypeError) as e:
                             logger.error("Well Index not found :" + str(e))
                             self.well_indices.append(None)
                     try:
-                        self.well_position_names.append(well["Name"])
+                        self.well_position_names.append(well["@Name"])
                     except (KeyError, TypeError) as e:
                         try:
-                            self.well_position_names.append(well["@Name"])
+                            self.well_position_names.append(well["Name"])
                         except (KeyError, TypeError) as e:
                             logger.error("Well Position Names not found :" + str(e))
                             self.well_position_names.append(None)
