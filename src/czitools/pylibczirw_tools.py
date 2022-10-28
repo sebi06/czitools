@@ -48,11 +48,11 @@ def read_6darray(filename: str,
 
     if output_order not in valid_order:
         print("Invalid dimension order 6D:", output_order)
-        return np.array([]), ""
+        return np.array([]), mdata, ""
 
     if not mdata.scene_shape_is_consistent:
         print("Scenes have inconsistent shape. Cannot read 6D array")
-        return np.array([]), ""
+        return np.array([]), mdata, ""
 
     # open the CZI document to read the
     with pyczi.open_czi(filename) as czidoc:
@@ -152,19 +152,23 @@ def read_5darray(filename: str,
                  output_order: str = "TCZYX",
                  output_dask: bool = False,
                  chunks_auto: bool = False,
-                 remove_Adim: bool = True) -> Tuple[Union[np.ndarray, da.Array], str]:
+                 remove_Adim: bool = True,
+                 **kwargs: int) -> Tuple[Union[np.ndarray, da.Array], czimd.CziMetadata, str]:
     """Read a CZI image file as 5D numpy or dask array.
     Important: Currently supported are only scenes with equal size.
 
     Args:
         filename (str): filepath for the CZI image
+        scene (int, optional): Index of scene to be read as 5D stack.
         output_order (str, optional): Order of dimensions for the output array. Defaults to "TCZYX".
         output_dask (bool, optional): If True the output will be a dask array. Defaults to False.
         chunks_auto (bool, optional): Use a chunk size create automatically if True and otherwise use the array shape. Default to False.
         remove_Adim (bool, optional): If true the dimension for the pixel type will be removed. Defaults to True.
+        kwargs (int, optional): Allowed kwargs are S, T, Z, C and values must be >=0 (zero-based).
+                                Will be used to read only a substack from the array
 
     Returns:
-        Tuple[np.ndarray, str]: output as 5D numpy or dask array
+        Tuple[np.ndarray, czimd.Metadata, dim_order6d]: output as 6D numpy or dask array and metadata
     """
 
     # get the complete metadata at once as one big class
@@ -174,7 +178,7 @@ def read_5darray(filename: str,
 
     if output_order not in valid_order:
         print("Invalid dimension order:", output_order)
-        return np.array([]), ""
+        return np.array([]), mdata, ""
 
     # open the CZI document to read the
     with pyczi.open_czi(filename) as czidoc:
