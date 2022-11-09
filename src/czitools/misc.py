@@ -24,12 +24,16 @@ import xml.etree.ElementTree as ET
 from aicspylibczi import CziFile
 from aicsimageio import AICSImage
 import dateutil.parser as dt
-from czitools import pylibczirw_metadata as czimd
+#from czitools import pylibczirw_metadata as czimd
+import czitools
 from tqdm.contrib.itertools import product
 from typing import List, Dict, Tuple, Optional, Type, Any, Union
 import logging
 
 _logger: Optional[logging.Logger] = None
+# configure logging
+#set_logger(name="czitools-logging", level=logging.DEBUG)
+#logger = get_logger()
 
 
 def openfile(directory: str,
@@ -243,7 +247,7 @@ def get_planetable(czifile: str,
                    index: bool = True) -> Tuple[pd.DataFrame, Optional[str]]:
 
     # get the czi metadata
-    czi_dimensions = czimd.CziDimensions(czifile)
+    czi_dimensions = czitools.pylibczirw_metadata.CziDimensions(czifile)
     aicsczi = CziFile(czifile)
 
     # initialize the plane table
