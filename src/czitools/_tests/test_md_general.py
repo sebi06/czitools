@@ -87,3 +87,22 @@ def test_scene_shape():
         md = czimd.CziMetadata(filepath)
 
         assert(md.scene_shape_is_consistent == sc)
+
+
+def test_reading_CZI_fresh():
+
+    filepath = r"data/A01_segSD.czi"
+
+    # get the complete metadata at once as one big class
+    mdata = czimd.CziMetadata(filepath)
+
+    assert (mdata.sample.well_array_names == [])
+    assert (mdata.sample.well_indices == [])
+    assert (mdata.sample.well_position_names == [])
+    assert (mdata.sample.well_colID == [])
+    assert (mdata.sample.well_rowID == [])
+    assert (mdata.sample.well_counter == [])
+    assert (mdata.sample.scene_stageX == [])
+    assert (mdata.sample.scene_stageY == [])
+    assert (mdata.sample.image_stageX is None)
+    assert (mdata.sample.image_stageY is None)

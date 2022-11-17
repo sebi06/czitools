@@ -959,142 +959,146 @@ class CziSampleInfo:
             well: Union[Dict, List]
 
             # get the information from the dictionary (based on the XML)
-            allscenes = md_dict["ImageDocument"]["Metadata"]["Information"]["Image"]["Dimensions"]["S"]["Scenes"]["Scene"]
+            try:
+                allscenes = md_dict["ImageDocument"]["Metadata"]["Information"]["Image"]["Dimensions"]["S"]["Scenes"]["Scene"]
 
-            # loop over all detected scenes
-            for s in range(size_s):
+                # loop over all detected scenes
+                for s in range(size_s):
 
-                if size_s == 1:
-                    well = allscenes
-                    try:
-                        self.well_array_names.append(allscenes["ArrayName"])
-                    except (KeyError, TypeError) as e:
+                    if size_s == 1:
+                        well = allscenes
                         try:
-                            self.well_array_names.append(well["@Name"])
+                            self.well_array_names.append(allscenes["ArrayName"])
                         except (KeyError, TypeError) as e:
                             try:
-                                self.well_array_names.append(well["Name"])
+                                self.well_array_names.append(well["@Name"])
                             except (KeyError, TypeError) as e:
-                                logger.error("Well Name not found :",
-                                             e, "Using A1 instead")
-                                self.well_array_names.append("A1")
+                                try:
+                                    self.well_array_names.append(well["Name"])
+                                except (KeyError, TypeError) as e:
+                                    logger.error("Well Name not found :",
+                                                 e, "Using A1 instead")
+                                    self.well_array_names.append("A1")
 
-                    try:
-                        self.well_indices.append(allscenes["@Index"])
-                    except (KeyError, TypeError) as e:
                         try:
-                            self.well_indices.append(allscenes["Index"])
-                        except (KeyError, TypeError) as e:
-                            logger.error("Well Index not found :" + str(e))
-                            self.well_indices.append(1)
-
-                    try:
-                        self.well_position_names.append(allscenes["@Name"])
-                    except (KeyError, TypeError) as e:
-                        try:
-                            self.well_position_names.append(allscenes["Name"])
-                        except (KeyError, TypeError) as e:
-                            logger.error("Well Position Names not found :" + str(e))
-                            self.well_position_names.append("P1")
-
-                    try:
-                        self.well_colID.append(
-                            int(allscenes["Shape"]["ColumnIndex"]))
-                    except (KeyError, TypeError) as e:
-                        logger.error("Well ColumnIDs not found :" + str(e))
-                        self.well_colID.append(0)
-
-                    try:
-                        self.well_rowID.append(
-                            int(allscenes["Shape"]["RowIndex"]))
-                    except (KeyError, TypeError) as e:
-                        logger.error("Well RowIDs not found :" + str(e))
-                        self.well_rowID.append(0)
-
-                    try:
-                        # count the content of the list, e.g. how many times a certain well was detected
-                        self.well_counter = Counter(self.well_array_names)
-                    except (KeyError, TypeError):
-                        self.well_counter.append(Counter({"A1": 1}))
-
-                    try:
-                        # get the SceneCenter Position
-                        sx = allscenes["CenterPosition"].split(",")[0]
-                        sy = allscenes["CenterPosition"].split(",")[1]
-                        self.scene_stageX.append(np.double(sx))
-                        self.scene_stageY.append(np.double(sy))
-                    except (TypeError, KeyError) as e:
-                        logger.error("Stage Positions XY not found :" + str(e))
-                        self.scene_stageX.append(0.0)
-                        self.scene_stageY.append(0.0)
-
-                if size_s > 1:
-                    well = allscenes[s]
-                    try:
-                        self.well_array_names.append(well["ArrayName"])
-                    except (KeyError, TypeError) as e:
-                        try:
-                            self.well_array_names.append(well["@Name"])
+                            self.well_indices.append(allscenes["@Index"])
                         except (KeyError, TypeError) as e:
                             try:
-                                self.well_array_names.append(well["Name"])
+                                self.well_indices.append(allscenes["Index"])
                             except (KeyError, TypeError) as e:
-                                logger.error("Well Name not found. Using A1 instead")
-                                self.well_array_names.append("A1")
+                                logger.error("Well Index not found :" + str(e))
+                                self.well_indices.append(1)
 
-                    # get the well information
-                    try:
-                        self.well_indices.append(well["@Index"])
-                    except (KeyError, TypeError) as e:
                         try:
-                            self.well_indices.append(well["Index"])
+                            self.well_position_names.append(allscenes["@Name"])
                         except (KeyError, TypeError) as e:
-                            logger.error("Well Index not found :" + str(e))
-                            self.well_indices.append(None)
-                    try:
-                        self.well_position_names.append(well["@Name"])
-                    except (KeyError, TypeError) as e:
+                            try:
+                                self.well_position_names.append(allscenes["Name"])
+                            except (KeyError, TypeError) as e:
+                                logger.error("Well Position Names not found :" + str(e))
+                                self.well_position_names.append("P1")
+
                         try:
-                            self.well_position_names.append(well["Name"])
+                            self.well_colID.append(
+                                int(allscenes["Shape"]["ColumnIndex"]))
                         except (KeyError, TypeError) as e:
-                            logger.error("Well Position Names not found :" + str(e))
-                            self.well_position_names.append(None)
+                            logger.error("Well ColumnIDs not found :" + str(e))
+                            self.well_colID.append(0)
 
-                    try:
-                        self.well_colID.append(
-                            int(well["Shape"]["ColumnIndex"]))
-                    except (KeyError, TypeError) as e:
-                        logger.error("Well ColumnIDs not found :" + str(e))
-                        self.well_colID.append(None)
+                        try:
+                            self.well_rowID.append(
+                                int(allscenes["Shape"]["RowIndex"]))
+                        except (KeyError, TypeError) as e:
+                            logger.error("Well RowIDs not found :" + str(e))
+                            self.well_rowID.append(0)
 
-                    try:
-                        self.well_rowID.append(
-                            int(well["Shape"]["RowIndex"]))
-                    except (KeyError, TypeError) as e:
-                        logger.error("Well RowIDs not found :" + str(e))
-                        self.well_rowID.append(None)
+                        try:
+                            # count the content of the list, e.g. how many times a certain well was detected
+                            self.well_counter = Counter(self.well_array_names)
+                        except (KeyError, TypeError):
+                            self.well_counter.append(Counter({"A1": 1}))
 
-                    # count the content of the list, e.g. how many times a certain well was detected
-                    self.well_counter = Counter(self.well_array_names)
-
-                    # try:
-                    if isinstance(allscenes, list):
                         try:
                             # get the SceneCenter Position
-                            sx = allscenes[s]["CenterPosition"].split(",")[0]
-                            sy = allscenes[s]["CenterPosition"].split(",")[1]
+                            sx = allscenes["CenterPosition"].split(",")[0]
+                            sy = allscenes["CenterPosition"].split(",")[1]
                             self.scene_stageX.append(np.double(sx))
                             self.scene_stageY.append(np.double(sy))
-                        except (KeyError, TypeError) as e:
+                        except (TypeError, KeyError) as e:
                             logger.error("Stage Positions XY not found :" + str(e))
                             self.scene_stageX.append(0.0)
                             self.scene_stageY.append(0.0)
-                    if not isinstance(allscenes, list):
-                        self.scene_stageX.append(0.0)
-                        self.scene_stageY.append(0.0)
 
-                # count the number of different wells
-                self.number_wells = len(self.well_counter.keys())
+                    if size_s > 1:
+                        well = allscenes[s]
+                        try:
+                            self.well_array_names.append(well["ArrayName"])
+                        except (KeyError, TypeError) as e:
+                            try:
+                                self.well_array_names.append(well["@Name"])
+                            except (KeyError, TypeError) as e:
+                                try:
+                                    self.well_array_names.append(well["Name"])
+                                except (KeyError, TypeError) as e:
+                                    logger.error("Well Name not found. Using A1 instead")
+                                    self.well_array_names.append("A1")
+
+                        # get the well information
+                        try:
+                            self.well_indices.append(well["@Index"])
+                        except (KeyError, TypeError) as e:
+                            try:
+                                self.well_indices.append(well["Index"])
+                            except (KeyError, TypeError) as e:
+                                logger.error("Well Index not found :" + str(e))
+                                self.well_indices.append(None)
+                        try:
+                            self.well_position_names.append(well["@Name"])
+                        except (KeyError, TypeError) as e:
+                            try:
+                                self.well_position_names.append(well["Name"])
+                            except (KeyError, TypeError) as e:
+                                logger.error("Well Position Names not found :" + str(e))
+                                self.well_position_names.append(None)
+
+                        try:
+                            self.well_colID.append(
+                                int(well["Shape"]["ColumnIndex"]))
+                        except (KeyError, TypeError) as e:
+                            logger.error("Well ColumnIDs not found :" + str(e))
+                            self.well_colID.append(None)
+
+                        try:
+                            self.well_rowID.append(
+                                int(well["Shape"]["RowIndex"]))
+                        except (KeyError, TypeError) as e:
+                            logger.error("Well RowIDs not found :" + str(e))
+                            self.well_rowID.append(None)
+
+                        # count the content of the list, e.g. how many times a certain well was detected
+                        self.well_counter = Counter(self.well_array_names)
+
+                        # try:
+                        if isinstance(allscenes, list):
+                            try:
+                                # get the SceneCenter Position
+                                sx = allscenes[s]["CenterPosition"].split(",")[0]
+                                sy = allscenes[s]["CenterPosition"].split(",")[1]
+                                self.scene_stageX.append(np.double(sx))
+                                self.scene_stageY.append(np.double(sy))
+                            except (KeyError, TypeError) as e:
+                                logger.error("Stage Positions XY not found :" + str(e))
+                                self.scene_stageX.append(0.0)
+                                self.scene_stageY.append(0.0)
+                        if not isinstance(allscenes, list):
+                            self.scene_stageX.append(0.0)
+                            self.scene_stageY.append(0.0)
+
+                    # count the number of different wells
+                    self.number_wells = len(self.well_counter.keys())
+            except KeyError as e:
+                logger.error(
+                    "CZI contains no scene metadata from experiment. Maybe it was created from scratch?")
 
         else:
             logger.info(
