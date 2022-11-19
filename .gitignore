@@ -155,4 +155,3 @@ data/*.zarr
 # skip specific files
 data/CH=1_16bit.czi
 data/Fluorescence_RGB.czi
-data/CH=1_16bit.czi
