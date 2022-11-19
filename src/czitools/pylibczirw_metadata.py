@@ -533,11 +533,8 @@ class CziScaling:
             try:
                 return float(distances_[idx]["Value"]) * 1000000 if distances_[idx]["Value"] is not None else None
             except IndexError:
-                if dim2none:
-                    return None
-                if not dim2none:
-                    # use scaling = 1.0 micron as fallback
-                    return 1.0
+                logger.error("No Z-Scaling found. Using defaults = 1.0")
+                return 1.0
 
         try:
             distances = md_dict["ImageDocument"]["Metadata"]["Scaling"]["Items"]["Distance"]
@@ -582,13 +579,11 @@ class CziScaling:
         scale_ratio = {"xy": 1.0,
                        "zx": 1.0
                        }
-        try:
-            # get the factor between XY scaling
-            scale_ratio["xy"] = np.round(scalex / scaley, 3)
-            # get the scale factor between XZ scaling
-            scale_ratio["zx"] = np.round(scalez / scalex, 3)
-        except (KeyError, TypeError) as e:
-            logger.error(e, "Using defaults = 1.0")
+        
+        # get the factor between XY scaling
+        scale_ratio["xy"] = np.round(scalex / scaley, 3)
+        # get the scale factor between XZ scaling
+        scale_ratio["zx"] = np.round(scalez / scalex, 3)
 
         return scale_ratio
 

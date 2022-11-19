@@ -89,9 +89,9 @@ def test_scene_shape():
         assert(md.scene_shape_is_consistent == sc)
 
 
-def test_reading_CZI_fresh():
+def test_reading_czi_fresh():
 
-    filepath = r"data/A01_segSD.czi"
+    filepath = os.path.join(basedir, r"data/A01_segSD.czi")
 
     # get the complete metadata at once as one big class
     mdata = czimd.CziMetadata(filepath)

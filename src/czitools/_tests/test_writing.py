@@ -33,7 +33,6 @@ def test_write_1():
         with TiffFile(file) as tif:
             for page in tif.pages:
                 for tag in page.tags:
-                    #print(tag.name, tag.value)
                     if not isinstance(tag.value, (bytes, bytearray)):
                         tiff_tags[tag.name] = tag.value
 
@@ -55,7 +54,10 @@ def test_write_1():
             czidoc_w.write(data=tif_image)
 
         # check if CZI was written
-        assert (os.path.exists(czi_path) == True)
+        assert (os.path.exists(czi_path) is True)
+
+        # remove the files
+        os.remove(czi_path)
 
 
 test_write_1()
