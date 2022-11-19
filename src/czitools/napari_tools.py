@@ -45,6 +45,7 @@ from czitools import misc
 import numpy as np
 from typing import List, Dict, Tuple, Optional, Type, Any, Union
 from napari.utils.colormaps import Colormap
+import dask.array as da
 
 
 class TableWidget(QWidget):
@@ -103,7 +104,9 @@ class TableWidget(QWidget):
         self.mdtable.setHorizontalHeaderItem(1, item2)
 
 
-def show(viewer: Any, array: np.ndarray, metadata: czimd.CziMetadata,
+def show(viewer: Any,
+         array: Union[np.ndarray, List[da.Array], da.Array],
+         metadata: czimd.CziMetadata,
          dim_string: str,
          blending: str = "additive",
          contrast: str = "calc",
@@ -115,7 +118,7 @@ def show(viewer: Any, array: np.ndarray, metadata: czimd.CziMetadata,
     Every channel will be added as a new layer to the viewer.
 
     :param viewer: Napari viewer object
-    :param array: multi-dimensional array containing the pixel data
+    :param array: multi-dimensional array containing the pixel data (Numpy, List of Dask Array or Dask array
     :param metadata: CziMetadata class
     :param dim_string: the dimension string for the array to be shown
     :param blending: blending mode for viewer
@@ -139,7 +142,7 @@ def show(viewer: Any, array: np.ndarray, metadata: czimd.CziMetadata,
     # create empty list for the napari layers
     napari_layers = []
 
-    # create scalefactor with all ones
+    # create scale factor with all ones
     scalefactors = [1.0] * len(array.shape)
 
     # modify the tuple for the scales for napari
@@ -166,12 +169,12 @@ def show(viewer: Any, array: np.ndarray, metadata: czimd.CziMetadata,
 
     # add all channels as individual layers
     if metadata.image.SizeC is None:
-        sizeC = 1
+        size_c = 1
     else:
-        sizeC = metadata.image.SizeC
+        size_c = metadata.image.SizeC
 
     # loop over all channels and add them as layers
-    for ch in range(sizeC):
+    for ch in range(size_c):
 
         try:
             # get the channel name
@@ -224,15 +227,15 @@ def show(viewer: Any, array: np.ndarray, metadata: czimd.CziMetadata,
         if contrast == "from_czi":
             # guess an appropriate scaling from the display setting embedded in the CZI
             lower = np.round(
-                metadata.channelinfo.clims[ch][0] * metadata.maxrange, 0)
+                metadata.channelinfo.clims[ch][0] * metadata.maxvalue, 0)
             higher = np.round(
-                metadata.channelinfo.clims[ch][1] * metadata.maxrange, 0)
+                metadata.channelinfo.clims[ch][1] * metadata.maxvalue, 0)
 
             # simple validity check
             if lower >= higher:
                 print("Fancy Display Scaling detected. Use Defaults")
                 lower = 0
-                higher = np.round(metadata.maxrange * 0.25, 0)
+                higher = np.round(metadata.maxvalue * 0.25, 0)
 
             print("Display Scaling from CZI for CH:",
                   ch, "Min-Max", lower, higher)

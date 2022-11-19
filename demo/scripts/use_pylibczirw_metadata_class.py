@@ -49,8 +49,6 @@ czi_sample = czimd.CziSampleInfo(filepath)
 
 # get selected metadata as a dictionary
 mdata_sel_dict = czimd.obj2dict(mdata_sel)
-for k, v in mdata_sel_dict.items():
-    print(k, " : ", v)
 
 # and convert to pd.DataFrame
 df_md = misc.md2dataframe(mdata_sel_dict)
@@ -67,7 +65,7 @@ with pyczi.open_czi(filepath) as czidoc_r:
 
     # get a dictionary with the dimensions by parsing the dictionary
     dim_dict = czimd.CziDimensions.get_image_dimensions(metadata_parsed)
-    print(dim_dict)
+    #print(dim_dict)
 
 # get the complete metadata from the CZI as one big object
 czimd_complete = czimd.CziMetadataComplete(filepath)
