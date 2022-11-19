@@ -151,3 +151,5 @@ examples/pylibCZIrw_docu/newCZI_zscenes.czi
 demo/experimental/
 demo/experimental/**
 data/*.zarr
+data/CH=1_16bit.czi
+data/Fluorescence_RGB.czi
