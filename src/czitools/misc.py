@@ -313,7 +313,7 @@ def get_planetable(czifile: str,
                                      range(size_z),
                                      range(size_c)):
             sbcount += 1
-            print("Reading sublock : ", sbcount)
+            #print("Reading sublock : ", sbcount)
 
             # get x, y, width and height for a specific tile
             tilebbox = aicsczi.get_mosaic_tile_bounding_box(S=s,
