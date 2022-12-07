@@ -42,3 +42,5 @@ def test_get_planetable():
     assert(planetable_filtered["xstart"][1] == 166242)
     assert(planetable_filtered["ystart"][0] == 78118)
     assert(planetable_filtered["ystart"][1] == 78118)
+
+test_get_planetable()

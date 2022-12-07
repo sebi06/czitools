@@ -381,9 +381,9 @@ class CziChannelInfo:
         channels_gamma = []
 
         try:
-            sizeC = int(md_dict["ImageDocument"]["Metadata"]["Information"]["Image"]["SizeC"])
+            size_c = int(md_dict["ImageDocument"]["Metadata"]["Information"]["Image"]["SizeC"])
         except (KeyError, TypeError) as e:
-            sizeC = 1
+            size_c = 1
 
         # get channel part of dict
         try:
@@ -398,7 +398,7 @@ class CziChannelInfo:
             logger.error("No DisplaySetting section found inside the metadata")
             disp_setting = {}
 
-        if sizeC == 1:
+        if size_c == 1:
 
             # get the channel names for a single channel
             try:
@@ -451,9 +451,9 @@ class CziChannelInfo:
             except (KeyError, TypeError) as e:
                 channels_gamma.append(0.85)
 
-        if sizeC > 1:
+        if size_c > 1:
 
-            for ch in range(sizeC):
+            for ch in range(size_c):
 
                 # get the channel names for > 1 channels
                 try:
@@ -576,14 +576,10 @@ class CziScaling:
                         scalez: float = 1.0) -> Dict:
 
         # set default scale factor to 1.0
-        scale_ratio = {"xy": 1.0,
-                       "zx": 1.0
-                       }
+        scale_ratio = {"xy": np.round(scalex / scaley, 3), "zx": np.round(scalez / scalex, 3)}
         
         # get the factor between XY scaling
-        scale_ratio["xy"] = np.round(scalex / scaley, 3)
         # get the scale factor between XZ scaling
-        scale_ratio["zx"] = np.round(scalez / scalex, 3)
 
         return scale_ratio
 
@@ -690,7 +686,7 @@ class CziObjectives:
                     self.tubelensmag = float(
                         md_dict["ImageDocument"]["Metadata"]["Information"]["Instrument"]["TubeLenses"]["TubeLens"]["Magnification"])
                 except (KeyError, TypeError) as e:
-                    logger.error("No Tubelens Mag. :" + (e),
+                    logger.error("No Tubelens Mag. :" + e,
                                  "Using Default Value = 1.0.")
                     self.tubelensmag = 1.0
 
@@ -699,7 +695,7 @@ class CziObjectives:
                         md_dict["ImageDocument"]["Metadata"]["Information"]["Instrument"]["Objectives"]["Objective"][
                             "NominalMagnification"])
                 except (KeyError, TypeError) as e:
-                    logger.error("No Nominal Mag.:" + (e), "Using Default Value = 1.0.")
+                    logger.error("No Nominal Mag.:" + e, "Using Default Value = 1.0.")
                     self.nominalmag = 1.0
 
                 try:
@@ -754,7 +750,7 @@ class CziObjectives:
                             md_dict["ImageDocument"]["Metadata"]["Information"]["Instrument"]["TubeLenses"]["TubeLens"][o][
                                 "Magnification"]))
                     except (KeyError, TypeError) as e:
-                        logger.error("No Tubelens Mag. :" + (e),
+                        logger.error("No Tubelens Mag. :" + e,
                                      "Using Default Value = 1.0.")
                         self.tubelensmag.append(1.0)
 
@@ -763,7 +759,7 @@ class CziObjectives:
                             md_dict["ImageDocument"]["Metadata"]["Information"]["Instrument"]["Objectives"]["Objective"][o][
                                 "NominalMagnification"]))
                     except (KeyError, TypeError) as e:
-                        logger.error("No Nominal Mag. :" + (e),
+                        logger.error("No Nominal Mag. :" + e,
                                      "Using Default Value = 1.0.")
                         self.nominalmag.append(1.0)
 

@@ -45,7 +45,7 @@ While the [pylibCZIrw](https://pypi.org/project/pylibCZIrw/) is focussing on rea
 array6d, mdata, dim_string6d = pylibczirw_tools.read_6darray(filepath,
                                                              output_order="STZCYX",
                                                              output_dask=False,
-                                                             remove_Adim=True
+                                                             remove_adim=True
                                                              )
 
 # show array inside napari viewer

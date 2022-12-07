@@ -248,6 +248,7 @@ def get_planetable(czifile: str,
 
     # get the czi metadata
     czi_dimensions = czitools.pylibczirw_metadata.CziDimensions(czifile)
+    #czi_dimensions = czimd.CziDimensions(czifile)
     aicsczi = CziFile(czifile)
 
     # initialize the plane table

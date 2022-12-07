@@ -23,7 +23,7 @@ def read_6darray(filename: str,
                  output_order: str = "STZCYX",
                  output_dask: bool = False,
                  chunks_auto: bool = False,
-                 remove_Adim: bool = True,
+                 remove_adim: bool = True,
                  **kwargs: int) -> Tuple[Union[np.ndarray, da.Array], czimd.CziMetadata, str]:
     """Read a CZI image file as 6D numpy or dask array.
     Important: Currently supported are only scenes with equal size.
@@ -33,7 +33,7 @@ def read_6darray(filename: str,
         output_order (str, optional): Order of dimensions for the output array. Defaults to "STZCYX".
         output_dask (bool, optional): If True the output will be a dask array. Defaults to False.
         chunks_auto (bool, optional): Use a chunk size create automatically if True and otherwise use the array shape. Default to False.
-        remove_Adim (bool, optional): If true the dimension for the pixel type will be removed. Defaults to True.
+        remove_adim (bool, optional): If true the dimension for the pixel type will be removed. Defaults to True.
         kwargs (int, optional): Allowed kwargs are S, T, Z, C and values must be >=0 (zero-based).
                                 Will be used to read only a substack from the array
 
@@ -68,10 +68,6 @@ def read_6darray(filename: str,
             size_y = czidoc.scenes_bounding_rectangle[0].h
 
         if mdata.image.SizeS is None:
-
-            # use the size from the metadata
-            #size_x = mdata.image.SizeX
-            #size_y = mdata.image.SizeY
 
             # use the size of the total_bounding_rectangle
             size_x = czidoc.total_bounding_rectangle.w
@@ -140,7 +136,7 @@ def read_6darray(filename: str,
             dim_string = "STCZYXA"
             array6d = np.swapaxes(array6d, 2, 3)
 
-        if remove_Adim:
+        if remove_adim:
             dim_string = dim_string.replace("A", "")
             array6d = np.squeeze(array6d, axis=-1)
 
@@ -152,7 +148,7 @@ def read_5darray(filename: str,
                  output_order: str = "TCZYX",
                  output_dask: bool = False,
                  chunks_auto: bool = False,
-                 remove_Adim: bool = True,
+                 remove_adim: bool = True,
                  **kwargs: int) -> Tuple[Union[np.ndarray, da.Array], czimd.CziMetadata, str]:
     """Read a CZI image file as 5D numpy or dask array.
     Important: Currently supported are only scenes with equal size.
@@ -163,7 +159,7 @@ def read_5darray(filename: str,
         output_order (str, optional): Order of dimensions for the output array. Defaults to "TCZYX".
         output_dask (bool, optional): If True the output will be a dask array. Defaults to False.
         chunks_auto (bool, optional): Use a chunk size create automatically if True and otherwise use the array shape. Default to False.
-        remove_Adim (bool, optional): If true the dimension for the pixel type will be removed. Defaults to True.
+        remove_adim (bool, optional): If true the dimension for the pixel type will be removed. Defaults to True.
         kwargs (int, optional): Allowed kwargs are S, T, Z, C and values must be >=0 (zero-based).
                                 Will be used to read only a substack from the array
 
@@ -235,27 +231,27 @@ def read_5darray(filename: str,
             dim_string = "TCZYXA"
             array5d = np.swapaxes(array5d, 1, 2)
 
-        if remove_Adim:
+        if remove_adim:
             dim_string = dim_string.replace("A", "")
             array5d = np.squeeze(array5d, axis=-1)
 
     return array5d, mdata, dim_string
 
 
-###### EXPERIMENTAL #####
-def read_mdarray_lazy(filename: str, remove_Adim: bool = True) -> Tuple[da.Array, str]:
+# EXPERIMENTAL FUNCTION
+def read_mdarray_lazy(filename: str, remove_adim: bool = True) -> Tuple[da.Array, str]:
 
     def read_5d(filename: str,
                 sizes: Tuple[int, int, int, int, int],
                 s: int,
                 mdata: czimd.CziMetadata,
-                remove_Adim: bool = True) -> np.ndarray:
+                remove_adim: bool = True) -> np.ndarray:
 
-        array_md = da.empty([sizes[0], sizes[1], sizes[2], sizes[3], sizes[4], 3 if mdata.isRGB else 1],
+        array5d = da.empty([sizes[0], sizes[1], sizes[2], sizes[3], sizes[4], 3 if mdata.isRGB else 1],
                             dtype=mdata.npdtype)
 
         # open the CZI document to read the
-        with pyczi.open_czi(filename) as czidoc:
+        with pyczi.open_czi(filename) as czidoc5d:
 
             # read array for the scene
             for t, z, c in product(range(sizes[0]),
@@ -263,21 +259,21 @@ def read_mdarray_lazy(filename: str, remove_Adim: bool = True) -> Tuple[da.Array
                                    range(sizes[2])):
 
                 if mdata.image.SizeS is None:
-                    image2d = czidoc.read()
+                    image2d = czidoc5d.read()
                 else:
-                    image2d = czidoc.read(
+                    image2d = czidoc5d.read(
                         plane={'T': t, 'Z': z, 'C': c}, scene=s)
 
                 # # check if the image2d is really not too big
                 # if mdata.pyczi_dims["X"][1] > mdata.image.SizeX or mdata.pyczi_dims["Y"][1] > mdata.image.SizeY:
                 #     image2d = image2d[..., 0:mdata.image.SizeY, 0:mdata.image.SizeX, :]
 
-                array_md[t, z, c, ...] = image2d
+                array5d[t, z, c, ...] = image2d
 
-        if remove_Adim:
-            array_md = np.squeeze(array_md, axis=-1)
+        if remove_adim:
+            array5d = np.squeeze(array5d, axis=-1)
 
-        return array_md
+        return array5d
 
     # get the metadata
     mdata = czimd.CziMetadata(filename)
@@ -288,43 +284,33 @@ def read_mdarray_lazy(filename: str, remove_Adim: bool = True) -> Tuple[da.Array
         if mdata.image.SizeS is not None:
 
             # use the size of the 1st scenes_bounding_rectangle
-            sizeX = czidoc.scenes_bounding_rectangle[0].w
-            sizeY = czidoc.scenes_bounding_rectangle[0].h
+            size_x = czidoc.scenes_bounding_rectangle[0].w
+            size_y = czidoc.scenes_bounding_rectangle[0].h
 
         if mdata.image.SizeS is None:
 
             # use the size of the total_bounding_rectangle
-            sizeX = czidoc.total_bounding_rectangle.w
-            sizeY = czidoc.total_bounding_rectangle.h
-
-    # if mdata.image.SizeS is not None:
-    #     # get size for a single scene using the 1st
-    #     # works only if scene shape is consistent
-    #     sizeX = mdata.bbox.scenes_total_rect[0].w
-    #     sizeY = mdata.bbox.scenes_total_rect[0].h
-
-    # if mdata.image.SizeS is None:
-    #     sizeX = mdata.bbox.total_bounding_rectangle.w
-    #     sizeY = mdata.bbox.total_bounding_rectangle.h
+            size_x = czidoc.total_bounding_rectangle.w
+            size_y = czidoc.total_bounding_rectangle.h
 
     # check if dimensions are None (because they do not exist for that image)
-    sizeC = misc.check_dimsize(mdata.image.SizeC, set2value=1)
-    sizeZ = misc.check_dimsize(mdata.image.SizeZ, set2value=1)
-    sizeT = misc.check_dimsize(mdata.image.SizeT, set2value=1)
-    sizeS = misc.check_dimsize(mdata.image.SizeS, set2value=1)
+    size_c = misc.check_dimsize(mdata.image.SizeC, set2value=1)
+    size_z = misc.check_dimsize(mdata.image.SizeZ, set2value=1)
+    size_t = misc.check_dimsize(mdata.image.SizeT, set2value=1)
+    size_s = misc.check_dimsize(mdata.image.SizeS, set2value=1)
 
-    sizes = (sizeT, sizeZ, sizeC, sizeY, sizeX)
+    sizes = (size_t, size_z, size_c, size_y, size_x)
 
     # define the required shape
-    if remove_Adim:
-        sp = [sizeT, sizeZ, sizeC, sizeY, sizeX]
-    if not remove_Adim:
-        sp = [sizeT, sizeZ, sizeC, sizeY, sizeX, 3 if mdata.isRGB else 1]
+    if remove_adim:
+        sp = [size_t, size_z, size_c, size_y, size_x]
+    if not remove_adim:
+        sp = [size_t, size_z, size_c, size_y, size_x, 3 if mdata.isRGB else 1]
 
     # create dask stack of lazy image readers
     lazy_process_image = dask.delayed(read_5d)  # lazy reader
     lazy_arrays = [lazy_process_image(
-        filename, sizes, s, mdata, remove_Adim) for s in range(sizeS)]
+        filename, sizes, s, mdata, remove_adim) for s in range(size_s)]
 
     dask_arrays = [da.from_delayed(
         lazy_array, shape=sp, dtype=mdata.npdtype) for lazy_array in lazy_arrays]
@@ -335,7 +321,7 @@ def read_mdarray_lazy(filename: str, remove_Adim: bool = True) -> Tuple[da.Array
     # define the dimension order to be STZCYXA
     dimstring = "STZCYXA"
 
-    if remove_Adim:
+    if remove_adim:
         dimstring = dimstring.replace("A", "")
 
     return array_md, dimstring

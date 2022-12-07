@@ -31,7 +31,7 @@ print(filepath)
 array6d, mdata, dim_string6d = pylibczirw_tools.read_6darray(filepath,
                                                              output_order="STCZYX",
                                                              output_dask=False,
-                                                             remove_Adim=True,
+                                                             remove_adim=True,
                                                              # T=0,
                                                              # Z=0
                                                              )
