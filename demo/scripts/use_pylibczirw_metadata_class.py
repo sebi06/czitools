@@ -65,14 +65,10 @@ with pyczi.open_czi(filepath) as czidoc_r:
 
     # get a dictionary with the dimensions by parsing the dictionary
     dim_dict = czimd.CziDimensions.get_image_dimensions(metadata_parsed)
-    #print(dim_dict)
+    # print(dim_dict)
 
 # get the complete metadata from the CZI as one big object
 czimd_complete = czimd.CziMetadataComplete(filepath)
-
-# just read the number of channels
-print("Number of Channels:",
-      czimd_complete.md.ImageDocument.Metadata.Information.Image.SizeC)
 
 # get an object containing only the dimension information
 czi_dimensions = czimd.CziDimensions(filepath)
