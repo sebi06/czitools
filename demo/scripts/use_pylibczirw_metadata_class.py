@@ -91,7 +91,7 @@ print(czi_sample.__dict__)
 # get the complete data about the bounding boxes
 czi_bbox = czimd.CziBoundingBox(filepath)
 
-# dshow the total bounding box for all dimensions
+# show the total bounding box for all dimensions
 print(czi_bbox.total_bounding_box)
 
 # show the bbox for the scenes
