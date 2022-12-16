@@ -2,6 +2,7 @@
 from czitools import pylibczirw_tools
 import os
 from pathlib import Path
+import dask.array as da
 
 basedir = Path(__file__).resolve().parents[3]
 
@@ -66,10 +67,23 @@ def test_read_mdarray_3():
                                                               remove_adim=False)
 
     assert (dimstring == "STZCYXA")
-    assert (mdarray.shape == (2, 1, 1, 2, 1792, 1792, 1))
+    assert (mdarray.shape == (1, 1, 1, 1, 512, 512, 1))
 
-    assert (dimstring == "STCZYX")
-    assert (mdarray.shape == (2, 1, 2, 1, 1792, 1792))
+
+def test_read_mdarray_4():
+
+    # get the CZI filepath
+    filepath = os.path.join(basedir, r"data/newCZI_compressed.czi")
+
+    mdarray, mdata, dimstring = pylibczirw_tools.read_6darray(filepath,
+                                                              output_dask=True,
+                                                              chunks_auto=False,
+                                                              output_order="STZCYX",
+                                                              remove_adim=True)
+
+    assert (type(mdarray == da.array))
+    assert (dimstring == "STZCYX")
+    assert (mdarray.shape == (1, 1, 1, 1, 512, 512))
 
 
 def test_read_mdarray_lazy_1():
@@ -125,6 +139,3 @@ def test_read_mdarray_substack():
     assert (dimstring == "STZCYXA")
     assert (mdarray.shape == (1, 1, 1, 2, 170, 240, 1))
     assert (mdata.image.SizeS is None)
-
-
-test_read_mdarray_1()

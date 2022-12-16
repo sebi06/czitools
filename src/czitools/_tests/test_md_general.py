@@ -21,7 +21,7 @@ def test_pixeltypes():
     assert (md.pixeltypes == {0: 'Bgr24'})
     assert (md.isRGB == True)
 
-    # check the function to get npdytes and maxvalues
+    # check the function to get npdtypes and maxvalues
 
     pts = ["gray16",
            "Gray16",

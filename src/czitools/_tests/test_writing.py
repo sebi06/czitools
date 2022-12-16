@@ -1,11 +1,25 @@
 from czitools import pylibczirw_tools, misc
+from czitools import pylibczirw_metadata as czimd
 from pylibCZIrw import czi as pyczi
 import os
 from pathlib import Path
 from tifffile import imread, TiffFile
 import numpy as np
+from skimage import data
+from tqdm.contrib import itertools as it
+from tqdm import tqdm
 
 basedir = Path(__file__).resolve().parents[3]
+
+# get some dada to write
+# let's use sample exmaple data from scikit-image
+data = data.kidney()
+
+print(f'number of dimensions: {data.ndim}')
+print(f'shape: {data.shape}')
+print(f'dtype: {data.dtype}')
+numCH = 3
+numZ = 16
 
 
 def test_write_1():
@@ -60,4 +74,108 @@ def test_write_1():
         os.remove(czi_path)
 
 
-test_write_1()
+def test_write2():
+
+    # create the filename for the new CZI image file
+    newczi_4dstack = os.path.join(os.getcwd(), "newCZI_z=16_ch=3.czi")
+
+    # open a new CZI and allow overwrite (!!!) to play around ...
+    with pyczi.create_czi(newczi_4dstack, exist_ok=True) as czidoc_w:
+        # loop over all z-planes and channels
+        for z, ch in it.product(range(numZ), range(numCH)):
+            # get the 2d array for the current plane and add axis to get (Y, X, 1) as shape
+            array2d = data[z, ..., ch][..., np.newaxis]
+
+            # write the plane with shape (Y, X, 1) to the new CZI file
+            czidoc_w.write(
+                data=array2d,
+                plane={"Z": z, "C": ch}
+            )
+
+    # get the complete metadata at once as one big class
+    mdata = czimd.CziMetadata(newczi_4dstack)
+
+    assert (mdata.pyczi_dims == {'T': (0, 1), 'Z': (0, 16), 'C': (0, 3), 'X': (0, 512), 'Y': (0, 512)})
+    assert (mdata.pixeltypes == {0: 'Gray16', 1: 'Gray16', 2: 'Gray16'})
+    assert (mdata.isRGB is False)
+    assert (mdata.ismosaic is False)
+
+    os.remove(newczi_4dstack)
+
+
+def test_write3():
+
+    # create the filename for the new CZI image file
+    newczi_zloc = os.path.join(os.getcwd(), "newCZI_zloc.czi")
+    xstart = 0
+    ch = 0
+
+    with pyczi.create_czi(newczi_zloc, exist_ok=True) as czidoc_w:
+        # loop over all z-planes
+        for z in tqdm(range(numZ)):
+            # get the 2d array for the current plane and add axis to get (Y, X, 1) as shape
+            array2d = data[z, ..., ch]
+
+            # for fun - write the z-planes to different locations
+            czidoc_w.write(
+                data=array2d,
+                plane={"C": ch},
+                location=(xstart, 0)
+            )
+
+            # change the x-position for the next round to write "side-by-side"
+            xstart = xstart + 512
+
+    # get the complete metadata at once as one big class
+    mdata = czimd.CziMetadata(newczi_zloc)
+
+    assert (mdata.pyczi_dims == {'T': (0, 1), 'Z': (0, 1), 'C': (0, 1), 'X': (0, 8192), 'Y': (0, 512)})
+    assert (mdata.pixeltypes == {0: 'Gray16'})
+    assert (mdata.isRGB is False)
+    assert (mdata.ismosaic is True)
+    assert (mdata.bbox.total_bounding_box == {'T': (0, 1), 'Z': (0, 1), 'C': (0, 1), 'X': (0, 8192), 'Y': (0, 512)})
+
+    os.remove(newczi_zloc)
+
+
+def test_write4():
+
+    # first step is to create some kind of grid of locations
+    locx = []
+    locy = []
+    xystart = 0
+    offset = 700
+
+    # create the list for the 4x4 grid locations for the 16 planes
+    for x, y in it.product(range(4), range(4)):
+        locx.append(xystart + offset * x)
+        locy.append(xystart + offset * y)
+
+    # create the filename for the new CZI image file
+    newczi_zscenes = os.path.join(os.getcwd(), "newCZI_scenes.czi")
+    ch = 0
+
+    with pyczi.create_czi(newczi_zscenes, exist_ok=True) as czidoc_w:
+        # loop over all z-planes
+        for z in tqdm(range(numZ)):
+            # get the 2d array for the current plane and add axis to get (Y, X, 1) as shape
+            array2d = data[z, ..., ch]
+
+            # for "fun" - write the z-planes to different locations using the locations we just created
+            czidoc_w.write(
+                data=array2d,
+                plane={"C": ch},
+                scene=z,
+                location=(locx[z], locy[z])
+            )
+
+        # get the complete metadata at once as one big class
+    mdata = czimd.CziMetadata(newczi_zscenes)
+
+    assert (mdata.pyczi_dims == {'T': (0, 1), 'Z': (0, 1), 'C': (0, 1), 'X': (0, 2612), 'Y': (0, 2612)})
+    assert (mdata.pixeltypes == {0: 'Gray16'})
+    assert (mdata.isRGB is False)
+    assert (mdata.ismosaic is False)
+    assert (mdata.bbox.total_bounding_box == {'T': (0, 1), 'Z': (0, 1), 'C': (0, 1), 'X': (0, 2612), 'Y': (0, 2612)})
+
+    os.remove(newczi_zscenes)
