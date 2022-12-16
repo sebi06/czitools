@@ -86,7 +86,7 @@ class CziMetadata:
                 self.aics_posC = self.aics_dim_order["C"]
 
             except ImportError as e:
-                logger.warning("Use Fallback values.")
+                logger.warning("Package aicspylibczi not found. Use Fallback values.")
                 self.aics_dimstring = None
                 self.aics_dims_shape = None
                 self.aics_size = None
@@ -275,13 +275,13 @@ class CziMetadata:
     @staticmethod
     def check_if_rgb(pixeltypes: Dict) -> Tuple[bool, bool]:
 
-        isRGB = False
+        is_rgb = False
 
         for k, v in pixeltypes.items():
             if "Bgr" in v:
-                isRGB = True
+                is_rgb = True
 
-        # Flag to check if all elements are same
+        # flag to check if all elements are same
         is_consistant = True
 
         # extracting value to compare
@@ -292,7 +292,7 @@ class CziMetadata:
                 is_consistant = False
                 break
 
-        return isRGB, is_consistant
+        return is_rgb, is_consistant
 
 
 class CziDimensions:
@@ -350,6 +350,7 @@ class CziDimensions:
                 extracted_value = raw_metadata["ImageDocument"]["Metadata"]["Information"]["Image"][key]
                 return int(extracted_value) if extracted_value is not None else None
             except KeyError:
+                #logger.warning("Dimension: " + str(key) + " not found.")
                 return None
 
         dimensions = ["SizeX",
@@ -425,13 +426,13 @@ class CziChannelInfo:
         try:
             channel_dict = md_dict["ImageDocument"]["Metadata"]["Information"]["Image"]["Dimensions"]["Channels"]["Channel"]
         except (KeyError, TypeError) as e:
-            logger.error("No Channel section found inside the Dimension metadata")
+            logger.warning("No Channel section found inside the Dimension metadata")
             channel_dict = {}
 
         try:
             disp_setting = md_dict["ImageDocument"]["Metadata"]["DisplaySetting"]
         except (KeyError, TypeError) as e:
-            logger.error("No DisplaySetting section found inside the metadata")
+            logger.warning("No DisplaySetting section found inside the metadata")
             disp_setting = {}
 
         if size_c == 1:
@@ -451,22 +452,22 @@ class CziChannelInfo:
                         except (KeyError, TypeError) as e:
                             channels_names.append("CH1")
 
-            # get the dye name for a single channel
+            # get the dye names for a single channel
             try:
                 channels_dyes.append(disp_setting["Channels"]["Channel"]["ShortName"])
             except (KeyError, TypeError) as e:
-                logger.error("Channel shortname not found.")
+                logger.warning("Channel shortname not found.")
                 try:
                     channels_dyes.append(disp_setting["Channels"]["Channel"]["DyeName"])
                 except (KeyError, TypeError) as e:
-                    logger.error("Channel dye not found.")
+                    logger.warning("Channel dye not found.")
                     channels_dyes.append("Dye-CH1")
 
             # get channel color
             try:
                 channels_colors.append(disp_setting["Channels"]["Channel"]["Color"])
             except (KeyError, TypeError) as e:
-                logger.error("Channel color not found.")
+                logger.warning("Channel color not found.")
                 channels_colors.append("#80808000")
 
             # get contrast setting fro DisplaySetting
@@ -593,10 +594,13 @@ class CziScaling:
         # safety check in case a scale = 0
         if self.X == 0.0:
             self.X = 1.0
+            logger.warning("Detected ScalingX = 0. Use 1.0 as fallback.")
         if self.Y == 0.0:
             self.Y = 1.0
+            logger.warning("Detected ScalingY = 0. Use 1.0 as fallback.")
         if self.Z == 0.0:
             self.Z = 1.0
+            logger.warning("Detected ScalingZ = 0. Use 1.0 as fallback.")
 
         # set the scaling unit to [micron]
         self.Unit = "micron"
@@ -644,14 +648,14 @@ class CziInfo:
             self.software_name = md_dict["ImageDocument"]["Metadata"]["Information"]["Application"]["Name"]
             self.software_version = md_dict["ImageDocument"]["Metadata"]["Information"]["Application"]["Version"]
         except (KeyError, TypeError) as e:
-            logger.error(e)
+            logger.warning("Application Name and version not found.")
             self.software_name = None
             self.software_version = None
 
         try:
             self.acquisition_date = md_dict["ImageDocument"]["Metadata"]["Information"]["Image"]["AcquisitionDateAndTime"]
         except (KeyError, TypeError) as e:
-            logger.error(e)
+            logger.warning("Acquistion Date and Time not found.")
             self.acquisition_date = None
 
 
@@ -809,6 +813,9 @@ class CziObjectives:
                         logger.error("No Objective Magnification.")
                         self.mag.append(None)
 
+        else:
+            logger.warning("No Objective Information found.")
+
 
 class CziDetector:
     def __init__(self, filename: str) -> None:
@@ -918,6 +925,9 @@ class CziDetector:
                         logger.error("DetectorType not found.")
                         self.modeltype.append(None)
 
+        else:
+            logger.warning("No Detetctor information found.")
+
 
 class CziMicroscope:
     def __init__(self, filename: str) -> None:
@@ -952,6 +962,9 @@ class CziMicroscope:
                     logger.error("Microscope System Name not found.")
                     self.Name = None
 
+        else:
+            logger.warning("No Microscope information found.")
+
 
 class CziSampleInfo:
     def __init__(self, filename: str) -> None:
@@ -976,7 +989,7 @@ class CziSampleInfo:
         self.image_stageY = None
 
         if size_s is not None:
-            logger.info("Trying to extract Scene and Well information if existing ...")
+            #logger.info("Trying to extract Scene and Well information if existing ...")
 
             # extract well information from the dictionary
             allscenes: Union[Dict, List]
@@ -1000,7 +1013,7 @@ class CziSampleInfo:
                                 try:
                                     self.well_array_names.append(well["Name"])
                                 except (KeyError, TypeError) as e:
-                                    logger.error("Well Name not found. Using A1 instead.")
+                                    logger.warning("Well Name not found. Using A1 instead.")
                                     self.well_array_names.append("A1")
 
                         try:
@@ -1009,7 +1022,7 @@ class CziSampleInfo:
                             try:
                                 self.well_indices.append(allscenes["Index"])
                             except (KeyError, TypeError) as e:
-                                logger.error("Well Index not found.")
+                                logger.warning("Well Index not found.")
                                 self.well_indices.append(1)
 
                         try:
@@ -1018,21 +1031,21 @@ class CziSampleInfo:
                             try:
                                 self.well_position_names.append(allscenes["Name"])
                             except (KeyError, TypeError) as e:
-                                logger.error("Well Position Names not found.")
+                                logger.warning("Well Position Names not found.")
                                 self.well_position_names.append("P1")
 
                         try:
                             self.well_colID.append(
                                 int(allscenes["Shape"]["ColumnIndex"]))
                         except (KeyError, TypeError) as e:
-                            logger.error("Well ColumnIDs not found.")
+                            logger.warning("Well ColumnIDs not found.")
                             self.well_colID.append(0)
 
                         try:
                             self.well_rowID.append(
                                 int(allscenes["Shape"]["RowIndex"]))
                         except (KeyError, TypeError) as e:
-                            logger.error("Well RowIDs not found.")
+                            logger.warning("Well RowIDs not found.")
                             self.well_rowID.append(0)
 
                         try:
@@ -1048,7 +1061,7 @@ class CziSampleInfo:
                             self.scene_stageX.append(np.double(sx))
                             self.scene_stageY.append(np.double(sy))
                         except (TypeError, KeyError) as e:
-                            logger.error("Stage Positions XY not found.")
+                            logger.warning("Stage Positions XY not found.")
                             self.scene_stageX.append(0.0)
                             self.scene_stageY.append(0.0)
 
@@ -1063,7 +1076,7 @@ class CziSampleInfo:
                                 try:
                                     self.well_array_names.append(well["Name"])
                                 except (KeyError, TypeError) as e:
-                                    logger.error("Well Name not found. Using A1 instead.")
+                                    logger.warning("Well Name not found. Using A1 instead.")
                                     self.well_array_names.append("A1")
 
                         # get the well information
@@ -1073,7 +1086,7 @@ class CziSampleInfo:
                             try:
                                 self.well_indices.append(well["Index"])
                             except (KeyError, TypeError) as e:
-                                logger.error("Well Index not found.")
+                                logger.warning("Well Index not found.")
                                 self.well_indices.append(None)
                         try:
                             self.well_position_names.append(well["@Name"])
@@ -1081,21 +1094,21 @@ class CziSampleInfo:
                             try:
                                 self.well_position_names.append(well["Name"])
                             except (KeyError, TypeError) as e:
-                                logger.error("Well Position Names not found.")
+                                logger.warning("Well Position Names not found.")
                                 self.well_position_names.append(None)
 
                         try:
                             self.well_colID.append(
                                 int(well["Shape"]["ColumnIndex"]))
                         except (KeyError, TypeError) as e:
-                            logger.error("Well ColumnIDs not found.")
+                            logger.warning("Well ColumnIDs not found.")
                             self.well_colID.append(None)
 
                         try:
                             self.well_rowID.append(
                                 int(well["Shape"]["RowIndex"]))
                         except (KeyError, TypeError) as e:
-                            logger.error("Well RowIDs not found.")
+                            logger.warning("Well RowIDs not found.")
                             self.well_rowID.append(None)
 
                         # count the content of the list, e.g. how many times a certain well was detected
@@ -1110,7 +1123,7 @@ class CziSampleInfo:
                                 self.scene_stageX.append(np.double(sx))
                                 self.scene_stageY.append(np.double(sy))
                             except (KeyError, TypeError) as e:
-                                logger.error("Stage Positions XY not found.")
+                                logger.warning("Stage Positions XY not found.")
                                 self.scene_stageX.append(0.0)
                                 self.scene_stageY.append(0.0)
                         if not isinstance(allscenes, list):
@@ -1120,8 +1133,7 @@ class CziSampleInfo:
                     # count the number of different wells
                     self.number_wells = len(self.well_counter.keys())
             except KeyError as e:
-                logger.error(
-                    "CZI contains no scene metadata from experiment. Maybe it was created from scratch?")
+                logger.warning("CZI contains no scene metadata.")
 
         else:
             logger.info(
@@ -1149,31 +1161,31 @@ class CziAddMetaData:
         try:
             self.experiment = md_dict["ImageDocument"]["Metadata"]["Experiment"]
         except (KeyError, TypeError) as e:
-            logger.error(e)
+            logger.warning("No Experiment information found.")
             self.experiment = None
 
         try:
             self.hardwaresetting = md_dict["ImageDocument"]["Metadata"]["HardwareSetting"]
         except (KeyError, TypeError) as e:
-            logger.error(e)
+            logger.warning("No HardwareSetting information found.")
             self.hardwaresetting = None
 
         try:
             self.customattributes = md_dict["ImageDocument"]["Metadata"]["CustomAttributes"]
         except (KeyError, TypeError) as e:
-            logger.error(e)
+            logger.warning("No CustomAttributes information found.")
             self.customattributes = None
 
         try:
             self.displaysetting = md_dict["ImageDocument"]["Metadata"]["DisplaySetting"]
         except (KeyError, TypeError) as e:
-            logger.error(e)
+            logger.warning("No DisplaySetting information found.")
             self.displaysetting = None
 
         try:
             self.layers = md_dict["ImageDocument"]["Metadata"]["Layers"]
         except (KeyError, TypeError) as e:
-            logger.error(e)
+            logger.warning("No Layers information found.")
             self.layers = None
 
 
