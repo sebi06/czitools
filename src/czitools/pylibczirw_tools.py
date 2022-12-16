@@ -26,7 +26,7 @@ def read_6darray(filename: str,
                  remove_adim: bool = True,
                  **kwargs: int) -> Tuple[Union[np.ndarray, da.Array], czimd.CziMetadata, str]:
     """Read a CZI image file as 6D numpy or dask array.
-    Important: Currently supported are only scenes with equal size.
+    Important: Currently supported are only scenes with equal size and CZIs with consistent pixel types.
 
     Args:
         filename (str): filepath for the CZI image
@@ -43,6 +43,13 @@ def read_6darray(filename: str,
 
     # get the complete metadata at once as one big class
     mdata = czimd.CziMetadata(filename)
+
+    if not mdata.consistent_pixeltypes:
+        print("Detected PixelTypes ar not consitent. Cannot create array6d")
+        return None
+    if mdata.consistent_pixeltypes:
+        # use pixel type from first channel
+        use_pixeltype = mdata.npdtype[0]
 
     valid_order = ["STCZYX", "STZCYX"]
 
@@ -100,12 +107,12 @@ def read_6darray(filename: str,
         shape = [size_s, size_t, size_z, size_c, size_y, size_x, 3 if mdata.isRGB else 1]
 
         if not output_dask:
-            array6d = np.empty(shape, dtype=mdata.npdtype)
+            array6d = np.empty(shape, dtype=use_pixeltype)
         if output_dask:
             if chunks_auto:
-                array6d = da.empty(shape, dtype=mdata.npdtype, chunks="auto")
+                array6d = da.empty(shape, dtype=use_pixeltype, chunks="auto")
             if not chunks_auto:
-                array6d = da.empty(shape, dtype=mdata.npdtype, chunks=shape)
+                array6d = da.empty(shape, dtype=use_pixeltype, chunks=shape)
 
         # read array for the scene
         for s, t, z, c in product(range(size_s),
@@ -151,7 +158,7 @@ def read_5darray(filename: str,
                  remove_adim: bool = True,
                  **kwargs: int) -> Tuple[Union[np.ndarray, da.Array], czimd.CziMetadata, str]:
     """Read a CZI image file as 5D numpy or dask array.
-    Important: Currently supported are only scenes with equal size.
+    Important: Currently supported are only scenes with equal size and CZIs with consistent pixel types.
 
     Args:
         filename (str): filepath for the CZI image
@@ -169,6 +176,13 @@ def read_5darray(filename: str,
 
     # get the complete metadata at once as one big class
     mdata = czimd.CziMetadata(filename)
+
+    if not mdata.consistent_pixeltypes:
+        print("Detected PixelTypes ar not consitent. Cannot create array6d")
+        return None
+    if mdata.consistent_pixeltypes:
+        # use pixel type from first channel
+        use_pixeltype = mdata.npdtype[0]
 
     valid_order = ["TCZYX", "TZCYX"]
 
@@ -202,12 +216,12 @@ def read_5darray(filename: str,
         shape = [size_t, size_z, size_c, size_y, size_x, 3 if mdata.isRGB else 1]
 
         if not output_dask:
-            array5d = np.empty(shape, dtype=mdata.npdtype)
+            array5d = np.empty(shape, dtype=use_pixeltype)
         if output_dask:
             if chunks_auto:
-                array5d = da.empty(shape, dtype=mdata.npdtype, chunks="auto")
+                array5d = da.empty(shape, dtype=use_pixeltype, chunks="auto")
             if not chunks_auto:
-                array5d = da.empty(shape, dtype=mdata.npdtype, chunks=shape)
+                array5d = da.empty(shape, dtype=use_pixeltype, chunks=shape)
 
         # read array for the scene
         for t, z, c in product(range(size_t),
@@ -248,7 +262,7 @@ def read_mdarray_lazy(filename: str, remove_adim: bool = True) -> Tuple[da.Array
                 remove_adim: bool = True) -> np.ndarray:
 
         array5d = da.empty([sizes[0], sizes[1], sizes[2], sizes[3], sizes[4], 3 if mdata.isRGB else 1],
-                            dtype=mdata.npdtype)
+                           dtype=mdata.npdtype)
 
         # open the CZI document to read the
         with pyczi.open_czi(filename) as czidoc5d:
@@ -277,6 +291,13 @@ def read_mdarray_lazy(filename: str, remove_adim: bool = True) -> Tuple[da.Array
 
     # get the metadata
     mdata = czimd.CziMetadata(filename)
+
+    if not mdata.consistent_pixeltypes:
+        print("Detected PixelTypes ar not consitent. Cannot create array6d")
+        return None
+    if mdata.consistent_pixeltypes:
+        # use pixel type from first channel
+        use_pixeltype = mdata.npdtype[0]
 
     # open the CZI document to read the
     with pyczi.open_czi(filename) as czidoc:
@@ -313,7 +334,7 @@ def read_mdarray_lazy(filename: str, remove_adim: bool = True) -> Tuple[da.Array
         filename, sizes, s, mdata, remove_adim) for s in range(size_s)]
 
     dask_arrays = [da.from_delayed(
-        lazy_array, shape=sp, dtype=mdata.npdtype) for lazy_array in lazy_arrays]
+        lazy_array, shape=sp, dtype=use_pixeltype) for lazy_array in lazy_arrays]
 
     # Stack into one large dask.array
     array_md = da.stack(dask_arrays, axis=0)

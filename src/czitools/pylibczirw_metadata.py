@@ -98,17 +98,31 @@ class CziMetadata:
 
             # get the pixel typed for all channels
             self.pixeltypes = czidoc.pixel_types
-            self.isRGB = False
+            self.isRGB, self.consistent_pixeltypes = self.check_if_rgb(self.pixeltypes)
 
-            # determine pixel type for CZI array by reading XML metadata
-            self.pixeltype = md_dict["ImageDocument"]["Metadata"]["Information"]["Image"]["PixelType"]
+            # try:
+            #     # determine pixel type for CZI array by reading XML metadata
+            #     self.pixeltype = md_dict["ImageDocument"]["Metadata"]["Information"]["Image"]["PixelType"]
+            # except KeyError as e:
+            #     logger.error(
+            #         "No Pixeltype entry found inside metadata: ImageDocument-Metadata-Information-Image-PixelType")
 
-            # check if CZI is a RGB file
-            if self.pixeltype in ["Bgr24", "Bgr48", "Bgr96Float"]:
-                self.isRGB = True
+            # # check if CZI is a RGB file
+            # if self.pixeltype in ["Bgr24", "Bgr48", "Bgr96Float"]:
+            #     self.isRGB = True
 
-            # determine pixel type for CZI array
-            self.npdtype, self.maxvalue = self.get_dtype_fromstring(self.pixeltype)
+            # determine pixel type for CZI array from first channel
+
+            self.npdtype = []
+            self.maxvalue = []
+
+            for ch, px in self.pixeltypes.items():
+
+                npdtype, maxvalue = self.get_dtype_fromstring(px)
+                self.npdtype.append(npdtype)
+                self.maxvalue.append(maxvalue)
+
+            #self.npdtype, self.maxvalue = self.get_dtype_fromstring(self.pixeltype)
 
             # get the dimensions and order
             self.image = CziDimensions(filename)
@@ -257,6 +271,28 @@ class CziMetadata:
             scene_shape_is_consistent = True
 
         return scene_shape_is_consistent
+
+    @staticmethod
+    def check_if_rgb(pixeltypes: Dict) -> Tuple[bool, bool]:
+
+        isRGB = False
+
+        for k, v in pixeltypes.items():
+            if "Bgr" in v:
+                isRGB = True
+
+        # Flag to check if all elements are same
+        is_consistant = True
+
+        # extracting value to compare
+        test_val = list(pixeltypes.values())[0]
+
+        for ele in pixeltypes:
+            if pixeltypes[ele] != test_val:
+                is_consistant = False
+                break
+
+        return isRGB, is_consistant
 
 
 class CziDimensions:

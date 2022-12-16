@@ -54,6 +54,24 @@ def test_read_mdarray_2():
     assert (mdarray.shape == (2, 1, 2, 1, 1792, 1792))
 
 
+def test_read_mdarray_3():
+
+    # get the CZI filepath
+    filepath = os.path.join(basedir, r"data/FOV7_HV110_P0500510000.czi")
+
+    mdarray, mdata, dimstring = pylibczirw_tools.read_6darray(filepath,
+                                                              output_dask=False,
+                                                              chunks_auto=False,
+                                                              output_order="STZCYX",
+                                                              remove_adim=False)
+
+    assert (dimstring == "STZCYXA")
+    assert (mdarray.shape == (2, 1, 1, 2, 1792, 1792, 1))
+
+    assert (dimstring == "STCZYX")
+    assert (mdarray.shape == (2, 1, 2, 1, 1792, 1792))
+
+
 def test_read_mdarray_lazy_1():
 
     # get the CZI filepath
@@ -107,3 +125,6 @@ def test_read_mdarray_substack():
     assert (dimstring == "STZCYXA")
     assert (mdarray.shape == (1, 1, 1, 2, 170, 240, 1))
     assert (mdata.image.SizeS is None)
+
+
+test_read_mdarray_1()
