@@ -151,6 +151,7 @@ examples/pylibCZIrw_docu/newCZI_zscenes.czi
 demo/experimental/
 demo/experimental/**
 data/*.zarr
+data/*.xml
 
 # skip specific files
 data/CH=1_16bit.czi
