@@ -179,6 +179,3 @@ def test_write4():
     assert (mdata.bbox.total_bounding_box == {'T': (0, 1), 'Z': (0, 1), 'C': (0, 1), 'X': (0, 2612), 'Y': (0, 2612)})
 
     os.remove(newczi_zscenes)
-
-
-test_write3()
