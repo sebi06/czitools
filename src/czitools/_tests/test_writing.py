@@ -5,21 +5,20 @@ import os
 from pathlib import Path
 from tifffile import imread, TiffFile
 import numpy as np
-from skimage import data
 from tqdm.contrib import itertools as it
 from tqdm import tqdm
 
 basedir = Path(__file__).resolve().parents[3]
 
-# get some dada to write
-# let's use sample exmaple data from scikit-image
-data = data.kidney()
-
-print(f'number of dimensions: {data.ndim}')
-print(f'shape: {data.shape}')
-print(f'dtype: {data.dtype}')
-numCH = 3
-numZ = 16
+# get some data to write
+filepath = os.path.join(basedir, r"data/z=16_ch=3.czi")
+mdarray, mdata, dimstring = pylibczirw_tools.read_6darray(filepath,
+                                                          output_dask=False,
+                                                          chunks_auto=False,
+                                                          output_order="STZCYX",
+                                                          remove_adim=True)
+numCH = mdata.image.SizeC
+numZ = mdata.image.SizeZ
 
 
 def test_write_1():
@@ -74,21 +73,20 @@ def test_write_1():
         os.remove(czi_path)
 
 
-def test_write2():
+def test_write_2():
 
     # create the filename for the new CZI image file
-    newczi_4dstack = os.path.join(os.getcwd(), "newCZI_z=16_ch=3.czi")
+    newczi_4dstack = os.path.join(os.getcwd(), "z=16_ch=3.czi")
 
     # open a new CZI and allow overwrite (!!!) to play around ...
     with pyczi.create_czi(newczi_4dstack, exist_ok=True) as czidoc_w:
+
         # loop over all z-planes and channels
         for z, ch in it.product(range(numZ), range(numCH)):
             # get the 2d array for the current plane and add axis to get (Y, X, 1) as shape
-            array2d = data[z, ..., ch][..., np.newaxis]
-
             # write the plane with shape (Y, X, 1) to the new CZI file
             czidoc_w.write(
-                data=array2d,
+                data=mdarray[0, 0, z, ch, ...],
                 plane={"Z": z, "C": ch}
             )
 
@@ -103,7 +101,7 @@ def test_write2():
     os.remove(newczi_4dstack)
 
 
-def test_write3():
+def test_write_3():
 
     # create the filename for the new CZI image file
     newczi_zloc = os.path.join(os.getcwd(), "newCZI_zloc.czi")
@@ -113,12 +111,10 @@ def test_write3():
     with pyczi.create_czi(newczi_zloc, exist_ok=True) as czidoc_w:
         # loop over all z-planes
         for z in tqdm(range(numZ)):
-            # get the 2d array for the current plane and add axis to get (Y, X, 1) as shape
-            array2d = data[z, ..., ch]
 
             # for fun - write the z-planes to different locations
             czidoc_w.write(
-                data=array2d,
+                data=mdarray[0, 0, z, ch, ...],
                 plane={"C": ch},
                 location=(xstart, 0)
             )
@@ -138,7 +134,7 @@ def test_write3():
     os.remove(newczi_zloc)
 
 
-def test_write4():
+def test_write_4():
 
     # first step is to create some kind of grid of locations
     locx = []
@@ -158,12 +154,10 @@ def test_write4():
     with pyczi.create_czi(newczi_zscenes, exist_ok=True) as czidoc_w:
         # loop over all z-planes
         for z in tqdm(range(numZ)):
-            # get the 2d array for the current plane and add axis to get (Y, X, 1) as shape
-            array2d = data[z, ..., ch]
 
             # for "fun" - write the z-planes to different locations using the locations we just created
             czidoc_w.write(
-                data=array2d,
+                data=mdarray[0, 0, z, ch, ...],
                 plane={"C": ch},
                 scene=z,
                 location=(locx[z], locy[z])
@@ -179,3 +173,4 @@ def test_write4():
     assert (mdata.bbox.total_bounding_box == {'T': (0, 1), 'Z': (0, 1), 'C': (0, 1), 'X': (0, 2612), 'Y': (0, 2612)})
 
     os.remove(newczi_zscenes)
+
