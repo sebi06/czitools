@@ -93,7 +93,8 @@ def test_write_2():
     # get the complete metadata at once as one big class
     mdata = czimd.CziMetadata(newczi_4dstack)
 
-    assert (mdata.pyczi_dims == {'T': (0, 1), 'Z': (0, 16), 'C': (0, 3), 'X': (0, 512), 'Y': (0, 512)})
+    assert (mdata.pyczi_dims == {'T': (0, 1), 'Z': (0, 16),
+            'C': (0, 3), 'X': (0, 512), 'Y': (0, 512)})
     assert (mdata.pixeltypes == {0: 'Gray16', 1: 'Gray16', 2: 'Gray16'})
     assert (mdata.isRGB is False)
     assert (mdata.ismosaic is False)
@@ -125,11 +126,13 @@ def test_write_3():
     # get the complete metadata at once as one big class
     mdata = czimd.CziMetadata(newczi_zloc)
 
-    assert (mdata.pyczi_dims == {'T': (0, 1), 'Z': (0, 1), 'C': (0, 1), 'X': (0, 8192), 'Y': (0, 512)})
+    assert (mdata.pyczi_dims == {'T': (0, 1), 'Z': (0, 1),
+            'C': (0, 1), 'X': (0, 8192), 'Y': (0, 512)})
     assert (mdata.pixeltypes == {0: 'Gray16'})
     assert (mdata.isRGB is False)
     assert (mdata.ismosaic is True)
-    assert (mdata.bbox.total_bounding_box == {'T': (0, 1), 'Z': (0, 1), 'C': (0, 1), 'X': (0, 8192), 'Y': (0, 512)})
+    assert (mdata.bbox.total_bounding_box == {'T': (0, 1), 'Z': (
+        0, 1), 'C': (0, 1), 'X': (0, 8192), 'Y': (0, 512)})
 
     os.remove(newczi_zloc)
 
@@ -166,11 +169,12 @@ def test_write_4():
         # get the complete metadata at once as one big class
     mdata = czimd.CziMetadata(newczi_zscenes)
 
-    assert (mdata.pyczi_dims == {'T': (0, 1), 'Z': (0, 1), 'C': (0, 1), 'X': (0, 2612), 'Y': (0, 2612)})
+    assert (mdata.pyczi_dims == {'T': (0, 1), 'Z': (0, 1),
+            'C': (0, 1), 'X': (0, 2612), 'Y': (0, 2612)})
     assert (mdata.pixeltypes == {0: 'Gray16'})
     assert (mdata.isRGB is False)
     assert (mdata.ismosaic is False)
-    assert (mdata.bbox.total_bounding_box == {'T': (0, 1), 'Z': (0, 1), 'C': (0, 1), 'X': (0, 2612), 'Y': (0, 2612)})
+    assert (mdata.bbox.total_bounding_box == {'T': (0, 1), 'Z': (
+        0, 1), 'C': (0, 1), 'X': (0, 2612), 'Y': (0, 2612)})
 
     os.remove(newczi_zscenes)
-

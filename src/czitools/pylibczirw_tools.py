@@ -20,7 +20,7 @@ import dask.array as da
 
 
 def read_6darray(filename: str,
-                 output_order: str = "STZCYX",
+                 output_order: str = "STCZYX",
                  output_dask: bool = False,
                  chunks_auto: bool = False,
                  remove_adim: bool = True,
@@ -30,7 +30,7 @@ def read_6darray(filename: str,
 
     Args:
         filename (str): filepath for the CZI image
-        output_order (str, optional): Order of dimensions for the output array. Defaults to "STZCYX".
+        output_order (str, optional): Order of dimensions for the output array. Defaults to "STCZYX".
         output_dask (bool, optional): If True the output will be a dask array. Defaults to False.
         chunks_auto (bool, optional): Use a chunk size create automatically if True and otherwise use the array shape. Default to False.
         remove_adim (bool, optional): If true the dimension for the pixel type will be removed. Defaults to True.
@@ -45,7 +45,7 @@ def read_6darray(filename: str,
     mdata = czimd.CziMetadata(filename)
 
     if not mdata.consistent_pixeltypes:
-        print("Detected PixelTypes ar not consitent. Cannot create array6d")
+        print("Detected PixelTypes ar not consistent. Cannot create array6d")
         return None
     if mdata.consistent_pixeltypes:
         # use pixel type from first channel
@@ -104,7 +104,7 @@ def read_6darray(filename: str,
             mdata.image.SizeC = 1
 
         # assume default dimorder = STZCYX(A)
-        shape = [size_s, size_t, size_z, size_c, size_y, size_x, 3 if mdata.isRGB else 1]
+        shape = [size_s, size_t, size_c, size_z, size_y, size_x, 3 if mdata.isRGB else 1]
 
         if not output_dask:
             array6d = np.empty(shape, dtype=use_pixeltype)
@@ -115,10 +115,10 @@ def read_6darray(filename: str,
                 array6d = da.empty(shape, dtype=use_pixeltype, chunks=shape)
 
         # read array for the scene
-        for s, t, z, c in product(range(size_s),
+        for s, t, c, z in product(range(size_s),
                                   range(size_t),
-                                  range(size_z),
-                                  range(size_c)):
+                                  range(size_c),
+                                  range(size_z)):
 
             # read a 2D image plane from the CZI
             if mdata.image.SizeS is None:
@@ -133,15 +133,15 @@ def read_6darray(filename: str,
             #     image2d = image2d[..., 0:mdata.image.SizeY, 0:mdata.image.SizeX, :]
 
             # insert 2D image plane into the array6d
-            array6d[s, t, z, c, ...] = image2d
+            array6d[s, t, c, z, ...] = image2d
 
         # change the dimension order if needed
         if output_order == "STZCYX":
             dim_string = "STZCYXA"
+            array6d = np.swapaxes(array6d, 2, 3)
 
         if output_order == "STCZYX":
             dim_string = "STCZYXA"
-            array6d = np.swapaxes(array6d, 2, 3)
 
         if remove_adim:
             dim_string = dim_string.replace("A", "")
