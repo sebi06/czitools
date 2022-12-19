@@ -68,6 +68,14 @@ def slicedim(array: Union[np.ndarray, dask.array.Array, zarr.Array],
     of the array to conserve the dimorder string
     this should work for Numpy.Array, Dask and ZARR ...
 
+    Example:
+
+    - array.shape = (1, 3, 2, 5, 170, 240) and dim_order is STCZYX
+    - index for C inside array = 2
+    - task: Cut out the fist channel = 0
+    - call: channel = slicedim(array, 0, 2)
+    - the resulting channel.shape = (1, 3, 1, 5, 170, 240)
+
     :param array: input array
     :param dimindex: index of the slice dimension to be kept
     :param posdim: position of the dimension to be sliced

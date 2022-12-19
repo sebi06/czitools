@@ -369,7 +369,14 @@ class CziDimensions:
         dim_dict = {}
 
         for dim in dimensions:
-            dim_dict[dim] = _safe_get(dim)
+
+            value = _safe_get(dim)
+
+            # check if value valid
+            if value is not None and value <= 0:
+                value = None
+
+            dim_dict[dim] = value
 
         return dim_dict
 
@@ -512,19 +519,19 @@ class CziChannelInfo:
                 try:
                     channels_dyes.append(disp_setting["Channels"]["Channel"][ch]["ShortName"])
                 except (KeyError, TypeError) as e:
-                    logger.error("Channel shortname not found.")
+                    logger.warning("Channel shortname not found.")
                     try:
                         channels_dyes.append(disp_setting["Channels"]["Channel"][ch][
                             "DyeName"])
                     except (KeyError, TypeError) as e:
-                        logger.error("Channel dye not found.")
+                        logger.warning("Channel dye not found.")
                         channels_dyes.append("Dye-CH" + str(ch))
 
                 # get channel colors
                 try:
                     channels_colors.append(disp_setting["Channels"]["Channel"][ch]["Color"])
                 except (KeyError, TypeError) as e:
-                    logger.error("Channel color not found.")
+                    logger.warning("Channel color not found.")
                     # use grayscale instead
                     channels_colors.append("80808000")
 
@@ -570,7 +577,7 @@ class CziScaling:
             try:
                 return float(distances_[idx]["Value"]) * 1000000 if distances_[idx]["Value"] is not None else None
             except IndexError:
-                logger.error("No Z-Scaling found. Using defaults = 1.0.")
+                logger.warning("No Z-Scaling found. Using defaults = 1.0.")
                 return 1.0
 
         try:
@@ -696,21 +703,21 @@ class CziObjectives:
                         self.name.append(md_dict["ImageDocument"]["Metadata"]["Information"]
                                          ["Instrument"]["Objectives"]["Objective"]["Name"])
                     except (KeyError, TypeError) as e:
-                        logger.error("No Objective Name found.")
+                        logger.warning("No Objective Name found.")
                         self.name.append(None)
 
                 try:
                     self.immersion = md_dict["ImageDocument"]["Metadata"]["Information"][
                         "Instrument"]["Objectives"]["Objective"]["Immersion"]
                 except (KeyError, TypeError) as e:
-                    logger.error("No Objective Immersion found.")
+                    logger.warning("No Objective Immersion found.")
                     self.immersion = None
 
                 try:
                     self.NA = float(md_dict["ImageDocument"]["Metadata"]["Information"]
                                     ["Instrument"]["Objectives"]["Objective"]["LensNA"])
                 except (KeyError, TypeError) as e:
-                    logger.error("No Objective NA found.")
+                    logger.warning("No Objective NA found.")
                     self.NA = None
 
                 try:
@@ -719,14 +726,14 @@ class CziObjectives:
                     try:
                         self.ID = md_dict["ImageDocument"]["Metadata"]["Information"]["Instrument"]["Objectives"]["Objective"]["Id"]
                     except (KeyError, TypeError) as e:
-                        logger.error("No Objective ID found.")
+                        logger.warning("No Objective ID found.")
                         self.ID = None
 
                 try:
                     self.tubelensmag = float(
                         md_dict["ImageDocument"]["Metadata"]["Information"]["Instrument"]["TubeLenses"]["TubeLens"]["Magnification"])
                 except (KeyError, TypeError) as e:
-                    logger.error("No Tubelens Mag. found. Using Default Value = 1.0.")
+                    logger.warning("No Tubelens Mag. found. Using Default Value = 1.0.")
                     self.tubelensmag = 1.0
 
                 try:
@@ -734,7 +741,7 @@ class CziObjectives:
                         md_dict["ImageDocument"]["Metadata"]["Information"]["Instrument"]["Objectives"]["Objective"][
                             "NominalMagnification"])
                 except (KeyError, TypeError) as e:
-                    logger.error("No Nominal Mag. found. Using Default Value = 1.0.")
+                    logger.warning("No Nominal Mag. found. Using Default Value = 1.0.")
                     self.nominalmag = 1.0
 
                 try:
@@ -746,7 +753,7 @@ class CziObjectives:
                         self.mag = self.nominalmag * 1.0
 
                 except (KeyError, TypeError) as e:
-                    logger.error("No Objective Magnification found.")
+                    logger.warning("No Objective Magnification found.")
                     self.mag = None
 
             if num_obj > 1:
@@ -757,7 +764,7 @@ class CziObjectives:
                             md_dict["ImageDocument"]["Metadata"]["Information"]["Instrument"]["Objectives"]["Objective"][o][
                                 "Name"])
                     except (KeyError, TypeError) as e:
-                        logger.error("No Objective Name found.")
+                        logger.warning("No Objective Name found.")
                         self.name.append(None)
 
                     try:
@@ -765,7 +772,7 @@ class CziObjectives:
                             md_dict["ImageDocument"]["Metadata"]["Information"]["Instrument"]["Objectives"]["Objective"][o][
                                 "Immersion"])
                     except (KeyError, TypeError) as e:
-                        logger.error("No Objective Immersion found.")
+                        logger.warning("No Objective Immersion found.")
                         self.immersion.append(None)
 
                     try:
@@ -773,7 +780,7 @@ class CziObjectives:
                             md_dict["ImageDocument"]["Metadata"]["Information"]["Instrument"]["Objectives"]["Objective"][o][
                                 "LensNA"]))
                     except (KeyError, TypeError) as e:
-                        logger.error("No Objective NA found.")
+                        logger.warning("No Objective NA found.")
                         self.NA.append(None)
 
                     try:
@@ -781,7 +788,7 @@ class CziObjectives:
                             md_dict["ImageDocument"]["Metadata"]["Information"]["Instrument"]["Objectives"]["Objective"][o][
                                 "Id"])
                     except (KeyError, TypeError) as e:
-                        logger.error("No Objective ID found.")
+                        logger.warning("No Objective ID found.")
                         self.ID.append(None)
 
                     try:
@@ -789,7 +796,7 @@ class CziObjectives:
                             md_dict["ImageDocument"]["Metadata"]["Information"]["Instrument"]["TubeLenses"]["TubeLens"][o][
                                 "Magnification"]))
                     except (KeyError, TypeError) as e:
-                        logger.error("No Tubelens Mag. found. Using Default Value = 1.0.")
+                        logger.warning("No Tubelens Mag. found. Using Default Value = 1.0.")
                         self.tubelensmag.append(1.0)
 
                     try:
@@ -797,7 +804,7 @@ class CziObjectives:
                             md_dict["ImageDocument"]["Metadata"]["Information"]["Instrument"]["Objectives"]["Objective"][o][
                                 "NominalMagnification"]))
                     except (KeyError, TypeError) as e:
-                        logger.error("No Nominal Mag. found. Using Default Value = 1.0.")
+                        logger.warning("No Nominal Mag. found. Using Default Value = 1.0.")
                         self.nominalmag.append(1.0)
 
                     try:
@@ -810,7 +817,7 @@ class CziObjectives:
                             self.mag.append(self.nominalmag[o] * 1.0)
 
                     except (KeyError, TypeError) as e:
-                        logger.error("No Objective Magnification.")
+                        logger.warning("No Objective Magnification.")
                         self.mag.append(None)
 
         else:
@@ -852,7 +859,7 @@ class CziDetector:
                         self.ID.append(md_dict["ImageDocument"]["Metadata"]
                                        ["Information"]["Instrument"]["Detectors"]["Detector"]["Id"])
                     except (KeyError, TypeError) as e:
-                        logger.error("DetectorID not found.")
+                        logger.warning("DetectorID not found.")
                         self.ID.append(None)
 
                 # check for detector Name
@@ -864,7 +871,7 @@ class CziDetector:
                         self.name.append(
                             md_dict["ImageDocument"]["Metadata"]["Information"]["Instrument"]["Detectors"]["Detector"]["Name"])
                     except (KeyError, TypeError) as e:
-                        logger.error("DetectorName not found.")
+                        logger.warning("DetectorName not found.")
                         self.name.append(None)
 
                 # check for detector model
@@ -873,7 +880,7 @@ class CziDetector:
                         md_dict["ImageDocument"]["Metadata"]["Information"]["Instrument"]["Detectors"]["Detector"][
                             "Manufacturer"]["Model"])
                 except (KeyError, TypeError) as e:
-                    logger.error("DetectorModel not found.")
+                    logger.warning("DetectorModel not found.")
                     self.model.append(None)
 
                 # check for detector modeltype
@@ -885,7 +892,7 @@ class CziDetector:
                         self.modeltype.append(
                             md_dict["ImageDocument"]["Metadata"]["Information"]["Instrument"]["Detectors"]["Detector"]["Type"])
                     except (KeyError, TypeError) as e:
-                        logger.error("DetectorType not found.")
+                        logger.warning("DetectorType not found.")
                         self.modeltype.append(None)
 
             if num_detectors > 1:
@@ -897,7 +904,7 @@ class CziDetector:
                             md_dict["ImageDocument"]["Metadata"]["Information"]["Instrument"]["Detectors"]["Detector"][d][
                                 "Id"])
                     except (KeyError, TypeError) as e:
-                        logger.error("DetectorID not found.")
+                        logger.warning("DetectorID not found.")
                         self.ID.append(None)
 
                     # check for detector Name
@@ -906,7 +913,7 @@ class CziDetector:
                             md_dict["ImageDocument"]["Metadata"]["Information"]["Instrument"]["Detectors"]["Detector"][d][
                                 "Name"])
                     except (KeyError, TypeError) as e:
-                        logger.error("DetectorName not found.")
+                        logger.warning("DetectorName not found.")
                         self.name.append(None)
 
                     # check for detector model
@@ -914,7 +921,7 @@ class CziDetector:
                         self.model.append(
                             md_dict["ImageDocument"]["Metadata"]["Information"]["Instrument"]["Detectors"]["Detector"][d]["Manufacturer"]["Model"])
                     except (KeyError, TypeError) as e:
-                        logger.error("DetectorModel not found.")
+                        logger.warning("DetectorModel not found.")
                         self.model.append(None)
 
                     # check for detector modeltype
@@ -922,7 +929,7 @@ class CziDetector:
                         self.modeltype.append(
                             md_dict["ImageDocument"]["Metadata"]["Information"]["Instrument"]["Detectors"]["Detector"][d]["Type"])
                     except (KeyError, TypeError) as e:
-                        logger.error("DetectorType not found.")
+                        logger.warning("DetectorType not found.")
                         self.modeltype.append(None)
 
         else:
@@ -949,7 +956,7 @@ class CziMicroscope:
                 try:
                     self.ID = md_dict["ImageDocument"]["Metadata"]["Information"]["Instrument"]["Microscopes"]["Microscope"]["Id"]
                 except (KeyError, TypeError) as e:
-                    logger.error("Microscope ID not found.")
+                    logger.warning("Microscope ID not found.")
                     self.ID = None
 
             # check for microscope system name
@@ -959,7 +966,7 @@ class CziMicroscope:
                 try:
                     self.Name = md_dict["ImageDocument"]["Metadata"]["Information"]["Instrument"]["Microscopes"]["Microscope"]["Name"]
                 except (KeyError, TypeError) as e:
-                    logger.error("Microscope System Name not found.")
+                    logger.warning("Microscope System Name not found.")
                     self.Name = None
 
         else:

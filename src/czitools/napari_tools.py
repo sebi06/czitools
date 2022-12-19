@@ -227,15 +227,15 @@ def show(viewer: Any,
         if contrast == "from_czi":
             # guess an appropriate scaling from the display setting embedded in the CZI
             lower = np.round(
-                metadata.channelinfo.clims[ch][0] * metadata.maxvalue, 0)
+                metadata.channelinfo.clims[ch][0] * metadata.maxvalue[ch], 0)
             higher = np.round(
-                metadata.channelinfo.clims[ch][1] * metadata.maxvalue, 0)
+                metadata.channelinfo.clims[ch][1] * metadata.maxvalue[ch], 0)
 
             # simple validity check
             if lower >= higher:
                 print("Fancy Display Scaling detected. Use Defaults")
                 lower = 0
-                higher = np.round(metadata.maxvalue * 0.25, 0)
+                higher = np.round(metadata.maxvalue[ch] * 0.25, 0)
 
             print("Display Scaling from CZI for CH:",
                   ch, "Min-Max", lower, higher)
