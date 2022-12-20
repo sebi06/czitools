@@ -147,3 +147,27 @@ def test_get_image_dimensions():
     for d, v in zip(dimensions, results):
         print((d, v))
         assert (dim_dict[d] == v)
+
+
+def test_scaling():
+
+    # get the CZI filepath
+    filepath = os.path.join(basedir, r"data/DAPI_GFP.czi")
+    md = czimd.CziMetadata(filepath)
+
+    assert(md.scale.X == 1.0)
+    assert(md.scale.Y == 1.0)
+    assert(md.scale.Z == 1.0)
+    assert(md.scale.ratio == {'xy': 1.0, 'zx': 1.0})
+
+    scaling = czimd.CziScaling(filepath, dim2none=True)
+    assert(scaling.X is None)
+    assert(scaling.Y is None)
+    assert(scaling.Z is None)
+    assert(scaling.ratio == {'xy': None, 'zx': None})
+
+    scaling = czimd.CziScaling(filepath, dim2none=False)
+    assert(scaling.X == 1.0)
+    assert(scaling.Y == 1.0)
+    assert(scaling.Z == 1.0)
+    assert(scaling.ratio == {'xy': 1.0, 'zx': 1.0})
