@@ -562,7 +562,7 @@ class CziChannelInfo:
 
 
 class CziScaling:
-    def __init__(self, filename: str, dim2none: bool = True) -> None:
+    def __init__(self, filename: str, dim2none: bool = False) -> None:
 
         # get metadata dictionary using pylibCZIrw
         self.scalefactorXY = None
@@ -622,8 +622,11 @@ class CziScaling:
                         scaley: float = 1.0,
                         scalez: float = 1.0) -> Dict:
 
-        # set default scale factor to 1.0
-        scale_ratio = {"xy": np.round(scalex / scaley, 3), "zx": np.round(scalez / scalex, 3)}
+        if scalex is None or scaley is None or scalez is None:
+            scale_ratio = {"xy": None, "zx": None}
+        else:
+            # set default scale factor to 1.0
+            scale_ratio = {"xy": np.round(scalex / scaley, 3), "zx": np.round(scalez / scalex, 3)}
 
         # get the factor between XY scaling
         # get the scale factor between XZ scaling
