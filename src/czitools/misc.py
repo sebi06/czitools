@@ -24,10 +24,9 @@ import xml.etree.ElementTree as ET
 from aicspylibczi import CziFile
 from aicsimageio import AICSImage
 import dateutil.parser as dt
-#from czitools import pylibczirw_metadata as czimd
 import czitools
 from tqdm.contrib.itertools import product
-from typing import List, Dict, Tuple, Optional, Type, Any, Union
+from typing import List, Dict, Tuple, Optional, Type, Any, Union, Literal
 import logging
 
 _logger: Optional[logging.Logger] = None
@@ -81,19 +80,6 @@ def slicedim(array: Union[np.ndarray, dask.array.Array, zarr.Array],
     :param posdim: position of the dimension to be sliced
     :return: sliced array
     """
-
-    # if posdim == 0:
-    #    array_sliced = array[dimindex:dimindex + 1, ...]
-    # if posdim == 1:
-    #    array_sliced = array[:, dimindex:dimindex + 1, ...]
-    # if posdim == 2:
-    #    array_sliced = array[:, :, dimindex:dimindex + 1, ...]
-    # if posdim == 3:
-    #    array_sliced = array[:, :, :, dimindex:dimindex + 1, ...]
-    # if posdim == 4:
-    #    array_sliced = array[:, :, :, :, dimindex:dimindex + 1, ...]
-    # if posdim == 5:
-    #    array_sliced = array[:, :, :, :, :, dimindex:dimindex + 1, ...]
 
     idl_all = [slice(None, None, None)] * (len(array.shape) - 2)
     idl_all[posdim] = slice(dimindex, dimindex + 1, None)
