@@ -139,3 +139,30 @@ def test_read_mdarray_substack():
     assert (dimstring == "STZCYXA")
     assert (mdarray.shape == (1, 1, 1, 2, 170, 240, 1))
     assert (mdata.image.SizeS is None)
+
+    # read only a specific scene from the CZI
+    mdarray, mdata, dimstring = pylibczirw_tools.read_6darray(filepath,
+                                                              output_order="STZCYX",
+                                                              output_dask=False,
+                                                              chunks_auto=False,
+                                                              remove_adim=True,
+                                                              T=0)
+
+    assert (dimstring == "STZCYX")
+    assert (mdarray.shape == (1, 1, 5, 2, 170, 240))
+    assert (mdata.image.SizeS is None)
+
+
+        # read only a specific scene from the CZI
+    mdarray, mdata, dimstring = pylibczirw_tools.read_6darray(filepath,
+                                                              output_order="STZCYX",
+                                                              output_dask=False,
+                                                              chunks_auto=False,
+                                                              remove_adim=True,
+                                                              C=0)
+
+    assert (dimstring == "STZCYX")
+    assert (mdarray.shape == (1, 3, 5, 1, 170, 240))
+    assert (mdata.image.SizeS is None)
+
+test_read_mdarray_substack()
