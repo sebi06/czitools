@@ -20,6 +20,7 @@ import pydash
 from typing import List, Dict, Tuple, Optional, Type, Any, Union
 from dataclasses import dataclass, field
 import logging
+from pathlib import Path
 
 # configure logging
 misc.set_logger(name="czitools-logging", level=logging.DEBUG)
@@ -31,7 +32,10 @@ class CziMetadataComplete:
     dictionary created from the XML data.
     """
 
-    def __init__(self, filename: str) -> None:
+    def __init__(self, filename: Union[str, os.PathLike[str]]) -> None:
+
+        if not isinstance(filename, str):
+            filename = filename.as_posix()
 
         # get metadata dictionary using pylibCZIrw
         with pyczi.open_czi(filename) as czidoc:
@@ -58,7 +62,10 @@ class CziMetadata:
     """Create a CziMetadata object from the filename
     """
 
-    def __init__(self, filename: str, dim2none: bool = False) -> None:
+    def __init__(self, filename: Union[str, os.PathLike[str]], dim2none: bool = False) -> None:
+
+        if not isinstance(filename, str):
+            filename = filename.as_posix()
 
         # get metadata dictionary using pylibCZIrw
         with pyczi.open_czi(filename) as czidoc:
@@ -297,7 +304,10 @@ class CziMetadata:
 
 class CziDimensions:
 
-    def __init__(self, filename: str) -> None:
+    def __init__(self, filename: Union[str, os.PathLike[str]]) -> None:
+
+        if not isinstance(filename, str):
+            filename = filename.as_posix()
 
         self.SizeX = None
         self.SizeY = None
@@ -383,12 +393,16 @@ class CziDimensions:
 
 @dataclass
 class CziBoundingBox:
-    filename: str
+    filename: Union[str, os.PathLike[str]]
     scenes_bounding_rect: Optional[Dict[int, pyczi.Rectangle]] = field(init=False)
     total_rect: Optional[pyczi.Rectangle] = field(init=False)
     total_bounding_box: Optional[Dict[str, tuple]] = field(init=False)
 
     def __post_init__(self):
+
+        if not isinstance(self.filename, str):
+            self.filename = self.filename.as_posix()
+
         with pyczi.open_czi(self.filename) as czidoc:
 
             try:
@@ -411,7 +425,10 @@ class CziBoundingBox:
 
 
 class CziChannelInfo:
-    def __init__(self, filename: str) -> None:
+    def __init__(self, filename: Union[str, os.PathLike[str]]) -> None:
+
+        if not isinstance(filename, str):
+            filename = filename.as_posix()
 
         # get metadata dictionary using pylibCZIrw
         with pyczi.open_czi(filename) as czidoc:
@@ -562,7 +579,10 @@ class CziChannelInfo:
 
 
 class CziScaling:
-    def __init__(self, filename: str, dim2none: bool = False) -> None:
+    def __init__(self, filename: Union[str, os.PathLike[str]], dim2none: bool = False) -> None:
+
+        if not isinstance(filename, str):
+            filename = filename.as_posix()
 
         # get metadata dictionary using pylibCZIrw
         self.scalefactorXY = None
@@ -636,7 +656,7 @@ class CziScaling:
 
 @dataclass
 class CziInfo:
-    filepath: str
+    filepath: Union[str, os.PathLike[str]]
     dirname: str = field(init=False)
     filename: str = field(init=False)
     software_name: Union[str, None] = field(init=False)
@@ -644,6 +664,9 @@ class CziInfo:
     acquisition_date: Union[str, None] = field(init=False)
 
     def __post_init__(self):
+
+        if not isinstance(self.filepath, str):
+            self.filepath = self.filepath.as_posix()
 
         # get directory and filename etc.
         self.dirname = os.path.dirname(self.filepath)
@@ -670,7 +693,10 @@ class CziInfo:
 
 
 class CziObjectives:
-    def __init__(self, filename: str) -> None:
+    def __init__(self, filename: Union[str, os.PathLike[str]]) -> None:
+
+        if not isinstance(filename, str):
+            filename = filename.as_posix()
 
         # get metadata dictionary using pylibCZIrw
         with pyczi.open_czi(filename) as czidoc:
@@ -828,7 +854,10 @@ class CziObjectives:
 
 
 class CziDetector:
-    def __init__(self, filename: str) -> None:
+    def __init__(self, filename: Union[str, os.PathLike[str]]) -> None:
+
+        if not isinstance(filename, str):
+            filename = filename.as_posix()
 
         # get metadata dictionary using pylibCZIrw
         with pyczi.open_czi(filename) as czidoc:
@@ -940,7 +969,10 @@ class CziDetector:
 
 
 class CziMicroscope:
-    def __init__(self, filename: str) -> None:
+    def __init__(self, filename: Union[str, os.PathLike[str]]) -> None:
+
+        if not isinstance(filename, str):
+            filename = filename.as_posix()
 
         # get metadata dictionary using pylibCZIrw
         with pyczi.open_czi(filename) as czidoc:
@@ -977,7 +1009,10 @@ class CziMicroscope:
 
 
 class CziSampleInfo:
-    def __init__(self, filename: str) -> None:
+    def __init__(self, filename: Union[str, os.PathLike[str]]) -> None:
+
+        if not isinstance(filename, str):
+            filename = filename.as_posix()
 
         # get metadata dictionary using pylibCZIrw
         with pyczi.open_czi(filename) as czidoc:
@@ -1162,7 +1197,10 @@ class CziSampleInfo:
 
 
 class CziAddMetaData:
-    def __init__(self, filename: str) -> None:
+    def __init__(self, filename: Union[str, os.PathLike[str]]) -> None:
+
+        if not isinstance(filename, str):
+            filename = filename.as_posix()
 
         # get metadata dictionary using pylibCZIrw
         with pyczi.open_czi(filename) as czidoc:
@@ -1200,7 +1238,10 @@ class CziAddMetaData:
 
 
 class CziScene:
-    def __init__(self, filename: str, sceneindex: int) -> None:
+    def __init__(self, filename: Union[str, os.PathLike[str]], sceneindex: int) -> None:
+
+        if not isinstance(filename, str):
+            filename = filename.as_posix()
 
         # get metadata dictionary using pylibCZIrw
         with pyczi.open_czi(filename) as czidoc:
@@ -1239,7 +1280,7 @@ def obj2dict(obj: Any, sort: bool = True) -> Dict[str, Any]:
         return result
 
 
-def writexml(filename: str, xmlsuffix: str = '_CZI_MetaData.xml') -> str:
+def writexml(filename: Union[str, os.PathLike[str]], xmlsuffix: str = '_CZI_MetaData.xml') -> str:
     """Write XML information of CZI to disk
 
     :param filename: CZI image filename
@@ -1250,7 +1291,10 @@ def writexml(filename: str, xmlsuffix: str = '_CZI_MetaData.xml') -> str:
     :rtype: str
     """
 
-    # get the raw metadata as a XML or dictionary
+    if not isinstance(filename, str):
+        filename = filename.as_posix()
+
+    # get the raw metadata as XML or dictionary
     with pyczi.open_czi(filename) as czidoc:
         metadata_xmlstr = czidoc.raw_metadata
 

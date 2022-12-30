@@ -17,9 +17,10 @@ from typing import List, Dict, Tuple, Optional, Type, Any, Union
 from tqdm.contrib.itertools import product
 import dask
 import dask.array as da
+import os
 
 
-def read_6darray(filename: str,
+def read_6darray(filename: Union[str, os.PathLike[str]],
                  output_order: str = "STCZYX",
                  output_dask: bool = False,
                  chunks_auto: bool = False,
@@ -40,6 +41,9 @@ def read_6darray(filename: str,
     Returns:
         Tuple[np.ndarray, czimd.Metadata, dim_order6d]: output as 6D numpy or dask array and metadata 
     """
+
+    if not isinstance(filename, str):
+        filename = filename.as_posix()
 
     # get the complete metadata at once as one big class
     mdata = czimd.CziMetadata(filename)
@@ -150,7 +154,7 @@ def read_6darray(filename: str,
     return array6d, mdata, dim_string
 
 
-def read_5darray(filename: str,
+def read_5darray(filename: Union[str, os.PathLike[str]],
                  scene: int = 0,
                  output_order: str = "TCZYX",
                  output_dask: bool = False,
@@ -174,11 +178,14 @@ def read_5darray(filename: str,
         Tuple[np.ndarray, czimd.Metadata, dim_order6d]: output as 6D numpy or dask array and metadata
     """
 
+    if not isinstance(filename, str):
+        filename = filename.as_posix()
+
     # get the complete metadata at once as one big class
     mdata = czimd.CziMetadata(filename)
 
     if not mdata.consistent_pixeltypes:
-        print("Detected PixelTypes ar not consitent. Cannot create array6d")
+        print("Detected PixelTypes ar not consistent. Cannot create array6d")
         return None
     if mdata.consistent_pixeltypes:
         # use pixel type from first channel
@@ -253,13 +260,17 @@ def read_5darray(filename: str,
 
 
 # EXPERIMENTAL FUNCTION
-def read_mdarray_lazy(filename: str, remove_adim: bool = True) -> Tuple[da.Array, str]:
+def read_mdarray_lazy(filename: Union[str, os.PathLike[str]],
+                      remove_adim: bool = True) -> Tuple[da.Array, str]:
 
-    def read_5d(filename: str,
+    def read_5d(filename: Union[str, os.PathLike[str]],
                 sizes: Tuple[int, int, int, int, int],
                 s: int,
                 mdata: czimd.CziMetadata,
                 remove_adim: bool = True) -> np.ndarray:
+
+        if not isinstance(filename, str):
+            filename = filename.as_posix()
 
         array5d = da.empty([sizes[0], sizes[1], sizes[2], sizes[3], sizes[4], 3 if mdata.isRGB else 1],
                            dtype=mdata.npdtype)
@@ -289,11 +300,14 @@ def read_mdarray_lazy(filename: str, remove_adim: bool = True) -> Tuple[da.Array
 
         return array5d
 
+    if not isinstance(filename, str):
+        filename = filename.as_posix()
+
     # get the metadata
     mdata = czimd.CziMetadata(filename)
 
     if not mdata.consistent_pixeltypes:
-        print("Detected PixelTypes ar not consitent. Cannot create array6d")
+        print("Detected PixelTypes ar not consistent. Cannot create array6d")
         return None
     if mdata.consistent_pixeltypes:
         # use pixel type from first channel

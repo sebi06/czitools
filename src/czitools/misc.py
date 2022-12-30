@@ -26,7 +26,7 @@ from aicsimageio import AICSImage
 import dateutil.parser as dt
 import czitools
 from tqdm.contrib.itertools import product
-from typing import List, Dict, Tuple, Optional, Type, Any, Union, Literal
+from typing import List, Dict, Tuple, Optional, Type, Any, Union
 import logging
 
 _logger: Optional[logging.Logger] = None
@@ -80,6 +80,19 @@ def slicedim(array: Union[np.ndarray, dask.array.Array, zarr.Array],
     :param posdim: position of the dimension to be sliced
     :return: sliced array
     """
+
+    # if posdim == 0:
+    #    array_sliced = array[dimindex:dimindex + 1, ...]
+    # if posdim == 1:
+    #    array_sliced = array[:, dimindex:dimindex + 1, ...]
+    # if posdim == 2:
+    #    array_sliced = array[:, :, dimindex:dimindex + 1, ...]
+    # if posdim == 3:
+    #    array_sliced = array[:, :, :, dimindex:dimindex + 1, ...]
+    # if posdim == 4:
+    #    array_sliced = array[:, :, :, :, dimindex:dimindex + 1, ...]
+    # if posdim == 5:
+    #    array_sliced = array[:, :, :, :, :, dimindex:dimindex + 1, ...]
 
     idl_all = [slice(None, None, None)] * (len(array.shape) - 2)
     idl_all[posdim] = slice(dimindex, dimindex + 1, None)
@@ -188,12 +201,12 @@ def addzeros(number: int) -> str:
     return zerostring
 
 
-def get_fname_woext(filepath: str) -> str:
+def get_fname_woext(filepath: Union[str, os.PathLike[str]]) -> str:
     """Get the complete path of a file without the extension
-    It also will works for extensions like myfile.abc.xyz
+    It also works for extensions like myfile.abc.xyz
     The output will be: myfile
 
-    :param filepath: complete fiepath
+    :param filepath: complete filepath
     :type filepath: str
     :return: complete filepath without extension
     :rtype: str
@@ -233,12 +246,15 @@ def get_daskstack(aics_img: AICSImage) -> List:
     return stacks
 
 
-def get_planetable(czifile: str,
+def get_planetable(czifile: Union[str, os.PathLike[str]],
                    norm_time: bool = True,
                    savetable: bool = False,
                    separator: str = ',',
                    read_one_only: bool = False,
                    index: bool = True) -> Tuple[pd.DataFrame, Optional[str]]:
+
+    if not isinstance(czifile, str):
+        czifile = czifile.as_posix()
 
     # get the czi metadata
     czi_dimensions = czitools.pylibczirw_metadata.CziDimensions(czifile)

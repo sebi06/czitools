@@ -1,5 +1,4 @@
 from czitools import pylibczirw_tools, misc
-import os
 from pathlib import Path
 import dask.array as da
 import pandas as pd
@@ -10,7 +9,7 @@ basedir = Path(__file__).resolve().parents[3]
 def test_slicedim():
 
     # get the CZI filepath
-    filepath = os.path.join(basedir, r"data/CellDivision_T=3_Z=5_CH=2_X=240_Y=170.czi")
+    filepath = basedir / r"data/CellDivision_T=3_Z=5_CH=2_X=240_Y=170.czi"
 
     mdarray, mdata, dimstring = pylibczirw_tools.read_6darray(filepath,
                                                               output_dask=False,
@@ -28,7 +27,7 @@ def test_slicedim():
     assert(dim_array.shape == (1, 3, 2, 1, 170, 240))
 
     # get the CZI filepath
-    filepath = os.path.join(basedir, r"data/S=2_3x3_CH=2.czi")
+    filepath = basedir / r"data/S=2_3x3_CH=2.czi"
 
     mdarray, mdata, dimstring = pylibczirw_tools.read_6darray(filepath,
                                                               output_dask=False,
@@ -52,7 +51,7 @@ def test_slicedim():
 def test_get_planetable():
 
     # get the CZI filepath
-    filepath = os.path.join(basedir, r"data/WP96_4Pos_B4-10_DAPI.czi")
+    filepath = (basedir / r"data/WP96_4Pos_B4-10_DAPI.czi").as_posix()
 
     isczi = False
     iscsv = False
@@ -77,7 +76,7 @@ def test_get_planetable():
                                                   separator=",",
                                                   index=True)
 
-        assert(csvfile == os.path.join(basedir, r"data/WP96_4Pos_B4-10_DAPI_planetable.csv"))
+        assert(csvfile == (basedir / r"data/WP96_4Pos_B4-10_DAPI_planetable.csv").as_posix())
 
     planetable_filtered = misc.filter_planetable(planetable, s=0, t=0, z=0, c=0)
 

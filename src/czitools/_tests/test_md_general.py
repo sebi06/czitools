@@ -1,7 +1,6 @@
 
 from czitools import pylibczirw_metadata as czimd
 from pylibCZIrw import czi as pyczi
-import os
 from pathlib import Path
 import numpy as np
 
@@ -11,7 +10,7 @@ basedir = Path(__file__).resolve().parents[3]
 def test_pixeltypes():
 
     # get the CZI filepath
-    filepath = os.path.join(basedir, r"data/Tumor_HE_RGB.czi")
+    filepath = basedir / r"data/Tumor_HE_RGB.czi"
     md = czimd.CziMetadata(filepath)
 
     print("PixelTypes: ", md.pixeltypes)
@@ -19,7 +18,7 @@ def test_pixeltypes():
     print("Max. Pixel Value: ", md.maxvalue)
 
     assert (md.pixeltypes == {0: 'Bgr24'})
-    assert (md.isRGB == True)
+    assert (md.isRGB is True)
 
     # check the function to get npdtypes and maxvalues
 
@@ -61,7 +60,7 @@ def test_pixeltypes():
 def test_dimorder():
 
     # get the CZI filepath
-    filepath = os.path.join(basedir, r"data/S=2_3x3_CH=2.czi")
+    filepath = basedir / r"data/S=2_3x3_CH=2.czi"
     md = czimd.CziMetadata(filepath)
 
     assert(md.aics_dim_order == {'R': -1, 'I': -1, 'M': 5, 'H': 0, 'V': -1,
@@ -81,7 +80,7 @@ def test_scene_shape():
     for file, sc in zip(files, shapes):
 
         # get the CZI filepath
-        filepath = os.path.join(basedir, file)
+        filepath = basedir / file
 
         # get the complete metadata at once as one big class
         md = czimd.CziMetadata(filepath)
@@ -91,7 +90,7 @@ def test_scene_shape():
 
 def test_reading_czi_fresh():
 
-    filepath = os.path.join(basedir, r"data/A01_segSD.czi")
+    filepath = basedir / r"data/A01_segSD.czi"
 
     # get the complete metadata at once as one big class
     mdata = czimd.CziMetadata(filepath)
@@ -152,7 +151,7 @@ def test_get_image_dimensions():
 def test_scaling():
 
     # get the CZI filepath
-    filepath = os.path.join(basedir, r"data/DAPI_GFP.czi")
+    filepath = basedir / r"data/DAPI_GFP.czi"
     md = czimd.CziMetadata(filepath)
 
     assert(md.scale.X == 1.0)

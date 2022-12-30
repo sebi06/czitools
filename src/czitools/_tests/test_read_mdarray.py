@@ -1,6 +1,4 @@
-
 from czitools import pylibczirw_tools
-import os
 from pathlib import Path
 import dask.array as da
 
@@ -10,7 +8,7 @@ basedir = Path(__file__).resolve().parents[3]
 def test_read_mdarray_1():
 
     # get the CZI filepath
-    filepath = os.path.join(basedir, r"data/w96_A1+A2.czi")
+    filepath = basedir / r"data/w96_A1+A2.czi"
 
     mdarray, mdata, dimstring = pylibczirw_tools.read_6darray(filepath,
                                                               output_order="STCZYX",
@@ -34,7 +32,7 @@ def test_read_mdarray_1():
 def test_read_mdarray_2():
 
     # get the CZI filepath
-    filepath = os.path.join(basedir, r"data/S=2_3x3_CH=2.czi")
+    filepath = basedir / r"data/S=2_3x3_CH=2.czi"
 
     mdarray, mdata, dimstring = pylibczirw_tools.read_6darray(filepath,
                                                               output_dask=False,
@@ -58,7 +56,7 @@ def test_read_mdarray_2():
 def test_read_mdarray_3():
 
     # get the CZI filepath
-    filepath = os.path.join(basedir, r"data/FOV7_HV110_P0500510000.czi")
+    filepath = basedir / r"data/FOV7_HV110_P0500510000.czi"
 
     mdarray, mdata, dimstring = pylibczirw_tools.read_6darray(filepath,
                                                               output_dask=False,
@@ -73,7 +71,7 @@ def test_read_mdarray_3():
 def test_read_mdarray_4():
 
     # get the CZI filepath
-    filepath = os.path.join(basedir, r"data/newCZI_compressed.czi")
+    filepath = basedir / r"data/newCZI_compressed.czi"
 
     mdarray, mdata, dimstring = pylibczirw_tools.read_6darray(filepath,
                                                               output_dask=True,
@@ -89,7 +87,7 @@ def test_read_mdarray_4():
 def test_read_mdarray_lazy_1():
 
     # get the CZI filepath
-    filepath = os.path.join(basedir, r"data/w96_A1+A2.czi")
+    filepath = basedir / r"data/w96_A1+A2.czi"
 
     mdarray, dimstring = pylibczirw_tools.read_mdarray_lazy(filepath, remove_adim=False)
 
@@ -109,7 +107,7 @@ def test_read_mdarray_lazy_1():
 def test_read_mdarray_substack():
 
     # get the CZI filepath
-    filepath = os.path.join(basedir, r"data/w96_A1+A2.czi")
+    filepath = basedir / r"data/w96_A1+A2.czi"
 
     # read only a specific scene from the CZI
     mdarray, mdata, dimstring = pylibczirw_tools.read_6darray(filepath,
@@ -124,7 +122,7 @@ def test_read_mdarray_substack():
     assert (mdata.image.SizeS == 1)
 
     # get the CZI filepath
-    filepath = os.path.join(basedir, r"data/CellDivision_T=3_Z=5_CH=2_X=240_Y=170.czi")
+    filepath = basedir / r"data/CellDivision_T=3_Z=5_CH=2_X=240_Y=170.czi"
 
     # read only a specific scene from the CZI
     mdarray, mdata, dimstring = pylibczirw_tools.read_6darray(filepath,
@@ -152,8 +150,7 @@ def test_read_mdarray_substack():
     assert (mdarray.shape == (1, 1, 5, 2, 170, 240))
     assert (mdata.image.SizeS is None)
 
-
-        # read only a specific scene from the CZI
+    # read only a specific scene from the CZI
     mdarray, mdata, dimstring = pylibczirw_tools.read_6darray(filepath,
                                                               output_order="STZCYX",
                                                               output_dask=False,
@@ -164,5 +161,3 @@ def test_read_mdarray_substack():
     assert (dimstring == "STZCYX")
     assert (mdarray.shape == (1, 3, 5, 1, 170, 240))
     assert (mdata.image.SizeS is None)
-
-test_read_mdarray_substack()

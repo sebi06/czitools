@@ -6,8 +6,7 @@ from pathlib import Path
 basedir = Path(__file__).resolve().parents[3]
 
 # get the CZI filepath
-filepath = os.path.join(
-    basedir, r"data/CellDivision_T=3_Z=5_CH=2_X=240_Y=170.czi")
+filepath = basedir / r"data/CellDivision_T=3_Z=5_CH=2_X=240_Y=170.czi"
 
 
 def test_scaling():
