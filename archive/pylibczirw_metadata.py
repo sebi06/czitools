@@ -855,6 +855,120 @@ class CziObjectives:
             logger.warning("No Objective Information found.")
 
 
+# class CziDetector:
+#     def __init__(self, filename: Union[str, os.PathLike[str]]) -> None:
+
+#         if not isinstance(filename, str):
+#             filename = filename.as_posix()
+
+#         # get metadata dictionary using pylibCZIrw
+#         with pyczi.open_czi(filename) as czidoc:
+#             md_dict = czidoc.metadata
+
+#         # get detector information
+#         self.model = []
+#         self.name = []
+#         self.ID = []
+#         self.modeltype = []
+#         #self.instrumentID = []
+
+#         # check if there are any detector entries inside the dictionary
+#         if pydash.objects.has(md_dict, ["ImageDocument", "Metadata", "Information", "Instrument", "Detectors"]):
+
+#             if isinstance(md_dict["ImageDocument"]["Metadata"]["Information"]["Instrument"]["Detectors"]["Detector"], list):
+#                 num_detectors = len(
+#                     md_dict["ImageDocument"]["Metadata"]["Information"]["Instrument"]["Detectors"]["Detector"])
+#             else:
+#                 num_detectors = 1
+
+#             # if there is only one detector found
+#             if num_detectors == 1:
+
+#                 # check for detector ID
+#                 try:
+#                     self.ID.append(md_dict["ImageDocument"]["Metadata"]["Information"]
+#                                    ["Instrument"]["Detectors"]["Detector"]["@Id"])
+#                 except (KeyError, TypeError) as e:
+#                     try:
+#                         self.ID.append(md_dict["ImageDocument"]["Metadata"]
+#                                        ["Information"]["Instrument"]["Detectors"]["Detector"]["Id"])
+#                     except (KeyError, TypeError) as e:
+#                         logger.warning("DetectorID not found.")
+#                         self.ID.append(None)
+
+#                 # check for detector Name
+#                 try:
+#                     self.name.append(md_dict["ImageDocument"]["Metadata"]["Information"]
+#                                      ["Instrument"]["Detectors"]["Detector"]["@Name"])
+#                 except (KeyError, TypeError) as e:
+#                     try:
+#                         self.name.append(
+#                             md_dict["ImageDocument"]["Metadata"]["Information"]["Instrument"]["Detectors"]["Detector"]["Name"])
+#                     except (KeyError, TypeError) as e:
+#                         logger.warning("DetectorName not found.")
+#                         self.name.append(None)
+
+#                 # check for detector model
+#                 try:
+#                     self.model.append(
+#                         md_dict["ImageDocument"]["Metadata"]["Information"]["Instrument"]["Detectors"]["Detector"][
+#                             "Manufacturer"]["Model"])
+#                 except (KeyError, TypeError) as e:
+#                     logger.warning("DetectorModel not found.")
+#                     self.model.append(None)
+
+#                 # check for detector modeltype
+#                 try:
+#                     self.modeltype.append(
+#                         md_dict["ImageDocument"]["Metadata"]["Information"]["Instrument"]["Detectors"]["Detector"]["@Type"])
+#                 except (KeyError, TypeError) as e:
+#                     try:
+#                         self.modeltype.append(
+#                             md_dict["ImageDocument"]["Metadata"]["Information"]["Instrument"]["Detectors"]["Detector"]["Type"])
+#                     except (KeyError, TypeError) as e:
+#                         logger.warning("DetectorType not found.")
+#                         self.modeltype.append(None)
+
+#             if num_detectors > 1:
+#                 for d in range(num_detectors):
+
+#                     # check for detector ID
+#                     try:
+#                         self.ID.append(
+#                             md_dict["ImageDocument"]["Metadata"]["Information"]["Instrument"]["Detectors"]["Detector"][d][
+#                                 "Id"])
+#                     except (KeyError, TypeError) as e:
+#                         logger.warning("DetectorID not found.")
+#                         self.ID.append(None)
+
+#                     # check for detector Name
+#                     try:
+#                         self.name.append(
+#                             md_dict["ImageDocument"]["Metadata"]["Information"]["Instrument"]["Detectors"]["Detector"][d][
+#                                 "Name"])
+#                     except (KeyError, TypeError) as e:
+#                         logger.warning("DetectorName not found.")
+#                         self.name.append(None)
+
+#                     # check for detector model
+#                     try:
+#                         self.model.append(
+#                             md_dict["ImageDocument"]["Metadata"]["Information"]["Instrument"]["Detectors"]["Detector"][d]["Manufacturer"]["Model"])
+#                     except (KeyError, TypeError) as e:
+#                         logger.warning("DetectorModel not found.")
+#                         self.model.append(None)
+
+#                     # check for detector modeltype
+#                     try:
+#                         self.modeltype.append(
+#                             md_dict["ImageDocument"]["Metadata"]["Information"]["Instrument"]["Detectors"]["Detector"][d]["Type"])
+#                     except (KeyError, TypeError) as e:
+#                         logger.warning("DetectorType not found.")
+#                         self.modeltype.append(None)
+
+#         else:
+#             logger.warning("No Detetctor information found.")
+
 class CziDetector:
     def __init__(self, filename: Union[str, os.PathLike[str]]) -> None:
 
@@ -897,6 +1011,46 @@ class CziDetector:
             self.name = None
             self.ID = None
             self.modeltype = None
+
+
+# class CziMicroscope:
+#     def __init__(self, filename: Union[str, os.PathLike[str]]) -> None:
+#
+#         if not isinstance(filename, str):
+#             filename = filename.as_posix()
+#
+#         # get metadata dictionary using pylibCZIrw
+#         with pyczi.open_czi(filename) as czidoc:
+#             md_dict = czidoc.metadata
+#
+#         self.ID = None
+#         self.Name = None
+#
+#         # check if there are any microscope entry inside the dictionary
+#         if pydash.objects.has(md_dict, ["ImageDocument", "Metadata", "Information", "Instrument", "Microscopes"]):
+#
+#             # check for detector ID
+#             try:
+#                 self.ID = md_dict["ImageDocument"]["Metadata"]["Information"]["Instrument"]["Microscopes"]["Microscope"]["@Id"]
+#             except (KeyError, TypeError) as e:
+#                 try:
+#                     self.ID = md_dict["ImageDocument"]["Metadata"]["Information"]["Instrument"]["Microscopes"]["Microscope"]["Id"]
+#                 except (KeyError, TypeError) as e:
+#                     logger.warning("Microscope ID not found.")
+#                     self.ID = None
+#
+#             # check for microscope system name
+#             try:
+#                 self.Name = md_dict["ImageDocument"]["Metadata"]["Information"]["Instrument"]["Microscopes"]["Microscope"]["@Name"]
+#             except (KeyError, TypeError) as e:
+#                 try:
+#                     self.Name = md_dict["ImageDocument"]["Metadata"]["Information"]["Instrument"]["Microscopes"]["Microscope"]["Name"]
+#                 except (KeyError, TypeError) as e:
+#                     logger.warning("Microscope System Name not found.")
+#                     self.Name = None
+#
+#         else:
+#             logger.warning("No Microscope information found.")
 
 
 class CziMicroscope:
