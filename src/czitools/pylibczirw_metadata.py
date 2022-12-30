@@ -21,6 +21,7 @@ from typing import List, Dict, Tuple, Optional, Type, Any, Union
 from dataclasses import dataclass, field
 import logging
 from pathlib import Path
+from box import Box
 
 # configure logging
 misc.set_logger(name="czitools-logging", level=logging.DEBUG)
@@ -968,44 +969,59 @@ class CziDetector:
             logger.warning("No Detetctor information found.")
 
 
+# class CziMicroscope:
+#     def __init__(self, filename: Union[str, os.PathLike[str]]) -> None:
+#
+#         if not isinstance(filename, str):
+#             filename = filename.as_posix()
+#
+#         # get metadata dictionary using pylibCZIrw
+#         with pyczi.open_czi(filename) as czidoc:
+#             md_dict = czidoc.metadata
+#
+#         self.ID = None
+#         self.Name = None
+#
+#         # check if there are any microscope entry inside the dictionary
+#         if pydash.objects.has(md_dict, ["ImageDocument", "Metadata", "Information", "Instrument", "Microscopes"]):
+#
+#             # check for detector ID
+#             try:
+#                 self.ID = md_dict["ImageDocument"]["Metadata"]["Information"]["Instrument"]["Microscopes"]["Microscope"]["@Id"]
+#             except (KeyError, TypeError) as e:
+#                 try:
+#                     self.ID = md_dict["ImageDocument"]["Metadata"]["Information"]["Instrument"]["Microscopes"]["Microscope"]["Id"]
+#                 except (KeyError, TypeError) as e:
+#                     logger.warning("Microscope ID not found.")
+#                     self.ID = None
+#
+#             # check for microscope system name
+#             try:
+#                 self.Name = md_dict["ImageDocument"]["Metadata"]["Information"]["Instrument"]["Microscopes"]["Microscope"]["@Name"]
+#             except (KeyError, TypeError) as e:
+#                 try:
+#                     self.Name = md_dict["ImageDocument"]["Metadata"]["Information"]["Instrument"]["Microscopes"]["Microscope"]["Name"]
+#                 except (KeyError, TypeError) as e:
+#                     logger.warning("Microscope System Name not found.")
+#                     self.Name = None
+#
+#         else:
+#             logger.warning("No Microscope information found.")
+
+
 class CziMicroscope:
     def __init__(self, filename: Union[str, os.PathLike[str]]) -> None:
 
-        if not isinstance(filename, str):
-            filename = filename.as_posix()
+        czimd_box = get_czimd_box(filename)
 
-        # get metadata dictionary using pylibCZIrw
-        with pyczi.open_czi(filename) as czidoc:
-            md_dict = czidoc.metadata
-
-        self.ID = None
-        self.Name = None
-
-        # check if there are any microscope entry inside the dictionary
-        if pydash.objects.has(md_dict, ["ImageDocument", "Metadata", "Information", "Instrument", "Microscopes"]):
-
-            # check for detector ID
-            try:
-                self.ID = md_dict["ImageDocument"]["Metadata"]["Information"]["Instrument"]["Microscopes"]["Microscope"]["@Id"]
-            except (KeyError, TypeError) as e:
-                try:
-                    self.ID = md_dict["ImageDocument"]["Metadata"]["Information"]["Instrument"]["Microscopes"]["Microscope"]["Id"]
-                except (KeyError, TypeError) as e:
-                    logger.warning("Microscope ID not found.")
-                    self.ID = None
-
-            # check for microscope system name
-            try:
-                self.Name = md_dict["ImageDocument"]["Metadata"]["Information"]["Instrument"]["Microscopes"]["Microscope"]["@Name"]
-            except (KeyError, TypeError) as e:
-                try:
-                    self.Name = md_dict["ImageDocument"]["Metadata"]["Information"]["Instrument"]["Microscopes"]["Microscope"]["Name"]
-                except (KeyError, TypeError) as e:
-                    logger.warning("Microscope System Name not found.")
-                    self.Name = None
-
-        else:
+        try:
+            self.ID = czimd_box.ImageDocument.Metadata.Information.Instrument.Microscopes.Microscope.Id
+            self.Name = czimd_box.ImageDocument.Metadata.Information.Instrument.Microscopes.Microscope.Name
+        except AttributeError as e:
             logger.warning("No Microscope information found.")
+            self.ID = None
+            self.Name = None
+
 
 
 class CziSampleInfo:
@@ -1370,3 +1386,17 @@ def create_mdict_red(metadata: CziMetadata,
         return misc.sort_dict_by_key(md_dict)
     if not sort:
         return md_dict
+
+
+def get_czimd_box(filename: Union[str, os.PathLike[str]]) -> box.Box:
+
+    if not isinstance(filename, str):
+        filename = filename.as_posix()
+
+    # get metadata dictionary using pylibCZIrw
+    with pyczi.open_czi(filename) as czi_document:
+        metadata_dict = czi_document.metadata
+
+    czimd_box = Box(metadata_dict, default_box=True, default_box_attr=None)
+
+    return czimd_box
