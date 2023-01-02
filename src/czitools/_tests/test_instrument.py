@@ -1,64 +1,38 @@
 from czitools import pylibczirw_metadata as czimd
-from pylibCZIrw import czi as pyczi
 from pathlib import Path
-import numpy as np
-from box import Box
-from box import BoxList
 
 basedir = Path(__file__).resolve().parents[3]
 
-def test_microscope():
 
-    # get the CZI filepath
-    filepath = basedir / r"data/CellDivision_T=3_Z=5_CH=2_X=240_Y=170.czi"
-    mic = czimd.CziMicroscope(filepath)
+def test_instrument():
 
-    assert(mic.ID == 'Microscope:1')
-    assert(mic.Name == 'Castor.Stand')
+    to_test = {0: r"data/CellDivision_T=3_Z=5_CH=2_X=240_Y=170.czi",
+               1: r"data/Airyscan.czi",
+               2: r"data/newCZI_zloc.czi"}
 
-    # get the CZI filepath
-    filepath = basedir / r"data/Airyscan.czi"
-    mic = czimd.CziMicroscope(filepath)
+    results_mic = {0: ['Microscope:1', 'Castor.Stand'],
+                   1: ['Microscope:0', None],
+                   2: [None, None]
+                   }
 
-    assert(mic.ID == 'Microscope:0')
-    assert(mic.Name is None)
+    results_det = {0: [['Detector:Axiocam 506'], [None], [None], ['Axiocam 506']],
+                   1: [['Detector:0:0', 'Detector:1:0'], [None, None], ['Airyscan', 'Airyscan'], [None, None]],
+                   2: [[None], [None], [None], [None]]
+                   }
 
-        # get the CZI filepath
-    filepath = basedir / r"data/newCZI_zloc.czi"
-    mic = czimd.CziMicroscope(filepath)
+    for t in range(len(to_test)):
 
-    assert(mic.ID is None)
-    assert(mic.Name is None)
+        # get the filepath and the metadata
+        filepath = basedir / to_test[t]
+        mic = czimd.CziMicroscope(filepath)
+        det = czimd.CziDetector(filepath)
 
+        # check the microscope data
+        assert (mic.ID == results_mic[t][0])
+        assert (mic.Name == results_mic[t][1])
 
-def test_detectors():
-
-    # get the CZI filepath
-    filepath = basedir / r"data/CellDivision_T=3_Z=5_CH=2_X=240_Y=170.czi"
-    det = czimd.CziDetector(filepath)
-
-    assert(det.ID == ['Detector:Axiocam 506'])
-    assert(det.model == [None])
-    assert(det.modeltype == [None])
-    assert(det.name == ['Axiocam 506'])
-
-    # get the CZI filepath
-    filepath = basedir / r"data/Airyscan.czi"
-    det = czimd.CziDetector(filepath)
-
-    assert(det.ID == ['Detector:0:0', 'Detector:1:0'])
-    assert(det.model == [None, None])
-    assert(det.modeltype == ['Airyscan', 'Airyscan'])
-    assert(det.name == [None, None])
-
-        # get the CZI filepath
-    filepath = basedir / r"data/newCZI_zloc.czi"
-    det = czimd.CziDetector(filepath)
-
-    assert(det.ID is None)
-    assert(det.model is None)
-    assert(det.modeltype is None)
-    assert(det.name is None)
-
-test_microscope()
-test_detectors()
+        # check the detector(s) data
+        assert (det.ID == results_det[t][0])
+        assert (det.model == results_det[t][1])
+        assert (det.modeltype == results_det[t][2])
+        assert (det.name == results_det[t][3])

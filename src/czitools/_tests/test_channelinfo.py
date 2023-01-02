@@ -20,11 +20,11 @@ def test_channelinfo():
     filepath = basedir / r"data/Al2O3_SE_020_sp.czi"
     czi_channels = czimd.CziChannelInfo(filepath)
 
-    assert (czi_channels.clims == [[0.1, 0.5]])
+    assert (czi_channels.clims == [[0.0, 0.5]])
     assert (czi_channels.colors == ["#80808000"])
     assert (czi_channels.gamma == [0.85])
-    assert (czi_channels.names == ["C1"])
-    assert (czi_channels.dyes == ["Dye1"])
+    assert (czi_channels.names == ["CH1"])
+    assert (czi_channels.dyes == ["Dye-CH1"])
 
     # get the CZI filepath
     filepath = basedir / r"data/w96_A1+A2.czi"
