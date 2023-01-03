@@ -22,7 +22,7 @@ def test_stage_xy():
         filepath = basedir / file
 
         # read the metadata
-        md = czimd.CziMetadata(filepath.as_posix())
+        md = czimd.CziMetadata(filepath)
 
         if md.image.SizeS is not None:
             assert (md.sample.scene_stageX == result["X"])
@@ -31,3 +31,4 @@ def test_stage_xy():
             assert (md.sample.image_stageX == result["X"])
             assert (md.sample.image_stageY == result["Y"])
 
+test_stage_xy()

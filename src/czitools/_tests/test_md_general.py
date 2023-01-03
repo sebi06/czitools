@@ -107,47 +107,6 @@ def test_reading_czi_fresh():
     assert (mdata.sample.image_stageY is None)
 
 
-def test_get_image_dimensions():
-
-    test_dict = {"ImageDocument":
-                 {"Metadata":
-                  {"Information":
-                   {"Image":
-                    {"SizeX": 0,
-                     "SizeY": 300,
-                     "SizeS": 500,
-                     "SizeT": 3,
-                     "SizeZ": 20,
-                     "SizeC": 2,
-                     "SizeM": None,
-                     "SizeR": 0,
-                     "SizeH": -1,
-                     "SizeI": None,
-                     "SizeV": None,
-                     "SizeB": 1}}}}}
-
-    dimensions = ["SizeX",
-                  "SizeY",
-                  "SizeS",
-                  "SizeT",
-                  "SizeZ",
-                  "SizeC",
-                  "SizeM",
-                  "SizeR",
-                  "SizeH",
-                  "SizeI",
-                  "SizeV",
-                  "SizeB"]
-
-    results = [None, 300, 500, 3, 20, 2, None, None, None, None, None, 1]
-
-    dim_dict = czimd.CziDimensions.get_image_dimensions(test_dict)
-
-    for d, v in zip(dimensions, results):
-        print((d, v))
-        assert (dim_dict[d] == v)
-
-
 def test_scaling():
 
     # get the CZI filepath
@@ -170,3 +129,10 @@ def test_scaling():
     assert(scaling.Y == 1.0)
     assert(scaling.Z == 1.0)
     assert(scaling.ratio == {'xy': 1.0, 'zx': 1.0})
+
+
+test_pixeltypes()
+test_dimorder()
+test_scene_shape()
+test_reading_czi_fresh()
+test_scaling()

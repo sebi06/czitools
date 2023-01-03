@@ -10,6 +10,7 @@
 #################################################################
 
 from __future__ import annotations
+from typing import List, Dict, Tuple, Optional, Type, Any, Union
 import os
 from collections import Counter
 import xml.etree.ElementTree as ET
@@ -17,12 +18,10 @@ from pylibCZIrw import czi as pyczi
 from czitools import misc
 import numpy as np
 import pydash
-from typing import List, Dict, Tuple, Optional, Type, Any, Union
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, fields, Field
 import logging
 from pathlib import Path
-from box import Box
-from box import BoxList
+from box import Box, BoxList
 
 # configure logging
 misc.set_logger(name="czitools-logging", level=logging.DEBUG)
@@ -302,93 +301,67 @@ class CziMetadata:
         return is_rgb, is_consistant
 
 
+@dataclass
 class CziDimensions:
+    filepath: Union[str, os.PathLike[str]]
+    SizeX: Optional[int] = field(init=False, default=None)
+    SizeY: Optional[int] = field(init=False, default=None)
+    SizeS: Optional[int] = field(init=False, default=None)
+    SizeT: Optional[int] = field(init=False, default=None)
+    SizeZ: Optional[int] = field(init=False, default=None)
+    SizeC: Optional[int] = field(init=False, default=None)
+    SizeM: Optional[int] = field(init=False, default=None)
+    SizeR: Optional[int] = field(init=False, default=None)
+    SizeH: Optional[int] = field(init=False, default=None)
+    SizeI: Optional[int] = field(init=False, default=None)
+    SizeV: Optional[int] = field(init=False, default=None)
+    SizeB: Optional[int] = field(init=False, default=None)
+    SizeX_sf: Optional[int] = field(init=False, default=None)
+    SizeY_sf: Optional[int] = field(init=False, default=None)
 
-    def __init__(self, filename: Union[str, os.PathLike[str]]) -> None:
+    # Information official CZI Dimension Characters:
+    # "X":"Width"        :
+    # "Y":"Height"       :
+    # "C":"Channel"      : number of channels
+    # "Z":"Slice"        : number of z-planes
+    # "T":"Time"         : number of time points
+    # "R":"Rotation"     :
+    # "S":"Scene"        : contiguous regions of interest in a mosaic image
+    # "I":"Illumination" : SPIM direction for LightSheet
+    # "B":"Block"        : acquisition
+    # "M":"Mosaic"       : index of tile for compositing a scene
+    # "H":"Phase"        : e.g. Airy detector fibers
+    # "V":"View"         : e.g. for SPIM
 
-        if not isinstance(filename, str):
-            filename = filename.as_posix()
+    def __post_init__(self):
 
-        self.SizeX = None
-        self.SizeY = None
-        self.SizeS = None
-        self.SizeT = None
-        self.SizeZ = None
-        self.SizeC = None
-        self.SizeM = None
-        self.SizeR = None
-        self.SizeH = None
-        self.SizeI = None
-        self.SizeV = None
-        self.SizeB = None
-        self.SizeX_sf = None
-        self.SizeY_sf = None
+        self.set_dimensions()
 
-        with pyczi.open_czi(filename) as czidoc_r:
-            dim_dict = self.get_image_dimensions(czidoc_r.metadata)
-
-            for key in dim_dict:
-                setattr(self, key, dim_dict[key])
-
-        # Information official CZI Dimension Characters:
-        # "X":"Width"        :
-        # "Y":"Height"       :
-        # "C":"Channel"      : number of channels
-        # "Z":"Slice"        : number of z-planes
-        # "T":"Time"         : number of time points
-        # "R":"Rotation"     :
-        # "S":"Scene"        : contiguous regions of interest in a mosaic image
-        # "I":"Illumination" : SPIM direction for LightSheet
-        # "B":"Block"        : acquisition
-        # "M":"Mosaic"       : index of tile for compositing a scene
-        # "H":"Phase"        : e.g. Airy detector fibers
-        # "V":"View"         : e.g. for SPIM
-
-    @staticmethod
-    def get_image_dimensions(raw_metadata: Dict[Any, Any]) -> Dict[Any, Union[int, None]]:
-        """Determine the image dimensions.
-
-        Arguments:
-            raw_metadata: The CZI meta-data to get the image dimensions from.
+    def set_dimensions(self):
+        """Populate the image dimensions with the detected values from the metadata
 
         Returns:
-            The dimension dictionary.
+            The image dimensions dataclass
         """
 
-        def _safe_get(key: str) -> Optional[int]:
-            try:
-                extracted_value = raw_metadata["ImageDocument"]["Metadata"]["Information"]["Image"][key]
-                return int(extracted_value) if extracted_value is not None else None
-            except KeyError:
-                # logger.warning("Dimension: " + str(key) + " not found.")
-                return None
+        # get the Box and extract the relevant metadata
+        czi_box = get_czimd_box(self.filepath)
+        dimensions = czi_box.ImageDocument.Metadata.Information.Image
 
-        dimensions = ["SizeX",
-                      "SizeY",
-                      "SizeS",
-                      "SizeT",
-                      "SizeZ",
-                      "SizeC",
-                      "SizeM",
-                      "SizeR",
-                      "SizeH",
-                      "SizeI",
-                      "SizeV",
-                      "SizeB"]
+        # define the image dimensions to check for
+        dims = ["SizeX", "SizeY", "SizeS", "SizeT", "SizeZ", "SizeC", "SizeM", "SizeR", "SizeH", "SizeI", "SizeV", "SizeB"]
 
-        dim_dict = {}
+        cls_fields: Tuple[Field, ...] = fields(self.__class__)
+        for fd in cls_fields:
+            if fd.name in dims:
+                if dimensions[fd.name] is not None:
+                    setattr(self, fd.name, int(dimensions[fd.name]))
 
-        for dim in dimensions:
-
-            value = _safe_get(dim)
-
-            # check if value valid
-            if value is not None and value <= 0:
-                value = None
-
-            dim_dict[dim] = value
-
-        return dim_dict
+        # get the field names and their type hints
+        # for field_name, field_type in get_type_hints(self).items():
+        #    if field_name in dims:
+        #        if dimensions[field_name] is not None:
+        #            setattr(self, field_name, int(dimensions[field_name]))
 
 
 @dataclass
@@ -438,49 +411,64 @@ class CziChannelInfo:
         czi_box = get_czimd_box(self.filepath)
 
         # get channels part of dict
-        if czi_box.ImageDocument.Metadata.Information.Image.Dimensions.Channels.Channel is not None:
+        if czi_box.ImageDocument.Metadata.Information.Image.Dimensions is not None:
+        #if czi_box.ImageDocument.Metadata.Information.Image.Dimensions.Channels.Channel is not None:
+            try:
+                channels = czi_box.ImageDocument.Metadata.Information.Image.Dimensions.Channels.Channel
+            except AttributeError:
+                channels = None
+            
+            try:
+                disp = czi_box.ImageDocument.Metadata.DisplaySetting.Channels.Channel
+            except AttributeError:
+                disp = None
 
-            channels = czi_box.ImageDocument.Metadata.Information.Image.Dimensions.Channels.Channel
-            disp = czi_box.ImageDocument.Metadata.DisplaySetting.Channels.Channel
-
+            
             if isinstance(channels, Box):
 
-                self.names.append('CH1') if channels.Name is None else self.names.append(
-                    channels.Name)
-                self.dyes.append('Dye-CH1') if disp.ShortName is None else self.dyes.append(
-                    disp.ShortName)
-                self.colors.append('#80808000') if disp.Color is None else self.colors.append(
-                    disp.Color)
+                self.names.append('CH1') if channels.Name is None else self.names.append(channels.Name)
+                
+                if disp is not None:
+                    self.dyes.append('Dye-CH1') if disp.ShortName is None else self.dyes.append(disp.ShortName)
+                    self.colors.append('#80808000') if disp.Color is None else self.colors.append(disp.Color)
 
-                low = 0.0 if disp.Low is None else float(disp.Low)
-                high = 0.5 if disp.High is None else float(disp.High)
+                    low = 0.0 if disp.Low is None else float(disp.Low)
+                    high = 0.5 if disp.High is None else float(disp.High)
 
-                self.clims.append([low, high])
-                self.gamma.append(0.85) if disp.Gamma is None else self.gamma.append(
-                    float(disp.Gamma))
+                    self.clims.append([low, high])
+                    self.gamma.append(0.85) if disp.Gamma is None else self.gamma.append(float(disp.Gamma))
+                else:
+                    self.dyes.append('Dye-CH1')
+                    self.colors.append('#80808000')
+                    self.clims.append([0.0, 0.5])
+                    self.gamma.append(0.85)
+
 
             elif isinstance(channels, BoxList):
 
                 for ch in range(len(channels)):
-                    self.names.append('CH' + str(ch + 1)) if channels[
-                                                                 ch].Name is None else self.names.append(
-                        channels[ch].Name)
-                    self.dyes.append('Dye-CH' + str(ch + 1)) if disp[
-                                                                    ch].ShortName is None else self.dyes.append(
-                        disp[ch].ShortName)
-                    self.colors.append('#80808000') if disp[
-                                                           ch].Color is None else self.colors.append(
-                        disp[ch].Color)
+                    self.names.append('CH' + str(ch + 1)) if channels[ch].Name is None else self.names.append(channels[ch].Name)
 
-                    low = 0.0 if disp[ch].Low is None else float(disp[ch].Low)
-                    high = 0.5 if disp[ch].High is None else float(disp[ch].High)
+                    if disp is not None:
 
-                    self.clims.append([low, high])
-                    self.gamma.append(0.85) if disp[ch].Gamma is None else self.gamma.append(
-                        float(disp[ch].Gamma))
+                        self.dyes.append('Dye-CH' + str(ch + 1)) if disp[ch].ShortName is None else self.dyes.append(disp[ch].ShortName)
+                        self.colors.append('#80808000') if disp[ch].Color is None else self.colors.append(disp[ch].Color)
 
-        elif czi_box.ImageDocument.Metadata.Information.Image.Dimensions.Channels.Channel is None:
+                        low = 0.0 if disp[ch].Low is None else float(disp[ch].Low)
+                        high = 0.5 if disp[ch].High is None else float(disp[ch].High)
+
+                        self.clims.append([low, high])
+                        self.gamma.append(0.85) if disp[ch].Gamma is None else self.gamma.append(float(disp[ch].Gamma))
+                    else:
+                        self.dyes.append('Dye-CH' + str(ch + 1))
+                        self.colors.append('#80808000')
+                        self.clims.append([0.0, 0.5])
+                        self.gamma.append(0.85)
+
+        #elif czi_box.ImageDocument.Metadata.Information.Image.Dimensions.Channels.Channel is None:
+        elif czi_box.ImageDocument.Metadata.Information.Image.Dimensions is None:
             logger.warning("Channel information not found.")
+            pass
 
 
 class CziScaling:
@@ -564,21 +552,24 @@ class CziInfo:
     filepath: Union[str, os.PathLike[str]]
     dirname: str = field(init=False)
     filename: str = field(init=False)
-    software_name: Optional[str] = field(init=False)
-    softname_version: Optional[str] = field(init=False)
-    acquisition_date: Optional[str] = field(init=False)
+    software_name: Optional[str] = field(init=False, default=None)
+    softname_version: Optional[str] = field(init=False, default=None)
+    acquisition_date: Optional[str] = field(init=False, default=None)
 
     def __post_init__(self):
         czimd_box = get_czimd_box(self.filepath)
 
         # get directory and filename etc.
-        self.dirname = self.filepath.parent
-        self.filename = self.filepath.name
+        self.dirname = Path(self.filepath).parent
+        self.filename = Path(self.filepath).name
 
         # get acquisition data and SW version
-        self.software_name = czimd_box.ImageDocument.Metadata.Information.Application.Name
-        self.software_version = czimd_box.ImageDocument.Metadata.Information.Application.Version
-        self.acquisition_date = czimd_box.ImageDocument.Metadata.Information.Image.AcquisitionDateAndTime
+        if czimd_box.ImageDocument.Metadata.Information.Application is not None:
+            self.software_name = czimd_box.ImageDocument.Metadata.Information.Application.Name
+            self.software_version = czimd_box.ImageDocument.Metadata.Information.Application.Version
+        
+        if czimd_box.ImageDocument.Metadata.Information.Image is not None:
+            self.acquisition_date = czimd_box.ImageDocument.Metadata.Information.Image.AcquisitionDateAndTime
 
 
 class CziObjectives:
@@ -827,8 +818,8 @@ class CziSampleInfo:
         with pyczi.open_czi(filename) as czidoc:
             md_dict = czidoc.metadata
 
-        dim_dict = CziDimensions.get_image_dimensions(md_dict)
-        size_s = dim_dict["SizeS"]
+        size_s = CziDimensions(filename).SizeS
+        #size_s = dim_dict["SizeS"]
 
         # check for well information
         self.well_array_names = []
@@ -1163,7 +1154,9 @@ def create_mdict_red(metadata: CziMetadata,
                'WellColumnID': metadata.sample.well_colID,
                'WellCounter': metadata.sample.well_counter,
                'SceneCenterStageX': metadata.sample.scene_stageX,
-               'SceneCenterStageY': metadata.sample.scene_stageX
+               'SceneCenterStageY': metadata.sample.scene_stageX,
+               'ImageStageX': metadata.sample.image_stageX,
+               'ImageStageY': metadata.sample.image_stageX
                }
 
     # check for extra entries when reading mosaic file with a scale factor
