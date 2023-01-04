@@ -877,64 +877,72 @@ class CziSampleInfo:
                 logger.error(e)
 
 
+@dataclass
 class CziAddMetaData:
-    def __init__(self, filename: Union[str, os.PathLike[str]]) -> None:
+    filepath: Union[str, os.PathLike[str]]
+    experiment: Optional[Box] = field(init=False, default=None)
+    hardwaresetting: Optional[Box] = field(init=False, default=None)
+    customattributes: Optional[Box] = field(init=False, default=None)
+    displaysetting: Optional[Box] = field(init=False, default=None)
+    layers: Optional[Box] = field(init=False, default=None)
+    
+    def __post_init__(self):
 
-        if not isinstance(filename, str):
-            filename = filename.as_posix()
+        czi_box = get_czimd_box(self.filepath)
 
-        # get metadata dictionary using pylibCZIrw
-        with pyczi.open_czi(filename) as czidoc:
-            md_dict = czidoc.metadata
-
-        try:
-            self.experiment = md_dict["ImageDocument"]["Metadata"]["Experiment"]
-        except (KeyError, TypeError) as e:
+        if czi_box.has_experiment:
+            self.experiment = czi_box.ImageDocument.Metadata.Experiment
+        else:
             logger.warning("No Experiment information found.")
-            self.experiment = None
 
-        try:
-            self.hardwaresetting = md_dict["ImageDocument"]["Metadata"]["HardwareSetting"]
-        except (KeyError, TypeError) as e:
+        if czi_box.has_hardware:
+            self.hardwaresetting = czi_box.ImageDocument.Metadata.HardwareSetting
+        else:
             logger.warning("No HardwareSetting information found.")
-            self.hardwaresetting = None
 
-        try:
-            self.customattributes = md_dict["ImageDocument"]["Metadata"]["CustomAttributes"]
-        except (KeyError, TypeError) as e:
+        if czi_box.has_customattr:
+            self.customattributes = czi_box.ImageDocument.Metadata.CustomAttributes
+        else:
             logger.warning("No CustomAttributes information found.")
-            self.customattributes = None
 
-        try:
-            self.displaysetting = md_dict["ImageDocument"]["Metadata"]["DisplaySetting"]
-        except (KeyError, TypeError) as e:
+        if czi_box.has_disp:
+            self.displaysetting = czi_box.ImageDocument.Metadata.DisplaySetting
+        else:
             logger.warning("No DisplaySetting information found.")
-            self.displaysetting = None
 
-        try:
-            self.layers = md_dict["ImageDocument"]["Metadata"]["Layers"]
-        except (KeyError, TypeError) as e:
+        if czi_box.has_layers:
+            self.layers = czi_box.ImageDocument.Metadata.Layers
+        else:
             logger.warning("No Layers information found.")
-            self.layers = None
 
 
+@dataclass
 class CziScene:
-    def __init__(self, filename: Union[str, os.PathLike[str]], sceneindex: int) -> None:
-        if not isinstance(filename, str):
-            filename = filename.as_posix()
+    filepath: Union[str, os.PathLike[str]]
+    index: int
+    bbox: Optional[pyczi.Rectangle]= field(init=False, default=None)
+    xstart: Optional[int] = field(init=False, default=None)
+    ystart: Optional[int] = field(init=False, default=None)
+    width: Optional[int] = field(init=False, default=None)
+    height: Optional[int] = field(init=False, default=None)
+    
+    def __post_init__(self):
+        
+        if not isinstance(self.filepath, str):
+            self.filepath = self.filepath.as_posix()
 
-        # get metadata dictionary using pylibCZIrw
-        with pyczi.open_czi(filename) as czidoc:
-            md_dict = czidoc.metadata
+        # get scene information from the CZI file
+        with pyczi.open_czi(self.filepath) as czidoc:
 
-            self.bbox = czidoc.scenes_bounding_rectangle[sceneindex]
-            self.xstart = self.bbox.x
-            self.ystart = self.bbox.y
-            self.width = self.bbox.w
-            self.height = self.bbox.h
-            self.index = sceneindex
-
-        # TODO : And scene dimensions to CziScene class
+            try:
+                self.bbox = czidoc.scenes_bounding_rectangle[self.index]
+                self.xstart = self.bbox.x
+                self.ystart = self.bbox.y
+                self.width = self.bbox.w
+                self.height = self.bbox.h
+            except KeyError:
+                # in case an invalid index was used
+                logger.warning("No Scenes detected.")
 
 
 def obj2dict(obj: Any, sort: bool = True) -> Dict[str, Any]:
@@ -1072,7 +1080,7 @@ def get_czimd_box(filename: Union[str, os.PathLike[str]]) -> Box:
 
     # set the defaults to False
     czimd_box.has_customattr = False
-    czimd_box.has_exp = False
+    czimd_box.has_experiment = False
     czimd_box.has_disp = False
     czimd_box.has_hardware = False
     czimd_box.has_scale = False
@@ -1089,7 +1097,7 @@ def get_czimd_box(filename: Union[str, os.PathLike[str]]) -> Box:
     czimd_box.has_image = False
     czimd_box.has_scenes = False
     czimd_box.has_dims = False
-
+    czimd_box.has_layers = False
 
     if 'Experiment' in czimd_box.ImageDocument.Metadata:
         czimd_box.has_exp = True
@@ -1142,5 +1150,8 @@ def get_czimd_box(filename: Union[str, os.PathLike[str]]) -> Box:
 
     if 'DisplaySetting' in czimd_box.ImageDocument.Metadata:
         czimd_box.has_disp = True
+
+    if 'Layers' in czimd_box.ImageDocument.Metadata:
+        czimd_box.has_layers = True
 
     return czimd_box
