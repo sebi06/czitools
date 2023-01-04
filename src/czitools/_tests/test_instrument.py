@@ -36,3 +36,35 @@ def test_instrument():
         assert (det.model == results_det[t][1])
         assert (det.modeltype == results_det[t][2])
         assert (det.name == results_det[t][3])
+
+
+def test_objectives():
+
+    to_test = {0: r"data/CellDivision_T=3_Z=5_CH=2_X=240_Y=170.czi",
+               1: r"data/Al2O3_SE_020_sp.czi",
+               2: r"data/w96_A1+A2.czi",
+               3: r"data/Airyscan.czi",
+               4: r"data/newCZI_zloc.czi",
+               5: r"data/FOV7_HV110_P0500510000.czi",
+               6: r"data/Tumor_HE_RGB.czi"
+               }
+
+    results = {0: {'name': 'Plan-Apochromat 50x/1.2', 'immersion': 'Water', 'NA': 1.2, 'ID': 'Objective:1', 'objmag': 50.0, 'tubelensmag': 1.0, 'totalmg': 50.0},
+               1: {},
+               2: {'name': 'Plan-Apochromat 20x/0.95', 'immersion': 'Air', 'NA': 0.95, 'ID': 'Objective:1', 'objmag': 20.0, 'tubelensmag': 0.5, 'totalmg': 10.0},
+               3: {'name': 'Plan-Apochromat 63x/1.4 Oil DIC M27', 'immersion': 'Oil', 'NA': 1.4000000000000001, 'ID': 'Objective:0', 'objmag': 63.0, 'totalmg': 63.0},
+               4: {},
+               5: {},
+               6: {},
+               }
+
+    for t in range(len(to_test)):
+
+        # get the filepath and the metadata
+        filepath = basedir / to_test[t]
+        obj = czimd.CziObjectives(filepath)
+
+        out = obj.__dict__
+        del out['filepath']
+
+        assert(out == results[t])

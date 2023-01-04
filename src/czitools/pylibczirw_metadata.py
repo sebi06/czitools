@@ -572,178 +572,58 @@ class CziInfo:
             self.acquisition_date = czimd_box.ImageDocument.Metadata.Information.Image.AcquisitionDateAndTime
 
 
+@dataclass
 class CziObjectives:
-    def __init__(self, filename: Union[str, os.PathLike[str]]) -> None:
+    filepath: Union[str, os.PathLike[str]]
+    NA: Optional[float] = field(init=False, default=None)
+    objmag: Optional[float] = field(init=False, default=None)
+    ID: Optional[str] = field(init=False, default=None)
+    name: Optional[str] = field(init=False, default=None)
+    model: Optional[str] = field(init=False, default=None)
+    immersion: Optional[str] = field(init=False, default=None)
+    tubelensmag: Optional[float] = field(init=False, default=None)
+    totalmg: Optional[float] = field(init=False, default=None) 
+    
+    
+    def __post_init__(self):
 
-        if not isinstance(filename, str):
-            filename = filename.as_posix()
+        czi_box = get_czimd_box(self.filepath)
 
-        # get metadata dictionary using pylibCZIrw
-        with pyczi.open_czi(filename) as czidoc:
-            md_dict = czidoc.metadata
-
-        self.NA = []
-        self.mag = []
-        self.ID = []
-        self.name = []
-        self.immersion = []
-        self.tubelensmag = []
-        self.nominalmag = []
-
-        # check if Instrument metadata actually exist
-        if pydash.objects.has(md_dict, ["ImageDocument", "Metadata", "Information", "Instrument", "Objectives"]):
+        # check if objective metadata actually exist
+        if czi_box.has_objectives:
+            
             # get objective data
-            try:
-                if isinstance(
-                        md_dict["ImageDocument"]["Metadata"]["Information"]["Instrument"]["Objectives"]["Objective"],
-                        list):
-                    num_obj = len(md_dict["ImageDocument"]["Metadata"]
-                                  ["Information"]["Instrument"]["Objectives"]["Objective"])
-                else:
-                    num_obj = 1
-            except (KeyError, TypeError) as e:
-                num_obj = 0  # no objective found
+            objective =  czi_box.ImageDocument.Metadata.Information.Instrument.Objectives.Objective
 
-            # if there is only one objective found
-            if num_obj == 1:
-                try:
-                    self.name.append(
-                        md_dict["ImageDocument"]["Metadata"]["Information"]["Instrument"]["Objectives"]["Objective"][
-                            "@Name"])
-                except (KeyError, TypeError) as e:
-                    try:
-                        self.name.append(md_dict["ImageDocument"]["Metadata"]["Information"]
-                                         ["Instrument"]["Objectives"]["Objective"]["Name"])
-                    except (KeyError, TypeError) as e:
-                        logger.warning("No Objective Name found.")
-                        self.name.append(None)
+            self.name = objective.Name
+            self.immersion = objective.Immersion
+            self.NA = float(objective.LensNA)
+            self.ID = objective.Id
+            self.objmag = float(objective.NominalMagnification)
 
-                try:
-                    self.immersion = md_dict["ImageDocument"]["Metadata"]["Information"][
-                        "Instrument"]["Objectives"]["Objective"]["Immersion"]
-                except (KeyError, TypeError) as e:
-                    logger.warning("No Objective Immersion found.")
-                    self.immersion = None
-
-                try:
-                    self.NA = float(md_dict["ImageDocument"]["Metadata"]["Information"]
-                                    ["Instrument"]["Objectives"]["Objective"]["LensNA"])
-                except (KeyError, TypeError) as e:
-                    logger.warning("No Objective NA found.")
-                    self.NA = None
-
-                try:
-                    self.ID = \
-                    md_dict["ImageDocument"]["Metadata"]["Information"]["Instrument"]["Objectives"]["Objective"]["@Id"]
-                except (KeyError, TypeError) as e:
-                    try:
-                        self.ID = \
-                        md_dict["ImageDocument"]["Metadata"]["Information"]["Instrument"]["Objectives"]["Objective"][
-                            "Id"]
-                    except (KeyError, TypeError) as e:
-                        logger.warning("No Objective ID found.")
-                        self.ID = None
-
-                try:
-                    self.tubelensmag = float(
-                        md_dict["ImageDocument"]["Metadata"]["Information"]["Instrument"]["TubeLenses"]["TubeLens"][
-                            "Magnification"])
-                except (KeyError, TypeError) as e:
-                    logger.warning("No Tubelens Mag. found. Using Default Value = 1.0.")
-                    self.tubelensmag = 1.0
-
-                try:
-                    self.nominalmag = float(
-                        md_dict["ImageDocument"]["Metadata"]["Information"]["Instrument"]["Objectives"]["Objective"][
-                            "NominalMagnification"])
-                except (KeyError, TypeError) as e:
-                    logger.warning("No Nominal Mag. found. Using Default Value = 1.0.")
-                    self.nominalmag = 1.0
-
-                try:
-                    if self.tubelensmag is not None:
-                        self.mag = self.nominalmag * self.tubelensmag
-                    if self.tubelensmag is None:
-                        logger.info(
-                            "Using Tublens Mag = 1.0 for calculating Objective Magnification.")
-                        self.mag = self.nominalmag * 1.0
-
-                except (KeyError, TypeError) as e:
-                    logger.warning("No Objective Magnification found.")
-                    self.mag = None
-
-            if num_obj > 1:
-                for o in range(num_obj):
-
-                    try:
-                        self.name.append(
-                            md_dict["ImageDocument"]["Metadata"]["Information"]["Instrument"]["Objectives"][
-                                "Objective"][o][
-                                "Name"])
-                    except (KeyError, TypeError) as e:
-                        logger.warning("No Objective Name found.")
-                        self.name.append(None)
-
-                    try:
-                        self.immersion.append(
-                            md_dict["ImageDocument"]["Metadata"]["Information"]["Instrument"]["Objectives"][
-                                "Objective"][o][
-                                "Immersion"])
-                    except (KeyError, TypeError) as e:
-                        logger.warning("No Objective Immersion found.")
-                        self.immersion.append(None)
-
-                    try:
-                        self.NA.append(np.float(
-                            md_dict["ImageDocument"]["Metadata"]["Information"]["Instrument"]["Objectives"][
-                                "Objective"][o][
-                                "LensNA"]))
-                    except (KeyError, TypeError) as e:
-                        logger.warning("No Objective NA found.")
-                        self.NA.append(None)
-
-                    try:
-                        self.ID.append(
-                            md_dict["ImageDocument"]["Metadata"]["Information"]["Instrument"]["Objectives"][
-                                "Objective"][o][
-                                "Id"])
-                    except (KeyError, TypeError) as e:
-                        logger.warning("No Objective ID found.")
-                        self.ID.append(None)
-
-                    try:
-                        self.tubelensmag.append(np.float(
-                            md_dict["ImageDocument"]["Metadata"]["Information"]["Instrument"]["TubeLenses"]["TubeLens"][
-                                o][
-                                "Magnification"]))
-                    except (KeyError, TypeError) as e:
-                        logger.warning("No Tubelens Mag. found. Using Default Value = 1.0.")
-                        self.tubelensmag.append(1.0)
-
-                    try:
-                        self.nominalmag.append(np.float(
-                            md_dict["ImageDocument"]["Metadata"]["Information"]["Instrument"]["Objectives"][
-                                "Objective"][o][
-                                "NominalMagnification"]))
-                    except (KeyError, TypeError) as e:
-                        logger.warning("No Nominal Mag. found. Using Default Value = 1.0.")
-                        self.nominalmag.append(1.0)
-
-                    try:
-                        if self.tubelensmag is not None:
-                            self.mag.append(
-                                self.nominalmag[o] * self.tubelensmag[o])
-                        if self.tubelensmag is None:
-                            logger.info(
-                                "Using Tublens Mag = 1.0 for calculating Objective Magnification.")
-                            self.mag.append(self.nominalmag[o] * 1.0)
-
-                    except (KeyError, TypeError) as e:
-                        logger.warning("No Objective Magnification.")
-                        self.mag.append(None)
-
-        else:
+            if self.name is None:
+                self.name =  objective.Manufacturer.Model
+        
+        elif not czi_box.has_objectives:
             logger.warning("No Objective Information found.")
+
+        # chek if tublens metadata exist
+        if czi_box.has_tubelenses:
+            
+            # get tubelenes data
+            tubelens = czi_box.ImageDocument.Metadata.Information.Instrument.TubeLenses.TubeLens
+            
+            self.tubelensmag = float(tubelens.Magnification)
+
+        elif not czi_box.has_tubelens:
+            logger.warning("No Tublens Information found.")
+
+        # some additional checks to clac the total magnification
+        if self.objmag is not None and self.tubelensmag is not None:
+            self.totalmg = self.objmag * self.tubelensmag
+
+        if self.objmag is not None and self.tubelensmag is None:
+            self.totalmg = self.objmag
 
 
 @dataclass
@@ -1182,9 +1062,85 @@ def get_czimd_box(filename: Union[str, os.PathLike[str]]) -> Box:
     with pyczi.open_czi(filename) as czi_document:
         metadata_dict = czi_document.metadata
 
-    czimd_box = Box(metadata_dict, conversion_box=True,
+    czimd_box = Box(metadata_dict,
+                    conversion_box=True,
                     default_box=True,
-                    default_box_attr=None
+                    default_box_attr=None,
+                    default_box_create_on_get=True,
+                    #default_box_no_key_error=True
                     )
+
+    # set the defaults to False
+    czimd_box.has_customattr = False
+    czimd_box.has_exp = False
+    czimd_box.has_disp = False
+    czimd_box.has_hardware = False
+    czimd_box.has_scale = False
+    czimd_box.has_instrument = False
+    czimd_box.has_microscopes = False
+    czimd_box.has_detectors = False
+    czimd_box.has_objectives = False
+    czimd_box.has_tubelenses = False
+    czimd_box.has_disp = False
+    czimd_box.has_channels = False
+    czimd_box.has_info = False
+    czimd_box.has_app = False
+    czimd_box.has_doc = False
+    czimd_box.has_image = False
+    czimd_box.has_scenes = False
+    czimd_box.has_dims = False
+
+
+    if 'Experiment' in czimd_box.ImageDocument.Metadata:
+        czimd_box.has_exp = True
+
+    if 'HardwareSetting' in czimd_box.ImageDocument.Metadata:
+        czimd_box.has_hardware = True
+
+    if 'CustomAttributes' in czimd_box.ImageDocument.Metadata:
+        czimd_box.has_customattr = True
+
+    if 'Information' in czimd_box.ImageDocument.Metadata:
+        czimd_box.has_info = True
+
+        if 'Application' in czimd_box.ImageDocument.Metadata.Information:
+            czimd_box.has_app = True
+        
+        if 'Document' in czimd_box.ImageDocument.Metadata.Information:
+            czimd_box.has_doc = True
+        
+        if 'Image' in czimd_box.ImageDocument.Metadata.Information:
+            czimd_box.has_image = True
+
+            if 'Dimensions' in czimd_box.ImageDocument.Metadata.Information.Image:
+                czimd_box.has_dims = True
+        
+                if 'Channels' in czimd_box.ImageDocument.Metadata.Information.Image.Dimensions:
+                    czimd_box.has_channels = True
+
+                if 'S' in czimd_box.ImageDocument.Metadata.Information.Image.Dimensions:
+                    czimd_box.has_scenes = True
+
+
+        if 'Instrument' in czimd_box.ImageDocument.Metadata.Information:
+            czimd_box.has_instrument = True
+
+            if 'Detectors' in czimd_box.ImageDocument.Metadata.Information.Instrument:
+                czimd_box.has_detectors = True
+
+            if 'Microscopes' in czimd_box.ImageDocument.Metadata.Information.Instrument:
+                czimd_box.has_microscopes = True
+
+            if 'Objectives' in czimd_box.ImageDocument.Metadata.Information.Instrument:
+                czimd_box.has_objectives = True
+
+            if 'TubeLenses' in czimd_box.ImageDocument.Metadata.Information.Instrument:
+                czimd_box.has_tubelenses = True
+
+    if 'Scaling' in czimd_box.ImageDocument.Metadata:
+        czimd_box.has_scale = True
+
+    if 'DisplaySetting' in czimd_box.ImageDocument.Metadata:
+        czimd_box.has_disp = True
 
     return czimd_box
