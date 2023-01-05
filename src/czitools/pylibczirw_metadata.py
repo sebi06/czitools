@@ -20,7 +20,7 @@ import numpy as np
 import pydash
 from dataclasses import dataclass, field, fields, Field
 import logging
-from pathlib import Path
+from pathlib import Path, PurePath, PureWindowsPath, PurePosixPath
 from box import Box, BoxList
 
 # configure logging
@@ -34,7 +34,10 @@ class CziMetadataComplete:
     """
 
     def __init__(self, filename: Union[str, os.PathLike[str]]) -> None:
-        if not isinstance(filename, str):
+        
+        if isinstance(filename, PurePosixPath) or isinstance(filename, PureWindowsPath):
+
+            # convert to string
             filename = filename.as_posix()
 
         # get metadata dictionary using pylibCZIrw
@@ -65,7 +68,9 @@ class CziMetadata:
 
     def __init__(self, filename: Union[str, os.PathLike[str]], dim2none: bool = False) -> None:
 
-        if not isinstance(filename, str):
+        if isinstance(filename, PurePosixPath) or isinstance(filename, PureWindowsPath):
+
+            # convert to string
             filename = filename.as_posix()
 
         # get metadata dictionary using pylibCZIrw
@@ -151,7 +156,7 @@ class CziMetadata:
             self.channelinfo = CziChannelInfo(filename)
 
             # get scaling info
-            self.scale = CziScaling(filename, dim2none=dim2none)
+            self.scale = CziScaling(filename)
 
             # get objective information
             self.objective = CziObjectives(filename)
@@ -471,80 +476,59 @@ class CziChannelInfo:
             pass
 
 
+@dataclass
 class CziScaling:
-    def __init__(self, filename: Union[str, os.PathLike[str]], dim2none: bool = False) -> None:
+    filepath: Union[str, os.PathLike[str]]
+    X: Optional[float] = field(init=False, default=None)
+    Y: Optional[float] = field(init=False, default=None)
+    Z: Optional[float] = field(init=False, default=None)
+    X_sf: Optional[float] = field(init=False, default=None)
+    Y_sf: Optional[float] = field(init=False, default=None)
+    ratio: Optional[Dict[float, float]] = field(init=False, default=None)
+    ratio_sf: Optional[Dict[float, float]] = field(init=False, default=None)
+    scalefactorXY: Optional[float] = field(init=False, default=None)
+    unit: Optional[str] = field(init=True, default='micron')
+    
+    
+    def __post_init__(self):
 
-        if not isinstance(filename, str):
-            filename = filename.as_posix()
+        czi_box = get_czimd_box(self.filepath)
 
-        # get metadata dictionary using pylibCZIrw
-        self.scalefactorXY = None
-        self.ratio_sf = None
-        self.Y_sf = None
-        self.X_sf = None
+        if czi_box.has_scale:
 
-        with pyczi.open_czi(filename) as czidoc:
-            md_dict = czidoc.metadata
+            distances = czi_box.ImageDocument.Metadata.Scaling.Items.Distance
 
-        def _safe_get_scale(distances_: List[Dict[Any, Any]], idx: int) -> Optional[float]:
-            try:
-                return float(distances_[idx]["Value"]) * 1000000 if distances_[idx]["Value"] is not None else None
-            except IndexError:
-                logger.warning("No Z-Scaling found. Using defaults = 1.0.")
-                return 1.0
+            self.X = self.safe_get_scale(distances, 0)
+            self.Y = self.safe_get_scale(distances, 1)
+            self.Z = self.safe_get_scale(distances, 2)
 
-        try:
-            distances = md_dict["ImageDocument"]["Metadata"]["Scaling"]["Items"]["Distance"]
+            # calc the scale ratio
+            self.ratio = {"xy": np.round(self.X / self.Y, 3),
+                                "zx": np.round(self.Z / self.X, 3)
+                                }
 
-            # get the scaling in [micron] - inside CZI the default is [m]
-            self.X = _safe_get_scale(distances, 0)
-            self.Y = _safe_get_scale(distances, 1)
-            self.Z = _safe_get_scale(distances, 2)
-
-        except KeyError:
-            if dim2none:
-                self.X = None
-                self.Y = None
-                self.Z = None
-            if not dim2none:
-                self.X = 1.0
-                self.Y = 1.0
-                self.Z = 1.0
-
-        # safety check in case a scale = 0
-        if self.X == 0.0:
-            self.X = 1.0
-            logger.warning("Detected ScalingX = 0. Use 1.0 as fallback.")
-        if self.Y == 0.0:
-            self.Y = 1.0
-            logger.warning("Detected ScalingY = 0. Use 1.0 as fallback.")
-        if self.Z == 0.0:
-            self.Z = 1.0
-            logger.warning("Detected ScalingZ = 0. Use 1.0 as fallback.")
-
-        # set the scaling unit to [micron]
-        self.Unit = "micron"
-
-        # get scaling ratio
-        self.ratio = self.get_scale_ratio(scalex=self.X,
-                                          scaley=self.Y,
-                                          scalez=self.Z)
+        elif not czi_box.has_scale:
+            logger.warning("No scaling information found.")
 
     @staticmethod
-    def get_scale_ratio(scalex: float = 1.0,
-                        scaley: float = 1.0,
-                        scalez: float = 1.0) -> Dict:
+    def safe_get_scale(dist: BoxList, idx: int) -> Optional[float]:
+        
+        scales = ['X', 'Y', 'Z']
 
-        if scalex is None or scaley is None or scalez is None:
-            scale_ratio = {"xy": None, "zx": None}
-        else:
-            # set default scale factor to 1.0
-            scale_ratio = {"xy": np.round(scalex / scaley, 3), "zx": np.round(scalez / scalex, 3)}
-
-        # get the factor between XY scaling
-        # get the scale factor between XZ scaling
-
-        return scale_ratio
+        try:
+            # get the scaling value in [micron]
+            sc = float(dist[idx].Value) * 1000000
+            
+            # check for the value = 0.0
+            if sc == 0.0:
+                sc = 1.0
+                logger.warning("Detetcted Scaling = 0.0 for " + scales[idx] + " Using default = 1.0 [micron].")
+            return sc
+        
+        except (IndexError, TypeError, AttributeError):
+           
+            logger.warning("No " + scales[idx] + "-Scaling found. Using default = 1.0 [micron].")
+            return 1.0
 
 
 @dataclass
@@ -582,7 +566,7 @@ class CziObjectives:
     model: Optional[str] = field(init=False, default=None)
     immersion: Optional[str] = field(init=False, default=None)
     tubelensmag: Optional[float] = field(init=False, default=None)
-    totalmg: Optional[float] = field(init=False, default=None) 
+    totalmag: Optional[float] = field(init=False, default=None) 
     
     
     def __post_init__(self):
@@ -620,10 +604,10 @@ class CziObjectives:
 
         # some additional checks to clac the total magnification
         if self.objmag is not None and self.tubelensmag is not None:
-            self.totalmg = self.objmag * self.tubelensmag
+            self.totalmag = self.objmag * self.tubelensmag
 
         if self.objmag is not None and self.tubelensmag is None:
-            self.totalmg = self.objmag
+            self.totalmag = self.objmag
 
 
 @dataclass
@@ -691,7 +675,9 @@ class CziMicroscope:
 class CziSampleInfo:
     def __init__(self, filename: Union[str, os.PathLike[str]]) -> None:
 
-        if not isinstance(filename, str):
+        if isinstance(filename, PurePosixPath) or isinstance(filename, PureWindowsPath):
+
+            # convert to string
             filename = filename.as_posix()
 
         # get metadata dictionary using pylibCZIrw
@@ -979,7 +965,9 @@ def writexml(filename: Union[str, os.PathLike[str]], xmlsuffix: str = '_CZI_Meta
     :rtype: str
     """
 
-    if not isinstance(filename, str):
+    if isinstance(filename, PurePosixPath) or isinstance(filename, PureWindowsPath):
+
+        # convert to string
         filename = filename.as_posix()
 
     # get the raw metadata as XML or dictionary
@@ -1028,7 +1016,7 @@ def create_mdict_red(metadata: CziMetadata,
                'isRGB': metadata.isRGB,
                'ismosaic': metadata.ismosaic,
                'ObjNA': metadata.objective.NA,
-               'ObjMag': metadata.objective.mag,
+               'ObjMag': metadata.objective.totalmag,
                'TubelensMag': metadata.objective.tubelensmag,
                'XScale': metadata.scale.X,
                'YScale': metadata.scale.Y,
@@ -1063,7 +1051,10 @@ def create_mdict_red(metadata: CziMetadata,
 
 
 def get_czimd_box(filename: Union[str, os.PathLike[str]]) -> Box:
-    if not isinstance(filename, str):
+    
+    if isinstance(filename, PurePosixPath) or isinstance(filename, PureWindowsPath):
+
+        # convert to string
         filename = filename.as_posix()
 
     # get metadata dictionary using pylibCZIrw
