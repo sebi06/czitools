@@ -49,10 +49,10 @@ def test_objectives():
                6: r"data/Tumor_HE_RGB.czi"
                }
 
-    results = {0: {'name': 'Plan-Apochromat 50x/1.2', 'immersion': 'Water', 'NA': 1.2, 'ID': 'Objective:1', 'objmag': 50.0, 'tubelensmag': 1.0, 'totalmg': 50.0},
+    results = {0: {'name': 'Plan-Apochromat 50x/1.2', 'immersion': 'Water', 'NA': 1.2, 'ID': 'Objective:1', 'objmag': 50.0, 'tubelensmag': 1.0, 'totalmag': 50.0},
                1: {},
-               2: {'name': 'Plan-Apochromat 20x/0.95', 'immersion': 'Air', 'NA': 0.95, 'ID': 'Objective:1', 'objmag': 20.0, 'tubelensmag': 0.5, 'totalmg': 10.0},
-               3: {'name': 'Plan-Apochromat 63x/1.4 Oil DIC M27', 'immersion': 'Oil', 'NA': 1.4000000000000001, 'ID': 'Objective:0', 'objmag': 63.0, 'totalmg': 63.0},
+               2: {'name': 'Plan-Apochromat 20x/0.95', 'immersion': 'Air', 'NA': 0.95, 'ID': 'Objective:1', 'objmag': 20.0, 'tubelensmag': 0.5, 'totalmag': 10.0},
+               3: {'name': 'Plan-Apochromat 63x/1.4 Oil DIC M27', 'immersion': 'Oil', 'NA': 1.4000000000000001, 'ID': 'Objective:0', 'objmag': 63.0, 'totalmag': 63.0},
                4: {},
                5: {},
                6: {},

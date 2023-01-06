@@ -78,6 +78,9 @@ def test_get_planetable():
 
         assert(csvfile == (basedir / r"data/WP96_4Pos_B4-10_DAPI_planetable.csv").as_posix())
 
+        # remove the file
+        Path.unlink(Path(csvfile))
+
     planetable_filtered = misc.filter_planetable(planetable, s=0, t=0, z=0, c=0)
 
     assert(planetable_filtered["xstart"][0] == 148118)

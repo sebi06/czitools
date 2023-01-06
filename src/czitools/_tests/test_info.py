@@ -36,7 +36,7 @@ def test_information():
         assert (info.software_name == results[t][0])
         assert (info.software_version == results[t][1])
         assert (info.acquisition_date == results[t][2])
-        assert (Path.exists(info.dirname) == results[t][3])
+        assert (Path.exists(Path(info.dirname)) == results[t][3])
         assert (info.filename == results[t][4])
 
 

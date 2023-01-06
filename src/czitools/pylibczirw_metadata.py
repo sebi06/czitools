@@ -484,12 +484,11 @@ class CziScaling:
     Z: Optional[float] = field(init=False, default=None)
     X_sf: Optional[float] = field(init=False, default=None)
     Y_sf: Optional[float] = field(init=False, default=None)
-    ratio: Optional[Dict[float, float]] = field(init=False, default=None)
+    ratio: Optional[Dict[str, float]] = field(init=False, default=None)
     ratio_sf: Optional[Dict[float, float]] = field(init=False, default=None)
     scalefactorXY: Optional[float] = field(init=False, default=None)
     unit: Optional[str] = field(init=True, default='micron')
-    
-    
+
     def __post_init__(self):
 
         czi_box = get_czimd_box(self.filepath)
@@ -504,8 +503,8 @@ class CziScaling:
 
             # calc the scale ratio
             self.ratio = {"xy": np.round(self.X / self.Y, 3),
-                                "zx": np.round(self.Z / self.X, 3)
-                                }
+                          "zx": np.round(self.Z / self.X, 3)
+                          }
 
         elif not czi_box.has_scale:
             logger.warning("No scaling information found.")
@@ -522,7 +521,7 @@ class CziScaling:
             # check for the value = 0.0
             if sc == 0.0:
                 sc = 1.0
-                logger.warning("Detetcted Scaling = 0.0 for " + scales[idx] + " Using default = 1.0 [micron].")
+                logger.warning("Detected Scaling = 0.0 for " + scales[idx] + " Using default = 1.0 [micron].")
             return sc
         
         except (IndexError, TypeError, AttributeError):
@@ -544,8 +543,12 @@ class CziInfo:
         czimd_box = get_czimd_box(self.filepath)
 
         # get directory and filename etc.
-        self.dirname = Path(self.filepath).parent
-        self.filename = Path(self.filepath).name
+        if isinstance(self.filepath, str):
+            self.dirname = str(Path(self.filepath).parent)
+            self.filename = str(Path(self.filepath).name)
+        if isinstance(self.filepath, Path):
+            self.dirname = str(self.filepath.parent)
+            self.filename = str(self.filepath.name)
 
         # get acquisition data and SW version
         if czimd_box.ImageDocument.Metadata.Information.Application is not None:
@@ -567,8 +570,7 @@ class CziObjectives:
     immersion: Optional[str] = field(init=False, default=None)
     tubelensmag: Optional[float] = field(init=False, default=None)
     totalmag: Optional[float] = field(init=False, default=None) 
-    
-    
+
     def __post_init__(self):
 
         czi_box = get_czimd_box(self.filepath)
@@ -986,8 +988,7 @@ def writexml(filename: Union[str, os.PathLike[str]], xmlsuffix: str = '_CZI_Meta
     return xmlfile
 
 
-def create_mdict_red(metadata: CziMetadata,
-                     sort: bool = True) -> Dict:
+def create_mdict_red(metadata: CziMetadata, sort: bool = True) -> Dict:
     """
     Created a metadata dictionary to be displayed in napari
 
@@ -1050,15 +1051,14 @@ def create_mdict_red(metadata: CziMetadata,
         return md_dict
 
 
-def get_czimd_box(filename: Union[str, os.PathLike[str]]) -> Box:
-    
-    if isinstance(filename, PurePosixPath) or isinstance(filename, PureWindowsPath):
+def get_czimd_box(filepath: Union[str, os.PathLike[str]]) -> Box:
 
+    if isinstance(filepath, Path):
         # convert to string
-        filename = filename.as_posix()
+        filepath = str(filepath)
 
     # get metadata dictionary using pylibCZIrw
-    with pyczi.open_czi(filename) as czi_document:
+    with pyczi.open_czi(filepath) as czi_document:
         metadata_dict = czi_document.metadata
 
     czimd_box = Box(metadata_dict,
@@ -1066,7 +1066,7 @@ def get_czimd_box(filename: Union[str, os.PathLike[str]]) -> Box:
                     default_box=True,
                     default_box_attr=None,
                     default_box_create_on_get=True,
-                    #default_box_no_key_error=True
+                    # default_box_no_key_error=True
                     )
 
     # set the defaults to False
@@ -1091,7 +1091,7 @@ def get_czimd_box(filename: Union[str, os.PathLike[str]]) -> Box:
     czimd_box.has_layers = False
 
     if 'Experiment' in czimd_box.ImageDocument.Metadata:
-        czimd_box.has_exp = True
+        czimd_box.has_experiment = True
 
     if 'HardwareSetting' in czimd_box.ImageDocument.Metadata:
         czimd_box.has_hardware = True
@@ -1104,22 +1104,21 @@ def get_czimd_box(filename: Union[str, os.PathLike[str]]) -> Box:
 
         if 'Application' in czimd_box.ImageDocument.Metadata.Information:
             czimd_box.has_app = True
-        
+
         if 'Document' in czimd_box.ImageDocument.Metadata.Information:
             czimd_box.has_doc = True
-        
+
         if 'Image' in czimd_box.ImageDocument.Metadata.Information:
             czimd_box.has_image = True
 
             if 'Dimensions' in czimd_box.ImageDocument.Metadata.Information.Image:
                 czimd_box.has_dims = True
-        
+
                 if 'Channels' in czimd_box.ImageDocument.Metadata.Information.Image.Dimensions:
                     czimd_box.has_channels = True
 
                 if 'S' in czimd_box.ImageDocument.Metadata.Information.Image.Dimensions:
                     czimd_box.has_scenes = True
-
 
         if 'Instrument' in czimd_box.ImageDocument.Metadata.Information:
             czimd_box.has_instrument = True
