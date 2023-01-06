@@ -19,13 +19,8 @@ from czitools import misc
 import numpy as np
 import pydash
 from dataclasses import dataclass, field, fields, Field
-import logging
 from pathlib import Path, PurePath, PureWindowsPath, PurePosixPath
 from box import Box, BoxList
-
-# configure logging
-misc.set_logger(name="czitools-logging", level=logging.DEBUG)
-logger = misc.get_logger()
 
 
 class CziMetadataComplete:
@@ -99,7 +94,7 @@ class CziMetadata:
                 self.aics_posC = self.aics_dim_order["C"]
 
             except ImportError as e:
-                logger.warning("Package aicspylibczi not found. Use Fallback values.")
+                print("Package aicspylibczi not found. Use Fallback values.")
                 self.aics_dimstring = None
                 self.aics_dims_shape = None
                 self.aics_size = None
@@ -387,19 +382,19 @@ class CziBoundingBox:
                 self.scenes_bounding_rect = czidoc.scenes_bounding_rectangle
             except Exception as e:
                 self.scenes_bounding_rect = None
-                logger.warning("Scenes Bounding rectangle not found.")
+                print("Scenes Bounding rectangle not found.")
 
             try:
                 self.total_rect = czidoc.total_bounding_rectangle
             except Exception as e:
                 self.total_rect = None
-                logger.warning("Total Bounding rectangle not found.")
+                print("Total Bounding rectangle not found.")
 
             try:
                 self.total_bounding_box = czidoc.total_bounding_box
             except Exception as e:
                 self.total_bounding_box = None
-                logger.warning("Total Bounding Box not found.")
+                print("Total Bounding Box not found.")
 
 
 @dataclass
@@ -472,7 +467,7 @@ class CziChannelInfo:
 
         #elif czi_box.ImageDocument.Metadata.Information.Image.Dimensions.Channels.Channel is None:
         elif czi_box.ImageDocument.Metadata.Information.Image.Dimensions is None:
-            logger.warning("Channel information not found.")
+            print("Channel information not found.")
             pass
 
 
@@ -507,7 +502,7 @@ class CziScaling:
                           }
 
         elif not czi_box.has_scale:
-            logger.warning("No scaling information found.")
+            print("No scaling information found.")
 
     @staticmethod
     def safe_get_scale(dist: BoxList, idx: int) -> Optional[float]:
@@ -521,12 +516,12 @@ class CziScaling:
             # check for the value = 0.0
             if sc == 0.0:
                 sc = 1.0
-                logger.warning("Detected Scaling = 0.0 for " + scales[idx] + " Using default = 1.0 [micron].")
+                print("Detected Scaling = 0.0 for " + scales[idx] + " Using default = 1.0 [micron].")
             return sc
         
         except (IndexError, TypeError, AttributeError):
            
-            logger.warning("No " + scales[idx] + "-Scaling found. Using default = 1.0 [micron].")
+            print("No " + scales[idx] + "-Scaling found. Using default = 1.0 [micron].")
             return 1.0
 
 
@@ -591,7 +586,7 @@ class CziObjectives:
                 self.name =  objective.Manufacturer.Model
         
         elif not czi_box.has_objectives:
-            logger.warning("No Objective Information found.")
+            print("No Objective Information found.")
 
         # chek if tublens metadata exist
         if czi_box.has_tubelenses:
@@ -602,7 +597,7 @@ class CziObjectives:
             self.tubelensmag = float(tubelens.Magnification)
 
         elif not czi_box.has_tubelens:
-            logger.warning("No Tublens Information found.")
+            print("No Tublens Information found.")
 
         # some additional checks to clac the total magnification
         if self.objmag is not None and self.tubelensmag is not None:
@@ -648,7 +643,7 @@ class CziDetector:
 
         elif czi_box.ImageDocument.Metadata.Information.Instrument is None:
 
-            logger.warning("No Detetctor(s) information found.")
+            print("No Detetctor(s) information found.")
             self.model = [None]
             self.name = [None]
             self.ID = [None]
@@ -668,193 +663,52 @@ class CziMicroscope:
         if czi_box.ImageDocument.Metadata.Information.Instrument is None:
             self.ID = None
             self.Name = None
-            logger.warning("No Microscope information found.")
+            print("No Microscope information found.")
         else:
             self.ID = czi_box.ImageDocument.Metadata.Information.Instrument.Microscopes.Microscope.Id
             self.Name = czi_box.ImageDocument.Metadata.Information.Instrument.Microscopes.Microscope.Name
 
 
+@dataclass
 class CziSampleInfo:
-    def __init__(self, filename: Union[str, os.PathLike[str]]) -> None:
+    filepath: Union[str, os.PathLike[str]]
+    well_array_names: List[str] = field(init=False, default_factory=lambda: [])
+    well_indices: List[str] = field(init=False, default_factory=lambda: [])
+    well_position_names: List[str] = field(init=False, default_factory=lambda: [])
+    well_colID: List[int] = field(init=False, default_factory=lambda: [])
+    well_rowID: List[int] = field(init=False, default_factory=lambda: [])
+    well_counter: Dict = field(init=False, default_factory=lambda: {})
+    scene_stageX: List[float] = field(init=False, default_factory=lambda: [])
+    scene_stageY: List[float] = field(init=False, default_factory=lambda: [])
+    image_stageX: float = field(init=False, default=None)
+    image_stageY: float = field(init=False, default=None)
 
-        if isinstance(filename, PurePosixPath) or isinstance(filename, PureWindowsPath):
+    def __post_init__(self):
 
-            # convert to string
-            filename = filename.as_posix()
-
-        # get metadata dictionary using pylibCZIrw
-        with pyczi.open_czi(filename) as czidoc:
-            md_dict = czidoc.metadata
-
-        size_s = CziDimensions(filename).SizeS
-        #size_s = dim_dict["SizeS"]
-
-        # check for well information
-        self.well_array_names = []
-        self.well_indices = []
-        self.well_position_names = []
-        self.well_colID = []
-        self.well_rowID = []
-        self.well_counter = []
-        self.scene_stageX = []
-        self.scene_stageY = []
-        self.image_stageX = None
-        self.image_stageY = None
+        czi_box = get_czimd_box(self.filepath)
+        size_s = CziDimensions(self.filepath).SizeS
 
         if size_s is not None:
-            # logger.info("Trying to extract Scene and Well information if existing ...")
 
-            # extract well information from the dictionary
-            allscenes: Union[Dict, List]
-            well: Union[Dict, List]
-
-            # get the information from the dictionary (based on the XML)
             try:
-                allscenes = md_dict["ImageDocument"]["Metadata"]["Information"]["Image"]["Dimensions"]["S"]["Scenes"][
-                    "Scene"]
+                allscenes = czi_box.ImageDocument.Metadata.Information.Image.Dimensions.S.Scenes.Scene
 
-                # loop over all detected scenes
-                for s in range(size_s):
+                if isinstance(allscenes, Box):
+                    self.get_well_info(allscenes)
 
-                    if size_s == 1:
-                        well = allscenes
-                        try:
-                            self.well_array_names.append(allscenes["ArrayName"])
-                        except (KeyError, TypeError) as e:
-                            try:
-                                self.well_array_names.append(well["@Name"])
-                            except (KeyError, TypeError) as e:
-                                try:
-                                    self.well_array_names.append(well["Name"])
-                                except (KeyError, TypeError) as e:
-                                    logger.warning("Well Name not found. Using A1 instead.")
-                                    self.well_array_names.append("A1")
+                if isinstance(allscenes, BoxList):
+                    for well in range(len(allscenes)):
 
-                        try:
-                            self.well_indices.append(allscenes["@Index"])
-                        except (KeyError, TypeError) as e:
-                            try:
-                                self.well_indices.append(allscenes["Index"])
-                            except (KeyError, TypeError) as e:
-                                logger.warning("Well Index not found.")
-                                self.well_indices.append(1)
+                        self.get_well_info(allscenes[well])
 
-                        try:
-                            self.well_position_names.append(allscenes["@Name"])
-                        except (KeyError, TypeError) as e:
-                            try:
-                                self.well_position_names.append(allscenes["Name"])
-                            except (KeyError, TypeError) as e:
-                                logger.warning("Well Position Names not found.")
-                                self.well_position_names.append("P1")
+            except AttributeError:
+                print("CZI contains no scene metadata.")
 
-                        try:
-                            self.well_colID.append(
-                                int(allscenes["Shape"]["ColumnIndex"]))
-                        except (KeyError, TypeError) as e:
-                            logger.warning("Well ColumnIDs not found.")
-                            self.well_colID.append(0)
-
-                        try:
-                            self.well_rowID.append(
-                                int(allscenes["Shape"]["RowIndex"]))
-                        except (KeyError, TypeError) as e:
-                            logger.warning("Well RowIDs not found.")
-                            self.well_rowID.append(0)
-
-                        try:
-                            # count the content of the list, e.g. how many times a certain well was detected
-                            self.well_counter = Counter(self.well_array_names)
-                        except (KeyError, TypeError):
-                            self.well_counter.append(Counter({"A1": 1}))
-
-                        try:
-                            # get the SceneCenter Position
-                            sx = allscenes["CenterPosition"].split(",")[0]
-                            sy = allscenes["CenterPosition"].split(",")[1]
-                            self.scene_stageX.append(np.double(sx))
-                            self.scene_stageY.append(np.double(sy))
-                        except (TypeError, KeyError) as e:
-                            logger.warning("Stage Positions XY not found.")
-                            self.scene_stageX.append(0.0)
-                            self.scene_stageY.append(0.0)
-
-                    if size_s > 1:
-                        well = allscenes[s]
-                        try:
-                            self.well_array_names.append(well["ArrayName"])
-                        except (KeyError, TypeError) as e:
-                            try:
-                                self.well_array_names.append(well["@Name"])
-                            except (KeyError, TypeError) as e:
-                                try:
-                                    self.well_array_names.append(well["Name"])
-                                except (KeyError, TypeError) as e:
-                                    logger.warning("Well Name not found. Using A1 instead.")
-                                    self.well_array_names.append("A1")
-
-                        # get the well information
-                        try:
-                            self.well_indices.append(well["@Index"])
-                        except (KeyError, TypeError) as e:
-                            try:
-                                self.well_indices.append(well["Index"])
-                            except (KeyError, TypeError) as e:
-                                logger.warning("Well Index not found.")
-                                self.well_indices.append(None)
-                        try:
-                            self.well_position_names.append(well["@Name"])
-                        except (KeyError, TypeError) as e:
-                            try:
-                                self.well_position_names.append(well["Name"])
-                            except (KeyError, TypeError) as e:
-                                logger.warning("Well Position Names not found.")
-                                self.well_position_names.append(None)
-
-                        try:
-                            self.well_colID.append(
-                                int(well["Shape"]["ColumnIndex"]))
-                        except (KeyError, TypeError) as e:
-                            logger.warning("Well ColumnIDs not found.")
-                            self.well_colID.append(None)
-
-                        try:
-                            self.well_rowID.append(
-                                int(well["Shape"]["RowIndex"]))
-                        except (KeyError, TypeError) as e:
-                            logger.warning("Well RowIDs not found.")
-                            self.well_rowID.append(None)
-
-                        # count the content of the list, e.g. how many times a certain well was detected
-                        self.well_counter = Counter(self.well_array_names)
-
-                        # try:
-                        if isinstance(allscenes, list):
-                            try:
-                                # get the SceneCenter Position
-                                sx = allscenes[s]["CenterPosition"].split(",")[0]
-                                sy = allscenes[s]["CenterPosition"].split(",")[1]
-                                self.scene_stageX.append(np.double(sx))
-                                self.scene_stageY.append(np.double(sy))
-                            except (KeyError, TypeError) as e:
-                                logger.warning("Stage Positions XY not found.")
-                                self.scene_stageX.append(0.0)
-                                self.scene_stageY.append(0.0)
-                        if not isinstance(allscenes, list):
-                            self.scene_stageX.append(0.0)
-                            self.scene_stageY.append(0.0)
-
-                    # count the number of different wells
-                    self.number_wells = len(self.well_counter.keys())
-            except KeyError as e:
-                logger.warning("CZI contains no scene metadata.")
-
-        else:
-            logger.info(
-                "No Scene or Well information found. Try to read XY Stage Coordinates from subblocks.")
+        elif size_s is None:
+            print("No Scene or Well information found. Try to read XY Stage Coordinates from subblocks.")
             try:
                 # read the data from CSV file
-                planetable, csvfile = misc.get_planetable(filename,
+                planetable, csvfile = misc.get_planetable(self.filepath,
                                                           read_one_only=True,
                                                           savetable=False)
 
@@ -862,7 +716,46 @@ class CziSampleInfo:
                 self.image_stageY = float(planetable["Y[micron]"][0])
 
             except Exception as e:
-                logger.error(e)
+                print(e)
+
+    def get_well_info(self, well: Box):
+
+        # check the ArrayName
+        if well.ArrayName is not None:
+            self.well_array_names.append(well.ArrayName)
+            # count the well instances
+            self.well_counter = Counter(self.well_array_names)
+
+        if well.Index is not None:
+            self.well_indices.append(int(well.Index))
+        elif well.Index is None:
+            print("Well Index not found.")
+            self.well_indices.append(1)
+
+        if well.Name is not None:
+            self.well_position_names.append(well.Name)
+        elif well.Name is None:
+            print("Well Position Names not found.")
+            self.well_position_names.append("P1")
+
+        if well.Shape is not None:
+            self.well_colID.append(int(well.Shape.ColumnIndex))
+            self.well_rowID.append(int(well.Shape.RowIndex))
+        elif well.Shape is None:
+            print("Well Column or Row IDs not found.")
+            self.well_colID.append(0)
+            self.well_rowID.append(0)
+
+        if well.CenterPosition is not None:
+            # get the SceneCenter Position
+            sx = well.CenterPosition.split(",")[0]
+            sy = well.CenterPosition.split(",")[1]
+            self.scene_stageX.append(np.double(sx))
+            self.scene_stageY.append(np.double(sy))
+        if well.CenterPosition is None:
+            print("Stage Positions XY not found.")
+            self.scene_stageX.append(0.0)
+            self.scene_stageY.append(0.0)
 
 
 @dataclass
@@ -881,27 +774,27 @@ class CziAddMetaData:
         if czi_box.has_experiment:
             self.experiment = czi_box.ImageDocument.Metadata.Experiment
         else:
-            logger.warning("No Experiment information found.")
+            print("No Experiment information found.")
 
         if czi_box.has_hardware:
             self.hardwaresetting = czi_box.ImageDocument.Metadata.HardwareSetting
         else:
-            logger.warning("No HardwareSetting information found.")
+            print("No HardwareSetting information found.")
 
         if czi_box.has_customattr:
             self.customattributes = czi_box.ImageDocument.Metadata.CustomAttributes
         else:
-            logger.warning("No CustomAttributes information found.")
+            print("No CustomAttributes information found.")
 
         if czi_box.has_disp:
             self.displaysetting = czi_box.ImageDocument.Metadata.DisplaySetting
         else:
-            logger.warning("No DisplaySetting information found.")
+            print("No DisplaySetting information found.")
 
         if czi_box.has_layers:
             self.layers = czi_box.ImageDocument.Metadata.Layers
         else:
-            logger.warning("No Layers information found.")
+            print("No Layers information found.")
 
 
 @dataclass
@@ -930,7 +823,7 @@ class CziScene:
                 self.height = self.bbox.h
             except KeyError:
                 # in case an invalid index was used
-                logger.warning("No Scenes detected.")
+                print("No Scenes detected.")
 
 
 def obj2dict(obj: Any, sort: bool = True) -> Dict[str, Any]:

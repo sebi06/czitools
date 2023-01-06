@@ -24,15 +24,10 @@ import xml.etree.ElementTree as ET
 from aicspylibczi import CziFile
 from aicsimageio import AICSImage
 import dateutil.parser as dt
-import czitools
+from czitools import pylibczirw_metadata as czimd
 from tqdm.contrib.itertools import product
 from typing import List, Dict, Tuple, Optional, Type, Any, Union
-import logging
 
-_logger: Optional[logging.Logger] = None
-# configure logging
-#set_logger(name="czitools-logging", level=logging.DEBUG)
-#logger = get_logger()
 
 
 def openfile(directory: str,
@@ -257,7 +252,7 @@ def get_planetable(czifile: Union[str, os.PathLike[str]],
         czifile = czifile.as_posix()
 
     # get the czi metadata
-    czi_dimensions = czitools.pylibczirw_metadata.CziDimensions(czifile)
+    czi_dimensions = czimd.CziDimensions(czifile)
     aicsczi = CziFile(czifile)
 
     # initialize the plane table
@@ -541,36 +536,3 @@ def expand5d(array):
 
     return array5d
 
-
-def get_logger() -> logging.Logger:
-    global _logger
-    if _logger is None:
-        raise RuntimeError('get_logger call made before logger was setup!')
-    return _logger
-
-
-def set_logger(name: str, level=logging.DEBUG) -> None:
-    global _logger
-
-    # check if logger already exists
-    if _logger is not None:
-        raise RuntimeError('_logger is already setup!')
-
-    _logger = logging.getLogger(name)
-    _logger.handlers.clear()
-    _logger.setLevel(level)
-    ch = logging.StreamHandler()
-    ch.setLevel(level)
-
-    # get the logging format
-    ch.setFormatter(_get_formatter())
-    _logger.addHandler(ch)
-    _logger.propagate = False  # otherwise root logger prints things again
-
-
-def _get_formatter() -> logging.Formatter:
-
-    #logfmt = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s: %(message)s")
-    logfmt = logging.Formatter("%(asctime)s - %(levelname)s: %(message)s")
-
-    return logfmt

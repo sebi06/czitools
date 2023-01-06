@@ -13,6 +13,7 @@ from pylibCZIrw import czi as pyczi
 from czitools import pylibczirw_metadata as czimd
 from czitools import misc
 import numpy as np
+from pathlib import Path, PurePath, PureWindowsPath, PurePosixPath
 from typing import List, Dict, Tuple, Optional, Type, Any, Union
 from tqdm.contrib.itertools import product
 import dask
@@ -20,7 +21,7 @@ import dask.array as da
 import os
 
 
-def read_6darray(filename: Union[str, os.PathLike[str]],
+def read_6darray(filepath: Union[str, os.PathLike[str]],
                  output_order: str = "STCZYX",
                  output_dask: bool = False,
                  chunks_auto: bool = False,
@@ -30,7 +31,7 @@ def read_6darray(filename: Union[str, os.PathLike[str]],
     Important: Currently supported are only scenes with equal size and CZIs with consistent pixel types.
 
     Args:
-        filename (str): filepath for the CZI image
+        filepath (str | Path): filepath for the CZI image
         output_order (str, optional): Order of dimensions for the output array. Defaults to "STCZYX".
         output_dask (bool, optional): If True the output will be a dask array. Defaults to False.
         chunks_auto (bool, optional): Use a chunk size create automatically if True and otherwise use the array shape. Default to False.
@@ -42,11 +43,12 @@ def read_6darray(filename: Union[str, os.PathLike[str]],
         Tuple[np.ndarray, czimd.Metadata, dim_order6d]: output as 6D numpy or dask array and metadata 
     """
 
-    if not isinstance(filename, str):
-        filename = filename.as_posix()
+    if isinstance(filepath, Path):
+        # convert to string
+        filepath = str(filepath)
 
     # get the complete metadata at once as one big class
-    mdata = czimd.CziMetadata(filename)
+    mdata = czimd.CziMetadata(filepath)
 
     if not mdata.consistent_pixeltypes:
         print("Detected PixelTypes ar not consistent. Cannot create array6d")
@@ -66,7 +68,7 @@ def read_6darray(filename: Union[str, os.PathLike[str]],
         return np.array([]), mdata, ""
 
     # open the CZI document to read the
-    with pyczi.open_czi(filename) as czidoc:
+    with pyczi.open_czi(filepath) as czidoc:
 
         if mdata.image.SizeS is not None:
             # get size for a single scene using the 1st
@@ -154,7 +156,7 @@ def read_6darray(filename: Union[str, os.PathLike[str]],
     return array6d, mdata, dim_string
 
 
-def read_5darray(filename: Union[str, os.PathLike[str]],
+def read_5darray(filepath: Union[str, os.PathLike[str]],
                  scene: int = 0,
                  output_order: str = "TCZYX",
                  output_dask: bool = False,
@@ -165,7 +167,7 @@ def read_5darray(filename: Union[str, os.PathLike[str]],
     Important: Currently supported are only scenes with equal size and CZIs with consistent pixel types.
 
     Args:
-        filename (str): filepath for the CZI image
+        filepath (str | Path): filepath for the CZI image
         scene (int, optional): Index of scene to be read as 5D stack.
         output_order (str, optional): Order of dimensions for the output array. Defaults to "TCZYX".
         output_dask (bool, optional): If True the output will be a dask array. Defaults to False.
@@ -178,11 +180,12 @@ def read_5darray(filename: Union[str, os.PathLike[str]],
         Tuple[np.ndarray, czimd.Metadata, dim_order6d]: output as 6D numpy or dask array and metadata
     """
 
-    if not isinstance(filename, str):
-        filename = filename.as_posix()
+    if isinstance(filepath, Path):
+        # convert to string
+        filepath = str(filepath)
 
     # get the complete metadata at once as one big class
-    mdata = czimd.CziMetadata(filename)
+    mdata = czimd.CziMetadata(filepath)
 
     if not mdata.consistent_pixeltypes:
         print("Detected PixelTypes ar not consistent. Cannot create array6d")
@@ -198,7 +201,7 @@ def read_5darray(filename: Union[str, os.PathLike[str]],
         return np.array([]), mdata, ""
 
     # open the CZI document to read the
-    with pyczi.open_czi(filename) as czidoc:
+    with pyczi.open_czi(filepath) as czidoc:
 
         if mdata.image.SizeS is not None:
 
@@ -260,23 +263,24 @@ def read_5darray(filename: Union[str, os.PathLike[str]],
 
 
 # EXPERIMENTAL FUNCTION
-def read_mdarray_lazy(filename: Union[str, os.PathLike[str]],
+def read_mdarray_lazy(filepath: Union[str, os.PathLike[str]],
                       remove_adim: bool = True) -> Tuple[da.Array, str]:
 
-    def read_5d(filename: Union[str, os.PathLike[str]],
+    def read_5d(filepath: Union[str, os.PathLike[str]],
                 sizes: Tuple[int, int, int, int, int],
                 s: int,
                 mdata: czimd.CziMetadata,
                 remove_adim: bool = True) -> np.ndarray:
 
-        if not isinstance(filename, str):
-            filename = filename.as_posix()
+        if isinstance(filepath, Path):
+            # convert to string
+            filepath = str(filepath)
 
         array5d = da.empty([sizes[0], sizes[1], sizes[2], sizes[3], sizes[4], 3 if mdata.isRGB else 1],
                            dtype=mdata.npdtype)
 
         # open the CZI document to read the
-        with pyczi.open_czi(filename) as czidoc5d:
+        with pyczi.open_czi(filepath) as czidoc5d:
 
             # read array for the scene
             for t, z, c in product(range(sizes[0]),
@@ -300,11 +304,12 @@ def read_mdarray_lazy(filename: Union[str, os.PathLike[str]],
 
         return array5d
 
-    if not isinstance(filename, str):
-        filename = filename.as_posix()
+    if isinstance(filepath, Path):
+        # convert to string
+        filepath = str(filepath)
 
     # get the metadata
-    mdata = czimd.CziMetadata(filename)
+    mdata = czimd.CziMetadata(filepath)
 
     if not mdata.consistent_pixeltypes:
         print("Detected PixelTypes ar not consistent. Cannot create array6d")
@@ -314,7 +319,7 @@ def read_mdarray_lazy(filename: Union[str, os.PathLike[str]],
         use_pixeltype = mdata.npdtype[0]
 
     # open the CZI document to read the
-    with pyczi.open_czi(filename) as czidoc:
+    with pyczi.open_czi(filepath) as czidoc:
 
         if mdata.image.SizeS is not None:
 
@@ -345,7 +350,7 @@ def read_mdarray_lazy(filename: Union[str, os.PathLike[str]],
     # create dask stack of lazy image readers
     lazy_process_image = dask.delayed(read_5d)  # lazy reader
     lazy_arrays = [lazy_process_image(
-        filename, sizes, s, mdata, remove_adim) for s in range(size_s)]
+        filepath, sizes, s, mdata, remove_adim) for s in range(size_s)]
 
     dask_arrays = [da.from_delayed(
         lazy_array, shape=sp, dtype=use_pixeltype) for lazy_array in lazy_arrays]
