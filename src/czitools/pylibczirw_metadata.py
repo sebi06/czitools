@@ -23,41 +23,6 @@ from pathlib import Path, PurePath, PureWindowsPath, PurePosixPath
 from box import Box, BoxList
 
 
-class CziMetadataComplete:
-    """
-    Get the complete CZI metadata as an object created based on the
-    dictionary created from the XML data.
-    """
-
-    def __init__(self, filepath: Union[str, os.PathLike[str]]) -> None:
-        
-        if isinstance(filepath, Path):
-            # convert to string
-            filepath = str(filepath)
-
-        # get metadata dictionary using pylibCZIrw
-        with pyczi.open_czi(filepath) as czidoc:
-            md_dict = czidoc.metadata
-
-        self.md = DictObj(md_dict)
-
-        # TODO convert to dataclass and check if needed at all. Replace by Box?
-
-
-class DictObj:
-    """
-    Create an object based on a dictionary. See https://joelmccune.com/python-dictionary-as-object/
-    """
-
-    def __init__(self, in_dict: dict) -> None:
-        assert isinstance(in_dict, dict)
-        for key, val in in_dict.items():
-            if isinstance(val, (list, tuple)):
-                setattr(self, key, [DictObj(x) if isinstance(x, dict) else x for x in val])
-            else:
-                setattr(self, key, DictObj(val) if isinstance(val, dict) else val)
-
-
 class CziMetadata:
     """
     Create a CziMetadata object from the filename
@@ -822,6 +787,43 @@ class CziScene:
                 print("No Scenes detected.")
 
 
+class CziMetadataComplete:
+    """
+    Get the complete CZI metadata as an object created based on the
+    dictionary created from the XML data.
+    """
+
+    def __init__(self, filepath: Union[str, os.PathLike[str]]) -> None:
+        
+        if isinstance(filepath, Path):
+            # convert to string
+            filepath = str(filepath)
+
+        # get metadata dictionary using pylibCZIrw
+        with pyczi.open_czi(filepath) as czidoc:
+            md_dict = czidoc.metadata
+
+        self.md = DictObj(md_dict)
+
+        # TODO convert to dataclass and check if needed at all. Replace by Box?
+
+
+class DictObj:
+    """
+    Create an object based on a dictionary. See https://joelmccune.com/python-dictionary-as-object/
+    """
+
+    def __init__(self, in_dict: dict) -> None:
+        
+        assert isinstance(in_dict, dict)
+        
+        for key, val in in_dict.items():
+            if isinstance(val, (list, tuple)):
+                setattr(self, key, [DictObj(x) if isinstance(x, dict) else x for x in val])
+            else:
+                setattr(self, key, DictObj(val) if isinstance(val, dict) else val)
+
+
 def obj2dict(obj: Any, sort: bool = True) -> Dict[str, Any]:
     """
     obj2dict: Convert a class attributes and their values to a dictionary
@@ -839,21 +841,28 @@ def obj2dict(obj: Any, sort: bool = True) -> Dict[str, Any]:
 
     if not hasattr(obj, "__dict__"):
         return obj
+    
     result = {}
+    
     for key, val in obj.__dict__.items():
+        
         if key.startswith("_"):
             continue
+        
         element = []
+        
         if isinstance(val, list):
             for item in val:
                 element.append(obj2dict(item))
         else:
             element = obj2dict(val)
+        
         result[key] = element
 
     if sort:
         return misc.sort_dict_by_key(result)
-    if not sort:
+    
+    elif not sort:
         return result
 
 
@@ -870,11 +879,13 @@ def writexml(filepath: Union[str, os.PathLike[str]], xmlsuffix: str = '_CZI_Meta
     """    
 
     if isinstance(filepath, Path):
+        
         # convert to string
         filepath = str(filepath)
 
     # get the raw metadata as XML or dictionary
     with pyczi.open_czi(filepath) as czidoc:
+        
         metadata_xmlstr = czidoc.raw_metadata
 
     # change file name
