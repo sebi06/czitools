@@ -1,7 +1,7 @@
 from czitools import pylibczirw_tools, misc
 from czitools import pylibczirw_metadata as czimd
 from pylibCZIrw import czi as pyczi
-import os
+#import os
 from pathlib import Path
 from tifffile import imread, TiffFile
 import numpy as np
@@ -11,7 +11,7 @@ from tqdm import tqdm
 basedir = Path(__file__).resolve().parents[3]
 
 # get some data to write
-filepath = os.path.join(basedir, r"data/z=16_ch=3.czi")
+filepath = basedir / r"data/z=16_ch=3.czi"
 mdarray, mdata, dimstring = pylibczirw_tools.read_6darray(filepath,
                                                           output_dask=False,
                                                           chunks_auto=False,
@@ -24,19 +24,20 @@ numZ = mdata.image.SizeZ
 def test_write_1():
 
     # get the CZI filepath
-    filepath1 = os.path.join(basedir, r"data/CH=1_16bit.tif")
-    filepath2 = os.path.join(basedir, r"data/Fluorescence_RGB.tif")
+    filepath1 = basedir / r"data/CH=1_16bit.tif"
+    filepath2 = basedir / r"data/Fluorescence_RGB.tif"
 
     files = [filepath1, filepath2]
     sps = [1, 3]
 
     for file, sp in zip(files, sps):
 
-        czi_path = os.path.join(os.path.dirname(file), (misc.get_fname_woext(file) + ".czi"))
+        #czi_path = os.path.join(os.path.dirname(file), (misc.get_fname_woext(file) + ".czi"))
+        czi_path = file.parent / Path(misc.get_fname_woext(str(file)) + ".czi")
 
         # remove the CZI if it already exits
-        if os.path.exists(czi_path):
-            os.remove(czi_path)
+        if czi_path.exists():
+            Path.unlink(czi_path)
 
         # read the TIF image
         tif_image = imread(file)
@@ -61,22 +62,23 @@ def test_write_1():
         assert (tiff_tags["SamplesPerPixel"] == sp)
 
         # open a new CZI and allow overwrite (!!!) to play around ...
-        with pyczi.create_czi(czi_path, exist_ok=True) as czidoc_w:
+        with pyczi.create_czi(str(czi_path), exist_ok=True) as czidoc_w:
 
             # write the plane
             czidoc_w.write(data=tif_image)
 
         # check if CZI was written
-        assert (os.path.exists(czi_path) is True)
+        assert (czi_path.exists() is True)
 
         # remove the files
-        os.remove(czi_path)
+        Path.unlink(Path(czi_path))
+        #os.remove(czi_path)
 
 
 def test_write_2():
 
     # create the filename for the new CZI image file
-    newczi_4dstack = os.path.join(os.getcwd(), "z=16_ch=3.czi")
+    newczi_4dstack = str(Path.cwd() / "z=16_ch=3.czi")
 
     # open a new CZI and allow overwrite (!!!) to play around ...
     with pyczi.create_czi(newczi_4dstack, exist_ok=True) as czidoc_w:
@@ -85,10 +87,7 @@ def test_write_2():
         for z, ch in it.product(range(numZ), range(numCH)):
             # get the 2d array for the current plane and add axis to get (Y, X, 1) as shape
             # write the plane with shape (Y, X, 1) to the new CZI file
-            czidoc_w.write(
-                data=mdarray[0, 0, z, ch, ...],
-                plane={"Z": z, "C": ch}
-            )
+            czidoc_w.write(data=mdarray[0, 0, z, ch, ...], plane={"Z": z, "C": ch})
 
     # get the complete metadata at once as one big class
     mdata = czimd.CziMetadata(newczi_4dstack)
@@ -99,13 +98,15 @@ def test_write_2():
     assert (mdata.isRGB is False)
     assert (mdata.ismosaic is False)
 
-    os.remove(newczi_4dstack)
+    # remove file
+    Path.unlink(Path(newczi_4dstack))
+    #os.remove(newczi_4dstack)
 
 
 def test_write_3():
 
     # create the filename for the new CZI image file
-    newczi_zloc = os.path.join(os.getcwd(), "newCZI_zloc.czi")
+    newczi_zloc = str(Path.cwd() / "newCZI_zloc.czi")
     xstart = 0
     ch = 0
 
@@ -134,7 +135,9 @@ def test_write_3():
     assert (mdata.bbox.total_bounding_box == {'T': (0, 1), 'Z': (
         0, 1), 'C': (0, 1), 'X': (0, 8192), 'Y': (0, 512)})
 
-    os.remove(newczi_zloc)
+    # remove file
+    Path.unlink(Path(newczi_zloc))
+    #os.remove(newczi_zloc)
 
 
 def test_write_4():
@@ -151,7 +154,7 @@ def test_write_4():
         locy.append(xystart + offset * y)
 
     # create the filename for the new CZI image file
-    newczi_zscenes = os.path.join(os.getcwd(), "newCZI_scenes.czi")
+    newczi_zscenes = str(Path.cwd() / "newCZI_scenes.czi")
     ch = 0
 
     with pyczi.create_czi(newczi_zscenes, exist_ok=True) as czidoc_w:
@@ -177,6 +180,8 @@ def test_write_4():
     assert (mdata.bbox.total_bounding_box == {'T': (0, 1), 'Z': (
         0, 1), 'C': (0, 1), 'X': (0, 2612), 'Y': (0, 2612)})
 
-    os.remove(newczi_zscenes)
+    # remove files
+    Path.unlink(Path(newczi_zscenes))
+    #os.remove(newczi_zscenes)
 
-test_write_1()
+

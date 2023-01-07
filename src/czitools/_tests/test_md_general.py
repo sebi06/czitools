@@ -100,7 +100,7 @@ def test_reading_czi_fresh():
     assert (mdata.sample.well_position_names == [])
     assert (mdata.sample.well_colID == [])
     assert (mdata.sample.well_rowID == [])
-    assert (mdata.sample.well_counter == [])
+    assert (mdata.sample.well_counter == {})
     assert (mdata.sample.scene_stageX == [])
     assert (mdata.sample.scene_stageY == [])
     assert (mdata.sample.image_stageX is None)

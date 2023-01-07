@@ -61,19 +61,18 @@ class CziMetadata:
     """Create a CziMetadata object from the filename
     """
 
-    def __init__(self, filename: Union[str, os.PathLike[str]], dim2none: bool = False) -> None:
+    def __init__(self, filepath: Union[str, os.PathLike[str]], dim2none: bool = False) -> None:
 
-        if isinstance(filename, PurePosixPath) or isinstance(filename, PureWindowsPath):
-
+        if isinstance(filepath, Path):
             # convert to string
-            filename = filename.as_posix()
+            filepath = str(filepath)
 
         # get metadata dictionary using pylibCZIrw
-        with pyczi.open_czi(filename) as czidoc:
+        with pyczi.open_czi(filepath) as czidoc:
             md_dict = czidoc.metadata
 
             # get directory, filename, SW version and acquisition data
-            self.info = CziInfo(filename)
+            self.info = CziInfo(filepath)
 
             # get dimensions
             self.pyczi_dims = czidoc.total_bounding_box
@@ -83,7 +82,7 @@ class CziMetadata:
                 from aicspylibczi import CziFile
 
                 # get the general CZI object using aicspylibczi
-                aicsczi = CziFile(filename)
+                aicsczi = CziFile(filepath)
 
                 self.aics_dimstring = aicsczi.dims
                 self.aics_dims_shape = aicsczi.get_dims_shape()
@@ -132,7 +131,7 @@ class CziMetadata:
             # self.npdtype, self.maxvalue = self.get_dtype_fromstring(self.pixeltype)
 
             # get the dimensions and order
-            self.image = CziDimensions(filename)
+            self.image = CziDimensions(filepath)
 
             # try to guess if the CZI is a mosaic file
             if self.image.SizeM is None or self.image.SizeM == 1:
@@ -145,28 +144,28 @@ class CziMetadata:
                 czidoc, size_s=self.image.SizeS)
 
             # get the bounding boxes
-            self.bbox = CziBoundingBox(filename)
+            self.bbox = CziBoundingBox(filepath)
 
             # get information about channels
-            self.channelinfo = CziChannelInfo(filename)
+            self.channelinfo = CziChannelInfo(filepath)
 
             # get scaling info
-            self.scale = CziScaling(filename)
+            self.scale = CziScaling(filepath)
 
             # get objective information
-            self.objective = CziObjectives(filename)
+            self.objective = CziObjectives(filepath)
 
             # get detector information
-            self.detector = CziDetector(filename)
+            self.detector = CziDetector(filepath)
 
             # get detector information
-            self.microscope = CziMicroscope(filename)
+            self.microscope = CziMicroscope(filepath)
 
             # get information about sample carrier and wells etc.
-            self.sample = CziSampleInfo(filename)
+            self.sample = CziSampleInfo(filepath)
 
             # get additional metainformation
-            self.add_metadata = CziAddMetaData(filename)
+            self.add_metadata = CziAddMetaData(filepath)
 
     # can be also used without creating an instance of the class
     @staticmethod
@@ -244,8 +243,7 @@ class CziMetadata:
         return dim_string
 
     @staticmethod
-    def check_scenes_shape(czidoc: pyczi.CziReader,
-                           size_s: Union[int, None]) -> bool:
+    def check_scenes_shape(czidoc: pyczi.CziReader, size_s: Union[int, None]) -> bool:
         """Check if all scenes have the same shape.
 
         Args:
@@ -344,7 +342,7 @@ class CziDimensions:
             The image dimensions dataclass
         """
 
-        # get the Box and extract the relevant metadata
+        # get the Box and extract the relevant dimension metadata
         czi_box = get_czimd_box(self.filepath)
         dimensions = czi_box.ImageDocument.Metadata.Information.Image
 
@@ -366,17 +364,18 @@ class CziDimensions:
 
 @dataclass
 class CziBoundingBox:
-    filename: Union[str, os.PathLike[str]]
+    filepath: Union[str, os.PathLike[str]]
     scenes_bounding_rect: Optional[Dict[int, pyczi.Rectangle]] = field(init=False)
     total_rect: Optional[pyczi.Rectangle] = field(init=False)
     total_bounding_box: Optional[Dict[str, tuple]] = field(init=False)
 
     def __post_init__(self):
 
-        if not isinstance(self.filename, str):
-            self.filename = self.filename.as_posix()
+        if isinstance(self.filepath, Path):
+            # convert to string
+            self.filepath = str(self.filepath)
 
-        with pyczi.open_czi(self.filename) as czidoc:
+        with pyczi.open_czi(self.filepath) as czidoc:
 
             try:
                 self.scenes_bounding_rect = czidoc.scenes_bounding_rectangle
@@ -408,67 +407,59 @@ class CziChannelInfo:
 
     def __post_init__(self):
 
+        # get the Box
         czi_box = get_czimd_box(self.filepath)
 
         # get channels part of dict
-        if czi_box.ImageDocument.Metadata.Information.Image.Dimensions is not None:
-        #if czi_box.ImageDocument.Metadata.Information.Image.Dimensions.Channels.Channel is not None:
+        if czi_box.has_channels:
+
             try:
+                # extract the relevant dimension metadata
                 channels = czi_box.ImageDocument.Metadata.Information.Image.Dimensions.Channels.Channel
+                if isinstance(channels, Box):
+                    # get the data in case of only one channel
+                    self.names.append('CH1') if channels.Name is None else self.names.append(channels.Name)
+                elif isinstance(channels, BoxList):
+                    # get the data in case multiple channels
+                    for ch in range(len(channels)):
+                        self.names.append('CH1') if channels[ch].Name is None else self.names.append(channels[ch].Name)
             except AttributeError:
                 channels = None
-            
+        elif not czi_box.has_channels:
+            print("Channel(s) information not found.")
+
+        if czi_box.has_disp:
+
             try:
+                # extract the relevant dimension metadata
                 disp = czi_box.ImageDocument.Metadata.DisplaySetting.Channels.Channel
+                if isinstance(disp, Box):
+                    self.get_channel_info(disp)
+                elif isinstance(disp, BoxList):
+                    for ch in range(len(disp)):
+                        self.get_channel_info(disp[ch])
             except AttributeError:
                 disp = None
 
-            
-            if isinstance(channels, Box):
+        elif not czi_box.has_disp:
+            print("DisplaySetting(s) not found.")
 
-                self.names.append('CH1') if channels.Name is None else self.names.append(channels.Name)
-                
-                if disp is not None:
-                    self.dyes.append('Dye-CH1') if disp.ShortName is None else self.dyes.append(disp.ShortName)
-                    self.colors.append('#80808000') if disp.Color is None else self.colors.append(disp.Color)
+    def get_channel_info(self, display: Box):
 
-                    low = 0.0 if disp.Low is None else float(disp.Low)
-                    high = 0.5 if disp.High is None else float(disp.High)
+        if display is not None:
+            self.dyes.append('Dye-CH1') if display.ShortName is None else self.dyes.append(display.ShortName)
+            self.colors.append('#80808000') if display.Color is None else self.colors.append(display.Color)
 
-                    self.clims.append([low, high])
-                    self.gamma.append(0.85) if disp.Gamma is None else self.gamma.append(float(disp.Gamma))
-                else:
-                    self.dyes.append('Dye-CH1')
-                    self.colors.append('#80808000')
-                    self.clims.append([0.0, 0.5])
-                    self.gamma.append(0.85)
+            low = 0.0 if display.Low is None else float(display.Low)
+            high = 0.5 if display.High is None else float(display.High)
 
-
-            elif isinstance(channels, BoxList):
-
-                for ch in range(len(channels)):
-                    self.names.append('CH' + str(ch + 1)) if channels[ch].Name is None else self.names.append(channels[ch].Name)
-
-                    if disp is not None:
-
-                        self.dyes.append('Dye-CH' + str(ch + 1)) if disp[ch].ShortName is None else self.dyes.append(disp[ch].ShortName)
-                        self.colors.append('#80808000') if disp[ch].Color is None else self.colors.append(disp[ch].Color)
-
-                        low = 0.0 if disp[ch].Low is None else float(disp[ch].Low)
-                        high = 0.5 if disp[ch].High is None else float(disp[ch].High)
-
-                        self.clims.append([low, high])
-                        self.gamma.append(0.85) if disp[ch].Gamma is None else self.gamma.append(float(disp[ch].Gamma))
-                    else:
-                        self.dyes.append('Dye-CH' + str(ch + 1))
-                        self.colors.append('#80808000')
-                        self.clims.append([0.0, 0.5])
-                        self.gamma.append(0.85)
-
-        #elif czi_box.ImageDocument.Metadata.Information.Image.Dimensions.Channels.Channel is None:
-        elif czi_box.ImageDocument.Metadata.Information.Image.Dimensions is None:
-            print("Channel information not found.")
-            pass
+            self.clims.append([low, high])
+            self.gamma.append(0.85) if display.Gamma is None else self.gamma.append(float(display.Gamma))
+        else:
+            self.dyes.append('Dye-CH1')
+            self.colors.append('#80808000')
+            self.clims.append([0.0, 0.5])
+            self.gamma.append(0.85)
 
 
 @dataclass
@@ -492,11 +483,12 @@ class CziScaling:
 
             distances = czi_box.ImageDocument.Metadata.Scaling.Items.Distance
 
+            # get the scaling values for X,Y and Z
             self.X = self.safe_get_scale(distances, 0)
             self.Y = self.safe_get_scale(distances, 1)
             self.Z = self.safe_get_scale(distances, 2)
 
-            # calc the scale ratio
+            # calc the scaling ratio
             self.ratio = {"xy": np.round(self.X / self.Y, 3),
                           "zx": np.round(self.Z / self.X, 3)
                           }
@@ -506,7 +498,7 @@ class CziScaling:
 
     @staticmethod
     def safe_get_scale(dist: BoxList, idx: int) -> Optional[float]:
-        
+
         scales = ['X', 'Y', 'Z']
 
         try:
@@ -588,7 +580,7 @@ class CziObjectives:
         elif not czi_box.has_objectives:
             print("No Objective Information found.")
 
-        # chek if tublens metadata exist
+        # check if tubelens metadata exist
         if czi_box.has_tubelenses:
             
             # get tubelenes data
@@ -673,7 +665,7 @@ class CziMicroscope:
 class CziSampleInfo:
     filepath: Union[str, os.PathLike[str]]
     well_array_names: List[str] = field(init=False, default_factory=lambda: [])
-    well_indices: List[str] = field(init=False, default_factory=lambda: [])
+    well_indices: List[int] = field(init=False, default_factory=lambda: [])
     well_position_names: List[str] = field(init=False, default_factory=lambda: [])
     well_colID: List[int] = field(init=False, default_factory=lambda: [])
     well_rowID: List[int] = field(init=False, default_factory=lambda: [])
@@ -808,9 +800,10 @@ class CziScene:
     height: Optional[int] = field(init=False, default=None)
     
     def __post_init__(self):
-        
-        if not isinstance(self.filepath, str):
-            self.filepath = self.filepath.as_posix()
+
+        if isinstance(self.filepath, Path):
+            # convert to string
+            self.filepath = str(self.filepath)
 
         # get scene information from the CZI file
         with pyczi.open_czi(self.filepath) as czidoc:
@@ -849,28 +842,27 @@ def obj2dict(obj: Any, sort: bool = True) -> Dict[str, Any]:
         return result
 
 
-def writexml(filename: Union[str, os.PathLike[str]], xmlsuffix: str = '_CZI_MetaData.xml') -> str:
+def writexml(filepath: Union[str, os.PathLike[str]], xmlsuffix: str = '_CZI_MetaData.xml') -> str:
     """Write XML information of CZI to disk
 
-    :param filename: CZI image filename
-    :type filename: str
+    :param filepath: CZI image filename
+    :type filepath: str
     :param xmlsuffix: suffix for the XML file that will be created, defaults to '_CZI_MetaData.xml'
     :type xmlsuffix: str, optional
     :return: filename of the XML file
     :rtype: str
     """
 
-    if isinstance(filename, PurePosixPath) or isinstance(filename, PureWindowsPath):
-
+    if isinstance(filepath, Path):
         # convert to string
-        filename = filename.as_posix()
+        filepath = str(filepath)
 
     # get the raw metadata as XML or dictionary
-    with pyczi.open_czi(filename) as czidoc:
+    with pyczi.open_czi(filepath) as czidoc:
         metadata_xmlstr = czidoc.raw_metadata
 
     # change file name
-    xmlfile = filename.replace('.czi', xmlsuffix)
+    xmlfile = filepath.replace('.czi', xmlsuffix)
 
     # get tree from string
     tree = ET.ElementTree(ET.fromstring(metadata_xmlstr))
