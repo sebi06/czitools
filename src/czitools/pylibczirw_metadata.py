@@ -24,29 +24,30 @@ from box import Box, BoxList
 
 
 class CziMetadataComplete:
-    """Get the complete CZI metadata as an object created based on the
+    """
+    Get the complete CZI metadata as an object created based on the
     dictionary created from the XML data.
     """
 
-    def __init__(self, filename: Union[str, os.PathLike[str]]) -> None:
+    def __init__(self, filepath: Union[str, os.PathLike[str]]) -> None:
         
-        if isinstance(filename, PurePosixPath) or isinstance(filename, PureWindowsPath):
-
+        if isinstance(filepath, Path):
             # convert to string
-            filename = filename.as_posix()
+            filepath = str(filepath)
 
         # get metadata dictionary using pylibCZIrw
-        with pyczi.open_czi(filename) as czidoc:
+        with pyczi.open_czi(filepath) as czidoc:
             md_dict = czidoc.metadata
 
         self.md = DictObj(md_dict)
 
+        # TODO convert to dataclass and check if needed at all. Replace by Box?
+
 
 class DictObj:
-    """Create an object based on a dictionary
     """
-
-    # based upon: https://joelmccune.com/python-dictionary-as-object/
+    Create an object based on a dictionary. See https://joelmccune.com/python-dictionary-as-object/
+    """
 
     def __init__(self, in_dict: dict) -> None:
         assert isinstance(in_dict, dict)
@@ -58,7 +59,8 @@ class DictObj:
 
 
 class CziMetadata:
-    """Create a CziMetadata object from the filename
+    """
+    Create a CziMetadata object from the filename
     """
 
     def __init__(self, filepath: Union[str, os.PathLike[str]], dim2none: bool = False) -> None:
@@ -316,6 +318,9 @@ class CziDimensions:
     SizeB: Optional[int] = field(init=False, default=None)
     SizeX_sf: Optional[int] = field(init=False, default=None)
     SizeY_sf: Optional[int] = field(init=False, default=None)
+    """Dataclass containing the image dimensions.
+    """
+
 
     # Information official CZI Dimension Characters:
     # "X":"Width"        :
@@ -336,11 +341,8 @@ class CziDimensions:
         self.set_dimensions()
 
     def set_dimensions(self):
-        """Populate the image dimensions with the detected values from the metadata
-
-        Returns:
-            The image dimensions dataclass
-        """
+        """set_dimensions: Populate the image dimensions with the detected values from the metadata
+        """    
 
         # get the Box and extract the relevant dimension metadata
         czi_box = get_czimd_box(self.filepath)
@@ -404,6 +406,7 @@ class CziChannelInfo:
     colors: List[str] = field(init=False, default_factory=lambda: [])
     clims: List[List[float]] = field(init=False, default_factory=lambda: [])
     gamma: List[float] = field(init=False, default_factory=lambda: [])
+
 
     def __post_init__(self):
 
@@ -820,6 +823,18 @@ class CziScene:
 
 
 def obj2dict(obj: Any, sort: bool = True) -> Dict[str, Any]:
+    """
+    obj2dict: Convert a class attributes and their values to a dictionary
+
+    Args:
+        obj (Any): Class to be converted
+        sort (bool, optional): Sort the resulting dictionary by key names. Defaults to True.
+
+    Returns:
+        Dict[str, Any]: The resulting disctionary.
+    """
+
+
     # https://stackoverflow.com/questions/7963762/what-is-the-most-economical-way-to-convert-nested-python-objects-to-dictionaries
 
     if not hasattr(obj, "__dict__"):
@@ -843,15 +858,16 @@ def obj2dict(obj: Any, sort: bool = True) -> Dict[str, Any]:
 
 
 def writexml(filepath: Union[str, os.PathLike[str]], xmlsuffix: str = '_CZI_MetaData.xml') -> str:
-    """Write XML information of CZI to disk
-
-    :param filepath: CZI image filename
-    :type filepath: str
-    :param xmlsuffix: suffix for the XML file that will be created, defaults to '_CZI_MetaData.xml'
-    :type xmlsuffix: str, optional
-    :return: filename of the XML file
-    :rtype: str
     """
+    writexml: Write XML information of CZI to disk
+
+    Args:
+        filepath (Union[str, os.PathLike[str]]): CZI image filename
+        xmlsuffix (str, optional): suffix for the XML file that will be created, defaults to '_CZI_MetaData.xml'. Defaults to '_CZI_MetaData.xml'.
+
+    Returns:
+        str: filename of the XML file
+    """    
 
     if isinstance(filepath, Path):
         # convert to string
@@ -875,7 +891,7 @@ def writexml(filepath: Union[str, os.PathLike[str]], xmlsuffix: str = '_CZI_Meta
 
 def create_mdict_red(metadata: CziMetadata, sort: bool = True) -> Dict:
     """
-    Created a metadata dictionary to be displayed in napari
+    create_mdict_red: Created a metadata dictionary to be displayed in napari
 
     Args:
         metadata: CziMetadata class
@@ -937,6 +953,16 @@ def create_mdict_red(metadata: CziMetadata, sort: bool = True) -> Dict:
 
 
 def get_czimd_box(filepath: Union[str, os.PathLike[str]]) -> Box:
+    """
+    get_czimd_box: Get CZI metadata as a python-box. For details: https://pypi.org/project/python-box/
+
+    Args:
+        filepath (Union[str, os.PathLike[str]]): Filepath of the CZI file
+
+    Returns:
+        Box: CZI metaadat as a Box object
+    """
+
 
     if isinstance(filepath, Path):
         # convert to string
