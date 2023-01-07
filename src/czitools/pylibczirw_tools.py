@@ -26,7 +26,7 @@ def read_6darray(filepath: Union[str, os.PathLike[str]],
                  output_dask: bool = False,
                  chunks_auto: bool = False,
                  remove_adim: bool = True,
-                 **kwargs: int) -> Tuple[Union[np.ndarray, da.Array], czimd.CziMetadata, str]:
+                 **kwargs: int) -> Tuple[Optional[Union[np.ndarray, da.Array]], czimd.CziMetadata, str]:
     """Read a CZI image file as 6D numpy or dask array.
     Important: Currently supported are only scenes with equal size and CZIs with consistent pixel types.
 
@@ -40,7 +40,7 @@ def read_6darray(filepath: Union[str, os.PathLike[str]],
                                 Will be used to read only a substack from the array
 
     Returns:
-        Tuple[np.ndarray, czimd.Metadata, dim_order6d]: output as 6D numpy or dask array and metadata 
+        Tuple[array6d, mdata, dim_string]: output as 6D numpy or dask array, metadata and dimstring
     """
 
     if isinstance(filepath, Path):
@@ -52,7 +52,8 @@ def read_6darray(filepath: Union[str, os.PathLike[str]],
 
     if not mdata.consistent_pixeltypes:
         print("Detected PixelTypes ar not consistent. Cannot create array6d")
-        return None
+        return None, mdata, ""
+
     if mdata.consistent_pixeltypes:
         # use pixel type from first channel
         use_pixeltype = mdata.npdtype[0]
@@ -61,11 +62,11 @@ def read_6darray(filepath: Union[str, os.PathLike[str]],
 
     if output_order not in valid_order:
         print("Invalid dimension order 6D:", output_order)
-        return np.array([]), mdata, ""
+        return None, mdata, ""
 
     if not mdata.scene_shape_is_consistent:
         print("Scenes have inconsistent shape. Cannot read 6D array")
-        return np.array([]), mdata, ""
+        return None, mdata, ""
 
     # open the CZI document to read the
     with pyczi.open_czi(filepath) as czidoc:

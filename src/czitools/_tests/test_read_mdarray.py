@@ -1,6 +1,7 @@
 from czitools import pylibczirw_tools
 from pathlib import Path
 import dask.array as da
+import numpy as np
 
 basedir = Path(__file__).resolve().parents[3]
 
@@ -8,7 +9,7 @@ basedir = Path(__file__).resolve().parents[3]
 def test_read_mdarray_1():
 
     # get the CZI filepath
-    filepath = basedir / r"data/w96_A1+A2.czi"
+    filepath = basedir / "data" / "w96_A1+A2.czi"
 
     mdarray, mdata, dimstring = pylibczirw_tools.read_6darray(filepath,
                                                               output_order="STCZYX",
@@ -27,6 +28,19 @@ def test_read_mdarray_1():
 
     assert (dimstring == "STZCYX")
     assert (mdarray.shape == (2, 1, 1, 2, 1416, 1960))
+
+    # get the CZI filepath
+    filepath = basedir / "data" / "S=3_1Pos_2Mosaic_T=2=Z=3_CH=2_sm.czi"
+
+    mdarray, mdata, dimstring = pylibczirw_tools.read_6darray(filepath,
+                                                              output_order="STCZYX",
+                                                              output_dask=False,
+                                                              chunks_auto=False,
+                                                              remove_adim=False)
+
+    assert (mdarray is None)
+    assert (mdata == mdata)
+    assert (dimstring == "")
 
 
 def test_read_mdarray_2():
