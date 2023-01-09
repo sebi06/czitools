@@ -974,7 +974,6 @@ def get_czimd_box(filepath: Union[str, os.PathLike[str]]) -> Box:
         Box: CZI metaadat as a Box object
     """
 
-
     if isinstance(filepath, Path):
         # convert to string
         filepath = str(filepath)

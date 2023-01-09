@@ -163,7 +163,7 @@ def read_5darray(filepath: Union[str, os.PathLike[str]],
                  output_dask: bool = False,
                  chunks_auto: bool = False,
                  remove_adim: bool = True,
-                 **kwargs: int) -> Tuple[Union[np.ndarray, da.Array], czimd.CziMetadata, str]:
+                 **kwargs: int) -> Tuple[Optional[Union[np.ndarray, da.Array]], czimd.CziMetadata, str]:
     """Read a CZI image file as 5D numpy or dask array.
     Important: Currently supported are only scenes with equal size and CZIs with consistent pixel types.
 
@@ -190,7 +190,7 @@ def read_5darray(filepath: Union[str, os.PathLike[str]],
 
     if not mdata.consistent_pixeltypes:
         print("Detected PixelTypes ar not consistent. Cannot create array6d")
-        return None
+        return None, mdata, ""
     if mdata.consistent_pixeltypes:
         # use pixel type from first channel
         use_pixeltype = mdata.npdtype[0]
@@ -199,7 +199,7 @@ def read_5darray(filepath: Union[str, os.PathLike[str]],
 
     if output_order not in valid_order:
         print("Invalid dimension order:", output_order)
-        return np.array([]), mdata, ""
+        return None, mdata, ""
 
     # open the CZI document to read the
     with pyczi.open_czi(filepath) as czidoc:
@@ -210,7 +210,7 @@ def read_5darray(filepath: Union[str, os.PathLike[str]],
             size_x = czidoc.scenes_bounding_rectangle[scene].w
             size_y = czidoc.scenes_bounding_rectangle[scene].h
 
-        if mdata.image.SizeS is None:
+        elif mdata.image.SizeS is None:
 
             # use the size of the total_bounding_rectangle
             size_x = czidoc.total_bounding_rectangle.w
@@ -221,14 +221,12 @@ def read_5darray(filepath: Union[str, os.PathLike[str]],
         size_z = misc.check_dimsize(mdata.image.SizeZ, set2value=1)
         size_t = misc.check_dimsize(mdata.image.SizeT, set2value=1)
 
-        # define the dimension order to be TZCYXA
-        dimstring = "TZCYXA"
-
         shape = [size_t, size_z, size_c, size_y, size_x, 3 if mdata.isRGB else 1]
 
         if not output_dask:
             array5d = np.empty(shape, dtype=use_pixeltype)
-        if output_dask:
+
+        elif output_dask:
             if chunks_auto:
                 array5d = da.empty(shape, dtype=use_pixeltype, chunks="auto")
             if not chunks_auto:
@@ -245,7 +243,7 @@ def read_5darray(filepath: Union[str, os.PathLike[str]],
             else:
                 image2d = czidoc.read(plane={'T': t, 'Z': z, 'C': c}, scene=scene)
 
-            # insert 2D image plane into the array6d
+            # insert 2D image plane into the array
             array5d[t, z, c, ...] = image2d
 
             # change the dimension order if needed
@@ -264,8 +262,7 @@ def read_5darray(filepath: Union[str, os.PathLike[str]],
 
 
 # EXPERIMENTAL FUNCTION
-def read_mdarray_lazy(filepath: Union[str, os.PathLike[str]],
-                      remove_adim: bool = True) -> Tuple[da.Array, str]:
+def read_mdarray_lazy(filepath: Union[str, os.PathLike[str]], remove_adim: bool = True) -> Tuple[Optional[da.Array], czimd.CziMetadata, str]:
 
     def read_5d(filepath: Union[str, os.PathLike[str]],
                 sizes: Tuple[int, int, int, int, int],
@@ -314,7 +311,7 @@ def read_mdarray_lazy(filepath: Union[str, os.PathLike[str]],
 
     if not mdata.consistent_pixeltypes:
         print("Detected PixelTypes ar not consistent. Cannot create array6d")
-        return None
+        return None, mdata, ""
     if mdata.consistent_pixeltypes:
         # use pixel type from first channel
         use_pixeltype = mdata.npdtype[0]
@@ -360,9 +357,9 @@ def read_mdarray_lazy(filepath: Union[str, os.PathLike[str]],
     array_md = da.stack(dask_arrays, axis=0)
 
     # define the dimension order to be STZCYXA
-    dimstring = "STZCYXA"
+    dim_string = "STZCYXA"
 
     if remove_adim:
-        dimstring = dimstring.replace("A", "")
+        dim_string = dim_string.replace("A", "")
 
-    return array_md, dimstring
+    return array_md, mdata, dim_string

@@ -247,8 +247,9 @@ def get_planetable(czifile: Union[str, os.PathLike[str]],
                    read_one_only: bool = False,
                    index: bool = True) -> Tuple[pd.DataFrame, Optional[str]]:
 
-    if not isinstance(czifile, str):
-        czifile = czifile.as_posix()
+    if isinstance(czifile, Path):
+        # convert to string
+        czifile = str(czifile)
 
     # get the czi metadata
     czi_dimensions = czimd.CziDimensions(czifile)
@@ -317,7 +318,6 @@ def get_planetable(czifile: Union[str, os.PathLike[str]],
                                      range(size_z),
                                      range(size_c)):
             sbcount += 1
-            #print("Reading sublock : ", sbcount)
 
             # get x, y, width and height for a specific tile
             tilebbox = aicsczi.get_mosaic_tile_bounding_box(S=s,
