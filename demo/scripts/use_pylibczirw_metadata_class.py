@@ -12,11 +12,10 @@
 from pylibCZIrw import czi as pyczi
 from czitools import pylibczirw_metadata as czimd
 from czitools import misc
-import os
 from pathlib import Path
 
 # adapt to your needs
-defaultdir = os.path.join(Path(__file__).resolve().parents[2], "data")
+defaultdir = Path(Path(__file__).resolve().parents[2]) / "data"
 
 # open s simple dialog to select a CZI file
 filepath = misc.openfile(directory=defaultdir,
@@ -26,7 +25,7 @@ filepath = misc.openfile(directory=defaultdir,
 print(filepath)
 
 # get the metadata at once as one big class
-mdata_sel = czimd.CziMetadata(filepath)
+mdata = czimd.CziMetadata(filepath)
 
 # get only specific metadata
 czi_dimensions = czimd.CziDimensions(filepath)
@@ -48,24 +47,14 @@ czi_microscope = czimd.CziMicroscope(filepath)
 czi_sample = czimd.CziSampleInfo(filepath)
 
 # get selected metadata as a dictionary
-mdata_sel_dict = czimd.obj2dict(mdata_sel)
+mdata_dict = czimd.obj2dict(mdata)
 
 # and convert to pd.DataFrame
-df_md = misc.md2dataframe(mdata_sel_dict)
+df_md = misc.md2dataframe(mdata_dict)
 print(df_md)
 
 # try to write XML to file
 xmlfile = czimd.writexml(filepath)
-
-# open a CZI file for reading
-with pyczi.open_czi(filepath) as czidoc_r:
-
-    # get the metadata as a dictionary
-    metadata_parsed = czidoc_r.metadata
-
-    # get a dictionary with the dimensions by parsing the dictionary
-    dim_dict = czimd.CziDimensions.get_image_dimensions(metadata_parsed)
-    # print(dim_dict)
 
 # get the complete metadata from the CZI as one big object
 czimd_complete = czimd.CziMetadataComplete(filepath)
@@ -82,11 +71,6 @@ czi_info = czimd.CziInfo(filepath)
 
 # get an object containing information about the sample
 czi_sample = czimd.CziSampleInfo(filepath)
-
-# show those information as a dictionary
-print(czi_dimensions.__dict__)
-print(czi_scale.__dict__)
-print(czi_sample.__dict__)
 
 # get the complete data about the bounding boxes
 czi_bbox = czimd.CziBoundingBox(filepath)

@@ -18,7 +18,7 @@ from pylibCZIrw import czi as pyczi
 from czitools import misc
 import numpy as np
 from dataclasses import dataclass, field, fields, Field
-from pathlib import Path, PurePath, PureWindowsPath, PurePosixPath
+from pathlib import Path
 from box import Box, BoxList
 
 
@@ -27,7 +27,7 @@ class CziMetadata:
     Create a CziMetadata object from the filename
     """
 
-    def __init__(self, filepath: Union[str, os.PathLike[str]], dim2none: bool = False) -> None:
+    def __init__(self, filepath: Union[str, os.PathLike[str]]) -> None:
 
         if isinstance(filepath, Path):
             # convert to string
@@ -187,26 +187,26 @@ class CziMetadata:
 
         return dims_dict, dimindex_list, numvalid_dims
 
-    @staticmethod
-    def get_dim_string(dim_order: Dict, num_dims: int = 6) -> str:
-        """Create dimension 5d or 6d string based on the dictionary with the dimension order
+    # @staticmethod
+    # def get_dim_string(dim_order: Dict, num_dims: int = 6) -> str:
+    #     """Create dimension 5d or 6d string based on the dictionary with the dimension order
 
-        Args:
-            dim_order (Dict): Dictionary with all dimensions and their indices
-            num_dims (int): Number of dimensions contained inside the string
+    #     Args:
+    #         dim_order (Dict): Dictionary with all dimensions and their indices
+    #         num_dims (int): Number of dimensions contained inside the string
 
-        Returns:
-            str: dimension string for a 5d or 6d array, e.g. "TCZYX" or STCZYX"
-        """
+    #     Returns:
+    #         str: dimension string for a 5d or 6d array, e.g. "TCZYX" or STCZYX"
+    #     """
 
-        dim_string = ""
+    #     dim_string = ""
 
-        for d in range(num_dims):
-            # get the key from dim_orders and add to string
-            k = [key for key, value in dim_order.items() if value == d][0]
-            dim_string = dim_string + k
+    #     for d in range(num_dims):
+    #         # get the key from dim_orders and add to string
+    #         k = [key for key, value in dim_order.items() if value == d][0]
+    #         dim_string = dim_string + k
 
-        return dim_string
+    #     return dim_string
 
     @staticmethod
     def check_scenes_shape(czidoc: pyczi.CziReader, size_s: Union[int, None]) -> bool:

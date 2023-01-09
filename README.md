@@ -14,7 +14,7 @@ Please check [use_pylibczirw_metadata_class.py](examples/scripts/use_pylibczirw_
 
 ```python
 # get the metadata at once as one big class
-mdata_sel = czimd.CziMetadata(filepath)
+mdata = czimd.CziMetadata(filepath)
 
 # get only specific metadata
 czi_dimensions = czimd.CziDimensions(filepath)
@@ -34,6 +34,34 @@ czi_objectives = czimd.CziObjectives(filepath)
 czi_detectors = czimd.CziDetector(filepath)
 czi_microscope = czimd.CziMicroscope(filepath)
 czi_sample = czimd.CziSampleInfo(filepath)
+
+# get selected metadata as a dictionary
+mdata_dict = czimd.obj2dict(mdata)
+
+# and convert to pd.DataFrame
+df_md = misc.md2dataframe(mdata_dict)
+print(df_md)
+
+# try to write XML to file
+xmlfile = czimd.writexml(filepath)
+
+# get the complete metadata from the CZI as one big object
+czimd_complete = czimd.CziMetadataComplete(filepath)
+
+# get an object containing only the dimension information
+czi_dimensions = czimd.CziDimensions(filepath)
+
+# get an object containing only the dimension information
+czi_scale = czimd.CziScaling(filepath)
+
+# get an object containing additional general information
+czi_info = czimd.CziInfo(filepath)
+
+# get an object containing information about the sample
+czi_sample = czimd.CziSampleInfo(filepath)
+
+# get the complete data about the bounding boxes
+czi_bbox = czimd.CziBoundingBox(filepath)
 ```
 
 ## Reading CZI pixeldata
