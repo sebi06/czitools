@@ -43,7 +43,7 @@ from PyQt5.QtGui import QFont
 from czitools import pylibczirw_metadata as czimd
 from czitools import misc
 import numpy as np
-from typing import List, Dict, Tuple, Optional, Type, Any, Union
+from typing import List, Dict, Tuple, Optional, Type, Any, Union, Literal
 from napari.utils.colormaps import Colormap
 import dask.array as da
 
@@ -109,7 +109,7 @@ def show(viewer: Any,
          metadata: czimd.CziMetadata,
          dim_string: str,
          blending: str = "additive",
-         contrast: str = "calc",
+         contrast: Literal["calc", "napari_auto", "from_czi"] = "calc",
          gamma: float = 0.85,
          add_mdtable: bool = True,
          name_sliders: bool = False) -> List:

@@ -24,16 +24,9 @@ import xml.etree.ElementTree as ET
 from aicspylibczi import CziFile
 from aicsimageio import AICSImage
 import dateutil.parser as dt
-#from czitools import pylibczirw_metadata as czimd
-import czitools
+from czitools import pylibczirw_metadata as czimd
 from tqdm.contrib.itertools import product
 from typing import List, Dict, Tuple, Optional, Type, Any, Union
-import logging
-
-_logger: Optional[logging.Logger] = None
-# configure logging
-#set_logger(name="czitools-logging", level=logging.DEBUG)
-#logger = get_logger()
 
 
 def openfile(directory: str,
@@ -202,12 +195,12 @@ def addzeros(number: int) -> str:
     return zerostring
 
 
-def get_fname_woext(filepath: str) -> str:
+def get_fname_woext(filepath: Union[str, os.PathLike[str]]) -> str:
     """Get the complete path of a file without the extension
-    It also will works for extensions like myfile.abc.xyz
+    It also works for extensions like myfile.abc.xyz
     The output will be: myfile
 
-    :param filepath: complete fiepath
+    :param filepath: complete filepath
     :type filepath: str
     :return: complete filepath without extension
     :rtype: str
@@ -247,16 +240,19 @@ def get_daskstack(aics_img: AICSImage) -> List:
     return stacks
 
 
-def get_planetable(czifile: str,
+def get_planetable(czifile: Union[str, os.PathLike[str]],
                    norm_time: bool = True,
                    savetable: bool = False,
                    separator: str = ',',
                    read_one_only: bool = False,
                    index: bool = True) -> Tuple[pd.DataFrame, Optional[str]]:
 
+    if isinstance(czifile, Path):
+        # convert to string
+        czifile = str(czifile)
+
     # get the czi metadata
-    czi_dimensions = czitools.pylibczirw_metadata.CziDimensions(czifile)
-    #czi_dimensions = czimd.CziDimensions(czifile)
+    czi_dimensions = czimd.CziDimensions(czifile)
     aicsczi = CziFile(czifile)
 
     # initialize the plane table
@@ -322,7 +318,6 @@ def get_planetable(czifile: str,
                                      range(size_z),
                                      range(size_c)):
             sbcount += 1
-            #print("Reading sublock : ", sbcount)
 
             # get x, y, width and height for a specific tile
             tilebbox = aicsczi.get_mosaic_tile_bounding_box(S=s,
@@ -540,36 +535,3 @@ def expand5d(array):
 
     return array5d
 
-
-def get_logger() -> logging.Logger:
-    global _logger
-    if _logger is None:
-        raise RuntimeError('get_logger call made before logger was setup!')
-    return _logger
-
-
-def set_logger(name: str, level=logging.DEBUG) -> None:
-    global _logger
-
-    # check if logger already exists
-    if _logger is not None:
-        raise RuntimeError('_logger is already setup!')
-
-    _logger = logging.getLogger(name)
-    _logger.handlers.clear()
-    _logger.setLevel(level)
-    ch = logging.StreamHandler()
-    ch.setLevel(level)
-
-    # get the logging format
-    ch.setFormatter(_get_formatter())
-    _logger.addHandler(ch)
-    _logger.propagate = False  # otherwise root logger prints things again
-
-
-def _get_formatter() -> logging.Formatter:
-
-    #logfmt = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s: %(message)s")
-    logfmt = logging.Formatter("%(asctime)s - %(levelname)s: %(message)s")
-
-    return logfmt
