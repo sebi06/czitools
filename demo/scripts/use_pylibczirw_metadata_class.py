@@ -45,6 +45,7 @@ czi_objectives = czimd.CziObjectives(filepath)
 czi_detectors = czimd.CziDetector(filepath)
 czi_microscope = czimd.CziMicroscope(filepath)
 czi_sample = czimd.CziSampleInfo(filepath)
+czi_addmd = czimd.CziAddMetaData(filepath)
 
 # get selected metadata as a dictionary
 mdata_dict = czimd.obj2dict(mdata)

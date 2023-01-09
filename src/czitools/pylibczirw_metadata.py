@@ -22,6 +22,37 @@ from pathlib import Path
 from box import Box, BoxList
 
 
+@dataclass
+class test:
+    filepath: Union[str, os.PathLike[str]]
+    info: CziInfo
+    pyczi_dims: Dict[str, tuple]
+    aics_dimstring: str
+    aics_dims_shape: List[Dict[str, tuple]]
+    aics_size: Tuple[int]
+    aics_ismosaic: bool
+    aics_dim_order: Dict[str, int]
+    aics_dim_index: List[int]
+    aics_dim_valid: int
+    aics_posC: int
+    pixeltypes: Dict[int, str]
+    isRGB: bool
+    npdtype: List[Any]
+    maxvalue: List[int]
+    image: CziDimensions
+    bbox: CziBoundingBox
+    channelinfo: CziChannelInfo
+    scale: CziScaling
+    objective: CziObjectives
+    detector: CziDetector
+    microscope: CziMicroscope
+    sample: CziSampleInfo
+    add_metadata: CziAddMetaData
+
+    def __post_init__(self):
+        pass
+
+
 class CziMetadata:
     """
     Create a CziMetadata object from the filename
@@ -32,6 +63,9 @@ class CziMetadata:
         if isinstance(filepath, Path):
             # convert to string
             filepath = str(filepath)
+
+        # testing
+        czi_box = get_czimd_box(filepath)
 
         # get metadata dictionary using pylibCZIrw
         with pyczi.open_czi(filepath) as czidoc:
@@ -73,19 +107,7 @@ class CziMetadata:
             self.pixeltypes = czidoc.pixel_types
             self.isRGB, self.consistent_pixeltypes = self.check_if_rgb(self.pixeltypes)
 
-            # try:
-            #     # determine pixel type for CZI array by reading XML metadata
-            #     self.pixeltype = md_dict["ImageDocument"]["Metadata"]["Information"]["Image"]["PixelType"]
-            # except KeyError as e:
-            #     logger.error(
-            #         "No Pixeltype entry found inside metadata: ImageDocument-Metadata-Information-Image-PixelType")
-
-            # # check if CZI is a RGB file
-            # if self.pixeltype in ["Bgr24", "Bgr48", "Bgr96Float"]:
-            #     self.isRGB = True
-
             # determine pixel type for CZI array from first channel
-
             self.npdtype = []
             self.maxvalue = []
 
@@ -97,7 +119,7 @@ class CziMetadata:
             # self.npdtype, self.maxvalue = self.get_dtype_fromstring(self.pixeltype)
 
             # get the dimensions and order
-            self.image = CziDimensions(filepath)
+            self.image = CziDimensions(czi_box)
 
             # try to guess if the CZI is a mosaic file
             if self.image.SizeM is None or self.image.SizeM == 1:
@@ -113,25 +135,25 @@ class CziMetadata:
             self.bbox = CziBoundingBox(filepath)
 
             # get information about channels
-            self.channelinfo = CziChannelInfo(filepath)
+            self.channelinfo = CziChannelInfo(czi_box)
 
             # get scaling info
-            self.scale = CziScaling(filepath)
+            self.scale = CziScaling(czi_box)
 
             # get objective information
-            self.objective = CziObjectives(filepath)
+            self.objective = CziObjectives(czi_box)
 
             # get detector information
-            self.detector = CziDetector(filepath)
+            self.detector = CziDetector(czi_box)
 
             # get detector information
-            self.microscope = CziMicroscope(filepath)
+            self.microscope = CziMicroscope(czi_box)
 
             # get information about sample carrier and wells etc.
             self.sample = CziSampleInfo(filepath)
 
             # get additional metainformation
-            self.add_metadata = CziAddMetaData(filepath)
+            self.add_metadata = CziAddMetaData(czi_box)
 
     # can be also used without creating an instance of the class
     @staticmethod
@@ -267,7 +289,7 @@ class CziMetadata:
 
 @dataclass
 class CziDimensions:
-    filepath: Union[str, os.PathLike[str]]
+    czisource: Union[str, os.PathLike[str], Box]
     SizeX: Optional[int] = field(init=False, default=None)
     SizeY: Optional[int] = field(init=False, default=None)
     SizeS: Optional[int] = field(init=False, default=None)
@@ -308,7 +330,10 @@ class CziDimensions:
         """
 
         # get the Box and extract the relevant dimension metadata
-        czi_box = get_czimd_box(self.filepath)
+        if isinstance(self.czisource, Box):
+            czi_box = self.czisource
+        else:
+            czi_box = get_czimd_box(self.czisource)
         dimensions = czi_box.ImageDocument.Metadata.Information.Image
 
         # define the image dimensions to check for
@@ -364,7 +389,7 @@ class CziBoundingBox:
 
 @dataclass
 class CziChannelInfo:
-    filepath: Union[str, os.PathLike[str]]
+    czisource: Union[str, os.PathLike[str], Box]
     names: List[str] = field(init=False, default_factory=lambda: [])
     dyes: List[str] = field(init=False, default_factory=lambda: [])
     colors: List[str] = field(init=False, default_factory=lambda: [])
@@ -373,8 +398,10 @@ class CziChannelInfo:
 
     def __post_init__(self):
 
-        # get the Box
-        czi_box = get_czimd_box(self.filepath)
+        if isinstance(self.czisource, Box):
+            czi_box = self.czisource
+        else:
+            czi_box = get_czimd_box(self.czisource)
 
         # get channels part of dict
         if czi_box.has_channels:
@@ -435,7 +462,7 @@ class CziChannelInfo:
 
 @dataclass
 class CziScaling:
-    filepath: Union[str, os.PathLike[str]]
+    czisource: Union[str, os.PathLike[str], Box]
     X: Optional[float] = field(init=False, default=None)
     Y: Optional[float] = field(init=False, default=None)
     Z: Optional[float] = field(init=False, default=None)
@@ -448,7 +475,10 @@ class CziScaling:
 
     def __post_init__(self):
 
-        czi_box = get_czimd_box(self.filepath)
+        if isinstance(self.czisource, Box):
+            czi_box = self.czisource
+        else:
+            czi_box = get_czimd_box(self.czisource)
 
         if czi_box.has_scale:
 
@@ -498,6 +528,8 @@ class CziInfo:
     softname_version: Optional[str] = field(init=False, default=None)
     acquisition_date: Optional[str] = field(init=False, default=None)
 
+    # TODO Check if Box can be used
+
     def __post_init__(self):
         czimd_box = get_czimd_box(self.filepath)
 
@@ -520,7 +552,7 @@ class CziInfo:
 
 @dataclass
 class CziObjectives:
-    filepath: Union[str, os.PathLike[str]]
+    czisource: Union[str, os.PathLike[str], Box]
     NA: Optional[float] = field(init=False, default=None)
     objmag: Optional[float] = field(init=False, default=None)
     ID: Optional[str] = field(init=False, default=None)
@@ -532,7 +564,10 @@ class CziObjectives:
 
     def __post_init__(self):
 
-        czi_box = get_czimd_box(self.filepath)
+        if isinstance(self.czisource, Box):
+            czi_box = self.czisource
+        else:
+            czi_box = get_czimd_box(self.czisource)
 
         # check if objective metadata actually exist
         if czi_box.has_objectives:
@@ -573,7 +608,7 @@ class CziObjectives:
 
 @dataclass
 class CziDetector:
-    filepath: Union[str, os.PathLike[str]]
+    czisource: Union[str, os.PathLike[str], Box]
     model: List[str] = field(init=False, default_factory=lambda: [])
     name: List[str] = field(init=False, default_factory=lambda: [])
     ID: List[str] = field(init=False, default_factory=lambda: [])
@@ -581,7 +616,10 @@ class CziDetector:
 
     def __post_init__(self):
 
-        czi_box = get_czimd_box(self.filepath)
+        if isinstance(self.czisource, Box):
+            czi_box = self.czisource
+        else:
+            czi_box = get_czimd_box(self.czisource)
 
         # check if there are any detector entries inside the dictionary
         if czi_box.ImageDocument.Metadata.Information.Instrument is not None:
@@ -616,13 +654,16 @@ class CziDetector:
 
 @dataclass
 class CziMicroscope:
-    filepath: Union[str, os.PathLike[str]]
+    czisource: Union[str, os.PathLike[str], Box]
     ID: Optional[str] = field(init=False)
     Name: Optional[str] = field(init=False)
 
     def __post_init__(self):
 
-        czi_box = get_czimd_box(self.filepath)
+        if isinstance(self.czisource, Box):
+            czi_box = self.czisource
+        else:
+            czi_box = get_czimd_box(self.czisource)
 
         if czi_box.ImageDocument.Metadata.Information.Instrument is None:
             self.ID = None
@@ -724,7 +765,7 @@ class CziSampleInfo:
 
 @dataclass
 class CziAddMetaData:
-    filepath: Union[str, os.PathLike[str]]
+    czisource: Union[str, os.PathLike[str], Box]
     experiment: Optional[Box] = field(init=False, default=None)
     hardwaresetting: Optional[Box] = field(init=False, default=None)
     customattributes: Optional[Box] = field(init=False, default=None)
@@ -733,7 +774,10 @@ class CziAddMetaData:
 
     def __post_init__(self):
 
-        czi_box = get_czimd_box(self.filepath)
+        if isinstance(self.czisource, Box):
+            czi_box = self.czisource
+        else:
+            czi_box = get_czimd_box(self.czisource)
 
         if czi_box.has_experiment:
             self.experiment = czi_box.ImageDocument.Metadata.Experiment
