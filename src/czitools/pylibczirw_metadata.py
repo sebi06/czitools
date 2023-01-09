@@ -150,7 +150,7 @@ class CziMetadata:
             self.microscope = CziMicroscope(czi_box)
 
             # get information about sample carrier and wells etc.
-            self.sample = CziSampleInfo(filepath)
+            self.sample = CziSampleInfo(czi_box)
 
             # get additional metainformation
             self.add_metadata = CziAddMetaData(czi_box)
@@ -359,6 +359,8 @@ class CziBoundingBox:
     scenes_bounding_rect: Optional[Dict[int, pyczi.Rectangle]] = field(init=False)
     total_rect: Optional[pyczi.Rectangle] = field(init=False)
     total_bounding_box: Optional[Dict[str, tuple]] = field(init=False)
+
+    # TODO Is this really needed as a separate class or better integrate directly into CziMetadata class?
 
     def __post_init__(self):
 
@@ -676,7 +678,7 @@ class CziMicroscope:
 
 @dataclass
 class CziSampleInfo:
-    filepath: Union[str, os.PathLike[str]]
+    czisource: Union[str, os.PathLike[str], Box]
     well_array_names: List[str] = field(init=False, default_factory=lambda: [])
     well_indices: List[int] = field(init=False, default_factory=lambda: [])
     well_position_names: List[str] = field(init=False, default_factory=lambda: [])
@@ -690,7 +692,12 @@ class CziSampleInfo:
 
     def __post_init__(self):
 
-        czi_box = get_czimd_box(self.filepath)
+        if isinstance(self.czisource, Box):
+            czi_box = self.czisource
+        else:
+            czi_box = get_czimd_box(self.czisource)
+
+
         size_s = CziDimensions(self.filepath).SizeS
 
         if size_s is not None:
@@ -860,6 +867,8 @@ class DictObj:
     """
     Create an object based on a dictionary. See https://joelmccune.com/python-dictionary-as-object/
     """
+
+    # TODO: is this class still neded because of suing python-box
 
     def __init__(self, in_dict: dict) -> None:
 
