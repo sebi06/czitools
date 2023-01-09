@@ -155,6 +155,10 @@ data/*.xml
 **/data/*.zarr
 data/*.xml
 data/*.csv
+data/*.html
+notebooks/*.html
+notebooks/*.csv
+
 
 # skip specific files
 data/CH=1_16bit.czi
