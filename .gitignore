@@ -152,6 +152,7 @@ demo/experimental/
 demo/experimental/**
 data/*.zarr
 data/*.xml
+**/data/*.zarr
 
 # skip specific files
 data/CH=1_16bit.czi
