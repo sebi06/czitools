@@ -103,14 +103,14 @@ def test_read_mdarray_lazy_1():
     # get the CZI filepath
     filepath = basedir / r"data/w96_A1+A2.czi"
 
-    mdarray, dimstring = pylibczirw_tools.read_mdarray_lazy(filepath, remove_adim=False)
+    mdarray, mdata, dimstring = pylibczirw_tools.read_mdarray_lazy(filepath, remove_adim=False)
 
     assert (dimstring == "STZCYXA")
     assert (mdarray.shape == (2, 1, 1, 2, 1416, 1960, 1))
     assert (mdarray.ndim == 7)
     assert (mdarray.chunksize == (1, 1, 1, 2, 1416, 1960, 1))
 
-    mdarray, dimstring = pylibczirw_tools.read_mdarray_lazy(filepath, remove_adim=True)
+    mdarray, mdata, dimstring = pylibczirw_tools.read_mdarray_lazy(filepath, remove_adim=True)
 
     assert (dimstring == "STZCYX")
     assert (mdarray.shape == (2, 1, 1, 2, 1416, 1960))
