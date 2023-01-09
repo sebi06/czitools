@@ -17,7 +17,6 @@ import xml.etree.ElementTree as ET
 from pylibCZIrw import czi as pyczi
 from czitools import misc
 import numpy as np
-import pydash
 from dataclasses import dataclass, field, fields, Field
 from pathlib import Path, PurePath, PureWindowsPath, PurePosixPath
 from box import Box, BoxList
@@ -286,7 +285,6 @@ class CziDimensions:
     """Dataclass containing the image dimensions.
     """
 
-
     # Information official CZI Dimension Characters:
     # "X":"Width"        :
     # "Y":"Height"       :
@@ -307,14 +305,15 @@ class CziDimensions:
 
     def set_dimensions(self):
         """set_dimensions: Populate the image dimensions with the detected values from the metadata
-        """    
+        """
 
         # get the Box and extract the relevant dimension metadata
         czi_box = get_czimd_box(self.filepath)
         dimensions = czi_box.ImageDocument.Metadata.Information.Image
 
         # define the image dimensions to check for
-        dims = ["SizeX", "SizeY", "SizeS", "SizeT", "SizeZ", "SizeC", "SizeM", "SizeR", "SizeH", "SizeI", "SizeV", "SizeB"]
+        dims = ["SizeX", "SizeY", "SizeS", "SizeT", "SizeZ", "SizeC",
+                "SizeM", "SizeR", "SizeH", "SizeI", "SizeV", "SizeB"]
 
         cls_fields: Tuple[Field, ...] = fields(self.__class__)
         for fd in cls_fields:
@@ -372,7 +371,6 @@ class CziChannelInfo:
     clims: List[List[float]] = field(init=False, default_factory=lambda: [])
     gamma: List[float] = field(init=False, default_factory=lambda: [])
 
-
     def __post_init__(self):
 
         # get the Box
@@ -386,11 +384,13 @@ class CziChannelInfo:
                 channels = czi_box.ImageDocument.Metadata.Information.Image.Dimensions.Channels.Channel
                 if isinstance(channels, Box):
                     # get the data in case of only one channel
-                    self.names.append('CH1') if channels.Name is None else self.names.append(channels.Name)
+                    self.names.append(
+                        'CH1') if channels.Name is None else self.names.append(channels.Name)
                 elif isinstance(channels, BoxList):
                     # get the data in case multiple channels
                     for ch in range(len(channels)):
-                        self.names.append('CH1') if channels[ch].Name is None else self.names.append(channels[ch].Name)
+                        self.names.append('CH1') if channels[ch].Name is None else self.names.append(
+                            channels[ch].Name)
             except AttributeError:
                 channels = None
         elif not czi_box.has_channels:
@@ -415,14 +415,17 @@ class CziChannelInfo:
     def get_channel_info(self, display: Box):
 
         if display is not None:
-            self.dyes.append('Dye-CH1') if display.ShortName is None else self.dyes.append(display.ShortName)
-            self.colors.append('#80808000') if display.Color is None else self.colors.append(display.Color)
+            self.dyes.append(
+                'Dye-CH1') if display.ShortName is None else self.dyes.append(display.ShortName)
+            self.colors.append(
+                '#80808000') if display.Color is None else self.colors.append(display.Color)
 
             low = 0.0 if display.Low is None else float(display.Low)
             high = 0.5 if display.High is None else float(display.High)
 
             self.clims.append([low, high])
-            self.gamma.append(0.85) if display.Gamma is None else self.gamma.append(float(display.Gamma))
+            self.gamma.append(0.85) if display.Gamma is None else self.gamma.append(
+                float(display.Gamma))
         else:
             self.dyes.append('Dye-CH1')
             self.colors.append('#80808000')
@@ -472,15 +475,16 @@ class CziScaling:
         try:
             # get the scaling value in [micron]
             sc = float(dist[idx].Value) * 1000000
-            
+
             # check for the value = 0.0
             if sc == 0.0:
                 sc = 1.0
-                print("Detected Scaling = 0.0 for " + scales[idx] + " Using default = 1.0 [micron].")
+                print("Detected Scaling = 0.0 for " +
+                      scales[idx] + " Using default = 1.0 [micron].")
             return sc
-        
+
         except (IndexError, TypeError, AttributeError):
-           
+
             print("No " + scales[idx] + "-Scaling found. Using default = 1.0 [micron].")
             return 1.0
 
@@ -509,7 +513,7 @@ class CziInfo:
         if czimd_box.ImageDocument.Metadata.Information.Application is not None:
             self.software_name = czimd_box.ImageDocument.Metadata.Information.Application.Name
             self.software_version = czimd_box.ImageDocument.Metadata.Information.Application.Version
-        
+
         if czimd_box.ImageDocument.Metadata.Information.Image is not None:
             self.acquisition_date = czimd_box.ImageDocument.Metadata.Information.Image.AcquisitionDateAndTime
 
@@ -524,7 +528,7 @@ class CziObjectives:
     model: Optional[str] = field(init=False, default=None)
     immersion: Optional[str] = field(init=False, default=None)
     tubelensmag: Optional[float] = field(init=False, default=None)
-    totalmag: Optional[float] = field(init=False, default=None) 
+    totalmag: Optional[float] = field(init=False, default=None)
 
     def __post_init__(self):
 
@@ -532,9 +536,9 @@ class CziObjectives:
 
         # check if objective metadata actually exist
         if czi_box.has_objectives:
-            
+
             # get objective data
-            objective =  czi_box.ImageDocument.Metadata.Information.Instrument.Objectives.Objective
+            objective = czi_box.ImageDocument.Metadata.Information.Instrument.Objectives.Objective
 
             self.name = objective.Name
             self.immersion = objective.Immersion
@@ -543,17 +547,17 @@ class CziObjectives:
             self.objmag = float(objective.NominalMagnification)
 
             if self.name is None:
-                self.name =  objective.Manufacturer.Model
-        
+                self.name = objective.Manufacturer.Model
+
         elif not czi_box.has_objectives:
             print("No Objective Information found.")
 
         # check if tubelens metadata exist
         if czi_box.has_tubelenses:
-            
+
             # get tubelenes data
             tubelens = czi_box.ImageDocument.Metadata.Information.Instrument.TubeLenses.TubeLens
-            
+
             self.tubelensmag = float(tubelens.Magnification)
 
         elif not czi_box.has_tubelens:
@@ -726,7 +730,7 @@ class CziAddMetaData:
     customattributes: Optional[Box] = field(init=False, default=None)
     displaysetting: Optional[Box] = field(init=False, default=None)
     layers: Optional[Box] = field(init=False, default=None)
-    
+
     def __post_init__(self):
 
         czi_box = get_czimd_box(self.filepath)
@@ -761,12 +765,12 @@ class CziAddMetaData:
 class CziScene:
     filepath: Union[str, os.PathLike[str]]
     index: int
-    bbox: Optional[pyczi.Rectangle]= field(init=False, default=None)
+    bbox: Optional[pyczi.Rectangle] = field(init=False, default=None)
     xstart: Optional[int] = field(init=False, default=None)
     ystart: Optional[int] = field(init=False, default=None)
     width: Optional[int] = field(init=False, default=None)
     height: Optional[int] = field(init=False, default=None)
-    
+
     def __post_init__(self):
 
         if isinstance(self.filepath, Path):
@@ -794,7 +798,7 @@ class CziMetadataComplete:
     """
 
     def __init__(self, filepath: Union[str, os.PathLike[str]]) -> None:
-        
+
         if isinstance(filepath, Path):
             # convert to string
             filepath = str(filepath)
@@ -814,9 +818,9 @@ class DictObj:
     """
 
     def __init__(self, in_dict: dict) -> None:
-        
+
         assert isinstance(in_dict, dict)
-        
+
         for key, val in in_dict.items():
             if isinstance(val, (list, tuple)):
                 setattr(self, key, [DictObj(x) if isinstance(x, dict) else x for x in val])
@@ -836,32 +840,31 @@ def obj2dict(obj: Any, sort: bool = True) -> Dict[str, Any]:
         Dict[str, Any]: The resulting disctionary.
     """
 
-
     # https://stackoverflow.com/questions/7963762/what-is-the-most-economical-way-to-convert-nested-python-objects-to-dictionaries
 
     if not hasattr(obj, "__dict__"):
         return obj
-    
+
     result = {}
-    
+
     for key, val in obj.__dict__.items():
-        
+
         if key.startswith("_"):
             continue
-        
+
         element = []
-        
+
         if isinstance(val, list):
             for item in val:
                 element.append(obj2dict(item))
         else:
             element = obj2dict(val)
-        
+
         result[key] = element
 
     if sort:
         return misc.sort_dict_by_key(result)
-    
+
     elif not sort:
         return result
 
@@ -876,16 +879,16 @@ def writexml(filepath: Union[str, os.PathLike[str]], xmlsuffix: str = '_CZI_Meta
 
     Returns:
         str: filename of the XML file
-    """    
+    """
 
     if isinstance(filepath, Path):
-        
+
         # convert to string
         filepath = str(filepath)
 
     # get the raw metadata as XML or dictionary
     with pyczi.open_czi(filepath) as czidoc:
-        
+
         metadata_xmlstr = czidoc.raw_metadata
 
     # change file name
