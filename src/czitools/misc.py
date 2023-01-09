@@ -29,7 +29,6 @@ from tqdm.contrib.itertools import product
 from typing import List, Dict, Tuple, Optional, Type, Any, Union
 
 
-
 def openfile(directory: str,
              title: str = "Open CZI Image File",
              ftypename: str = "CZI Files",
