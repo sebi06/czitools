@@ -670,7 +670,7 @@ class CziSampleInfo:
         else:
             czi_box = get_czimd_box(self.czisource)
 
-        size_s = CziDimensions(self.czisource).SizeS
+        size_s = CziDimensions(czi_box).SizeS
 
         if size_s is not None:
 
@@ -692,7 +692,7 @@ class CziSampleInfo:
             print("No Scene or Well information found. Try to read XY Stage Coordinates from subblocks.")
             try:
                 # read the data from CSV file
-                planetable, csvfile = misc.get_planetable(self.filepath,
+                planetable, csvfile = misc.get_planetable(czi_box.filepath,
                                                           read_one_only=True,
                                                           savetable=False)
 

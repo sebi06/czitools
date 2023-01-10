@@ -65,6 +65,6 @@ def test_objectives():
         obj = czimd.CziObjectives(filepath)
 
         out = obj.__dict__
-        del out['filepath']
+        del out['czisource']
 
         assert(out == results[t])
