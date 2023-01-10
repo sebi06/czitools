@@ -53,37 +53,12 @@ class test:
         pass
 
 
-@dataclass
 class CziMetadata:
-    filepath: Union[str, os.PathLike[str]]
-    info: CziInfo
-    pyczi_dims: Dict[str, tuple]
-    aics_dimstring: str
-    aics_dims_shape: List[Dict[str, tuple]]
-    aics_size: Tuple[int]
-    aics_ismosaic: bool
-    aics_dim_order: Dict[str, int]
-    aics_dim_index: List[int]
-    aics_dim_valid: int
-    aics_posC: int
-    pixeltypes: Dict[int, str]
-    isRGB: bool
-    npdtype: List[Any]
-    maxvalue: List[int]
-    image: CziDimensions
-    bbox: CziBoundingBox
-    channelinfo: CziChannelInfo
-    scale: CziScaling
-    objective: CziObjectives
-    detector: CziDetector
-    microscope: CziMicroscope
-    sample: CziSampleInfo
-    add_metadata: CziAddMetaData
     """
     Create a CziMetadata object from the filename
     """
 
-    def __post_init__(self):
+    def __init__(self, filepath: Union[str, os.PathLike[str]]) -> None:
 
         if isinstance(filepath, Path):
             # convert to string
@@ -234,6 +209,27 @@ class CziMetadata:
 
         return dims_dict, dimindex_list, numvalid_dims
 
+    # @staticmethod
+    # def get_dim_string(dim_order: Dict, num_dims: int = 6) -> str:
+    #     """Create dimension 5d or 6d string based on the dictionary with the dimension order
+
+    #     Args:
+    #         dim_order (Dict): Dictionary with all dimensions and their indices
+    #         num_dims (int): Number of dimensions contained inside the string
+
+    #     Returns:
+    #         str: dimension string for a 5d or 6d array, e.g. "TCZYX" or STCZYX"
+    #     """
+
+    #     dim_string = ""
+
+    #     for d in range(num_dims):
+    #         # get the key from dim_orders and add to string
+    #         k = [key for key, value in dim_order.items() if value == d][0]
+    #         dim_string = dim_string + k
+
+    #     return dim_string
+
     @staticmethod
     def check_scenes_shape(czidoc: pyczi.CziReader, size_s: Union[int, None]) -> bool:
         """Check if all scenes have the same shape.
@@ -309,21 +305,21 @@ class CziDimensions:
     SizeX_sf: Optional[int] = field(init=False, default=None)
     SizeY_sf: Optional[int] = field(init=False, default=None)
     """Dataclass containing the image dimensions.
-
-    Information official CZI Dimension Characters:
-    "X":"Width"        :
-    "Y":"Height"       :
-    "C":"Channel"      : number of channels
-    "Z":"Slice"        : number of z-planes
-    "T":"Time"         : number of time points
-    "R":"Rotation"     :
-    "S":"Scene"        : contiguous regions of interest in a mosaic image
-    "I":"Illumination" : SPIM direction for LightSheet
-    "B":"Block"        : acquisition
-    "M":"Mosaic"       : index of tile for compositing a scene
-    "H":"Phase"        : e.g. Airy detector fibers
-    "V":"View"         : e.g. for SPIM
     """
+
+    # Information official CZI Dimension Characters:
+    # "X":"Width"        :
+    # "Y":"Height"       :
+    # "C":"Channel"      : number of channels
+    # "Z":"Slice"        : number of z-planes
+    # "T":"Time"         : number of time points
+    # "R":"Rotation"     :
+    # "S":"Scene"        : contiguous regions of interest in a mosaic image
+    # "I":"Illumination" : SPIM direction for LightSheet
+    # "B":"Block"        : acquisition
+    # "M":"Mosaic"       : index of tile for compositing a scene
+    # "H":"Phase"        : e.g. Airy detector fibers
+    # "V":"View"         : e.g. for SPIM
 
     def __post_init__(self):
 
@@ -349,6 +345,12 @@ class CziDimensions:
             if fd.name in dims:
                 if dimensions[fd.name] is not None:
                     setattr(self, fd.name, int(dimensions[fd.name]))
+
+        # get the field names and their type hints
+        # for field_name, field_type in get_type_hints(self).items():
+        #    if field_name in dims:
+        #        if dimensions[field_name] is not None:
+        #            setattr(self, field_name, int(dimensions[field_name]))
 
 
 @dataclass
