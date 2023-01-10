@@ -31,13 +31,13 @@ def test_information():
 
         # get the filepath
         filepath = basedir / to_test[t]
-        info = czimd.CziInfo(filepath)
+        md = czimd.CziMetadata(filepath)
 
-        assert (info.software_name == results[t][0])
-        assert (info.software_version == results[t][1])
-        assert (info.acquisition_date == results[t][2])
-        assert (Path.exists(Path(info.dirname)) == results[t][3])
-        assert (info.filename == results[t][4])
+        assert (md.software_name == results[t][0])
+        assert (md.software_version == results[t][1])
+        assert (md.acquisition_date == results[t][2])
+        assert (Path.exists(Path(md.dirname)) == results[t][3])
+        assert (md.filename == results[t][4])
 
 
 test_information()

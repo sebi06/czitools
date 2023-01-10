@@ -25,25 +25,11 @@ print("SizeC: ", czi_dimensions.SizeC)
 print("SizeY: ", czi_dimensions.SizeY)
 print("SizeX: ", czi_dimensions.SizeX)
 
-# and get more info about various aspects of the CZI
-czi_scaling = czimd.CziScaling(filepath)
-czi_channels = czimd.CziChannelInfo(filepath)
-czi_bbox = czimd.CziBoundingBox(filepath)
-czi_info = czimd.CziInfo(filepath)
-czi_objectives = czimd.CziObjectives(filepath)
-czi_detectors = czimd.CziDetector(filepath)
-czi_microscope = czimd.CziMicroscope(filepath)
-czi_sample = czimd.CziSampleInfo(filepath)
-
-# get selected metadata as a dictionary
-mdata_dict = czimd.obj2dict(mdata)
-
-# and convert to pd.DataFrame
-df_md = misc.md2dataframe(mdata_dict)
-print(df_md)
-
 # try to write XML to file
 xmlfile = czimd.writexml(filepath)
+
+# get info about the channels
+czi_channels = czimd.CziChannelInfo(filepath)
 
 # get the complete metadata from the CZI as one big object
 czimd_complete = czimd.CziMetadataComplete(filepath)
@@ -54,11 +40,19 @@ czi_dimensions = czimd.CziDimensions(filepath)
 # get an object containing only the dimension information
 czi_scale = czimd.CziScaling(filepath)
 
-# get an object containing additional general information
-czi_info = czimd.CziInfo(filepath)
-
 # get an object containing information about the sample
 czi_sample = czimd.CziSampleInfo(filepath)
+
+# get info about the objective, the microscope and the detectors
+czi_objectives = czimd.CziObjectives(filepath)
+czi_detectors = czimd.CziDetector(filepath)
+czi_microscope = czimd.CziMicroscope(filepath)
+
+# get info about the sample carrier
+czi_sample = czimd.CziSampleInfo(filepath)
+
+# get additional metainformation
+czi_addmd = czimd.CziAddMetaData(filepath)
 
 # get the complete data about the bounding boxes
 czi_bbox = czimd.CziBoundingBox(filepath)
