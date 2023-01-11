@@ -23,37 +23,6 @@ from box import Box, BoxList
 
 
 @dataclass
-class test:
-    filepath: Union[str, os.PathLike[str]]
-    info: CziInfo
-    pyczi_dims: Dict[str, tuple]
-    aics_dimstring: str
-    aics_dims_shape: List[Dict[str, tuple]]
-    aics_size: Tuple[int]
-    aics_ismosaic: bool
-    aics_dim_order: Dict[str, int]
-    aics_dim_index: List[int]
-    aics_dim_valid: int
-    aics_posC: int
-    pixeltypes: Dict[int, str]
-    isRGB: bool
-    npdtype: List[Any]
-    maxvalue: List[int]
-    image: CziDimensions
-    bbox: CziBoundingBox
-    channelinfo: CziChannelInfo
-    scale: CziScaling
-    objective: CziObjectives
-    detector: CziDetector
-    microscope: CziMicroscope
-    sample: CziSampleInfo
-    add_metadata: CziAddMetaData
-
-    def __post_init__(self):
-        pass
-
-
-@dataclass
 class CziMetadata:
     filepath: Union[str, os.PathLike[str]]
     filename: Optional[str] = field(init=False, default=None)
