@@ -3,10 +3,6 @@ from pathlib import Path
 
 basedir = Path(__file__).resolve().parents[3]
 
-files = [r"data/1_tileregion.czi",
-         r"data/2_tileregions.czi",
-         r"data/CellDivision_T=3_Z=5_CH=2_X=240_Y=170.czi"
-         ]
 
 files = ["WellD6_S=1.czi",
          "WellD6-7_S=2.czi",
