@@ -43,7 +43,7 @@ from PyQt5.QtGui import QFont
 from czitools import pylibczirw_metadata as czimd
 from czitools import misc
 import numpy as np
-from typing import List, Dict, Tuple, Optional, Type, Any, Union, Literal
+from typing import List, Dict, Tuple, Optional, Type, Any, Union, Literal, Mapping
 from napari.utils.colormaps import Colormap
 import dask.array as da
 

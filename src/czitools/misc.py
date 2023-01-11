@@ -28,7 +28,7 @@ from dask.array import Array
 from itertools import product
 from czitools import pylibczirw_metadata as czimd
 from tqdm.contrib.itertools import product as tqdm_product
-from typing import List, Dict, Tuple, Optional, Type, Any, Union
+from typing import List, Dict, Tuple, Optional, Type, Any, Union, Mapping
 
 
 def openfile(directory: str,
@@ -591,4 +591,3 @@ def expand5d(array: np.ndarray) -> np.ndarray:
     array5d = np.expand_dims(array, axis=-5)
 
     return array5d
-

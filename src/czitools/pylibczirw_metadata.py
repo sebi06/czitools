@@ -10,7 +10,7 @@
 #################################################################
 
 from __future__ import annotations
-from typing import List, Dict, Tuple, Optional, Type, Any, Union
+from typing import List, Dict, Tuple, Optional, Type, Any, Union, Mapping
 import os
 from collections import Counter
 import xml.etree.ElementTree as ET
