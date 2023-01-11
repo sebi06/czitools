@@ -24,8 +24,10 @@ import xml.etree.ElementTree as ET
 from aicspylibczi import CziFile
 from aicsimageio import AICSImage
 import dateutil.parser as dt
+from dask.array import Array
+from itertools import product
 from czitools import pylibczirw_metadata as czimd
-from tqdm.contrib.itertools import product
+from tqdm.contrib.itertools import product as tqdm_product
 from typing import List, Dict, Tuple, Optional, Type, Any, Union
 
 
@@ -163,6 +165,15 @@ def md2dataframe(md_dict: Dict,
 
 
 def sort_dict_by_key(unsorted_dict: Dict) -> Dict:
+    """Sort a dictionary by key names
+
+    Args:
+        unsorted_dict: the unsorted dictionary where the keys should be sorted
+
+    Returns:
+        Dictionary with keys sorted by name
+    """
+
     sorted_keys = sorted(unsorted_dict.keys(), key=lambda x: x.lower())
     sorted_dict = {}
     for key in sorted_keys:
@@ -219,22 +230,39 @@ def get_fname_woext(filepath: Union[str, os.PathLike[str]]) -> str:
     return filepath_woext
 
 
-def check_dimsize(mdata_entry: Union[int, None], set2value: int = 1) -> Union[int, None]:
+def check_dimsize(mdata_entry: Union[Any, None], set2value: Any = 1) -> Union[Any, None]:
+    """Check the entries for None
 
-    # check if the dimension entry is None
+    Args:
+        mdata_entry: entry to be checked
+        set2value: value to replave None
+
+    Returns:
+        A list of dask arrays
+    """
+
     if mdata_entry is None:
         return set2value
     if mdata_entry is not None:
         return mdata_entry
 
 
-def get_daskstack(aics_img: AICSImage) -> List:
+def get_daskstack(aics_img: AICSImage) -> List[da.array]:
+    """Create dask stack from a list of dask stacks
 
-    stacks = []
+    Args:
+        aics_img (AICSImage): the input AICSImage object
+
+    Returns:
+        A list of dask arrays
+    """
+    stacks: list[da.array] = []
+
     for scene in aics_img.scenes:
         aics_img.set_scene(scene)
         stacks.append(aics_img.dask_data)
 
+    # create the list of dask arrays
     stacks = da.stack(stacks)
 
     return stacks
@@ -246,6 +274,18 @@ def get_planetable(czifile: Union[str, os.PathLike[str]],
                    separator: str = ',',
                    read_one_only: bool = False,
                    index: bool = True) -> Tuple[pd.DataFrame, Optional[str]]:
+    """ Get the planetable from the individual subblocks
+    Args:
+        czifile: the source for the CZI image file
+        norm_time: normalize the timestamps
+        savetable: option save the planetable as CSV file
+        separator: specify the separator for the CSV file
+        read_one_only: option to read only the first entry
+        index:
+
+    Returns:
+        Planetable as pd.DataFrame and the location of the CSV file
+    """
 
     if isinstance(czifile, Path):
         # convert to string
@@ -440,16 +480,15 @@ def norm_columns(df: pd.DataFrame,
                  colname: str = 'Time [s]',
                  mode: str = 'min') -> pd.DataFrame:
     """Normalize a specific column inside a Pandas dataframe
+    Args:
+        df: DataFrame
+        colname: Name of the column to be normalized, defaults to 'Time [s]'
+        mode: Mode of Normalization, defaults to 'min'
 
-    :param df: DataFrame
-    :type df: pf.DataFrame
-    :param colname: Name of the column to be normalized, defaults to 'Time [s]'
-    :type colname: str, optional
-    :param mode: Mode of Normalization, defaults to 'min'
-    :type mode: str, optional
-    :return: Dataframe with normalized column
-    :rtype: pd.DataFrame
+    Returns:
+        Dataframe with normalized columns
     """
+
     # normalize columns according to min or max value
     if mode == 'min':
         min_value = df[colname].min()
@@ -467,6 +506,17 @@ def filter_planetable(planetable: pd.DataFrame,
                       t: int = 0,
                       z: int = 0,
                       c: int = 0) -> pd.DataFrame:
+    """Filter the planetable for specific dimension entries
+    Args:
+        planetable: The planetable to be filtered
+        s: scene index
+        t: time index
+        z: z-plane index
+        c: channel index
+
+    Returns:
+        The filtered planetable
+    """
 
     # filter planetable for specific scene
     if s > planetable['Scene'].max():
@@ -527,7 +577,14 @@ def save_planetable(df: pd.DataFrame,
     return csvfile
 
 
-def expand5d(array):
+def expand5d(array: np.ndarray) -> np.ndarray:
+    """Expand a multi-dimension array to 5 dimensions
+    Args:
+        array: numpy array to be extended to 5 dimensions
+
+    Returns:
+        the 5-dimensional numpy array
+    """
 
     array = np.expand_dims(array, axis=-3)
     array = np.expand_dims(array, axis=-4)

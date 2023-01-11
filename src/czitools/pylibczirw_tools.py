@@ -82,7 +82,6 @@ def read_6darray(filepath: Union[str, os.PathLike[str]],
             size_y = czidoc.scenes_bounding_rectangle[0].h
 
         if mdata.image.SizeS is None:
-
             # use the size of the total_bounding_rectangle
             size_x = czidoc.total_bounding_rectangle.w
             size_y = czidoc.total_bounding_rectangle.h
@@ -261,8 +260,8 @@ def read_5darray(filepath: Union[str, os.PathLike[str]],
     return array5d, mdata, dim_string
 
 
-# EXPERIMENTAL FUNCTION
-def read_mdarray_lazy(filepath: Union[str, os.PathLike[str]], remove_adim: bool = True) -> Tuple[Optional[da.Array], czimd.CziMetadata, str]:
+def read_mdarray_lazy(filepath: Union[str, os.PathLike[str]],
+                      remove_adim: bool = True) -> Tuple[Optional[da.Array], czimd.CziMetadata, str]:
 
     def read_5d(filepath: Union[str, os.PathLike[str]],
                 sizes: Tuple[int, int, int, int, int],
@@ -320,13 +319,11 @@ def read_mdarray_lazy(filepath: Union[str, os.PathLike[str]], remove_adim: bool 
     with pyczi.open_czi(filepath) as czidoc:
 
         if mdata.image.SizeS is not None:
-
             # use the size of the 1st scenes_bounding_rectangle
             size_x = czidoc.scenes_bounding_rectangle[0].w
             size_y = czidoc.scenes_bounding_rectangle[0].h
 
         if mdata.image.SizeS is None:
-
             # use the size of the total_bounding_rectangle
             size_x = czidoc.total_bounding_rectangle.w
             size_y = czidoc.total_bounding_rectangle.h

@@ -63,6 +63,11 @@ class TableWidget(QWidget):
         header.setDefaultAlignment(Qt.AlignLeft)
 
     def update_metadata(self, md_dict: Dict) -> None:
+        """Update the table with the metadata from the dictionary
+
+        Args:
+            md_dict (Dict): Metadata dictionary
+        """
 
         # number of rows is set to number of metadata entries
         row_count = len(md_dict)
@@ -84,6 +89,8 @@ class TableWidget(QWidget):
         self.mdtable.resizeColumnsToContents()
 
     def update_style(self) -> None:
+        """Update the style for the table
+        """
 
         # define font size and type
         fnt = QFont()
@@ -104,7 +111,7 @@ class TableWidget(QWidget):
         self.mdtable.setHorizontalHeaderItem(1, item2)
 
 
-def show(viewer: Any,
+def show(viewer: napari.Viewer,
          array: Union[np.ndarray, List[da.Array], da.Array],
          metadata: czimd.CziMetadata,
          dim_string: str,
@@ -113,23 +120,26 @@ def show(viewer: Any,
          gamma: float = 0.85,
          add_mdtable: bool = True,
          name_sliders: bool = False) -> List:
-    """ Display the multidimensional array inside the Napari viewer.
+    """Display the multidimensional array inside the Napari viewer.
     Optionally the CziMetadata class will be used show a table with the metadata.
     Every channel will be added as a new layer to the viewer.
 
-    :param viewer: Napari viewer object
-    :param array: multi-dimensional array containing the pixel data (Numpy, List of Dask Array or Dask array
-    :param metadata: CziMetadata class
-    :param dim_string: the dimension string for the array to be shown
-    :param blending: blending mode for viewer
-    :param contrast: method to be used to calculate an appropriate display scaling.
-    - "calc" : real min & max calculation (might be slow) be calculated (slow)
-    - "napari_auto" : Let Napari figure out a display scaling. Will look in the center of an image !
-    - "from_czi" : use the display scaling from ZEN stored inside the CZI metadata
-    :param gamma: gamma value for the Viewer for all layers
-    :param add_mdtable: option to show the CziMetadata as a table widget
-    :param name_sliders: option to use the dimension letters as slider labels for the viewer
-    :return:
+    Args:
+        viewer (Any): Napari viewer object
+        array (Union[np.ndarray, List[da.Array], da.Array]): multi-dimensional array containing the pixel data (Numpy, List of Dask Array or Dask array
+        metadata (czimd.CziMetadata): CziMetadata class
+        dim_string (str): dimension string for the array to be shown
+        blending (str, optional): blending mode for viewer. Defaults to "additive".
+        contrast (Literal[str], optional): method to be used to calculate an appropriate display scaling.
+            - "calc" : real min & max calculation (might be slow) be calculated (slow)
+            - "napari_auto" : Let Napari figure out a display scaling. Will look in the center of an image!
+            - "from_czi" : use the display scaling from ZEN stored inside the CZI metadata. Defaults to "calc".
+        gamma (float, optional): gamma value for the Viewer for all layers Defaults to 0.85.
+        add_mdtable (bool, optional): option to show the CziMetadata as a table widget. Defaults to True.
+        name_sliders (bool, optional): option to use the dimension letters as slider labels for the viewer. Defaults to False.
+
+    Returns:
+        List: List of napari layers
     """
 
     dim_order, dim_index, dim_valid = czimd.CziMetadata.get_dimorder(dim_string)
@@ -271,12 +281,15 @@ def show(viewer: Any,
 
 
 def rename_sliders(sliders: Tuple, dim_order: Dict) -> Tuple:
-    """rename the sliders inside the Napari viewer based on the metadata
+    """Rename the sliders inside the Napari viewer based on the metadata
 
-    :param sliders: labels of sliders from viewer
-    :param dim_order: dictionary indication the dimension string and its
-    position inside the array
-    :return: tuple with renamed sliders
+
+    Args:
+        sliders (Tuple): labels of sliders from viewer
+        dim_order (Dict): dictionary indication the dimension string and its position inside the array
+
+    Returns:
+        Tuple: tuple with renamed sliders
     """
 
     # update the labels with the correct dimension strings
