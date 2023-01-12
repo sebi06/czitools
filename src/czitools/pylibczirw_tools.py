@@ -16,7 +16,6 @@ from czitools import pylibczirw_metadata as czimd
 from czitools import misc
 import numpy as np
 from pathlib import Path, PurePath, PureWindowsPath, PurePosixPath
-from typing import List, Dict, Tuple, Optional, Type, Any, Union, Mapping
 from tqdm.contrib.itertools import product
 import dask
 import dask.array as da
