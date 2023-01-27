@@ -20,6 +20,26 @@ import numpy as np
 from dataclasses import dataclass, field, fields, Field
 from pathlib import Path
 from box import Box, BoxList
+import logging
+import time
+
+
+def setup_log(name, create_logfile=False):
+
+    logger = logging.getLogger(name)   # > set up a new name for a new logger
+    logger.setLevel(logging.INFO)  # here is the missing line
+    log_format = logging.Formatter(
+        "%(asctime)s - %(levelname)s - %(message)s", datefmt="%d-%b-%y %H:%M:%S")
+
+    if create_logfile:
+
+        filename = f"./test_{name}.log"
+        log_handler = logging.FileHandler(filename)
+        log_handler.setLevel(logging.DEBUG)
+        log_handler.setFormatter(log_format)
+        logger.addHandler(log_handler)
+
+    return logger
 
 
 @dataclass
@@ -450,6 +470,8 @@ class CziScaling:
 
     def __post_init__(self):
 
+        logger = setup_log("CziScaling")
+
         if isinstance(self.czisource, Box):
             czi_box = self.czisource
         else:
@@ -470,11 +492,13 @@ class CziScaling:
                           }
 
         elif not czi_box.has_scale:
-            print("No scaling information found.")
+            # print("No scaling information found.")
+            logger.info("No scaling information found.")
 
     @ staticmethod
     def safe_get_scale(dist: BoxList, idx: int) -> Optional[float]:
 
+        logger = setup_log("CziScaling")
         scales = ['X', 'Y', 'Z']
 
         try:
@@ -484,13 +508,16 @@ class CziScaling:
             # check for the value = 0.0
             if sc == 0.0:
                 sc = 1.0
-                print("Detected Scaling = 0.0 for " +
-                      scales[idx] + " Using default = 1.0 [micron].")
+                # print("Detected Scaling = 0.0 for " +
+                #      scales[idx] + " Using default = 1.0 [micron].")
+                logger.info("Detected Scaling = 0.0 for " +
+                            scales[idx] + " Using default = 1.0 [micron].")
             return sc
 
         except (IndexError, TypeError, AttributeError):
 
-            print("No " + scales[idx] + "-Scaling found. Using default = 1.0 [micron].")
+            # print("No " + scales[idx] + "-Scaling found. Using default = 1.0 [micron].")
+            logger.info("No " + scales[idx] + "-Scaling found. Using default = 1.0 [micron].")
             return 1.0
 
 
@@ -507,6 +534,8 @@ class CziObjectives:
     totalmag: Optional[float] = field(init=False, default=None)
 
     def __post_init__(self):
+
+        logger = setup_log("CziObjectives")
 
         if isinstance(self.czisource, Box):
             czi_box = self.czisource
@@ -529,7 +558,8 @@ class CziObjectives:
                 self.name = objective.Manufacturer.Model
 
         elif not czi_box.has_objectives:
-            print("No Objective Information found.")
+            # print("No Objective Information found.")
+            logger.info("No Objective Information found.")
 
         # check if tubelens metadata exist
         if czi_box.has_tubelenses:
@@ -540,7 +570,8 @@ class CziObjectives:
             self.tubelensmag = float(tubelens.Magnification)
 
         elif not czi_box.has_tubelens:
-            print("No Tublens Information found.")
+            # print("No Tublens Information found.")
+            logger.info("No Tublens Information found.")
 
         # some additional checks to clac the total magnification
         if self.objmag is not None and self.tubelensmag is not None:
@@ -559,6 +590,8 @@ class CziDetector:
     modeltype: List[str] = field(init=False, default_factory=lambda: [])
 
     def __post_init__(self):
+
+        logger = setup_log("CziDetector")
 
         if isinstance(self.czisource, Box):
             czi_box = self.czisource
@@ -589,7 +622,8 @@ class CziDetector:
 
         elif czi_box.ImageDocument.Metadata.Information.Instrument is None:
 
-            print("No Detetctor(s) information found.")
+            # print("No Detetctor(s) information found.")
+            logger.info("No Detetctor(s) information found.")
             self.model = [None]
             self.name = [None]
             self.ID = [None]
@@ -604,6 +638,8 @@ class CziMicroscope:
 
     def __post_init__(self):
 
+        logger = setup_log("CziMicroscope")
+
         if isinstance(self.czisource, Box):
             czi_box = self.czisource
         else:
@@ -612,7 +648,9 @@ class CziMicroscope:
         if czi_box.ImageDocument.Metadata.Information.Instrument is None:
             self.ID = None
             self.Name = None
-            print("No Microscope information found.")
+            # print("No Microscope information found.")
+            logger.info("No Microscope information found.")
+
         else:
             self.ID = czi_box.ImageDocument.Metadata.Information.Instrument.Microscopes.Microscope.Id
             self.Name = czi_box.ImageDocument.Metadata.Information.Instrument.Microscopes.Microscope.Name
@@ -633,6 +671,8 @@ class CziSampleInfo:
     image_stageY: float = field(init=False, default=None)
 
     def __post_init__(self):
+
+        self.logger = setup_log("CziSampleInfo")
 
         if isinstance(self.czisource, Box):
             czi_box = self.czisource
@@ -655,10 +695,14 @@ class CziSampleInfo:
                         self.get_well_info(allscenes[well])
 
             except AttributeError:
-                print("CZI contains no scene metadata.")
+                # print("CZI contains no scene metadata.")
+                self.logger.info("CZI contains no scene metadata.")
 
         elif size_s is None:
-            print("No Scene or Well information found. Try to read XY Stage Coordinates from subblocks.")
+            # print("No Scene or Well information found. Try to read XY Stage Coordinates from subblocks.")
+            self.logger.info(
+                "No Scene or Well information found. Try to read XY Stage Coordinates from subblocks.")
+
             try:
                 # read the data from CSV file
                 planetable, csvfile = misc.get_planetable(czi_box.filepath,
@@ -682,20 +726,23 @@ class CziSampleInfo:
         if well.Index is not None:
             self.well_indices.append(int(well.Index))
         elif well.Index is None:
-            print("Well Index not found.")
+            # print("Well Index not found.")
+            self.logger.info("Well Index not found.")
             self.well_indices.append(1)
 
         if well.Name is not None:
             self.well_position_names.append(well.Name)
         elif well.Name is None:
-            print("Well Position Names not found.")
+            # print("Well Position Names not found.")
+            self.logger("Well Position Names not found.")
             self.well_position_names.append("P1")
 
         if well.Shape is not None:
             self.well_colID.append(int(well.Shape.ColumnIndex))
             self.well_rowID.append(int(well.Shape.RowIndex))
         elif well.Shape is None:
-            print("Well Column or Row IDs not found.")
+            # print("Well Column or Row IDs not found.")
+            self.logger("Well Column or Row IDs not found.")
             self.well_colID.append(0)
             self.well_rowID.append(0)
 
@@ -706,7 +753,8 @@ class CziSampleInfo:
             self.scene_stageX.append(np.double(sx))
             self.scene_stageY.append(np.double(sy))
         if well.CenterPosition is None:
-            print("Stage Positions XY not found.")
+            # print("Stage Positions XY not found.")
+            self.logger("Stage Positions XY not found.")
             self.scene_stageX.append(0.0)
             self.scene_stageY.append(0.0)
 
@@ -722,6 +770,8 @@ class CziAddMetaData:
 
     def __post_init__(self):
 
+        logger = setup_log("CziAddMetadata")
+
         if isinstance(self.czisource, Box):
             czi_box = self.czisource
         else:
@@ -730,27 +780,32 @@ class CziAddMetaData:
         if czi_box.has_experiment:
             self.experiment = czi_box.ImageDocument.Metadata.Experiment
         else:
-            print("No Experiment information found.")
+            # print("No Experiment information found.")
+            logger.info("No Experiment information found.")
 
         if czi_box.has_hardware:
             self.hardwaresetting = czi_box.ImageDocument.Metadata.HardwareSetting
         else:
-            print("No HardwareSetting information found.")
+            # print("No HardwareSetting information found.")
+            logger.info("No HardwareSetting information found.")
 
         if czi_box.has_customattr:
             self.customattributes = czi_box.ImageDocument.Metadata.CustomAttributes
         else:
-            print("No CustomAttributes information found.")
+            # print("No CustomAttributes information found.")
+            logger.info("No CustomAttributes information found.")
 
         if czi_box.has_disp:
             self.displaysetting = czi_box.ImageDocument.Metadata.DisplaySetting
         else:
-            print("No DisplaySetting information found.")
+            # print("No DisplaySetting information found.")
+            logger.info("No DisplaySetting information found.")
 
         if czi_box.has_layers:
             self.layers = czi_box.ImageDocument.Metadata.Layers
         else:
-            print("No Layers information found.")
+            # print("No Layers information found.")
+            logger.info("No Layers information found.")
 
 
 @ dataclass
@@ -764,6 +819,8 @@ class CziScene:
     height: Optional[int] = field(init=False, default=None)
 
     def __post_init__(self):
+
+        logger = setup_log("CziScene")
 
         if isinstance(self.filepath, Path):
             # convert to string
@@ -780,7 +837,8 @@ class CziScene:
                 self.height = self.bbox.h
             except KeyError:
                 # in case an invalid index was used
-                print("No Scenes detected.")
+                # print("No Scenes detected.")
+                logger.info("No Scenes detected.")
 
 
 class CziMetadataComplete:
