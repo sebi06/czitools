@@ -32,7 +32,7 @@ xmlfile = czimd.writexml(filepath)
 czi_channels = czimd.CziChannelInfo(filepath)
 
 # get the complete metadata from the CZI as one big object
-czimd_complete = czimd.CziMetadataComplete(filepath)
+czimd_complete = czimd.get_metadata_as_object(filepath)
 
 # get an object containing only the dimension information
 czi_dimensions = czimd.CziDimensions(filepath)

@@ -26,8 +26,11 @@ import time
 
 def setup_log(name, create_logfile=False):
 
-    logger = logging.getLogger(name)   # > set up a new name for a new logger
-    logger.setLevel(logging.INFO)  # here is the missing line
+    # set up a new name for a new logger
+    logger = logging.getLogger(name)
+    logger.setLevel(logging.INFO)
+
+    # define the logging format
     log_format = logging.Formatter(
         "%(asctime)s - %(levelname)s - %(message)s", datefmt="%d-%b-%y %H:%M:%S")
 
@@ -75,10 +78,12 @@ class CziMetadata:
     sample: Optional[CziSampleInfo] = field(init=False, default=None)
     add_metadata: Optional[CziAddMetaData] = field(init=False, default=None)
     """
-    Create a CziMetadata object from the filename
+    Create a CziMetadata object from the filename of the CZI image file.
     """
 
     def __post_init__(self):
+
+        logger = setup_log("CziMetaData")
 
         if isinstance(self.filepath, Path):
             # convert to string
@@ -88,7 +93,7 @@ class CziMetadata:
         self.dirname = str(Path(self.filepath).parent)
         self.filename = str(Path(self.filepath).name)
 
-        # testing
+        # get the metadata as box
         self.czi_box = get_czimd_box(self.filepath)
 
         # get acquisition data and SW version
@@ -98,6 +103,10 @@ class CziMetadata:
 
         if self.czi_box.ImageDocument.Metadata.Information.Image is not None:
             self.acquisition_date = self.czi_box.ImageDocument.Metadata.Information.Image.AcquisitionDateAndTime
+
+        if self.czi_box.ImageDocument.Metadata.Information.Document is not None:
+            self.creation_date = self.czi_box.ImageDocument.Metadata.Information.Document.CreationDate
+            self.user_name = self.czi_box.ImageDocument.Metadata.Information.Document.UserName
 
         # get the dimensions and order
         self.image = CziDimensions(self.czi_box)
@@ -132,7 +141,8 @@ class CziMetadata:
             self.aics_posC = self.aics_dim_order["C"]
 
         except ImportError as e:
-            print("Package aicspylibczi not found. Use Fallback values.")
+            # print("Package aicspylibczi not found. Use Fallback values.")
+            logger.info("Package aicspylibczi not found. Use Fallback values.")
 
         for ch, px in self.pixeltypes.items():
             npdtype, maxvalue = self.get_dtype_fromstring(px)
@@ -320,7 +330,7 @@ class CziDimensions:
         self.set_dimensions()
 
     def set_dimensions(self):
-        """set_dimensions: Populate the image dimensions with the detected values from the metadata
+        """Populate the image dimensions with the detected values from the metadata
         """
 
         # get the Box and extract the relevant dimension metadata
@@ -354,6 +364,8 @@ class CziBoundingBox:
 
     def __post_init__(self):
 
+        logger = setup_log("CziBoundingBox")
+
         if isinstance(self.czisource, Path):
             # convert to string
             self.czisource = str(self.czisource)
@@ -367,19 +379,22 @@ class CziBoundingBox:
                 self.scenes_bounding_rect = czidoc.scenes_bounding_rectangle
             except Exception as e:
                 self.scenes_bounding_rect = None
-                print("Scenes Bounding rectangle not found.")
+                # print("Scenes Bounding rectangle not found.")
+                logger.info("Scenes Bounding rectangle not found.")
 
             try:
                 self.total_rect = czidoc.total_bounding_rectangle
             except Exception as e:
                 self.total_rect = None
-                print("Total Bounding rectangle not found.")
+                # print("Total Bounding rectangle not found.")
+                logger.info("Total Bounding rectangle not found.")
 
             try:
                 self.total_bounding_box = czidoc.total_bounding_box
             except Exception as e:
                 self.total_bounding_box = None
-                print("Total Bounding Box not found.")
+                # print("Total Bounding Box not found.")
+                logger.info("Total Bounding Box not found.")
 
 
 @ dataclass
@@ -392,6 +407,8 @@ class CziChannelInfo:
     gamma: List[float] = field(init=False, default_factory=lambda: [])
 
     def __post_init__(self):
+
+        logger = setup_log("CziChannelInfo")
 
         if isinstance(self.czisource, Box):
             czi_box = self.czisource
@@ -416,7 +433,8 @@ class CziChannelInfo:
             except AttributeError:
                 channels = None
         elif not czi_box.has_channels:
-            print("Channel(s) information not found.")
+            # print("Channel(s) information not found.")
+            logger.info("Channel(s) information not found.")
 
         if czi_box.has_disp:
 
@@ -432,7 +450,8 @@ class CziChannelInfo:
                 disp = None
 
         elif not czi_box.has_disp:
-            print("DisplaySetting(s) not found.")
+            # print("DisplaySetting(s) not found.")
+            logger.info("DisplaySetting(s) not found.")
 
     def get_channel_info(self, display: Box):
 
@@ -672,7 +691,7 @@ class CziSampleInfo:
 
     def __post_init__(self):
 
-        self.logger = setup_log("CziSampleInfo")
+        logger = setup_log("CziSampleInfo")
 
         if isinstance(self.czisource, Box):
             czi_box = self.czisource
@@ -696,11 +715,11 @@ class CziSampleInfo:
 
             except AttributeError:
                 # print("CZI contains no scene metadata.")
-                self.logger.info("CZI contains no scene metadata.")
+                logger.info("CZI contains no scene metadata.")
 
         elif size_s is None:
             # print("No Scene or Well information found. Try to read XY Stage Coordinates from subblocks.")
-            self.logger.info(
+            logger.info(
                 "No Scene or Well information found. Try to read XY Stage Coordinates from subblocks.")
 
             try:
@@ -717,6 +736,8 @@ class CziSampleInfo:
 
     def get_well_info(self, well: Box):
 
+        logger = setup_log("CziSampleInfo")
+
         # check the ArrayName
         if well.ArrayName is not None:
             self.well_array_names.append(well.ArrayName)
@@ -727,14 +748,14 @@ class CziSampleInfo:
             self.well_indices.append(int(well.Index))
         elif well.Index is None:
             # print("Well Index not found.")
-            self.logger.info("Well Index not found.")
+            logger.info("Well Index not found.")
             self.well_indices.append(1)
 
         if well.Name is not None:
             self.well_position_names.append(well.Name)
         elif well.Name is None:
             # print("Well Position Names not found.")
-            self.logger("Well Position Names not found.")
+            logger.info("Well Position Names not found.")
             self.well_position_names.append("P1")
 
         if well.Shape is not None:
@@ -742,7 +763,7 @@ class CziSampleInfo:
             self.well_rowID.append(int(well.Shape.RowIndex))
         elif well.Shape is None:
             # print("Well Column or Row IDs not found.")
-            self.logger("Well Column or Row IDs not found.")
+            logger.info("Well Column or Row IDs not found.")
             self.well_colID.append(0)
             self.well_rowID.append(0)
 
@@ -754,7 +775,7 @@ class CziSampleInfo:
             self.scene_stageY.append(np.double(sy))
         if well.CenterPosition is None:
             # print("Stage Positions XY not found.")
-            self.logger("Stage Positions XY not found.")
+            logger.info("Stage Positions XY not found.")
             self.scene_stageX.append(0.0)
             self.scene_stageY.append(0.0)
 
@@ -841,25 +862,21 @@ class CziScene:
                 logger.info("No Scenes detected.")
 
 
-class CziMetadataComplete:
+def get_metadata_as_object(filepath: Union[str, os.PathLike[str]]) -> DictObj:
     """
     Get the complete CZI metadata as an object created based on the
     dictionary created from the XML data.
     """
 
-    def __init__(self, filepath: Union[str, os.PathLike[str]]) -> None:
+    if isinstance(filepath, Path):
+        # convert to string
+        filepath = str(filepath)
 
-        if isinstance(filepath, Path):
-            # convert to string
-            filepath = str(filepath)
+    # get metadata dictionary using pylibCZIrw
+    with pyczi.open_czi(filepath) as czidoc:
+        md_dict = czidoc.metadata
 
-        # get metadata dictionary using pylibCZIrw
-        with pyczi.open_czi(filepath) as czidoc:
-            md_dict = czidoc.metadata
-
-        self.md = DictObj(md_dict)
-
-        # TODO convert to dataclass and check if needed at all. Replace by Box?
+    return DictObj(md_dict)
 
 
 class DictObj:
@@ -971,6 +988,8 @@ def create_mdict_red(metadata: CziMetadata, sort: bool = True) -> Dict:
     md_dict = {'Directory': metadata.dirname,
                'Filename': metadata.filename,
                'AcqDate': metadata.acquisition_date,
+               'CreationDate': metadata.creation_date,
+               'UserName': metadata.user_name,
                'SW-App': metadata.software_version,
                'SW-Version': metadata.software_name,
                'SizeX': metadata.image.SizeX,

@@ -63,10 +63,10 @@ def test_dimorder():
     filepath = basedir / r"data/S=2_3x3_CH=2.czi"
     md = czimd.CziMetadata(filepath)
 
-    assert(md.aics_dim_order == {'R': -1, 'I': -1, 'M': 5, 'H': 0, 'V': -1,
-           'B': -1, 'S': 1, 'T': 2, 'C': 3, 'Z': 4, 'Y': 6, 'X': 7, 'A': -1})
-    assert(md.aics_dim_index == [-1, -1, 5, 0, -1, -1, 1, 2, 3, 4, 6, 7, -1])
-    assert(md.aics_dim_valid == 8)
+    assert (md.aics_dim_order == {'R': -1, 'I': -1, 'M': 5, 'H': 0, 'V': -1,
+                                  'B': -1, 'S': 1, 'T': 2, 'C': 3, 'Z': 4, 'Y': 6, 'X': 7, 'A': -1})
+    assert (md.aics_dim_index == [-1, -1, 5, 0, -1, -1, 1, 2, 3, 4, 6, 7, -1])
+    assert (md.aics_dim_valid == 8)
 
 
 def test_scene_shape():
@@ -85,7 +85,7 @@ def test_scene_shape():
         # get the complete metadata at once as one big class
         md = czimd.CziMetadata(filepath)
 
-        assert(md.scene_shape_is_consistent == sc)
+        assert (md.scene_shape_is_consistent == sc)
 
 
 def test_reading_czi_fresh():
@@ -105,3 +105,6 @@ def test_reading_czi_fresh():
     assert (mdata.sample.scene_stageY == [])
     assert (mdata.sample.image_stageX is None)
     assert (mdata.sample.image_stageY is None)
+
+
+test_scene_shape()
