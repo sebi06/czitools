@@ -3,11 +3,14 @@ from czitools import pylibczirw_metadata as czimd
 from pylibCZIrw import czi as pyczi
 from pathlib import Path
 import numpy as np
+import pytest
+from typing import List, Dict, Tuple, Optional, Type, Any, Union, Mapping
+
 
 basedir = Path(__file__).resolve().parents[3]
 
 
-def test_pixeltypes():
+def test_pixeltypes_1() -> None:
 
     # get the CZI filepath
     filepath = basedir / r"data/Tumor_HE_RGB.czi"
@@ -20,41 +23,29 @@ def test_pixeltypes():
     assert (md.pixeltypes == {0: 'Bgr24'})
     assert (md.isRGB is True)
 
-    # check the function to get npdtypes and maxvalues
 
-    pts = ["gray16",
-           "Gray16",
-           "gray8",
-           "Gray8",
-           "bgr48",
-           "Bgr48",
-           "bgr24",
-           "Bgr24",
-           "bgr96float",
-           "Bgr96Float",
-           "abc",
-           None]
+@pytest.mark.parametrize(
+    "pts, dts, mvs",
+    [
+        ("gray16", np.dtype(np.uint16), 65535),
+        ("Gray16", np.dtype(np.uint16), 65535),
+        ("gray8", np.dtype(np.uint8), 255),
+        ("Gray8", np.dtype(np.uint8), 255),
+        ("bgr48", np.dtype(np.uint16), 65535),
+        ("Bgr48", np.dtype(np.uint16), 65535),
+        ("bgr24", np.dtype(np.uint8), 255),
+        ("Bgr24", np.dtype(np.uint8), 255),
+        ("bgr96float", np.dtype(np.uint16), 65535),
+        ("Bgr96Float", np.dtype(np.uint16), 65535),
+        ("abc", None, None),
+        (None, None, None)
+    ]
+)
+def test_pixeltypes_2(pts: str, dts: np.dtype, mvs: int) -> None:
 
-    dts = [np.dtype(np.uint16),
-           np.dtype(np.uint16),
-           np.dtype(np.uint8),
-           np.dtype(np.uint8),
-           np.dtype(np.uint16),
-           np.dtype(np.uint16),
-           np.dtype(np.uint8),
-           np.dtype(np.uint8),
-           np.dtype(np.uint16),
-           np.dtype(np.uint16),
-           None,
-           None]
-
-    mvs = [65535, 65535, 255, 255, 65535, 65535, 255, 255, 65535, 65535, None, None]
-
-    for pt, dt, mv in zip(pts, dts, mvs):
-
-        out = czimd.CziMetadata.get_dtype_fromstring(pt)
-        assert (out[0] == dt)
-        assert (out[1] == mv)
+    out = czimd.CziMetadata.get_dtype_fromstring(pts)
+    assert (out[0] == dts)
+    assert (out[1] == mvs)
 
 
 def test_dimorder():
@@ -69,23 +60,20 @@ def test_dimorder():
     assert (md.aics_dim_valid == 8)
 
 
-def test_scene_shape():
+@pytest.mark.parametrize(
+    "czifile, shape",
+    [
+        (r"data/S=3_1Pos_2Mosaic_T=2=Z=3_CH=2_sm.czi", False),
+        (r"data/CellDivision_T=3_Z=5_CH=2_X=240_Y=170.czi", True),
+        (r"data/WP96_4Pos_B4-10_DAPI.czi", True)
+    ]
+)
+def test_scene_shape(czifile: str, shape: bool) -> None:
 
-    files = [r"data/S=3_1Pos_2Mosaic_T=2=Z=3_CH=2_sm.czi",
-             r"data/CellDivision_T=3_Z=5_CH=2_X=240_Y=170.czi",
-             r"data/WP96_4Pos_B4-10_DAPI.czi"]
+    # get the complete metadata at once as one big class
+    md = czimd.CziMetadata(czifile)
 
-    shapes = [False, True, True]
-
-    for file, sc in zip(files, shapes):
-
-        # get the CZI filepath
-        filepath = basedir / file
-
-        # get the complete metadata at once as one big class
-        md = czimd.CziMetadata(filepath)
-
-        assert (md.scene_shape_is_consistent == sc)
+    assert (md.scene_shape_is_consistent == shape)
 
 
 def test_reading_czi_fresh():
@@ -105,6 +93,3 @@ def test_reading_czi_fresh():
     assert (mdata.sample.scene_stageY == [])
     assert (mdata.sample.image_stageX is None)
     assert (mdata.sample.image_stageY is None)
-
-
-test_scene_shape()
