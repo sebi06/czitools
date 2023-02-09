@@ -6,7 +6,7 @@ from box import Box, BoxList
 basedir = Path(__file__).resolve().parents[3]
 
 # get the CZI filepath
-filepath = basedir / r"data/CellDivision_T=3_Z=5_CH=2_X=240_Y=170.czi"
+filepath = basedir / "data" / "CellDivision_T=3_Z=5_CH=2_X=240_Y=170.czi"
 
 
 def test_scaling1():
@@ -79,7 +79,7 @@ def test_safe_get_scale():
 def test_scaling2():
 
     # get the CZI filepath
-    filepath = basedir / r"data/DAPI_GFP.czi"
+    filepath = basedir / "data" / "DAPI_GFP.czi"
     md = czimd.CziMetadata(filepath)
 
     assert(md.scale.X == 1.0)

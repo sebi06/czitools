@@ -9,15 +9,15 @@ basedir = Path(__file__).resolve().parents[3]
 @pytest.mark.parametrize(
     "czifile, result_mic, result_det",
     [
-        (r"data/CellDivision_T=3_Z=5_CH=2_X=240_Y=170.czi",
+        ("CellDivision_T=3_Z=5_CH=2_X=240_Y=170.czi",
          ['Microscope:1', 'Castor.Stand'],
          [['Detector:Axiocam 506'], [None], [None], ['Axiocam 506']]),
 
-        (r"data/Airyscan.czi",
+        ("Airyscan.czi",
          ['Microscope:0', None],
          [['Detector:0:0', 'Detector:1:0'], [None, None], ['Airyscan', 'Airyscan'], [None, None]]),
 
-        (r"data/newCZI_zloc.czi",
+        ("newCZI_zloc.czi",
          [None, None],
          [[None], [None], [None], [None]]),
 
@@ -26,7 +26,7 @@ basedir = Path(__file__).resolve().parents[3]
 def test_instrument(czifile: str, result_mic: Dict, result_det: Dict) -> None:
 
     # get the filepath and the metadata
-    filepath = basedir / czifile
+    filepath = basedir / "data" / czifile
     mic = czimd.CziMicroscope(filepath)
     det = czimd.CziDetector(filepath)
 
@@ -44,7 +44,7 @@ def test_instrument(czifile: str, result_mic: Dict, result_det: Dict) -> None:
 @pytest.mark.parametrize(
     "czifile, result",
     [
-        (r"data/CellDivision_T=3_Z=5_CH=2_X=240_Y=170.czi", {'name': 'Plan-Apochromat 50x/1.2',
+        ("CellDivision_T=3_Z=5_CH=2_X=240_Y=170.czi", {'name': 'Plan-Apochromat 50x/1.2',
                                                              'immersion': 'Water',
                                                              'NA': 1.2,
                                                              'ID': 'Objective:1',
@@ -52,9 +52,9 @@ def test_instrument(czifile: str, result_mic: Dict, result_det: Dict) -> None:
                                                              'tubelensmag': 1.0,
                                                              'totalmag': 50.0}),
 
-        (r"data/Al2O3_SE_020_sp.czi", {}),
+        ("Al2O3_SE_020_sp.czi", {}),
 
-        (r"data/w96_A1+A2.czi", {'name': 'Plan-Apochromat 20x/0.95',
+        ("w96_A1+A2.czi", {'name': 'Plan-Apochromat 20x/0.95',
                                  'immersion': 'Air',
                                  'NA': 0.95,
                                  'ID': 'Objective:1',
@@ -62,25 +62,25 @@ def test_instrument(czifile: str, result_mic: Dict, result_det: Dict) -> None:
                                  'tubelensmag': 0.5,
                                  'totalmag': 10.0}),
 
-        (r"data/Airyscan.czi",  {'name': 'Plan-Apochromat 63x/1.4 Oil DIC M27',
+        ("Airyscan.czi",  {'name': 'Plan-Apochromat 63x/1.4 Oil DIC M27',
                                  'immersion': 'Oil',
                                  'NA': 1.4000000000000001,
                                  'ID': 'Objective:0',
                                  'objmag': 63.0,
                                  'totalmag': 63.0}),
 
-        (r"data/newCZI_zloc.czi", {}),
+        ("newCZI_zloc.czi", {}),
 
-        (r"data/FOV7_HV110_P0500510000.czi", {}),
+        ("FOV7_HV110_P0500510000.czi", {}),
 
-        (r"data/Tumor_HE_RGB.czi", {})
+        ("Tumor_HE_RGB.czi", {})
 
     ]
 )
 def test_objectives(czifile: str, result: Dict) -> None:
 
     # get the filepath and the metadata
-    filepath = basedir / czifile
+    filepath = basedir / "data" / czifile
     obj = czimd.CziObjectives(filepath)
 
     out = obj.__dict__

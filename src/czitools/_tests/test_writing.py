@@ -11,7 +11,8 @@ from tqdm import tqdm
 basedir = Path(__file__).resolve().parents[3]
 
 # get some data to write
-filepath = basedir / r"data/z=16_ch=3.czi"
+filepath = basedir / "data" / "z=16_ch=3.czi"
+
 mdarray, mdata, dimstring = pylibczirw_tools.read_6darray(filepath,
                                                           output_dask=False,
                                                           chunks_auto=False,
@@ -24,8 +25,8 @@ numZ = mdata.image.SizeZ
 def test_write_1():
 
     # get the CZI filepath
-    filepath1 = basedir / r"data/CH=1_16bit.tif"
-    filepath2 = basedir / r"data/Fluorescence_RGB.tif"
+    filepath1 = basedir / "data" / "CH=1_16bit.tif"
+    filepath2 = basedir / r"data" / "Fluorescence_RGB.tif"
 
     files = [filepath1, filepath2]
     sps = [1, 3]

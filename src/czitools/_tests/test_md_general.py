@@ -63,15 +63,19 @@ def test_dimorder():
 @pytest.mark.parametrize(
     "czifile, shape",
     [
-        (r"data/S=3_1Pos_2Mosaic_T=2=Z=3_CH=2_sm.czi", False),
-        (r"data/CellDivision_T=3_Z=5_CH=2_X=240_Y=170.czi", True),
-        (r"data/WP96_4Pos_B4-10_DAPI.czi", True)
+        ("S=3_1Pos_2Mosaic_T=2=Z=3_CH=2_sm.czi", False),
+        ("CellDivision_T=3_Z=5_CH=2_X=240_Y=170.czi", True),
+        ("WP96_4Pos_B4-10_DAPI.czi", True)
     ]
 )
 def test_scene_shape(czifile: str, shape: bool) -> None:
 
+    filepath = basedir / "data" / czifile
+
+    assert (Path.exists(filepath) is True)
+
     # get the complete metadata at once as one big class
-    md = czimd.CziMetadata(czifile)
+    md = czimd.CziMetadata(filepath)
 
     assert (md.scene_shape_is_consistent == shape)
 

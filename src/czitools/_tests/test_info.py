@@ -9,19 +9,19 @@ basedir = Path(__file__).resolve().parents[3]
 @pytest.mark.parametrize(
     "czifile, result",
     [
-        (r"data/CellDivision_T=3_Z=5_CH=2_X=240_Y=170.czi", ['ZEN 3.2 (blue edition)',
+        ("CellDivision_T=3_Z=5_CH=2_X=240_Y=170.czi", ['ZEN 3.2 (blue edition)',
                                                              '3.2.0.00001',
                                                              '2016-02-12T09:41:02.4915604Z',
                                                              True,
                                                              'CellDivision_T=3_Z=5_CH=2_X=240_Y=170.czi']),
         
-        (r"data/Airyscan.czi", ['ZEN (blue edition)',
+        ("Airyscan.czi", ['ZEN (blue edition)',
                                 '3.5.093.00000',
                                 None,
                                 True,
                                 'Airyscan.czi']),
         
-        (r"data/newCZI_zloc.czi", ['pylibCZIrw',
+        ("newCZI_zloc.czi", ['pylibCZIrw',
                                    '3.2.1',
                                    None,
                                    True,
@@ -30,7 +30,7 @@ basedir = Path(__file__).resolve().parents[3]
 )
 def test_information(czifile: str, result: List) -> None:
 
-    filepath = basedir / czifile
+    filepath = basedir / "data" / czifile
     md = czimd.CziMetadata(filepath)
 
     assert (md.software_name == result[0])
