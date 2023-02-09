@@ -235,7 +235,7 @@ def check_dimsize(mdata_entry: Union[Any, None], set2value: Any = 1) -> Union[An
 
     Args:
         mdata_entry: entry to be checked
-        set2value: value to replave None
+        set2value: value to replace None
 
     Returns:
         A list of dask arrays

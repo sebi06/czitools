@@ -2,6 +2,8 @@ from czitools import pylibczirw_tools, misc
 from pathlib import Path
 import dask.array as da
 import pandas as pd
+import pytest
+from typing import List, Dict, Tuple, Optional, Type, Any, Union, Mapping
 
 basedir = Path(__file__).resolve().parents[3]
 
@@ -9,7 +11,7 @@ basedir = Path(__file__).resolve().parents[3]
 def test_slicedim():
 
     # get the CZI filepath
-    filepath = basedir / r"data/CellDivision_T=3_Z=5_CH=2_X=240_Y=170.czi"
+    filepath = basedir / "data" / "CellDivision_T=3_Z=5_CH=2_X=240_Y=170.czi"
 
     mdarray, mdata, dimstring = pylibczirw_tools.read_6darray(filepath,
                                                               output_dask=False,
@@ -51,7 +53,7 @@ def test_slicedim():
 def test_get_planetable():
 
     # get the CZI filepath
-    filepath = (basedir / r"data/WP96_4Pos_B4-10_DAPI.czi").as_posix()
+    filepath = (basedir / "data" / "WP96_4Pos_B4-10_DAPI.czi").as_posix()
 
     isczi = False
     iscsv = False
