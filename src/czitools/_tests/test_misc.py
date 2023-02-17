@@ -7,11 +7,22 @@ from typing import List, Dict, Tuple, Optional, Type, Any, Union, Mapping
 
 basedir = Path(__file__).resolve().parents[3]
 
-
-def test_slicedim():
+@pytest.mark.parametrize(
+    "czifile, dimindex, posdim, shape",
+    [
+        ("CellDivision_T=3_Z=5_CH=2_X=240_Y=170.czi", 0, 2, (1, 3, 1, 5, 170, 240)),
+        ("CellDivision_T=3_Z=5_CH=2_X=240_Y=170.czi", 0, 1, (1, 1, 2, 5, 170, 240)),
+        ("CellDivision_T=3_Z=5_CH=2_X=240_Y=170.czi", 2, 3, (1, 3, 2, 1, 170, 240)),
+        ("S=2_3x3_CH=2.czi", 0, 0, (1, 1, 2, 1, 1792, 1792)),
+        ("S=2_3x3_CH=2.czi", 0, 1, (2, 1, 2, 1, 1792, 1792)),
+        ("S=2_3x3_CH=2.czi", 0, 2, (2, 1, 1, 1, 1792, 1792)),
+        ("S=2_3x3_CH=2.czi", 1, 2, (2, 1, 1, 1, 1792, 1792))
+    ]
+)
+def test_slicedim(czifile: str, dimindex: int, posdim: int, shape: Tuple[int]) -> None:
 
     # get the CZI filepath
-    filepath = basedir / "data" / "CellDivision_T=3_Z=5_CH=2_X=240_Y=170.czi"
+    filepath = basedir / "data" / czifile
 
     mdarray, mdata, dimstring = pylibczirw_tools.read_6darray(filepath,
                                                               output_dask=False,
@@ -19,41 +30,20 @@ def test_slicedim():
                                                               output_order="STCZYX",
                                                               remove_adim=True)
 
-    dim_array = misc.slicedim(mdarray, 0, 2)
-    assert(dim_array.shape == (1, 3, 1, 5, 170, 240))
-
-    dim_array = misc.slicedim(mdarray, 0, 1)
-    assert(dim_array.shape == (1, 1, 2, 5, 170, 240))
-
-    dim_array = misc.slicedim(mdarray, 2, 3)
-    assert(dim_array.shape == (1, 3, 2, 1, 170, 240))
-
-    # get the CZI filepath
-    filepath = basedir / r"data/S=2_3x3_CH=2.czi"
-
-    mdarray, mdata, dimstring = pylibczirw_tools.read_6darray(filepath,
-                                                              output_dask=False,
-                                                              chunks_auto=False,
-                                                              output_order="STCZYX",
-                                                              remove_adim=True)
-
-    dim_array = misc.slicedim(mdarray, 0, 0)
-    assert(dim_array.shape == (1, 1, 2, 1, 1792, 1792))
-
-    dim_array = misc.slicedim(mdarray, 0, 1)
-    assert(dim_array.shape == (2, 1, 2, 1, 1792, 1792))
-
-    dim_array = misc.slicedim(mdarray, 0, 2)
-    assert(dim_array.shape == (2, 1, 1, 1, 1792, 1792))
-
-    dim_array = misc.slicedim(mdarray, 1, 2)
-    assert(dim_array.shape == (2, 1, 1, 1, 1792, 1792))
+    dim_array = misc.slicedim(mdarray, dimindex, posdim)
+    assert(dim_array.shape == shape)
 
 
-def test_get_planetable():
+@pytest.mark.parametrize(
+    "czifile, csvfile, xstart, ystart",
+    [
+        ("WP96_4Pos_B4-10_DAPI.czi", "WP96_4Pos_B4-10_DAPI_planetable.csv", [148118, 166242], [78118, 78118])
+    ]
+)
+def test_get_planetable(czifile: str, csvfile: str, xstart: List[int], ystart: List[int]) -> None:
 
     # get the CZI filepath
-    filepath = (basedir / "data" / "WP96_4Pos_B4-10_DAPI.czi").as_posix()
+    filepath = (basedir / "data" / czifile).as_posix()
 
     isczi = False
     iscsv = False
@@ -78,25 +68,31 @@ def test_get_planetable():
                                                   separator=",",
                                                   index=True)
 
-        assert(csvfile == (basedir / r"data/WP96_4Pos_B4-10_DAPI_planetable.csv").as_posix())
+        assert(csvfile == (basedir / "data" / csvfile).as_posix())
 
         # remove the file
         Path.unlink(Path(csvfile))
 
     planetable_filtered = misc.filter_planetable(planetable, s=0, t=0, z=0, c=0)
 
-    assert(planetable_filtered["xstart"][0] == 148118)
-    assert(planetable_filtered["xstart"][1] == 166242)
-    assert(planetable_filtered["ystart"][0] == 78118)
-    assert(planetable_filtered["ystart"][1] == 78118)
+    assert(planetable_filtered["xstart"][0] == xstart[0])
+    assert(planetable_filtered["xstart"][1] == xstart[1])
+    assert(planetable_filtered["ystart"][0] == ystart[0])
+    assert(planetable_filtered["ystart"][1] == ystart[1])
 
 
-def test_check_dimsize():
+@pytest.mark.parametrize(
+    "entry, set2value, result",
+    [
+        (0, 1, 0),
+        (None, 1, 1),
+        (-1, 2, -1),
+        (None, 3, 3)
+    ]
+)
+def test_check_dimsize(entry: Optional[int], set2value: int, result: int) -> None:
 
-    assert(misc.check_dimsize(0, set2value=1) == 0)
-    assert (misc.check_dimsize(None, set2value=1) == 1)
-    assert (misc.check_dimsize(-1, set2value=2) == -1)
-    assert (misc.check_dimsize(None, set2value=3) == 3)
+    assert (misc.check_dimsize(entry, set2value=set2value) == result)
 
 
 
