@@ -1,8 +1,10 @@
 from czitools import pylibczirw_tools, misc
 from pathlib import Path
 import dask.array as da
+import zarr
 import pandas as pd
 import pytest
+import numpy as np
 from typing import List, Dict, Tuple, Optional, Type, Any, Union, Mapping
 
 basedir = Path(__file__).resolve().parents[3]
@@ -93,6 +95,28 @@ def test_get_planetable(czifile: str, csvfile: str, xstart: List[int], ystart: L
 def test_check_dimsize(entry: Optional[int], set2value: int, result: int) -> None:
 
     assert (misc.check_dimsize(entry, set2value=set2value) == result)
+
+
+@pytest.mark.parametrize(
+    "array, min_value, max_value, corr_min, corr_max",
+    [
+        (np.array([[1, 2, 3], [4, 5, 6], [7, 8, 9]], np.int16), 1, 9, 1.0, 1.0),
+        (zarr.array(np.array([[1, 2, 3], [4, 5, 6], [7, 8, 9]], np.int16)), 1, 9, 1.0, 1.0),
+        (da.from_array(np.array([[1, 2, 0], [4, -5, 6], [7, 8, 9]], np.int16)), -5, 9, 1.0, 1.0)
+    ]
+)
+def test_calc_scaling(array: Union[np.ndarray, da.Array, zarr.Array],
+                      min_value: int,
+                      max_value: int,
+                      corr_min: float,
+                      corr_max: float) -> None:
+
+    minv, maxv = misc.calc_scaling(array,
+                                   corr_min=corr_min,
+                                   corr_max=corr_max)
+
+    assert (min_value == minv)
+    assert (max_value == maxv)
 
 
 

@@ -131,8 +131,8 @@ def calc_scaling(data: Union[np.ndarray, da.array],
 
     end = time.time()
 
-    minvalue = np.round((minvalue + offset_min) * corr_min, 0)
-    maxvalue = np.round((maxvalue + offset_max) * corr_max, 0)
+    minvalue = int(np.round((minvalue + offset_min) * corr_min, 0))
+    maxvalue = int(np.round((maxvalue + offset_max) * corr_max, 0))
 
     print("Scaling:", minvalue, maxvalue)
     print("Calculation of Min-Max [s] : ", end - start)
