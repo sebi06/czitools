@@ -248,24 +248,30 @@ def check_dimsize(mdata_entry: Union[Any, None], set2value: Any = 1) -> Union[An
 
 
 def get_daskstack(aics_img: AICSImage) -> List[da.array]:
-    """Create dask stack from a list of dask stacks
+    """Create a Dask stack from a list of Dask stacks.
 
     Args:
-        aics_img (AICSImage): the input AICSImage object
+        aics_img (AICSImage): An AICSImage object containing multiple scenes.
 
     Returns:
-        A list of dask arrays
+        List[da.array]: A list of Dask arrays representing the stack of all scenes
+        in the input AICSImage object.
     """
-    stacks: list[da.array] = []
+    # Initialize an empty list to store the Dask arrays for each scene.
+    stacks: List[da.array] = []
 
+    # Iterate over all scenes in the input AICSImage object.
     for scene in aics_img.scenes:
+        # Set the current scene of the AICSImage object.
         aics_img.set_scene(scene)
+        # Append the Dask array for the current scene to the stacks list.
         stacks.append(aics_img.dask_data)
 
-    # create the list of dask arrays
-    stacks = da.stack(stacks)
+    # Stack all Dask arrays in the stacks list along the first axis to create
+    # a single Dask array representing the stack of all scenes.
+    stack = da.stack(stacks)
 
-    return stacks
+    return stack
 
 
 def get_planetable(czifile: Union[str, os.PathLike[str]],
@@ -556,38 +562,40 @@ def save_planetable(df: pd.DataFrame,
                     filename: str,
                     separator: str = ',',
                     index: bool = True) -> str:
-    """Save dataframe as CSV table
+    """Saves a pandas dataframe as a CSV file.
 
-    :param df: Dataframe to be saved as CSV.
-    :type df: pd.DataFrame
-    :param filename: filename of the CSV to be written
-    :type filename: str
-    :param separator: separator for the CSV file, defaults to ','
-    :type separator: str, optional
-    :param index: option write the index into the CSV file, defaults to True
-    :type index: bool, optional
-    :return: filename of the CSV
-    :rtype: str
+    Args:
+        df (pd.DataFrame): The dataframe to be saved as CSV.
+        filename (str): The filename of the CSV file to be written.
+        separator (str, optional): The separator character for the CSV file. Defaults to ','.
+        index (bool, optional): Whether to include the index in the CSV file. Defaults to True.
+
+    Returns:
+        str: The filename of the CSV file that was written.
     """
+    # Generate the filename for the planetable CSV.
     csvfile = os.path.splitext(filename)[0] + '_planetable.csv'
 
-    # write the CSV data table
+    # Write the dataframe to the planetable CSV file.
     df.to_csv(csvfile, sep=separator, index=index)
 
     return csvfile
 
 
 def expand5d(array: np.ndarray) -> np.ndarray:
-    """Expand a multi-dimension array to 5 dimensions
+    """Expands a multi-dimensional numpy array to 5 dimensions.
+
     Args:
-        array: numpy array to be extended to 5 dimensions
+        array (np.ndarray): The numpy array to be extended to 5 dimensions.
 
     Returns:
-        the 5-dimensional numpy array
+        np.ndarray: The 5-dimensional numpy array.
     """
-
+    # Expand the input array along the third-to-last dimension.
     array = np.expand_dims(array, axis=-3)
+    # Expand the result along the fourth-to-last dimension.
     array = np.expand_dims(array, axis=-4)
+    # Expand the result along the fifth-to-last dimension.
     array5d = np.expand_dims(array, axis=-5)
 
     return array5d
