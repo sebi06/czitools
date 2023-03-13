@@ -9,6 +9,7 @@ from typing import List, Dict, Tuple, Optional, Type, Any, Union, Mapping
 
 basedir = Path(__file__).resolve().parents[3]
 
+
 @pytest.mark.parametrize(
     "czifile, dimindex, posdim, shape",
     [
@@ -33,7 +34,7 @@ def test_slicedim(czifile: str, dimindex: int, posdim: int, shape: Tuple[int]) -
                                                               remove_adim=True)
 
     dim_array = misc.slicedim(mdarray, dimindex, posdim)
-    assert(dim_array.shape == shape)
+    assert (dim_array.shape == shape)
 
 
 @pytest.mark.parametrize(
@@ -70,17 +71,17 @@ def test_get_planetable(czifile: str, csvfile: str, xstart: List[int], ystart: L
                                                   separator=",",
                                                   index=True)
 
-        assert(csvfile == (basedir / "data" / csvfile).as_posix())
+        assert (csvfile == (basedir / "data" / csvfile).as_posix())
 
         # remove the file
         Path.unlink(Path(csvfile))
 
     planetable_filtered = misc.filter_planetable(planetable, s=0, t=0, z=0, c=0)
 
-    assert(planetable_filtered["xstart"][0] == xstart[0])
-    assert(planetable_filtered["xstart"][1] == xstart[1])
-    assert(planetable_filtered["ystart"][0] == ystart[0])
-    assert(planetable_filtered["ystart"][1] == ystart[1])
+    assert (planetable_filtered["xstart"][0] == xstart[0])
+    assert (planetable_filtered["xstart"][1] == xstart[1])
+    assert (planetable_filtered["ystart"][0] == ystart[0])
+    assert (planetable_filtered["ystart"][1] == ystart[1])
 
 
 @pytest.mark.parametrize(
@@ -93,6 +94,16 @@ def test_get_planetable(czifile: str, csvfile: str, xstart: List[int], ystart: L
     ]
 )
 def test_check_dimsize(entry: Optional[int], set2value: int, result: int) -> None:
+    """
+    This function checks the dimension size of an entry against a set value
+    and compares it to a result.
+
+    Parameters:
+    entry (Optional[int]): The entry to be checked.
+    set2value (int): The set value to compare the entry against.
+    result (int): The expected result of the comparison.
+    Returns: None.
+    """
 
     assert (misc.check_dimsize(entry, set2value=set2value) == result)
 
@@ -117,6 +128,3 @@ def test_calc_scaling(array: Union[np.ndarray, da.Array, zarr.Array],
 
     assert (min_value == minv)
     assert (max_value == maxv)
-
-
-
