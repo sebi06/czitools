@@ -9,7 +9,7 @@
 #
 #################################################################
 
-from pylibCZIrw import czi as pyczi
+# from pylibCZIrw import czi as pyczi
 from czitools import pylibczirw_metadata as czimd
 from czitools import misc
 from pathlib import Path

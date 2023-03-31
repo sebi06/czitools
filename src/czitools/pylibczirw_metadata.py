@@ -543,14 +543,14 @@ class CziScaling:
 @ dataclass
 class CziObjectives:
     czisource: Union[str, os.PathLike[str], Box]
-    NA: Optional[float] = field(init=False, default=None)
-    objmag: Optional[float] = field(init=False, default=None)
-    ID: Optional[str] = field(init=False, default=None)
-    name: Optional[str] = field(init=False, default=None)
-    model: Optional[str] = field(init=False, default=None)
-    immersion: Optional[str] = field(init=False, default=None)
-    tubelensmag: Optional[float] = field(init=False, default=None)
-    totalmag: Optional[float] = field(init=False, default=None)
+    NA: List[Optional[float]] = field(init=False, default_factory=lambda: [])
+    objmag: List[Optional[float]] = field(init=False, default_factory=lambda: [])
+    Id: List[Optional[str]] = field(init=False, default_factory=lambda: [])
+    name: List[Optional[str]] = field(init=False, default_factory=lambda: [])
+    model: List[Optional[str]] = field(init=False, default_factory=lambda: [])
+    immersion: List[Optional[str]] = field(init=False, default_factory=lambda: [])
+    tubelensmag: List[Optional[float]] = field(init=False, default_factory=lambda: [])
+    totalmag: List[Optional[float]] = field(init=False, default_factory=lambda: [])
 
     def __post_init__(self):
 
@@ -564,17 +564,16 @@ class CziObjectives:
         # check if objective metadata actually exist
         if czi_box.has_objectives:
 
-            # get objective data
-            objective = czi_box.ImageDocument.Metadata.Information.Instrument.Objectives.Objective
-
-            self.name = objective.Name
-            self.immersion = objective.Immersion
-            self.NA = float(objective.LensNA)
-            self.ID = objective.Id
-            self.objmag = float(objective.NominalMagnification)
-
-            if self.name is None:
-                self.name = objective.Manufacturer.Model
+            try:
+                # get objective data
+                objective = czi_box.ImageDocument.Metadata.Information.Instrument.Objectives.Objective
+                if isinstance(objective, Box):
+                    self.get_objective_info(objective)
+                elif isinstance(objective, BoxList):
+                    for obj in range(len(objective)):
+                        self.get_objective_info(objective[obj])
+            except AttributeError:
+                objective = None
 
         elif not czi_box.has_objectives:
             # print("No Objective Information found.")
@@ -586,18 +585,39 @@ class CziObjectives:
             # get tubelenes data
             tubelens = czi_box.ImageDocument.Metadata.Information.Instrument.TubeLenses.TubeLens
 
-            self.tubelensmag = float(tubelens.Magnification)
+            if isinstance(tubelens, Box):
+                self.tubelensmag.append(float(tubelens.Magnification))
+            elif isinstance(objective, BoxList):
+                for tl in range(len(tubelens)):
+                    self.tubelensmag.append(float(tubelens[tl].Magnification))
+
+            # some additional checks to calc the total magnification
+            if self.objmag is not None and self.tubelensmag is not None:
+                self.totalmag = [i * j for i in self.objmag for j in self.tubelensmag]
 
         elif not czi_box.has_tubelens:
-            # print("No Tublens Information found.")
             logger.info("No Tublens Information found.")
 
-        # some additional checks to clac the total magnification
-        if self.objmag is not None and self.tubelensmag is not None:
-            self.totalmag = self.objmag * self.tubelensmag
-
-        if self.objmag is not None and self.tubelensmag is None:
+        if self.objmag is not None and self.tubelensmag == []:
             self.totalmag = self.objmag
+
+    def get_objective_info(self, objective: Box):
+
+        self.name.append(objective.Name)
+        self.immersion.append(objective.Immersion)
+
+        if objective.LensNA is not None:
+            self.NA.append(float(objective.LensNA))
+
+        if objective.Id is not None:
+            self.Id.append(objective.Id)
+
+        if objective.NominalMagnification is not None:
+            self.objmag.append(float(objective.NominalMagnification))
+
+        if None in self.name and self.name.count(None) == 1:
+            self.name.remove(None)
+            self.name.append(objective.Manufacturer.Model)
 
 
 @ dataclass
@@ -605,7 +625,7 @@ class CziDetector:
     czisource: Union[str, os.PathLike[str], Box]
     model: List[str] = field(init=False, default_factory=lambda: [])
     name: List[str] = field(init=False, default_factory=lambda: [])
-    ID: List[str] = field(init=False, default_factory=lambda: [])
+    Id: List[str] = field(init=False, default_factory=lambda: [])
     modeltype: List[str] = field(init=False, default_factory=lambda: [])
 
     def __post_init__(self):
@@ -623,9 +643,9 @@ class CziDetector:
             # get the data for the detectors
             detectors = czi_box.ImageDocument.Metadata.Information.Instrument.Detectors.Detector
 
-            # check for detector ID, Name, Model and Type
+            # check for detector Id, Name, Model and Type
             if isinstance(detectors, Box):
-                self.ID.append(detectors.Id)
+                self.Id.append(detectors.Id)
                 self.name.append(detectors.Name)
                 self.model.append(detectors.Model)
                 self.modeltype.append(detectors.Type)
@@ -634,7 +654,7 @@ class CziDetector:
             elif isinstance(detectors, BoxList):
 
                 for d in range(len(detectors)):
-                    self.ID.append(detectors[d].Id)
+                    self.Id.append(detectors[d].Id)
                     self.name.append(detectors[d].Name)
                     self.model.append(detectors[d].Model)
                     self.modeltype.append(detectors[d].Type)
@@ -645,14 +665,14 @@ class CziDetector:
             logger.info("No Detetctor(s) information found.")
             self.model = [None]
             self.name = [None]
-            self.ID = [None]
+            self.Id = [None]
             self.modeltype = [None]
 
 
 @ dataclass
 class CziMicroscope:
     czisource: Union[str, os.PathLike[str], Box]
-    ID: Optional[str] = field(init=False)
+    Id: Optional[str] = field(init=False)
     Name: Optional[str] = field(init=False)
 
     def __post_init__(self):
@@ -665,13 +685,13 @@ class CziMicroscope:
             czi_box = get_czimd_box(self.czisource)
 
         if czi_box.ImageDocument.Metadata.Information.Instrument is None:
-            self.ID = None
+            self.Id = None
             self.Name = None
             # print("No Microscope information found.")
             logger.info("No Microscope information found.")
 
         else:
-            self.ID = czi_box.ImageDocument.Metadata.Information.Instrument.Microscopes.Microscope.Id
+            self.Id = czi_box.ImageDocument.Metadata.Information.Instrument.Microscopes.Microscope.Id
             self.Name = czi_box.ImageDocument.Metadata.Information.Instrument.Microscopes.Microscope.Name
 
 
