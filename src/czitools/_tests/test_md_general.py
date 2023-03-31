@@ -5,9 +5,24 @@ from pathlib import Path
 import numpy as np
 import pytest
 from typing import List, Dict, Tuple, Optional, Type, Any, Union, Mapping
+from box import Box, BoxList
 
 
 basedir = Path(__file__).resolve().parents[3]
+
+
+@pytest.mark.parametrize(
+    "czifile",
+    [
+        "LLS7_small.czi"
+    ]
+)
+def test_read_metadata(czifile: str) -> None:
+
+    filepath = basedir / "data" / czifile
+    md = czimd.CziMetadata(filepath)
+
+    assert (isinstance(md, czimd.CziMetadata) is True)
 
 
 def test_pixeltypes_1() -> None:
