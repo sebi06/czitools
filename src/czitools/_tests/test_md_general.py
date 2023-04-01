@@ -1,12 +1,9 @@
 
 from czitools import pylibczirw_metadata as czimd
-from pylibCZIrw import czi as pyczi
 from pathlib import Path
 import numpy as np
 import pytest
 from typing import List, Dict, Tuple, Optional, Type, Any, Union, Mapping
-from box import Box, BoxList
-
 
 basedir = Path(__file__).resolve().parents[3]
 
@@ -14,7 +11,17 @@ basedir = Path(__file__).resolve().parents[3]
 @pytest.mark.parametrize(
     "czifile",
     [
-        "LLS7_small.czi"
+        "LLS7_small.czi",
+        "FOV7_HV110_P0500510000.czi",
+        "S=3_1Pos_2Mosaic_T=2=Z=3_CH=2_sm.czi",
+        "newCZI_compressed.czi",
+        "Airyscan.czi",
+        "CellDivision_T=3_Z=5_CH=2_X=240_Y=170.czi",
+        "2_tileregions.czi",
+        "S=2_3x3_CH=2.czi",
+        "S=3_1Pos_2Mosaic_T=2=Z=3_CH=2_sm.czi",
+        "test_z=16_ch=3.czi",
+        "Tumor_HE_RGB.czi"
     ]
 )
 def test_read_metadata(czifile: str) -> None:
@@ -24,19 +31,22 @@ def test_read_metadata(czifile: str) -> None:
 
     assert (isinstance(md, czimd.CziMetadata) is True)
 
-
-def test_pixeltypes_1() -> None:
+@pytest.mark.parametrize(
+    "czifile, px, rgb, maxvalue",
+    [
+        ("LLS7_small.czi", {0: 'Gray16', 1: 'Gray16'}, False, [65535, 65535]),
+        ("Tumor_HE_RGB.czi", {0: 'Bgr24'}, True, [255])
+    ]
+)
+def test_pixeltypes_1(czifile: str, px: Dict, rgb: bool, maxvalue: int) -> None:
 
     # get the CZI filepath
-    filepath = basedir / r"data/Tumor_HE_RGB.czi"
+    filepath = basedir / "data" / czifile
     md = czimd.CziMetadata(filepath)
 
-    print("PixelTypes: ", md.pixeltypes)
-    print("NumPy dtype: ", md.npdtype)
-    print("Max. Pixel Value: ", md.maxvalue)
-
-    assert (md.pixeltypes == {0: 'Bgr24'})
-    assert (md.isRGB is True)
+    assert (md.pixeltypes == px)
+    assert (md.maxvalue == maxvalue)
+    assert (md.isRGB is rgb)
 
 
 @pytest.mark.parametrize(
