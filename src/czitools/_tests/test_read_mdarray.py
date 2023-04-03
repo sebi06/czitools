@@ -3,6 +3,7 @@ from pathlib import Path
 import dask.array as da
 import numpy as np
 import pytest
+from pylibCZIrw import czi as pyczi
 from typing import List, Dict, Tuple, Optional, Type, Any, Union, Mapping
 
 
@@ -118,3 +119,37 @@ def test_read_mdarray_substack(czifile: str,
     assert (ds == dimstring)
     assert (mdarray.shape == shape)
     assert (mdata.image.SizeS == size_s)
+
+@pytest.mark.parametrize(
+    "czifile, scene, has_scenes",
+    [
+        ("CellDivision_T=3_Z=5_CH=2_X=240_Y=170.czi", 0, False),
+        ("S=2_3x3_CH=2.czi", 0, True)
+    ]
+)
+def test_readczi_scenes(czifile: str, scene: int, has_scenes: bool) -> None:
+
+    # get the CZI filepath
+    filepath = basedir / "data" / czifile
+
+    # open the CZI document to read the
+    with pyczi.open_czi(str(filepath)) as czidoc:
+
+        # read without providing a scene index
+        image2d_1 = czidoc.read(plane={'T': 0, 'Z': 0, 'C': 0})
+        image2d_2 = czidoc.read(plane={'T': 0, 'Z': 0, 'C': 0, 'S': scene})
+
+        assert (np.array_equal(image2d_1, image2d_2) is True)
+
+        if has_scenes:
+            image2d_3 = czidoc.read(plane={'T': 0, 'Z': 0, 'C': 0, 'S': scene}, scene=scene)
+            image2d_4 = czidoc.read(plane={'T': 0, 'Z': 0, 'C': 0}, scene=scene)
+
+            #TODO: This has to be checked why this gives differnet results
+
+            image2d_5 = czidoc.read(plane={'T': 0, 'Z': 0, 'C': 0, 'S': scene})
+
+            assert (np.array_equal(image2d_3, image2d_4) is True)
+            assert (np.array_equal(image2d_3, image2d_5) is True)
+            #assert (np.array_equal(image2d_4, image2d_5) is True)
+
