@@ -587,7 +587,7 @@ class CziObjectives:
 
             if isinstance(tubelens, Box):
                 self.tubelensmag.append(float(tubelens.Magnification))
-            elif isinstance(objective, BoxList):
+            elif isinstance(tubelens, BoxList):
                 for tl in range(len(tubelens)):
                     self.tubelensmag.append(float(tubelens[tl].Magnification))
 

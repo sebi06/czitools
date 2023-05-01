@@ -76,8 +76,6 @@ def read_6darray(filepath: Union[str, os.PathLike[str]],
             # get size for a single scene using the 1st
             # works only if scene shape is consistent
 
-            # TODO Open question whether to use XML metadata or bounding boxes
-
             # use the size of the 1st scenes_bounding_rectangle
             size_x = czidoc.scenes_bounding_rectangle[0].w
             size_y = czidoc.scenes_bounding_rectangle[0].h
