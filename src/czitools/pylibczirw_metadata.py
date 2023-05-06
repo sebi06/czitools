@@ -311,8 +311,8 @@ class CziDimensions:
     """Dataclass containing the image dimensions.
 
     Information official CZI Dimension Characters:
-    "X":"Width"        :
-    "Y":"Height"       :
+    "X":"Width"        : width of image [pixel]
+    "Y":"Height"       : height of image [pixel]
     "C":"Channel"      : number of channels
     "Z":"Slice"        : number of z-planes
     "T":"Time"         : number of time points
@@ -627,6 +627,9 @@ class CziDetector:
     name: List[str] = field(init=False, default_factory=lambda: [])
     Id: List[str] = field(init=False, default_factory=lambda: [])
     modeltype: List[str] = field(init=False, default_factory=lambda: [])
+    gain: List[float] = field(init=False, default_factory=lambda: [])
+    zoom: List[float] = field(init=False, default_factory=lambda: [])
+    amplificationgain: List[float] = field(init=False, default_factory=lambda: [])
 
     def __post_init__(self):
 
@@ -649,6 +652,9 @@ class CziDetector:
                 self.name.append(detectors.Name)
                 self.model.append(detectors.Model)
                 self.modeltype.append(detectors.Type)
+                self.gain.append(detectors.Gain)
+                self.zoom.append(detectors.Zoom)
+                self.amplificationgain.append(detectors.AmplificationGain)
 
             # and do this differently in case of a list of detectors
             elif isinstance(detectors, BoxList):
@@ -658,6 +664,9 @@ class CziDetector:
                     self.name.append(detectors[d].Name)
                     self.model.append(detectors[d].Model)
                     self.modeltype.append(detectors[d].Type)
+                    self.gain.append(detectors[d].Gain)
+                    self.zoom.append(detectors[d].Zoom)
+                    self.amplificationgain.append(detectors[d].AmplificationGain)
 
         elif czi_box.ImageDocument.Metadata.Information.Instrument is None:
 
@@ -667,6 +676,9 @@ class CziDetector:
             self.name = [None]
             self.Id = [None]
             self.modeltype = [None]
+            self.gain = [None]
+            self.zoom = [None]
+            self.amplificationgain = [None]
 
 
 @ dataclass
@@ -674,6 +686,7 @@ class CziMicroscope:
     czisource: Union[str, os.PathLike[str], Box]
     Id: Optional[str] = field(init=False)
     Name: Optional[str] = field(init=False)
+    System: Optional[str] = field(init=False)
 
     def __post_init__(self):
 
@@ -687,12 +700,14 @@ class CziMicroscope:
         if czi_box.ImageDocument.Metadata.Information.Instrument is None:
             self.Id = None
             self.Name = None
+            self.System = None
             # print("No Microscope information found.")
             logger.info("No Microscope information found.")
 
         else:
             self.Id = czi_box.ImageDocument.Metadata.Information.Instrument.Microscopes.Microscope.Id
             self.Name = czi_box.ImageDocument.Metadata.Information.Instrument.Microscopes.Microscope.Name
+            self.System = czi_box.ImageDocument.Metadata.Information.Instrument.Microscopes.Microscope.System
 
 
 @ dataclass
@@ -950,6 +965,10 @@ def obj2dict(obj: Any, sort: bool = True) -> Dict[str, Any]:
             element = obj2dict(val)
 
         result[key] = element
+
+    # delete key "czisource"
+    if "czisource" in result.keys():
+        del result["czisource"]
 
     if sort:
         return misc.sort_dict_by_key(result)
