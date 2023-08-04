@@ -66,6 +66,7 @@ class CziMetadata:
     aics_posC: Optional[int] = field(init=False, default=None)
     pixeltypes: Optional[Dict[int, str]] = field(init=False, default_factory=lambda: {})
     isRGB: Optional[bool] = field(init=False, default=False)
+    has_scenes: Optional[bool] = field(init=False, default=False)
     npdtype: Optional[List[Any]] = field(init=False, default_factory=lambda: [])
     maxvalue: Optional[List[int]] = field(init=False, default_factory=lambda: [])
     image: Optional[CziDimensions] = field(init=False, default=None)
@@ -110,6 +111,9 @@ class CziMetadata:
 
         # get the dimensions and order
         self.image = CziDimensions(self.czi_box)
+
+        # check for existence of scenes
+        self.has_scenes = self.czi_box.has_scenes
 
         # get metadata using pylibCZIrw
         with pyczi.open_czi(self.filepath) as czidoc:
@@ -1042,6 +1046,7 @@ def create_mdict_red(metadata: CziMetadata, sort: bool = True) -> Dict:
                'SizeH': metadata.image.SizeH,
                'SizeI': metadata.image.SizeI,
                'isRGB': metadata.isRGB,
+               'has_scenes': metadata.has_scenes,
                'ismosaic': metadata.ismosaic,
                'ObjNA': metadata.objective.NA,
                'ObjMag': metadata.objective.totalmag,
@@ -1086,7 +1091,7 @@ def get_czimd_box(filepath: Union[str, os.PathLike[str]]) -> Box:
         filepath (Union[str, os.PathLike[str]]): Filepath of the CZI file
 
     Returns:
-        Box: CZI metaadat as a Box object
+        Box: CZI metadata as a Box object
     """
 
     if isinstance(filepath, Path):
