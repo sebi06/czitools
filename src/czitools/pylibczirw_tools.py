@@ -178,7 +178,7 @@ def read_6darray(filepath: Union[str, os.PathLike[str]],
 @dask.delayed
 def read_plane(czidoc: pyczi.CziReader, s: int = 0, t: int = 0, c: int = 0, z: int = 0,
                has_scenes: bool = True,
-               remove_Adim: bool = True):
+               remove_adim: bool = True):
     """Dask delayed function to read a 2d plane from a CZI image, which has the shape
        (Y, X, 1) or (Y, X, 3).
        If the image is a "grayscale image the last array dimension will be removed, when
@@ -191,18 +191,24 @@ def read_plane(czidoc: pyczi.CziReader, s: int = 0, t: int = 0, c: int = 0, z: i
         c (int, optional): Channel index. Defaults to 0.
         z (int, optional): Z-Plane index. Defaults to 0.
         has_scenes (bool, optional): Defines if the CZI actually contains scenes. Defaults to True.
-        remove_Adim (bool, optional): Option to remove the last dimension of the 2D array. Defaults to True.
+        remove_adim (bool, optional): Option to remove the last dimension of the 2D array. Defaults to True.
 
     Returns:
         dask.array: 6d dask.array with delayed reading for individual 2d planes
     """
 
+    # intilaize 2d array with some values
+    image2d = np.zeros([10, 10], dtype=np.int16)
+
     if has_scenes:
+        # read a 2d plane using the scene index
         image2d = czidoc.read(plane={"T": t, "C": c, "Z": z}, scene=s)
     if not has_scenes:
+        # reading a 2d plane in case the CZI has no scenes
         image2d = czidoc.read(plane={"T": t, "C": c, "Z": z})
 
-    if remove_Adim:
+    # remove a last "A" dimension when desired
+    if remove_adim:
         return image2d[..., 0]
-    if not remove_Adim:
+    if not remove_adim:
         return image2d
