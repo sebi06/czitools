@@ -21,9 +21,9 @@ import os
 from tqdm import trange
 
 
-def read_6darray(filepath: Union[str, os.PathLike[str]],
-                 output_order: str = "STCZYX",
-                 **kwargs: int) -> Tuple[Optional[Union[np.ndarray, da.Array]], czimd.CziMetadata, str]:
+def read_6darray(
+    filepath: Union[str, os.PathLike[str]], output_order: str = "STCZYX", **kwargs: int
+) -> Tuple[Optional[Union[np.ndarray, da.Array]], czimd.CziMetadata, str]:
     """Read a CZI image file as 6D numpy or dask array.
     Important: Currently supported are only scenes with equal size and CZIs with consistent pixel types.
 
@@ -64,7 +64,6 @@ def read_6darray(filepath: Union[str, os.PathLike[str]],
 
     # open the CZI document to read the
     with pyczi.open_czi(filepath) as czidoc:
-
         if mdata.image.SizeS is not None:
             # get size for a single scene using the 1st
             # works only if scene shape is consistent
@@ -106,39 +105,55 @@ def read_6darray(filepath: Union[str, os.PathLike[str]],
         if not mdata.isRGB:
             shape2d = (size_y, size_x)
 
-        remove_Adim = False if mdata.isRGB else True
+        remove_adim = False if mdata.isRGB else True
 
         # initialise empty list to hold the dask arrays
         img = []
 
         for s in trange(size_s):
-
             time_stack = []
             for time in range(size_t):
-
                 ch_stack = []
                 for ch in trange(size_c):
-
                     z_stack = []
                     for z in range(size_z):
-
                         if mdata.image.SizeS is not None:
-
                             # z_slice = da.from_delayed(
                             #    da_delayed(czidoc.read)(plane={'C': ch, 'T': time, 'Z': z}, scene=s), shape=shape2d, dtype=mdata.npdtype[0]
                             # )
 
-                            z_slice = da.from_delayed(read_plane(
-                                czidoc, s=s, t=time, c=ch, z=z, has_scenes=True, remove_Adim=remove_Adim), shape=shape2d, dtype=mdata.npdtype[0])
+                            z_slice = da.from_delayed(
+                                read_plane(
+                                    czidoc,
+                                    s=s,
+                                    t=time,
+                                    c=ch,
+                                    z=z,
+                                    has_scenes=True,
+                                    remove_adim=remove_adim,
+                                ),
+                                shape=shape2d,
+                                dtype=mdata.npdtype[0],
+                            )
 
                         if mdata.image.SizeS is None:
-
                             # z_slice = da.from_delayed(
                             #    da_delayed(czidoc.read)(plane={'C': ch, 'T': time, 'Z': z}), shape=shape2d, dtype=mdata.npdtype[0]
                             # )
 
-                            z_slice = da.from_delayed(read_plane(
-                                czidoc, s=s, t=time, c=ch, z=z, has_scenes=False, remove_Adim=remove_Adim), shape=shape2d, dtype=mdata.npdtype[0])
+                            z_slice = da.from_delayed(
+                                read_plane(
+                                    czidoc,
+                                    s=s,
+                                    t=time,
+                                    c=ch,
+                                    z=z,
+                                    has_scenes=False,
+                                    remove_adim=remove_adim,
+                                ),
+                                shape=shape2d,
+                                dtype=mdata.npdtype[0],
+                            )
 
                         # create 2d array
                         z_slice = da.squeeze(z_slice)
@@ -169,20 +184,26 @@ def read_6darray(filepath: Union[str, os.PathLike[str]],
         if output_order == "STCZYX":
             dim_string = "STCZYXA"
 
-        if remove_Adim:
+        if remove_adim:
             dim_string = dim_string.replace("A", "")
 
     return array6d, mdata, dim_string
 
 
 @dask.delayed
-def read_plane(czidoc: pyczi.CziReader, s: int = 0, t: int = 0, c: int = 0, z: int = 0,
-               has_scenes: bool = True,
-               remove_adim: bool = True):
+def read_plane(
+    czidoc: pyczi.CziReader,
+    s: int = 0,
+    t: int = 0,
+    c: int = 0,
+    z: int = 0,
+    has_scenes: bool = True,
+    remove_adim: bool = True,
+):
     """Dask delayed function to read a 2d plane from a CZI image, which has the shape
        (Y, X, 1) or (Y, X, 3).
        If the image is a "grayscale image the last array dimension will be removed, when
-       the option is ste to True.  
+       the option is ste to True.
 
     Args:
         czidoc (pyczi.CziReader): Czireader objects
