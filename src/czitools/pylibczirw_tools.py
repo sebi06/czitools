@@ -218,7 +218,7 @@ def read_plane(
         dask.array: 6d dask.array with delayed reading for individual 2d planes
     """
 
-    # intilaize 2d array with some values
+    # initialize 2d array with some values
     image2d = np.zeros([10, 10], dtype=np.int16)
 
     if has_scenes:
