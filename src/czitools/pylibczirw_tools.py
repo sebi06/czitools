@@ -19,6 +19,7 @@ import dask
 import dask.array as da
 import os
 from tqdm import trange
+from tqdm.contrib.itertools import product
 
 
 def read_6darray(filepath: Union[str, os.PathLike[str]],
@@ -113,14 +114,7 @@ def read_6darray(filepath: Union[str, os.PathLike[str]],
 
             # assume default dimorder = STZCYX(A)
             shape = [size_s, size_t, size_c, size_z, size_y, size_x, 3 if mdata.isRGB else 1]
-
-            if not output_dask:
-                array6d = np.empty(shape, dtype=use_pixeltype)
-            if output_dask:
-                if chunks_auto:
-                    array6d = da.empty(shape, dtype=use_pixeltype, chunks="auto")
-                if not chunks_auto:
-                    array6d = da.empty(shape, dtype=use_pixeltype, chunks=shape)
+            array6d = np.empty(shape, dtype=use_pixeltype)
 
             # read array for the scene
             for s, t, c, z in product(range(size_s),
@@ -136,6 +130,9 @@ def read_6darray(filepath: Union[str, os.PathLike[str]],
 
                 # insert 2D image plane into the array6d
                 array6d[s, t, c, z, ...] = image2d
+
+            if remove_adim:
+                array6d = np.squeeze(array6d, axis=-1)
 
         if use_dask:
 
