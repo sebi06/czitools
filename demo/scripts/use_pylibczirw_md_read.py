@@ -28,6 +28,7 @@ print(filepath)
 # return a array with dimension order STZCYX(A)
 array6d, mdata, dim_string6d = pylibczirw_tools.read_6darray(filepath,
                                                              output_order="STCZYX",
+                                                             use_dask=False,
                                                              # T=0,
                                                              # Z=0
                                                              )
