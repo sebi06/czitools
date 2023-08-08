@@ -134,7 +134,7 @@ def read_6darray(filepath: Union[str, os.PathLike[str]],
             if remove_adim:
                 array6d = np.squeeze(array6d, axis=-1)
 
-        if use_dask:
+        elif use_dask:
 
             # initialise empty list to hold the dask arrays
             img = []
@@ -209,6 +209,10 @@ def read_6darray(filepath: Union[str, os.PathLike[str]],
 
         if remove_adim:
             dim_string = dim_string.replace("A", "")
+            array6d = array6d.rechunk(chunks=(1,1,1,size_z,size_y,size_x))
+        else:
+            array6d = array6d.rechunk(chunks=(1,1,1,size_z,size_y,size_x,1))
+            
 
     return array6d, mdata, dim_string
 
