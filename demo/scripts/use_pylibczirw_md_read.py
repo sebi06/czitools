@@ -23,6 +23,7 @@ filepath = misc.openfile(directory=defaultdir,
                          title="Open CZI Image File",
                          ftypename="CZI Files",
                          extension="*.czi")
+
 print(filepath)
 
 # return a array with dimension order STZCYX(A)

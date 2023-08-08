@@ -25,8 +25,9 @@ from tqdm.contrib.itertools import product
 def read_6darray(filepath: Union[str, os.PathLike[str]],
                  output_order: str = "STCZYX",
                  use_dask: bool = False,
+                 chunk_zyx=True,
                  **kwargs: int) -> Tuple[Optional[Union[np.ndarray, da.Array]], czimd.CziMetadata, str]:
-    """Read a CZI image file as 6D numpy or dask array.
+    """Read a CZI image file as 6D dask array.
     Important: Currently supported are only scenes with equal size and CZIs with consistent pixel types.
 
     Args:
@@ -118,9 +119,9 @@ def read_6darray(filepath: Union[str, os.PathLike[str]],
 
             # read array for the scene
             for s, t, c, z in product(range(size_s),
-                                    range(size_t),
-                                    range(size_c),
-                                    range(size_z)):
+                                      range(size_t),
+                                      range(size_c),
+                                      range(size_z)):
 
                 # read a 2D image plane from the CZI
                 if mdata.image.SizeS is None:
@@ -208,7 +209,18 @@ def read_6darray(filepath: Union[str, os.PathLike[str]],
             dim_string = "STCZYXA"
 
         if remove_adim:
+
             dim_string = dim_string.replace("A", "")
+
+            if use_dask and chunk_zyx:
+                # for testing
+                array6d = array6d.rechunk(chunks=(1, 1, 1, size_z, size_y, size_x))
+
+        if not remove_adim:
+
+            if use_dask and chunk_zyx:
+                # for testing
+                array6d = array6d.rechunk(chunks=(1, 1, 1, size_z, size_y, size_x, 3))
 
     return array6d, mdata, dim_string
 
