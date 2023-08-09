@@ -64,7 +64,7 @@ While the [pylibCZIrw](https://pypi.org/project/pylibCZIrw/) is focussing on rea
 
 ```python
 # return a dask array with dimension order STZCYX(A)
-array6d, mdata, dim_string6d = pylibczirw_tools.read_6darray(filepath,
+array6d, mdata, dim_string6d = read_tools.read_6darray(filepath,
                                                              output_order="STCZYX",
                                                              # T=0,
                                                              # Z=0

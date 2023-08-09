@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 #################################################################
-# File        : pylibczirw_metadata.py
+# File        : metadata_tools.py
 # Author      : sebi06
 #
 # Disclaimer: The code is purely experimental. Feel free to
@@ -15,7 +15,7 @@ import os
 from collections import Counter
 import xml.etree.ElementTree as ET
 from pylibCZIrw import czi as pyczi
-from czitools import misc
+from czitools import misc_tools
 import numpy as np
 from dataclasses import dataclass, field, fields, Field
 from pathlib import Path
@@ -763,9 +763,9 @@ class CziSampleInfo:
 
             try:
                 # read the data from CSV file
-                planetable, csvfile = misc.get_planetable(czi_box.filepath,
-                                                          read_one_only=True,
-                                                          savetable=False)
+                planetable, csvfile = misc_tools.get_planetable(czi_box.filepath,
+                                                                read_one_only=True,
+                                                                savetable=False)
 
                 self.image_stageX = float(planetable["X[micron]"][0])
                 self.image_stageY = float(planetable["Y[micron]"][0])
@@ -975,7 +975,7 @@ def obj2dict(obj: Any, sort: bool = True) -> Dict[str, Any]:
         del result["czisource"]
 
     if sort:
-        return misc.sort_dict_by_key(result)
+        return misc_tools.sort_dict_by_key(result)
 
     elif not sort:
         return result
@@ -1078,7 +1078,7 @@ def create_mdict_red(metadata: CziMetadata, sort: bool = True) -> Dict:
         md_dict['scalefactorXY'] = metadata.scale.scalefactorXY
 
     if sort:
-        return misc.sort_dict_by_key(md_dict)
+        return misc_tools.sort_dict_by_key(md_dict)
     if not sort:
         return md_dict
 

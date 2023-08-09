@@ -1,11 +1,11 @@
-from czitools import pylibczirw_metadata as czimd
+from czitools import metadata_tools as czimd
 from pathlib import Path
 from tqdm.contrib.itertools import product
 import dask.array as da
 from pylibCZIrw import czi as pyczi
 import dask
 from czitools import napari_tools
-from czitools import misc
+from czitools import misc_tools
 import napari
 import os
 
@@ -42,9 +42,9 @@ def read6d(filepath):
 
     # check if dimensions are None (because they do not exist for that image)
     size_c = misc.check_dimsize(mdata.image.SizeC, set2value=1)
-    size_z = misc.check_dimsize(mdata.image.SizeZ, set2value=1)
-    size_t = misc.check_dimsize(mdata.image.SizeT, set2value=1)
-    size_s = misc.check_dimsize(mdata.image.SizeS, set2value=1)
+    size_z = misc_tools.check_dimsize(mdata.image.SizeZ, set2value=1)
+    size_t = misc_tools.check_dimsize(mdata.image.SizeT, set2value=1)
+    size_s = misc_tools.check_dimsize(mdata.image.SizeS, set2value=1)
 
     shape = (size_s, size_t, size_c, size_z, size_y, size_x)
     array6d = da.empty(shape, dtype='uint16', chunks=shape)

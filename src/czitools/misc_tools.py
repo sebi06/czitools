@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 #################################################################
-# File        : misc.py
+# File        : misc_tools.py
 # Author      : sebi06
 #
 # Disclaimer: The code is purely experimental. Feel free to
@@ -19,12 +19,11 @@ import dask.array as da
 import numpy as np
 import time
 from pathlib import Path
-import xml.etree.ElementTree as ET
 from aicspylibczi import CziFile
 from aicsimageio import AICSImage
 import dateutil.parser as dt
 from itertools import product
-from czitools import pylibczirw_metadata as czimd
+from czitools import metadata_tools as czimd
 from tqdm.contrib.itertools import product
 from typing import List, Dict, Tuple, Optional, Type, Any, Union, Mapping
 

@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 #################################################################
-# File        : pylibczirw_tools.py
+# File        : read_tools.py
 # Author      : sebi06
 #
 # Disclaimer: This code is purely experimental. Feel free to
@@ -11,8 +11,8 @@
 
 from typing import List, Dict, Tuple, Optional, Type, Any, Union, Mapping
 from pylibCZIrw import czi as pyczi
-from czitools import pylibczirw_metadata as czimd
-from czitools import misc
+from czitools import metadata_tools as czimd
+from czitools import misc_tools
 import numpy as np
 from pathlib import Path
 import dask
@@ -82,10 +82,10 @@ def read_6darray(filepath: Union[str, os.PathLike[str]],
             size_y = czidoc.total_bounding_rectangle.h
 
         # check if dimensions are None (because they do not exist for that image)
-        size_c = misc.check_dimsize(mdata.image.SizeC, set2value=1)
-        size_z = misc.check_dimsize(mdata.image.SizeZ, set2value=1)
-        size_t = misc.check_dimsize(mdata.image.SizeT, set2value=1)
-        size_s = misc.check_dimsize(mdata.image.SizeS, set2value=1)
+        size_c = misc_tools.check_dimsize(mdata.image.SizeC, set2value=1)
+        size_z = misc_tools.check_dimsize(mdata.image.SizeZ, set2value=1)
+        size_t = misc_tools.check_dimsize(mdata.image.SizeT, set2value=1)
+        size_s = misc_tools.check_dimsize(mdata.image.SizeS, set2value=1)
 
         # check for additional **kwargs to create substacks
         if kwargs is not None and mdata.image.SizeS is not None and "S" in kwargs:

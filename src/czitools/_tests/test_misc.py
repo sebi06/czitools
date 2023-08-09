@@ -1,4 +1,4 @@
-from czitools import pylibczirw_tools, misc
+from czitools import read_tools, misc_tools
 from pathlib import Path
 import dask.array as da
 import zarr
@@ -26,11 +26,11 @@ def test_slicedim(czifile: str, dimindex: int, posdim: int, shape: Tuple[int]) -
     # get the CZI filepath
     filepath = basedir / "data" / czifile
 
-    mdarray, mdata, dimstring = pylibczirw_tools.read_6darray(
+    mdarray, mdata, dimstring = read_tools.read_6darray(
         filepath, output_order="STCZYX"
     )
 
-    dim_array = misc.slicedim(mdarray, dimindex, posdim)
+    dim_array = misc_tools.slicedim(mdarray, dimindex, posdim)
     assert dim_array.shape == shape
 
 
@@ -68,7 +68,7 @@ def test_get_planetable(
         planetable = pd.read_csv(filepath, sep=separator)
     if isczi:
         # read the data from CZI file
-        planetable, csvfile = misc.get_planetable(
+        planetable, csvfile = misc_tools.get_planetable(
             filepath, norm_time=True, savetable=True, separator=",", index=True
         )
 
@@ -77,7 +77,7 @@ def test_get_planetable(
         # remove the file
         Path.unlink(Path(csvfile))
 
-    planetable_filtered = misc.filter_planetable(planetable, s=0, t=0, z=0, c=0)
+    planetable_filtered = misc_tools.filter_planetable(planetable, s=0, t=0, z=0, c=0)
 
     assert planetable_filtered["xstart"][0] == xstart[0]
     assert planetable_filtered["xstart"][1] == xstart[1]
@@ -100,7 +100,7 @@ def test_check_dimsize(entry: Optional[int], set2value: int, result: int) -> Non
     Returns: None.
     """
 
-    assert misc.check_dimsize(entry, set2value=set2value) == result
+    assert misc_tools.check_dimsize(entry, set2value=set2value) == result
 
 
 @pytest.mark.parametrize(
@@ -130,7 +130,7 @@ def test_calc_scaling(
     corr_min: float,
     corr_max: float,
 ) -> None:
-    minv, maxv = misc.calc_scaling(array, corr_min=corr_min, corr_max=corr_max)
+    minv, maxv = misc_tools.calc_scaling(array, corr_min=corr_min, corr_max=corr_max)
 
     assert min_value == minv
     assert max_value == maxv

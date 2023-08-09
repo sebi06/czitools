@@ -10,18 +10,18 @@
 #################################################################
 
 # from pylibCZIrw import czi as pyczi
-from czitools import pylibczirw_metadata as czimd
-from czitools import misc
+from czitools import metadata_tools as czimd
+from czitools import misc_tools
 from pathlib import Path
 
 # adapt to your needs
 defaultdir = Path(Path(__file__).resolve().parents[2]) / "data"
 
 # open s simple dialog to select a CZI file
-filepath = misc.openfile(directory=defaultdir,
-                         title="Open CZI Image File",
-                         ftypename="CZI Files",
-                         extension="*.czi")
+filepath = misc_tools.openfile(directory=defaultdir,
+                               title="Open CZI Image File",
+                               ftypename="CZI Files",
+                               extension="*.czi")
 print(filepath)
 
 # get the metadata at once as one big class
@@ -79,5 +79,5 @@ print(czi_bbox.total_bounding_box["C"])
 mdata_dict = czimd.obj2dict(mdata)
 
 # and convert to pd.DataFrame
-df_md = misc.md2dataframe(mdata_dict)
+df_md = misc_tools.md2dataframe(mdata_dict)
 print(df_md)

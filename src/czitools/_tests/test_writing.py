@@ -1,7 +1,7 @@
-from czitools import pylibczirw_tools, misc
-from czitools import pylibczirw_metadata as czimd
+from czitools import read_tools, misc_tools
+from czitools import metadata_tools as czimd
 from pylibCZIrw import czi as pyczi
-#import os
+# import os
 from pathlib import Path
 from tifffile import imread, TiffFile
 import numpy as np
@@ -20,12 +20,12 @@ basedir = Path(__file__).resolve().parents[3] / "data"
         ("Fluorescence_RGB.tif", 3)
     ]
 )
-def test_write_1(tiff_file:str, sp: int) -> None:
+def test_write_1(tiff_file: str, sp: int) -> None:
 
     # get the TIFF filepath
     filepath = basedir / tiff_file
 
-    czi_path = filepath.parent / Path(misc.get_fname_woext(str(filepath)) + ".czi")
+    czi_path = filepath.parent / Path(misc_tools.get_fname_woext(str(filepath)) + ".czi")
 
     # remove the CZI if it already exits
     if czi_path.exists():
@@ -85,11 +85,11 @@ def test_write_2(czifile: str,
     # get the czifile path
     filepath = basedir / czifile
 
-    mdarray, mdata, dimstring = pylibczirw_tools.read_6darray(filepath,
-                                                              output_dask=False,
-                                                              chunks_auto=False,
-                                                              output_order="STZCYX",
-                                                              remove_adim=True)
+    mdarray, mdata, dimstring = read_tools.read_6darray(filepath,
+                                                        output_dask=False,
+                                                        chunks_auto=False,
+                                                        output_order="STZCYX",
+                                                        remove_adim=True)
 
     # create the filename for the new CZI image file
     newczi = str(Path.cwd() / czifile)
@@ -142,11 +142,11 @@ def test_write_3(czifile: str,
     # get the czifile path
     filepath = basedir / czifile
 
-    mdarray, mdata, dimstring = pylibczirw_tools.read_6darray(filepath,
-                                                              output_dask=False,
-                                                              chunks_auto=False,
-                                                              output_order="STZCYX",
-                                                              remove_adim=True)
+    mdarray, mdata, dimstring = read_tools.read_6darray(filepath,
+                                                        output_dask=False,
+                                                        chunks_auto=False,
+                                                        output_order="STZCYX",
+                                                        remove_adim=True)
 
     # create the filename for the new CZI image file
     newczi_zloc = str(Path.cwd() / "newCZI_zloc.czi")
@@ -211,11 +211,11 @@ def test_write_4(czifile: str,
     # get the czifile path
     filepath = basedir / czifile
 
-    mdarray, mdata, dimstring = pylibczirw_tools.read_6darray(filepath,
-                                                              output_dask=False,
-                                                              chunks_auto=False,
-                                                              output_order="STZCYX",
-                                                              remove_adim=True)
+    mdarray, mdata, dimstring = read_tools.read_6darray(filepath,
+                                                        output_dask=False,
+                                                        chunks_auto=False,
+                                                        output_order="STZCYX",
+                                                        remove_adim=True)
 
     # first step is to create some kind of grid of locations
     locx = []
@@ -238,7 +238,7 @@ def test_write_4(czifile: str,
                            plane={"C": ch},
                            scene=z,
                            location=(locx[z], locy[z])
-            )
+                           )
 
         # get the complete metadata at once as one big class
     mdata = czimd.CziMetadata(newczi_zscenes)
@@ -251,6 +251,3 @@ def test_write_4(czifile: str,
 
     # remove files
     Path.unlink(Path(newczi_zscenes))
-
-
-

@@ -1,7 +1,7 @@
 import pandas as pd
 import unittest
 import os
-from czitools import misc
+from czitools import misc_tools
 
 
 class TestSavePlanetTable(unittest.TestCase):
@@ -12,7 +12,8 @@ class TestSavePlanetTable(unittest.TestCase):
         # Define the test filename
         test_filename = 'test.csv'
         # Call the save_planetable function
-        result = misc.save_planetable(df=test_df, filename=test_filename, separator=';', index=False)
+        result = misc_tools.save_planetable(
+            df=test_df, filename=test_filename, separator=';', index=False)
         # Check that the result matches the expected filename
         self.assertEqual(result, 'test_planetable.csv')
         # Check that the file was created

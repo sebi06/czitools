@@ -9,9 +9,9 @@
 #
 #################################################################
 
-from czitools import pylibczirw_tools
+from czitools import read_tools
 from czitools import napari_tools
-from czitools import misc
+from czitools import misc_tools
 import napari
 from pathlib import Path
 
@@ -19,20 +19,20 @@ from pathlib import Path
 defaultdir = Path(Path(__file__).resolve().parents[2]) / "data"
 
 # open s simple dialog to select a CZI file
-filepath = misc.openfile(directory=defaultdir,
-                         title="Open CZI Image File",
-                         ftypename="CZI Files",
-                         extension="*.czi")
+filepath = misc_tools.openfile(directory=defaultdir,
+                               title="Open CZI Image File",
+                               ftypename="CZI Files",
+                               extension="*.czi")
 
 print(filepath)
 
 # return a array with dimension order STZCYX(A)
-array6d, mdata, dim_string6d = pylibczirw_tools.read_6darray(filepath,
-                                                             output_order="STCZYX",
-                                                             use_dask=False,
-                                                             # T=0,
-                                                             # Z=0
-                                                             )
+array6d, mdata, dim_string6d = read_tools.s.read_6darray(filepath,
+                                                         output_order="STCZYX",
+                                                         use_dask=False,
+                                                         # T=0,
+                                                         # Z=0
+                                                         )
 
 # show array inside napari viewer
 viewer = napari.Viewer()

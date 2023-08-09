@@ -1,4 +1,4 @@
-from czitools import pylibczirw_tools
+from czitools import read_tools
 from pathlib import Path
 import dask.array as da
 import numpy as np
@@ -37,8 +37,8 @@ def test_read_mdarray_1(czifile: str,
     # get the CZI filepath
     filepath = basedir / "data" / czifile
 
-    mdarray, mdata, ds = pylibczirw_tools.read_6darray(filepath, use_dask=use_dask,
-                                                       output_order=dimorder)
+    mdarray, mdata, ds = read_tools.read_6darray(filepath, use_dask=use_dask,
+                                                 output_order=dimorder)
 
     assert ds == dimstring
 
@@ -92,7 +92,7 @@ def test_read_mdarray_substack(
     filepath = basedir / "data" / czifile
 
     # read only a specific scene from the CZI
-    mdarray, mdata, ds = pylibczirw_tools.read_6darray(
+    mdarray, mdata, ds = read_tools.read_6darray(
         filepath, output_order=dimorder, **plane
     )
 
