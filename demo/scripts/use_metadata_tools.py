@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 #################################################################
-# File        : use_pylibczirw_metadata_class.py
+# File        : use_metadata_tools.py
 # Author      : sebi06
 #
 # Disclaimer: This code is purely experimental. Feel free to

@@ -10,7 +10,7 @@ This repository provides a collection of tools to simplify reading CZI (Carl Zei
 
 ## Reading the metadata
 
-Please check [use_pylibczirw_metadata_class.py](examples/scripts/use_pylibczirw_metadata_class.py) for some examples.
+Please check [use_metadata_tools.py](examples/scripts/use_metadata_tools.py) for some examples.
 
 ```python
 # get the metadata at once as one big class
