@@ -329,26 +329,22 @@ def get_planetable(czifile: Union[str, os.PathLike[str]],
 
     def getsbinfo(subblock: Any) -> Tuple[float, float, float, float]:
         try:
-            # time = sb.xpath('//AcquisitionTime')[0].text
             time = subblock.findall(".//AcquisitionTime")[0].text
             timestamp = dt.parse(time).timestamp()
         except IndexError as e:
             timestamp = 0.0
 
         try:
-            # xpos = np.double(sb.xpath('//StageXPosition')[0].text)
             xpos = np.double(subblock.findall(".//StageXPosition")[0].text)
         except IndexError as e:
             xpos = 0.0
 
         try:
-            # ypos = np.double(sb.xpath('//StageYPosition')[0].text)
             ypos = np.double(subblock.findall(".//StageYPosition")[0].text)
         except IndexError as e:
             ypos = 0.0
 
         try:
-            # zpos = np.double(sb.xpath('//FocusPosition')[0].text)
             zpos = np.double(subblock.findall(".//FocusPosition")[0].text)
         except IndexError as e:
             zpos = 0.0
