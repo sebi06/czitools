@@ -1,5 +1,5 @@
 from pathlib import Path
-from czitools import pylibczirw_metadata as czimd
+from czitools import metadata_tools as czimd
 import pytest
 from typing import List, Dict, Tuple, Optional, Type, Any, Union, Mapping
 

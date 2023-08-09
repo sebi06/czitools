@@ -10,9 +10,9 @@
 #################################################################
 
 import napari
-from czitools import pylibczirw_metadata as czimd
+from czitools import metadata_tools as czimd
 from aicsimageio import AICSImage
-from czitools import misc, napari_tools
+from czitools import misc_tools, napari_tools
 import os
 from pathlib import Path
 
@@ -20,10 +20,10 @@ from pathlib import Path
 defaultdir = os.path.join(Path(__file__).resolve().parents[2], "data")
 
 # open s simple dialog to select a CZI file
-filepath = misc.openfile(directory=defaultdir,
-                         title="Open CZI Image File",
-                         ftypename="CZI Files",
-                         extension="*.czi")
+filepath = misc_tools.openfile(directory=defaultdir,
+                               title="Open CZI Image File",
+                               ftypename="CZI Files",
+                               extension="*.czi")
 print(filepath)
 
 # get the complete metadata at once as one big class
@@ -36,7 +36,7 @@ for k, v in aics_img.dims.items():
     print(k, v)
 
 # get the stack as dask array
-stack = misc.get_daskstack(aics_img)
+stack = misc_tools.get_daskstack(aics_img)
 
 dim_string6d = "S" + aics_img.dims.order
 

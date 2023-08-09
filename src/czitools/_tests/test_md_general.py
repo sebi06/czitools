@@ -1,5 +1,5 @@
 
-from czitools import pylibczirw_metadata as czimd
+from czitools import metadata_tools as czimd
 from pathlib import Path
 import numpy as np
 import pytest

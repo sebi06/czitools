@@ -40,8 +40,8 @@ from PyQt5.QtWidgets import (
 from PyQt5.QtCore import Qt, QDir, QSortFilterProxyModel
 from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtGui import QFont
-from czitools import pylibczirw_metadata as czimd
-from czitools import misc
+from czitools import metadata_tools as czimd
+from czitools import misc_tools
 import numpy as np
 from typing import List, Dict, Tuple, Optional, Type, Any, Union, Literal, Mapping
 from napari.utils.colormaps import Colormap
@@ -200,7 +200,7 @@ def show(viewer: napari.Viewer,
 
         # cut out channel
         if metadata.image.SizeC is not None:
-            channel = misc.slicedim(array, ch, dim_order["C"])
+            channel = misc_tools.slicedim(array, ch, dim_order["C"])
         if metadata.image.SizeC is None:
             channel = array
 
@@ -211,7 +211,7 @@ def show(viewer: napari.Viewer,
 
         if contrast == "calc":
             # really calculate the min and max values - might be slow
-            sc = misc.calc_scaling(channel, corr_min=1.1, corr_max=0.9)
+            sc = misc_tools.calc_scaling(channel, corr_min=1.1, corr_max=0.9)
             print("Calculated Display Scaling (min & max)", sc)
 
             # add channel to napari viewer

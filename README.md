@@ -10,7 +10,7 @@ This repository provides a collection of tools to simplify reading CZI (Carl Zei
 
 ## Reading the metadata
 
-Please check [use_pylibczirw_metadata_class.py](examples/scripts/use_pylibczirw_metadata_class.py) for some examples.
+Please check [use_metadata_tools.py](examples/scripts/use_metadata_tools.py) for some examples.
 
 ```python
 # get the metadata at once as one big class
@@ -58,16 +58,16 @@ czi_addmd = czimd.CziAddMetaData(filepath)
 czi_bbox = czimd.CziBoundingBox(filepath)
 ```
 
-## Reading CZI pixeldata
+## Reading CZI pixel data
 
 While the [pylibCZIrw](https://pypi.org/project/pylibCZIrw/) is focussing on reading individual planes it is also helpful to read CZI pixel data as a STZCYX(A) stack. Please check [use_pylibczirw_md_read.py](https://github.com/sebi06/czitools/raw/main/demo/scripts/use_pylibczirw_md_read.py) for some examples.
 
 ```python
-# return a array with dimension order STZCYX(A)
-array6d, mdata, dim_string6d = pylibczirw_tools.read_6darray(filepath,
-                                                             output_order="STZCYX",
-                                                             output_dask=False,
-                                                             remove_adim=True
+# return a dask array with dimension order STZCYX(A)
+array6d, mdata, dim_string6d = read_tools.read_6darray(filepath,
+                                                             output_order="STCZYX",
+                                                             # T=0,
+                                                             # Z=0
                                                              )
 
 # show array inside napari viewer
@@ -75,7 +75,7 @@ viewer = napari.Viewer()
 layers = napari_tools.show(viewer, array6d, mdata,
                            dim_string=dim_string6d,
                            blending="additive",
-                           contrast='napari_auto',
+                           contrast='from_czi',
                            gamma=0.85,
                            add_mdtable=True,
                            name_sliders=True)
@@ -84,3 +84,7 @@ napari.run()
 ```
 
 ![5D CZI inside Napari](https://github.com/sebi06/czitools/raw/main/images/czi_napari1.png)
+
+## Remarks
+
+The code to read multi-dimensional with delayed reading using Dask array was heavily inspired by input from: [Pradeep Rajasekhar](https://github.com/pr4deepr).
