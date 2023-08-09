@@ -25,7 +25,7 @@ from tqdm.contrib.itertools import product
 def read_6darray(filepath: Union[str, os.PathLike[str]],
                  output_order: str = "STCZYX",
                  use_dask: bool = False,
-                 chunk_zyx=True,
+                 chunk_zyx=False,
                  **kwargs: int) -> Tuple[Optional[Union[np.ndarray, da.Array]], czimd.CziMetadata, str]:
     """Read a CZI image file as 6D dask array.
     Important: Currently supported are only scenes with equal size and CZIs with consistent pixel types.
