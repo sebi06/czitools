@@ -15,7 +15,6 @@ from tkinter import filedialog
 from tkinter import *
 import zarr
 import pandas as pd
-import dask
 import dask.array as da
 import numpy as np
 import time
@@ -24,10 +23,9 @@ import xml.etree.ElementTree as ET
 from aicspylibczi import CziFile
 from aicsimageio import AICSImage
 import dateutil.parser as dt
-from dask.array import Array
 from itertools import product
 from czitools import pylibczirw_metadata as czimd
-from tqdm.contrib.itertools import product as tqdm_product
+from tqdm.contrib.itertools import product
 from typing import List, Dict, Tuple, Optional, Type, Any, Union, Mapping
 
 
@@ -56,7 +54,7 @@ def openfile(directory: str,
         return ""
 
 
-def slicedim(array: Union[np.ndarray, dask.array.Array, zarr.Array],
+def slicedim(array: Union[np.ndarray, da.Array, zarr.Array],
              dimindex: int,
              posdim: int) -> np.ndarray:
     """Slice out a specific dimension without (!) dropping the dimension
@@ -124,7 +122,7 @@ def calc_scaling(data: Union[np.ndarray, da.array],
     if isinstance(data, zarr.Array):
         minvalue, maxvalue = np.min(data), np.max(data)
     elif isinstance(data, da.Array):
-        # use dask.compute only once since this is faster
+        # compute only once since this is faster
         minvalue, maxvalue = da.compute(data.min(), data.max())
     else:
         minvalue, maxvalue = np.min(data), np.max(data)
