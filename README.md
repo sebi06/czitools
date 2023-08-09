@@ -58,7 +58,7 @@ czi_addmd = czimd.CziAddMetaData(filepath)
 czi_bbox = czimd.CziBoundingBox(filepath)
 ```
 
-## Reading CZI pixeldata
+## Reading CZI pixel data
 
 While the [pylibCZIrw](https://pypi.org/project/pylibCZIrw/) is focussing on reading individual planes it is also helpful to read CZI pixel data as a STZCYX(A) stack. Please check [use_pylibczirw_md_read.py](https://github.com/sebi06/czitools/raw/main/demo/scripts/use_pylibczirw_md_read.py) for some examples.
 
@@ -84,3 +84,7 @@ napari.run()
 ```
 
 ![5D CZI inside Napari](https://github.com/sebi06/czitools/raw/main/images/czi_napari1.png)
+
+## Remarks
+
+The code to read multi-dimensional with delayed reading using Dask array was heavily inspired by input from: [Pradeep Rajasekhar](https://github.com/pr4deepr).
