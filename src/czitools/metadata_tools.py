@@ -757,7 +757,7 @@ class CziSampleInfo:
                 logger.info("CZI contains no scene metadata.")
 
         elif size_s is None:
-            # print("No Scene or Well information found. Try to read XY Stage Coordinates from subblocks.")
+
             logger.info(
                 "No Scene or Well information found. Try to read XY Stage Coordinates from subblocks.")
 

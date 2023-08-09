@@ -20,11 +20,10 @@ import numpy as np
 import time
 from pathlib import Path
 from aicspylibczi import CziFile
-from aicsimageio import AICSImage
 import dateutil.parser as dt
 from itertools import product
 from czitools import metadata_tools as czimd
-from tqdm.contrib.itertools import product
+# from tqdm.contrib.itertools import product
 from typing import List, Dict, Tuple, Optional, Type, Any, Union, Mapping
 
 
@@ -242,33 +241,6 @@ def check_dimsize(mdata_entry: Union[Any, None], set2value: Any = 1) -> Union[An
         return set2value
     if mdata_entry is not None:
         return mdata_entry
-
-
-def get_daskstack(aics_img: AICSImage) -> List[da.array]:
-    """Create a Dask stack from a list of Dask stacks.
-
-    Args:
-        aics_img (AICSImage): An AICSImage object containing multiple scenes.
-
-    Returns:
-        List[da.array]: A list of Dask arrays representing the stack of all scenes
-        in the input AICSImage object.
-    """
-    # Initialize an empty list to store the Dask arrays for each scene.
-    stacks: List[da.array] = []
-
-    # Iterate over all scenes in the input AICSImage object.
-    for scene in aics_img.scenes:
-        # Set the current scene of the AICSImage object.
-        aics_img.set_scene(scene)
-        # Append the Dask array for the current scene to the stacks list.
-        stacks.append(aics_img.dask_data)
-
-    # Stack all Dask arrays in the stacks list along the first axis to create
-    # a single Dask array representing the stack of all scenes.
-    stack = da.stack(stacks)
-
-    return stack
 
 
 def get_planetable(czifile: Union[str, os.PathLike[str]],
