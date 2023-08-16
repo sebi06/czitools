@@ -29,7 +29,7 @@ print(filepath)
 # return a array with dimension order STZCYX(A)
 array6d, mdata, dim_string6d = read_tools.read_6darray(filepath,
                                                        output_order="STCZYX",
-                                                       use_dask=False,
+                                                       use_dask=True,
                                                        chunk_zyx=False,
                                                        # T=0,
                                                        # Z=0
