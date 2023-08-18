@@ -18,7 +18,7 @@ from pathlib import Path
 import dask
 import dask.array as da
 import os
-from tqdm import trange
+from tqdm import trange, tqdm
 from tqdm.contrib.itertools import product
 
 
@@ -142,11 +142,11 @@ def read_6darray(filepath: Union[str, os.PathLike[str]],
 
             for s in trange(size_s):
                 time_stack = []
-                for time in range(size_t):
+                for time in trange(size_t):
                     ch_stack = []
                     for ch in trange(size_c):
                         z_stack = []
-                        for z in range(size_z):
+                        for z in trange(size_z):
                             if mdata.image.SizeS is not None:
 
                                 z_slice = da.from_delayed(
