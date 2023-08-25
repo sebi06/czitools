@@ -63,26 +63,32 @@ czi_bbox = czimd.CziBoundingBox(filepath)
 While the [pylibCZIrw](https://pypi.org/project/pylibCZIrw/) is focussing on reading individual planes it is also helpful to read CZI pixel data as a STZCYX(A) stack. Please check [use_read_tools.py](https://github.com/sebi06/czitools/raw/main/demo/scripts/use_readtools.py) for some examples.
 
 ```python
-# return a dask array with dimension order STZCYX(A)
+# return a dask or numpy array with dimension order STZCYX(A)
 array6d, mdata, dim_string6d = read_tools.read_6darray(filepath,
                                                        output_order="STCZYX",
                                                        use_dask=True,
                                                        chunk_zyx=False,
                                                        # T=0,
                                                        # Z=0
+                                                       # S=0
+                                                       # C=0
                                                        )
 
-# show array inside napari viewer
-viewer = napari.Viewer()
-layers = napari_tools.show(viewer, array6d, mdata,
-                           dim_string=dim_string6d,
-                           blending="additive",
-                           contrast='from_czi',
-                           gamma=0.85,
-                           add_mdtable=True,
-                           name_sliders=True)
+if array6d is None:
+    print("Empty array6d. Nothing to display in Napari")
+else:
 
-napari.run()
+    # show array inside napari viewer
+    viewer = napari.Viewer()
+    layers = napari_tools.show(viewer, array6d, mdata,
+                               dim_string=dim_string6d,
+                               blending="additive",
+                               contrast='from_czi',
+                               gamma=0.85,
+                               add_mdtable=True,
+                               name_sliders=True)
+
+    napari.run()
 ```
 
 ![5D CZI inside Napari](https://github.com/sebi06/czitools/raw/main/images/czi_napari1.png)

@@ -33,16 +33,22 @@ array6d, mdata, dim_string6d = read_tools.read_6darray(filepath,
                                                        chunk_zyx=False,
                                                        # T=0,
                                                        # Z=0
+                                                       # S=0
+                                                       # C=0
                                                        )
 
-# show array inside napari viewer
-viewer = napari.Viewer()
-layers = napari_tools.show(viewer, array6d, mdata,
-                           dim_string=dim_string6d,
-                           blending="additive",
-                           contrast='from_czi',
-                           gamma=0.85,
-                           add_mdtable=True,
-                           name_sliders=True)
+if array6d is None:
+    print("Empty array6d. Nothing to display in Napari")
+else:
 
-napari.run()
+    # show array inside napari viewer
+    viewer = napari.Viewer()
+    layers = napari_tools.show(viewer, array6d, mdata,
+                               dim_string=dim_string6d,
+                               blending="additive",
+                               contrast='from_czi',
+                               gamma=0.85,
+                               add_mdtable=True,
+                               name_sliders=True)
+
+    napari.run()
