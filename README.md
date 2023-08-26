@@ -98,7 +98,7 @@ else:
 ### Read CZI metadata
 
 The basic usage can be inferred from this sample notebook:&nbsp;
-[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/sebi06/czitools/blob/work_in_progress/demo/notebooks/read_czi_metadata.ipynb)
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/sebi06/czitools/blob/main/demo/notebooks/read_czi_metadata.ipynb)
 
 ## Remarks
 
