@@ -93,6 +93,13 @@ else:
 
 ![5D CZI inside Napari](https://github.com/sebi06/czitools/raw/main/images/czi_napari1.png)
 
+## Coloab Notebooks
+
+### Read CZI metadata
+
+The basic usage can be inferred from this sample notebook:&nbsp;
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/sebi06/czitools/blob/work_in_progress/notebooks/read_czi_metadata.ipynb)
+
 ## Remarks
 
 The code to read multi-dimensional with delayed reading using Dask array was heavily inspired by input from: [Pradeep Rajasekhar](https://github.com/pr4deepr).
