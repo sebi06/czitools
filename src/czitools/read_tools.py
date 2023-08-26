@@ -62,7 +62,7 @@ def read_6darray(filepath: Union[str, os.PathLike[str]],
         print("Invalid dimension order 6D:", output_order)
         return None, mdata, ""
 
-    if not mdata.scene_shape_is_consistent:
+    if not mdata.scene_shape_is_consistent and not 'S' in kwargs.keys():
         print("Scenes have inconsistent shape. Cannot read 6D array")
         return None, mdata, ""
 

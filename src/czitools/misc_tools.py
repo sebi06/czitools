@@ -9,7 +9,7 @@
 #
 #################################################################
 
-from __future__ import annotations
+# from __future__ import annotations
 import os
 from tkinter import filedialog
 from tkinter import *
@@ -23,7 +23,6 @@ from aicspylibczi import CziFile
 import dateutil.parser as dt
 from itertools import product
 from czitools import metadata_tools as czimd
-# from tqdm.contrib.itertools import product
 from typing import List, Dict, Tuple, Optional, Type, Any, Union, Mapping
 
 
@@ -256,10 +255,10 @@ def get_planetable(czifile: Union[str, os.PathLike[str]],
         savetable: option save the planetable as CSV file
         separator: specify the separator for the CSV file
         read_one_only: option to read only the first entry
-        index:
+        index: option to save CSV file with an index
 
     Returns:
-        Planetable as pd.DataFrame and the location of the CSV file
+        Planetable as pd.DataFrame or np.recarray and the location of the CSV file
     """
 
     if isinstance(czifile, Path):

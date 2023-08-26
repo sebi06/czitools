@@ -18,34 +18,42 @@ except ModuleNotFoundError as error:
 
 from PyQt5.QtWidgets import (
 
-    QHBoxLayout,
+    # QHBoxLayout,
     QVBoxLayout,
-    QFileSystemModel,
-    QFileDialog,
-    QTreeView,
-    QDialogButtonBox,
+    # QFileSystemModel,
+    # QFileDialog,
+    # QTreeView,
+    # QDialogButtonBox,
     QWidget,
     QTableWidget,
     QTableWidgetItem,
-    QCheckBox,
-    QAbstractItemView,
-    QComboBox,
-    QPushButton,
-    QLineEdit,
-    QLabel,
-    QGridLayout
+    # QCheckBox,
+    # QAbstractItemView,
+    # QComboBox,
+    # QPushButton,
+    # QLineEdit,
+    # QLabel,
+    # QGridLayout
 
 )
 
-from PyQt5.QtCore import Qt, QDir, QSortFilterProxyModel
-from PyQt5 import QtCore, QtGui, QtWidgets
+from PyQt5.QtCore import Qt  # , QDir, QSortFilterProxyModel
+from PyQt5 import QtWidgets  # QtCore, QtGui,
 from PyQt5.QtGui import QFont
 from czitools import metadata_tools as czimd
 from czitools import misc_tools
 import numpy as np
-from typing import List, Dict, Tuple, Optional, Type, Any, Union, Literal, Mapping
+from typing import List, Dict, Tuple, Optional, Type, Any, Union, Literal, Mapping, Annotated
 from napari.utils.colormaps import Colormap
+from napari.utils import resize_dask_cache
 import dask.array as da
+from dataclasses import dataclass
+
+
+@dataclass
+class ValueRange:
+    lo: float
+    hi: float
 
 
 class TableWidget(QWidget):
@@ -119,7 +127,8 @@ def show(viewer: napari.Viewer,
          contrast: Literal["calc", "napari_auto", "from_czi"] = "calc",
          gamma: float = 0.85,
          add_mdtable: bool = True,
-         name_sliders: bool = False) -> List:
+         name_sliders: bool = False,
+         dask_cache_size: Annotated[float, ValueRange(0.5, 0.9)] = 0.5) -> List:
     """Display the multidimensional array inside the Napari viewer.
     Optionally the CziMetadata class will be used show a table with the metadata.
     Every channel will be added as a new layer to the viewer.
@@ -137,10 +146,14 @@ def show(viewer: napari.Viewer,
         gamma (float, optional): gamma value for the Viewer for all layers Defaults to 0.85.
         add_mdtable (bool, optional): option to show the CziMetadata as a table widget. Defaults to True.
         name_sliders (bool, optional): option to use the dimension letters as slider labels for the viewer. Defaults to False.
+        dask_cache_size(float, optional): option to resize the dask cache used for opportunistic caching. Range [0 - 1]
 
     Returns:
         List: List of napari layers
     """
+
+    # set napar dask cache size
+    cache = resize_dask_cache(dask_cache_size)
 
     dim_order, dim_index, dim_valid = czimd.CziMetadata.get_dimorder(dim_string)
 
