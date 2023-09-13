@@ -10,7 +10,7 @@ This repository provides a collection of tools to simplify reading CZI (Carl Zei
 
 ## Reading the metadata
 
-Please check [use_metadata_tools.py](demo/scripts/use_metadata_tools.py) for some examples.
+Please check [use_metadata_tools.py](https://github.com/sebi06/czitools/blob/main/demo/scripts/use_metadata_tools.py) for some examples.
 
 ```python
 # get the metadata at once as one big class
@@ -60,7 +60,7 @@ czi_bbox = czimd.CziBoundingBox(filepath)
 
 ## Reading CZI pixel data
 
-While the [pylibCZIrw](https://pypi.org/project/pylibCZIrw/) is focussing on reading individual planes it is also helpful to read CZI pixel data as a STZCYX(A) stack. Please check [use_read_tools.py](/demo/scripts/use_readtools.py) for some examples.
+While the [pylibCZIrw](https://pypi.org/project/pylibCZIrw/) is focussing on reading individual planes it is also helpful to read CZI pixel data as a STZCYX(A) stack. Please check [use_read_tools.py](https://github.com/sebi06/czitools/blob/main/demo/scripts/use_read_tools.py) for some examples.
 
 ```python
 # return a dask or numpy array with dimension order STZCYX(A)
