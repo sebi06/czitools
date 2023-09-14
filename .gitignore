@@ -163,3 +163,4 @@ notebooks/*.csv
 # skip specific files
 data/CH=1_16bit.czi
 data/Fluorescence_RGB.czi
+/demo/experimental/lazy_read6d.py
