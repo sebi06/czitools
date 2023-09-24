@@ -159,6 +159,7 @@ data/*.html
 notebooks/*.html
 notebooks/*.csv
 **/notebooks/data/**
+**/notebooks/data/
 
 
 # skip specific files
