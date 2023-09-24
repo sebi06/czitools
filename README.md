@@ -105,6 +105,11 @@ The basic usage can be inferred from this sample notebook:&nbsp;
 The basic usage can be inferred from this sample notebook:&nbsp;
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/sebi06/czitools/blob/main/demo/notebooks/read_czi_pixeldata.ipynb)
 
+### Write OME-ZARR from 5D CZI image data
+
+The basic usage can be inferred from this sample notebook:&nbsp;
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/sebi06/czitools/blob/main/demo/notebooks/omezarr_from_czi_5d.ipynb)
+
 ## Remarks
 
 The code to read multi-dimensional with delayed reading using Dask array was heavily inspired by input from: [Pradeep Rajasekhar](https://github.com/pr4deepr).
