@@ -20,13 +20,20 @@ import dask.array as da
 import os
 from tqdm import trange, tqdm
 from tqdm.contrib.itertools import product
+from memory_profiler import profile
 
 
-def read_6darray(filepath: Union[str, os.PathLike[str]],
-                 output_order: str = "STCZYX",
-                 use_dask: bool = False,
-                 chunk_zyx=False,
-                 **kwargs: int) -> Tuple[Optional[Union[np.ndarray, da.Array]], czimd.CziMetadata, str]:
+# instantiating the decorator
+@profile
+# code for which memory has to
+# be monitored
+def read_6darray(
+    filepath: Union[str, os.PathLike[str]],
+    output_order: str = "STCZYX",
+    use_dask: bool = False,
+    chunk_zyx=False,
+    **kwargs: int
+) -> Tuple[Optional[Union[np.ndarray, da.Array]], czimd.CziMetadata, str]:
     """Read a CZI image file as 6D dask array.
     Important: Currently supported are only scenes with equal size and CZIs with consistent pixel types.
 
@@ -62,7 +69,7 @@ def read_6darray(filepath: Union[str, os.PathLike[str]],
         print("Invalid dimension order 6D:", output_order)
         return None, mdata, ""
 
-    if not mdata.scene_shape_is_consistent and not 'S' in kwargs.keys():
+    if not mdata.scene_shape_is_consistent and not "S" in kwargs.keys():
         print("Scenes have inconsistent shape. Cannot read 6D array")
         return None, mdata, ""
 
@@ -112,22 +119,27 @@ def read_6darray(filepath: Union[str, os.PathLike[str]],
         remove_adim = False if mdata.isRGB else True
 
         if not use_dask:
-
             # assume default dimorder = STZCYX(A)
-            shape = [size_s, size_t, size_c, size_z, size_y, size_x, 3 if mdata.isRGB else 1]
+            shape = [
+                size_s,
+                size_t,
+                size_c,
+                size_z,
+                size_y,
+                size_x,
+                3 if mdata.isRGB else 1,
+            ]
             array6d = np.empty(shape, dtype=use_pixeltype)
 
             # read array for the scene
-            for s, t, c, z in product(range(size_s),
-                                      range(size_t),
-                                      range(size_c),
-                                      range(size_z)):
-
+            for s, t, c, z in product(
+                range(size_s), range(size_t), range(size_c), range(size_z)
+            ):
                 # read a 2D image plane from the CZI
                 if mdata.image.SizeS is None:
-                    image2d = czidoc.read(plane={'T': t, 'Z': z, 'C': c})
+                    image2d = czidoc.read(plane={"T": t, "Z": z, "C": c})
                 else:
-                    image2d = czidoc.read(plane={'T': t, 'Z': z, 'C': c}, scene=s)
+                    image2d = czidoc.read(plane={"T": t, "Z": z, "C": c}, scene=s)
 
                 # insert 2D image plane into the array6d
                 array6d[s, t, c, z, ...] = image2d
@@ -136,7 +148,6 @@ def read_6darray(filepath: Union[str, os.PathLike[str]],
                 array6d = np.squeeze(array6d, axis=-1)
 
         if use_dask:
-
             # initialise empty list to hold the dask arrays
             img = []
 
@@ -148,7 +159,6 @@ def read_6darray(filepath: Union[str, os.PathLike[str]],
                         z_stack = []
                         for z in trange(size_z):
                             if mdata.image.SizeS is not None:
-
                                 z_slice = da.from_delayed(
                                     read_plane(
                                         czidoc,
@@ -164,7 +174,6 @@ def read_6darray(filepath: Union[str, os.PathLike[str]],
                                 )
 
                             if mdata.image.SizeS is None:
-
                                 z_slice = da.from_delayed(
                                     read_plane(
                                         czidoc,
@@ -209,7 +218,6 @@ def read_6darray(filepath: Union[str, os.PathLike[str]],
             dim_string = "STCZYXA"
 
         if remove_adim:
-
             dim_string = dim_string.replace("A", "")
 
             if use_dask and chunk_zyx:
@@ -217,7 +225,6 @@ def read_6darray(filepath: Union[str, os.PathLike[str]],
                 array6d = array6d.rechunk(chunks=(1, 1, 1, size_z, size_y, size_x))
 
         if not remove_adim:
-
             if use_dask and chunk_zyx:
                 # for testing
                 array6d = array6d.rechunk(chunks=(1, 1, 1, size_z, size_y, size_x, 3))
