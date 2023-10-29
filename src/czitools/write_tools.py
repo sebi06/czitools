@@ -12,7 +12,6 @@
 # the ome_zarr imports we require
 import dask
 import dask.array as da
-from pathlib import Path
 import zarr
 import ome_zarr.reader
 import ome_zarr.scale
