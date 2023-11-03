@@ -109,12 +109,12 @@ class TableWidget(QWidget):
         # update both header items
         fc = (25, 25, 25)
         item1 = QtWidgets.QTableWidgetItem("Parameter")
-        #item1.setForeground(QtGui.QColor(25, 25, 25))
+        # item1.setForeground(QtGui.QColor(25, 25, 25))
         item1.setFont(fnt)
         self.mdtable.setHorizontalHeaderItem(0, item1)
 
         item2 = QtWidgets.QTableWidgetItem("Value")
-        #item2.setForeground(QtGui.QColor(25, 25, 25))
+        # item2.setForeground(QtGui.QColor(25, 25, 25))
         item2.setFont(fnt)
         self.mdtable.setHorizontalHeaderItem(1, item2)
 
@@ -152,7 +152,7 @@ def show(viewer: napari.Viewer,
         List: List of napari layers
     """
 
-    # set napar dask cache size
+    # set napari dask cache size
     cache = resize_dask_cache(dask_cache_size)
 
     dim_order, dim_index, dim_valid = czimd.CziMetadata.get_dimorder(dim_string)
@@ -167,6 +167,9 @@ def show(viewer: napari.Viewer,
 
     # create scale factor with all ones
     scalefactors = [1.0] * len(array.shape)
+
+    # testing
+    scalefactors = [1.0] * 6
 
     # modify the tuple for the scales for napari
 

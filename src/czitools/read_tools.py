@@ -24,7 +24,7 @@ from memory_profiler import profile
 
 
 # instantiating the decorator
-@profile
+# @profile
 # code for which memory has to
 # be monitored
 def read_6darray(
@@ -84,6 +84,7 @@ def read_6darray(
             size_y = czidoc.scenes_bounding_rectangle[0].h
 
         if mdata.image.SizeS is None:
+
             # use the size of the total_bounding_rectangle
             size_x = czidoc.total_bounding_rectangle.w
             size_y = czidoc.total_bounding_rectangle.h
@@ -119,7 +120,7 @@ def read_6darray(
         remove_adim = False if mdata.isRGB else True
 
         if not use_dask:
-            # assume default dimorder = STZCYX(A)
+            # assume default dimension order = STZCYX(A)
             shape = [
                 size_s,
                 size_t,
@@ -131,9 +132,11 @@ def read_6darray(
             ]
             array6d = np.empty(shape, dtype=use_pixeltype)
 
-            # read array for the scene
+            # read array for the scene 2Dplane-by-2Dplane
             for s, t, c, z in product(
-                range(size_s), range(size_t), range(size_c), range(size_z)
+                range(size_s), range(size_t), range(size_c), range(size_z),
+                desc="Reading 2D planes",
+                unit=" 2Dplanes"
             ):
                 # read a 2D image plane from the CZI
                 if mdata.image.SizeS is None:
@@ -151,63 +154,71 @@ def read_6darray(
             # initialise empty list to hold the dask arrays
             img = []
 
-            for s in trange(size_s):
-                time_stack = []
-                for time in trange(size_t):
-                    ch_stack = []
-                    for ch in trange(size_c):
-                        z_stack = []
-                        for z in trange(size_z):
-                            if mdata.image.SizeS is not None:
-                                z_slice = da.from_delayed(
-                                    read_plane(
-                                        czidoc,
-                                        s=s,
-                                        t=time,
-                                        c=ch,
-                                        z=z,
-                                        has_scenes=True,
-                                        remove_adim=remove_adim,
-                                    ),
-                                    shape=shape2d,
-                                    dtype=mdata.npdtype[0],
-                                )
+            with tqdm(total=size_s * size_t * size_c * size_z, desc="Reading 2D planes", unit=" 2dplanes") as pbar:
 
-                            if mdata.image.SizeS is None:
-                                z_slice = da.from_delayed(
-                                    read_plane(
-                                        czidoc,
-                                        s=s,
-                                        t=time,
-                                        c=ch,
-                                        z=z,
-                                        has_scenes=False,
-                                        remove_adim=remove_adim,
-                                    ),
-                                    shape=shape2d,
-                                    dtype=mdata.npdtype[0],
-                                )
+                for s in range(size_s):
+                    time_stack = []
 
-                            # create 2d array
-                            z_slice = da.squeeze(z_slice)
+                    for time in range(size_t):
+                        ch_stack = []
 
-                            # append to the z-stack
-                            z_stack.append(z_slice)
+                        for ch in range(size_c):
+                            z_stack = []
 
-                        # stack the array and create new dask array
-                        z_stack = da.stack(z_stack, axis=0)
+                            for z in range(size_z):
 
-                        # create CZYX list of dask array
-                        ch_stack.append(z_stack)
+                                if mdata.image.SizeS is not None:
+                                    z_slice = da.from_delayed(
+                                        read_plane(
+                                            czidoc,
+                                            s=s,
+                                            t=time,
+                                            c=ch,
+                                            z=z,
+                                            has_scenes=True,
+                                            remove_adim=remove_adim,
+                                        ),
+                                        shape=shape2d,
+                                        dtype=mdata.npdtype[0],
+                                    )
+                                    pbar.update()
 
-                    # create TCZYX list of dask array
-                    time_stack.append(ch_stack)
+                                if mdata.image.SizeS is None:
+                                    z_slice = da.from_delayed(
+                                        read_plane(
+                                            czidoc,
+                                            s=s,
+                                            t=time,
+                                            c=ch,
+                                            z=z,
+                                            has_scenes=False,
+                                            remove_adim=remove_adim,
+                                        ),
+                                        shape=shape2d,
+                                        dtype=mdata.npdtype[0],
+                                    )
+                                    pbar.update()
 
-                # create STCZYX list of dask array
-                img.append(time_stack)
+                                # create 2d array
+                                z_slice = da.squeeze(z_slice)
 
-            # create final STCZYX dask arry
-            array6d = da.stack(img, axis=0)
+                                # append to the z-stack
+                                z_stack.append(z_slice)
+
+                            # stack the array and create new dask array
+                            z_stack = da.stack(z_stack, axis=0)
+
+                            # create CZYX list of dask array
+                            ch_stack.append(z_stack)
+
+                        # create TCZYX list of dask array
+                        time_stack.append(ch_stack)
+
+                    # create STCZYX list of dask array
+                    img.append(time_stack)
+
+                # create final STCZYX dask array
+                array6d = da.stack(img, axis=0)
 
         # change the dimension order if needed
         if output_order == "STZCYX":
