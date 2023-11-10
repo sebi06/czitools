@@ -20,19 +20,20 @@ import dask.array as da
 import os
 from tqdm import trange, tqdm
 from tqdm.contrib.itertools import product
-from memory_profiler import profile
+
+
+# from memory_profiler import profile
 
 
 # instantiating the decorator
 # @profile
-# code for which memory has to
-# be monitored
+# code for which memory has to be monitored
 def read_6darray(
     filepath: Union[str, os.PathLike[str]],
     output_order: str = "STCZYX",
     use_dask: bool = False,
     chunk_zyx=False,
-    **kwargs: int
+    planes: Dict[str, tuple[int, int]] = {},
 ) -> Tuple[Optional[Union[np.ndarray, da.Array]], czimd.CziMetadata, str]:
     """Read a CZI image file as 6D dask array.
     Important: Currently supported are only scenes with equal size and CZIs with consistent pixel types.
@@ -41,8 +42,9 @@ def read_6darray(
         filepath (str | Path): filepath for the CZI image
         output_order (str, optional): Order of dimensions for the output array. Defaults to "STCZYX".
         use_dask (bool, optional): Option to store image data as dask array with delayed reading
-        kwargs (int, optional): Allowed kwargs are S, T, Z, C and values must be >=0 (zero-based).
-                                Will be used to read only a substack from the array
+        planes (dict, optional): Allowed keys S, T, Z, C and their start and end values must be >=0 (zero-based).
+                                 planes = {"Z":(0, 2)} will return 3 z-plane with indices (0, 1, 2).
+                                 Respectively {"Z":(5, 5)} will return a single z-plane with index 5.
 
     Returns:
         Tuple[array6d, mdata, dim_string]: output as 6D dask array, metadata and dimstring
@@ -59,6 +61,16 @@ def read_6darray(
         print("Detected PixelTypes ar not consistent. Cannot create array6d")
         return None, mdata, ""
 
+    # check planes
+    if not planes is False:
+        for k in ["S", "T", "C", "Z"]:
+            if k in planes.keys() and k in mdata.bbox.total_bounding_box.keys():
+                if mdata.bbox.total_bounding_box[k][1] - 1 < planes[k][1]:
+                    print(
+                        f"Planes indicies (zero-based) for {planes[k]} are invalid. BBox for {[k]}: {mdata.bbox.total_bounding_box[k]}"
+                    )
+                    return None, mdata, ""
+
     if mdata.consistent_pixeltypes:
         # use pixel type from first channel
         use_pixeltype = mdata.npdtype[0]
@@ -69,7 +81,7 @@ def read_6darray(
         print("Invalid dimension order 6D:", output_order)
         return None, mdata, ""
 
-    if not mdata.scene_shape_is_consistent and not "S" in kwargs.keys():
+    if not mdata.scene_shape_is_consistent and not "S" in planes.keys():
         print("Scenes have inconsistent shape. Cannot read 6D array")
         return None, mdata, ""
 
@@ -84,7 +96,6 @@ def read_6darray(
             size_y = czidoc.scenes_bounding_rectangle[0].h
 
         if mdata.image.SizeS is None:
-
             # use the size of the total_bounding_rectangle
             size_x = czidoc.total_bounding_rectangle.w
             size_y = czidoc.total_bounding_rectangle.h
@@ -95,22 +106,43 @@ def read_6darray(
         size_t = misc_tools.check_dimsize(mdata.image.SizeT, set2value=1)
         size_s = misc_tools.check_dimsize(mdata.image.SizeS, set2value=1)
 
-        # check for additional **kwargs to create substacks
-        if kwargs is not None and mdata.image.SizeS is not None and "S" in kwargs:
-            size_s = kwargs["S"] + 1
-            mdata.image.SizeS = 1
+        s_start = 0
+        s_end = size_s
+        t_start = 0
+        t_end = size_t
+        c_start = 0
+        c_end = size_c
+        z_start = 0
+        z_end = size_z
 
-        if kwargs is not None and "T" in kwargs:
-            size_t = kwargs["T"] + 1
-            mdata.image.SizeT = 1
+        # check for additional arguments to create substacks
+        if (
+            not planes is False
+            and mdata.image.SizeS is not None
+            and "S" in planes.keys()
+        ):
+            size_s = planes["S"][1] - planes["S"][0] + 1
+            mdata.image.SizeS = size_s
+            s_start = planes["S"][0]
+            s_end = planes["S"][1] + 1
 
-        if kwargs is not None and "Z" in kwargs:
-            size_z = kwargs["Z"] + 1
-            mdata.image.SizeZ = 1
+        if not planes is False and "T" in planes.keys():
+            size_t = planes["T"][1] - planes["T"][0] + 1
+            mdata.image.SizeT = size_t
+            t_start = planes["T"][0]
+            t_end = planes["T"][1] + 1
 
-        if kwargs is not None and "C" in kwargs:
-            size_c = kwargs["C"] + 1
-            mdata.image.SizeC = 1
+        if not planes is False and "Z" in planes.keys():
+            size_z = planes["Z"][1] - planes["Z"][0] + 1
+            mdata.image.SizeZ = size_z
+            z_start = planes["Z"][0]
+            z_end = planes["Z"][1] + 1
+
+        if not planes is False and "C" in planes.keys():
+            size_c = planes["C"][1] - planes["C"][0] + 1
+            mdata.image.SizeC = size_c
+            c_start = planes["C"][0]
+            c_end = planes["C"][1] + 1
 
         if mdata.isRGB:
             shape2d = (size_y, size_x, 3)
@@ -134,18 +166,27 @@ def read_6darray(
 
             # read array for the scene 2Dplane-by-2Dplane
             for s, t, c, z in product(
-                range(size_s), range(size_t), range(size_c), range(size_z),
+                enumerate(range(s_start, s_end)),
+                enumerate(range(t_start, t_end)),
+                enumerate(range(c_start, c_end)),
+                enumerate(range(z_start, z_end)),
                 desc="Reading 2D planes",
-                unit=" 2Dplanes"
+                unit=" 2Dplanes",
             ):
                 # read a 2D image plane from the CZI
                 if mdata.image.SizeS is None:
-                    image2d = czidoc.read(plane={"T": t, "Z": z, "C": c})
+                    # image2d = czidoc.read(plane={"T": t, "Z": z, "C": c})
+                    image2d = czidoc.read(plane={"T": t[1], "Z": z[1], "C": c[1]})
                 else:
-                    image2d = czidoc.read(plane={"T": t, "Z": z, "C": c}, scene=s)
+                    # image2d = czidoc.read(plane={"T": t, "Z": z, "C": c}, scene=s)
+                    image2d = czidoc.read(
+                        plane={"T": t[1], "Z": z[1], "C": c[1]}, scene=s[1]
+                    )
 
                 # insert 2D image plane into the array6d
-                array6d[s, t, c, z, ...] = image2d
+                # array6d[s, t, c, z, ...] = image2d
+
+                array6d[s[0], t[0], c[0], z[0], ...] = image2d
 
             if remove_adim:
                 array6d = np.squeeze(array6d, axis=-1)
@@ -154,27 +195,33 @@ def read_6darray(
             # initialise empty list to hold the dask arrays
             img = []
 
-            with tqdm(total=size_s * size_t * size_c * size_z, desc="Reading 2D planes", unit=" 2dplanes") as pbar:
-
-                for s in range(size_s):
+            with tqdm(
+                total=size_s * size_t * size_c * size_z,
+                desc="Reading 2D planes",
+                unit=" 2dplanes",
+            ) as pbar:
+                for s in enumerate(range(s_start, s_end)):
+                    # for s in range(size_s):
                     time_stack = []
 
-                    for time in range(size_t):
+                    for time in enumerate(range(t_start, t_end)):
+                        # for time in range(size_t):
                         ch_stack = []
 
-                        for ch in range(size_c):
+                        for ch in enumerate(range(c_start, c_end)):
+                            # for ch in range(size_c):
                             z_stack = []
 
-                            for z in range(size_z):
-
+                            # for z in range(size_z):
+                            for z in enumerate(range(z_start, z_end)):
                                 if mdata.image.SizeS is not None:
                                     z_slice = da.from_delayed(
-                                        read_plane(
+                                        read_2dplane(
                                             czidoc,
-                                            s=s,
-                                            t=time,
-                                            c=ch,
-                                            z=z,
+                                            s=s[1],
+                                            t=time[1],
+                                            c=ch[1],
+                                            z=z[1],
                                             has_scenes=True,
                                             remove_adim=remove_adim,
                                         ),
@@ -185,12 +232,12 @@ def read_6darray(
 
                                 if mdata.image.SizeS is None:
                                     z_slice = da.from_delayed(
-                                        read_plane(
+                                        read_2dplane(
                                             czidoc,
-                                            s=s,
-                                            t=time,
-                                            c=ch,
-                                            z=z,
+                                            s=s[1],
+                                            t=time[1],
+                                            c=ch[1],
+                                            z=z[1],
                                             has_scenes=False,
                                             remove_adim=remove_adim,
                                         ),
@@ -244,7 +291,7 @@ def read_6darray(
 
 
 @dask.delayed
-def read_plane(
+def read_2dplane(
     czidoc: pyczi.CziReader,
     s: int = 0,
     t: int = 0,
@@ -259,7 +306,7 @@ def read_plane(
        the option is ste to True.
 
     Args:
-        czidoc (pyczi.CziReader): Czireader objects
+        czidoc (pyczi.CziReader): CziReader objects
         s (int, optional): Scene index. Defaults to 0.
         t (int, optional): Time index. Defaults to 0.
         c (int, optional): Channel index. Defaults to 0.

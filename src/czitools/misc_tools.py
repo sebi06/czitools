@@ -26,11 +26,13 @@ from czitools import metadata_tools as czimd
 from typing import List, Dict, Tuple, Optional, Type, Any, Union, Mapping
 
 
-def openfile(directory: str,
-             title: str = "Open CZI Image File",
-             ftypename: str = "CZI Files",
-             extension: str = "*.czi") -> str:
-    """ Open a simple Tk dialog to select a file.
+def openfile(
+    directory: str,
+    title: str = "Open CZI Image File",
+    ftypename: str = "CZI Files",
+    extension: str = "*.czi",
+) -> str:
+    """Open a simple Tk dialog to select a file.
 
     :param directory: default directory
     :param title: title of the dialog window
@@ -42,18 +44,18 @@ def openfile(directory: str,
     # request input and output image path from user
     root = Tk()
     root.withdraw()
-    input_path = filedialog.askopenfile(title=title,
-                                        initialdir=directory,
-                                        filetypes=[(ftypename, extension)])
+    input_path = filedialog.askopenfile(
+        title=title, initialdir=directory, filetypes=[(ftypename, extension)]
+    )
     if input_path is not None:
         return input_path.name
     if input_path is None:
         return ""
 
 
-def slicedim(array: Union[np.ndarray, da.Array, zarr.Array],
-             dimindex: int,
-             posdim: int) -> np.ndarray:
+def slicedim(
+    array: Union[np.ndarray, da.Array, zarr.Array], dimindex: int, posdim: int
+) -> np.ndarray:
     """Slice out a specific dimension without (!) dropping the dimension
     of the array to conserve the dimorder string
     this should work for Numpy.Array, Dask and ZARR ...
@@ -92,11 +94,13 @@ def slicedim(array: Union[np.ndarray, da.Array, zarr.Array],
     return array_sliced
 
 
-def calc_scaling(data: Union[np.ndarray, da.array],
-                 corr_min: float = 1.0,
-                 offset_min: int = 0,
-                 corr_max: float = 0.85,
-                 offset_max: int = 0) -> Tuple[int, int]:
+def calc_scaling(
+    data: Union[np.ndarray, da.array],
+    corr_min: float = 1.0,
+    offset_min: int = 0,
+    corr_max: float = 0.85,
+    offset_max: int = 0,
+) -> Tuple[int, int]:
     """Calculate the scaling for better display
 
     :param data: Calculate min / max scaling
@@ -135,9 +139,9 @@ def calc_scaling(data: Union[np.ndarray, da.array],
     return minvalue, maxvalue
 
 
-def md2dataframe(md_dict: Dict,
-                 paramcol: str = "Parameter",
-                 keycol: str = "Value") -> pd.DataFrame:
+def md2dataframe(
+    md_dict: Dict, paramcol: str = "Parameter", keycol: str = "Value"
+) -> pd.DataFrame:
     """Convert the metadata dictionary to a Pandas DataFrame.
 
     :param md_dict: MeteData dictionary
@@ -190,13 +194,13 @@ def addzeros(number: int) -> str:
     zerostring = None
 
     if number < 10:
-        zerostring = '0000' + str(number)
+        zerostring = "0000" + str(number)
     if 10 <= number < 100:
-        zerostring = '000' + str(number)
+        zerostring = "000" + str(number)
     if 100 <= number < 1000:
-        zerostring = '00' + str(number)
+        zerostring = "00" + str(number)
     if 1000 <= number < 10000:
-        zerostring = '0' + str(number)
+        zerostring = "0" + str(number)
 
     return zerostring
 
@@ -212,7 +216,7 @@ def get_fname_woext(filepath: Union[str, os.PathLike[str]]) -> str:
     :rtype: str
     """
     # create empty string
-    real_extension = ''
+    real_extension = ""
 
     # get all part of the file extension
     sufs = Path(filepath).suffixes
@@ -220,12 +224,14 @@ def get_fname_woext(filepath: Union[str, os.PathLike[str]]) -> str:
         real_extension = real_extension + s
 
     # remove real extension from filepath
-    filepath_woext = filepath.replace(real_extension, '')
+    filepath_woext = filepath.replace(real_extension, "")
 
     return filepath_woext
 
 
-def check_dimsize(mdata_entry: Union[Any, None], set2value: Any = 1) -> Union[Any, None]:
+def check_dimsize(
+    mdata_entry: Union[Any, None], set2value: Any = 1
+) -> Union[Any, None]:
     """Check the entries for None
 
     Args:
@@ -242,13 +248,15 @@ def check_dimsize(mdata_entry: Union[Any, None], set2value: Any = 1) -> Union[An
         return mdata_entry
 
 
-def get_planetable(czifile: Union[str, os.PathLike[str]],
-                   norm_time: bool = True,
-                   savetable: bool = False,
-                   separator: str = ',',
-                   read_one_only: bool = False,
-                   index: bool = True) -> Tuple[pd.DataFrame, Optional[str]]:
-    """ Get the planetable from the individual subblocks
+def get_planetable(
+    czifile: Union[str, os.PathLike[str]],
+    norm_time: bool = True,
+    savetable: bool = False,
+    separator: str = ",",
+    read_one_only: bool = False,
+    index: bool = True,
+) -> Tuple[pd.DataFrame, Optional[str]]:
+    """Get the planetable from the individual subblocks
     Args:
         czifile: the source for the CZI image file
         norm_time: normalize the timestamps
@@ -270,20 +278,24 @@ def get_planetable(czifile: Union[str, os.PathLike[str]],
     aicsczi = CziFile(czifile)
 
     # initialize the plane table
-    df_czi = pd.DataFrame(columns=['Subblock',
-                                   'Scene',
-                                   'Tile',
-                                   'T',
-                                   'Z',
-                                   'C',
-                                   'X[micron]',
-                                   'Y[micron]',
-                                   'Z[micron]',
-                                   'Time[s]',
-                                   'xstart',
-                                   'ystart',
-                                   'width',
-                                   'height'])
+    df_czi = pd.DataFrame(
+        columns=[
+            "Subblock",
+            "Scene",
+            "Tile",
+            "T",
+            "Z",
+            "C",
+            "X[micron]",
+            "Y[micron]",
+            "Z[micron]",
+            "Time[s]",
+            "xstart",
+            "ystart",
+            "width",
+            "height",
+        ]
+    )
 
     # define subblock counter
     sbcount = -1
@@ -321,121 +333,118 @@ def get_planetable(czifile: Union[str, os.PathLike[str]],
 
     # do if the data is not a mosaic
     if size_m > 1:
-
-        for s, m, t, z, c in product(range(size_s),
-                                     range(size_m),
-                                     range(size_t),
-                                     range(size_z),
-                                     range(size_c)):
+        for s, m, t, z, c in product(
+            range(size_s), range(size_m), range(size_t), range(size_z), range(size_c)
+        ):
             sbcount += 1
 
             # get x, y, width and height for a specific tile
-            tilebbox = aicsczi.get_mosaic_tile_bounding_box(S=s,
-                                                            M=m,
-                                                            T=t,
-                                                            Z=z,
-                                                            C=c)
+            tilebbox = aicsczi.get_mosaic_tile_bounding_box(S=s, M=m, T=t, Z=z, C=c)
 
             # read information from subblock
-            sb = aicsczi.read_subblock_metadata(unified_xml=True,
-                                                B=0,
-                                                S=s,
-                                                M=m,
-                                                T=t,
-                                                Z=z,
-                                                C=c)
+            sb = aicsczi.read_subblock_metadata(
+                unified_xml=True, B=0, S=s, M=m, T=t, Z=z, C=c
+            )
 
             # get information from subblock
             timestamp, xpos, ypos, zpos = getsbinfo(sb)
 
-            plane = pd.DataFrame({'Subblock': sbcount,
-                                  'Scene': s,
-                                  'Tile': m,
-                                  'T': t,
-                                  'Z': z,
-                                  'C': c,
-                                  'X[micron]': xpos,
-                                  'Y[micron]': ypos,
-                                  'Z[micron]': zpos,
-                                  'Time[s]': timestamp,
-                                  'xstart': tilebbox.x,
-                                  'ystart': tilebbox.y,
-                                  'width': tilebbox.w,
-                                  'height': tilebbox.h},
-                                 index=[0])
+            plane = pd.DataFrame(
+                {
+                    "Subblock": sbcount,
+                    "Scene": s,
+                    "Tile": m,
+                    "T": t,
+                    "Z": z,
+                    "C": c,
+                    "X[micron]": xpos,
+                    "Y[micron]": ypos,
+                    "Z[micron]": zpos,
+                    "Time[s]": timestamp,
+                    "xstart": tilebbox.x,
+                    "ystart": tilebbox.y,
+                    "width": tilebbox.w,
+                    "height": tilebbox.h,
+                },
+                index=[0],
+            )
 
-            df_czi = pd.concat([df_czi, plane], ignore_index=True)
+            # df_czi = pd.concat([df_czi, plane], ignore_index=True)
+
+            df_czi = pd.concat([df_czi if not df_czi.empty else None, plane])
 
             if read_one_only:
                 break
 
     # do if the data is not a mosaic
     if size_m == 1:
-
-        for s, t, z, c in product(range(size_s),
-                                  range(size_t),
-                                  range(size_z),
-                                  range(size_c)):
+        for s, t, z, c in product(
+            range(size_s), range(size_t), range(size_z), range(size_c)
+        ):
             sbcount += 1
 
             # get x, y, width and height for a specific tile
-            tilebbox = aicsczi.get_tile_bounding_box(S=s,
-                                                     T=t,
-                                                     Z=z,
-                                                     C=c)
+            tilebbox = aicsczi.get_tile_bounding_box(S=s, T=t, Z=z, C=c)
 
             # read information from subblocks
-            sb = aicsczi.read_subblock_metadata(unified_xml=True,
-                                                B=0,
-                                                S=s,
-                                                T=t,
-                                                Z=z,
-                                                C=c)
+            sb = aicsczi.read_subblock_metadata(
+                unified_xml=True, B=0, S=s, T=t, Z=z, C=c
+            )
 
             # get information from subblock
             timestamp, xpos, ypos, zpos = getsbinfo(sb)
 
-            plane = pd.DataFrame({'Subblock': sbcount,
-                                  'Scene': s,
-                                  'Tile': 0,
-                                  'T': t,
-                                  'Z': z,
-                                  'C': c,
-                                  'X[micron]': xpos,
-                                  'Y[micron]': ypos,
-                                  'Z[micron]': zpos,
-                                  'Time[s]': timestamp,
-                                  'xstart': tilebbox.x,
-                                  'ystart': tilebbox.y,
-                                  'width': tilebbox.w,
-                                  'height': tilebbox.h},
-                                 index=[0])
+            plane = pd.DataFrame(
+                {
+                    "Subblock": sbcount,
+                    "Scene": s,
+                    "Tile": 0,
+                    "T": t,
+                    "Z": z,
+                    "C": c,
+                    "X[micron]": xpos,
+                    "Y[micron]": ypos,
+                    "Z[micron]": zpos,
+                    "Time[s]": timestamp,
+                    "xstart": tilebbox.x,
+                    "ystart": tilebbox.y,
+                    "width": tilebbox.w,
+                    "height": tilebbox.h,
+                },
+                index=[0],
+            )
 
-            df_czi = pd.concat([df_czi, plane], ignore_index=True)
+            # df_czi = pd.concat([df_czi, plane], ignore_index=True)
+
+            df_czi = pd.concat([df_czi if not df_czi.empty else None, plane])
 
             if read_one_only:
                 break
 
     # cast data  types
-    df_czi = df_czi.astype({'Subblock': 'int32',
-                            'Scene': 'int32',
-                            'Tile': 'int32',
-                            'T': 'int32',
-                            'Z': 'int32',
-                            'C': 'int16',
-                            'X[micron]': 'float',
-                            'Y[micron]': 'float',
-                            'Z[micron]': 'float',
-                            'xstart': 'int32',
-                            'ystart': 'int32',
-                            'width': 'int32',
-                            'height': 'int32'},
-                           copy=False,
-                           errors='ignore')
+    df_czi = df_czi.astype(
+        {
+            "Subblock": "int32",
+            "Scene": "int32",
+            "Tile": "int32",
+            "T": "int32",
+            "Z": "int32",
+            "C": "int16",
+            "X[micron]": "float",
+            "Y[micron]": "float",
+            "Z[micron]": "float",
+            "xstart": "int32",
+            "ystart": "int32",
+            "width": "int32",
+            "height": "int32",
+        },
+        copy=False,
+        errors="ignore",
+    )
 
     # normalize time stamps
     if norm_time:
-        df_czi = norm_columns(df_czi, colname='Time[s]', mode='min')
+        df_czi = norm_columns(df_czi, colname="Time[s]", mode="min")
 
     # save planetable as CSV file
     if savetable:
@@ -446,9 +455,9 @@ def get_planetable(czifile: Union[str, os.PathLike[str]],
     return df_czi, csvfile
 
 
-def norm_columns(df: pd.DataFrame,
-                 colname: str = 'Time [s]',
-                 mode: str = 'min') -> pd.DataFrame:
+def norm_columns(
+    df: pd.DataFrame, colname: str = "Time [s]", mode: str = "min"
+) -> pd.DataFrame:
     """Normalize a specific column inside a Pandas dataframe
     Args:
         df: DataFrame
@@ -460,22 +469,20 @@ def norm_columns(df: pd.DataFrame,
     """
 
     # normalize columns according to min or max value
-    if mode == 'min':
+    if mode == "min":
         min_value = df[colname].min()
         df[colname] = df[colname] - min_value
 
-    if mode == 'max':
+    if mode == "max":
         max_value = df[colname].max()
         df[colname] = df[colname] - max_value
 
     return df
 
 
-def filter_planetable(planetable: pd.DataFrame,
-                      s: int = 0,
-                      t: int = 0,
-                      z: int = 0,
-                      c: int = 0) -> pd.DataFrame:
+def filter_planetable(
+    planetable: pd.DataFrame, s: int = 0, t: int = 0, z: int = 0, c: int = 0
+) -> pd.DataFrame:
     """Filter the planetable for specific dimension entries
     Args:
         planetable: The planetable to be filtered
@@ -489,43 +496,42 @@ def filter_planetable(planetable: pd.DataFrame,
     """
 
     # filter planetable for specific scene
-    if s > planetable['Scene'].max():
-        print('Scene Index was invalid. Using Scene = 0.')
+    if s > planetable["Scene"].max():
+        print("Scene Index was invalid. Using Scene = 0.")
         s = 0
-    pt = planetable[planetable['Scene'] == s]
+    pt = planetable[planetable["Scene"] == s]
 
     # filter planetable for specific timepoint
-    if t > planetable['T'].max():
-        print('Time Index was invalid. Using T = 0.')
+    if t > planetable["T"].max():
+        print("Time Index was invalid. Using T = 0.")
         t = 0
-    pt = planetable[planetable['T'] == t]
+    pt = planetable[planetable["T"] == t]
 
     # filter resulting planetable pt for a specific z-plane
     try:
-        if z > planetable['Z[micron]'].max():
-            print('Z-Plane Index was invalid. Using Z = 0.')
+        if z > planetable["Z[micron]"].max():
+            print("Z-Plane Index was invalid. Using Z = 0.")
             zplane = 0
-            pt = pt[pt['Z[micron]'] == z]
+            pt = pt[pt["Z[micron]"] == z]
     except KeyError as e:
-        if z > planetable['Z [micron]'].max():
-            print('Z-Plane Index was invalid. Using Z = 0.')
+        if z > planetable["Z [micron]"].max():
+            print("Z-Plane Index was invalid. Using Z = 0.")
             zplane = 0
-            pt = pt[pt['Z [micron]'] == z]
+            pt = pt[pt["Z [micron]"] == z]
 
     # filter planetable for specific channel
-    if c > planetable['C'].max():
-        print('Channel Index was invalid. Using C = 0.')
+    if c > planetable["C"].max():
+        print("Channel Index was invalid. Using C = 0.")
         c = 0
-    pt = planetable[planetable['C'] == c]
+    pt = planetable[planetable["C"] == c]
 
     # return filtered planetable
     return pt
 
 
-def save_planetable(df: pd.DataFrame,
-                    filename: str,
-                    separator: str = ',',
-                    index: bool = True) -> str:
+def save_planetable(
+    df: pd.DataFrame, filename: str, separator: str = ",", index: bool = True
+) -> str:
     """Saves a pandas dataframe as a CSV file.
 
     Args:
@@ -538,7 +544,7 @@ def save_planetable(df: pd.DataFrame,
         str: The filename of the CSV file that was written.
     """
     # Generate the filename for the planetable CSV.
-    csvfile = os.path.splitext(filename)[0] + '_planetable.csv'
+    csvfile = os.path.splitext(filename)[0] + "_planetable.csv"
 
     # Write the dataframe to the planetable CSV file.
     df.to_csv(csvfile, sep=separator, index=index)
