@@ -23,7 +23,7 @@ import numpy as np
 
 
 def write_omezarr(
-    array5d: Union[np.ndarary, da.Array],
+    array5d: Union[np.ndarray, da.Array],
     zarr_path: str,
     axes: str = "stczyx",
     overwrite: bool = False,
@@ -60,7 +60,21 @@ def write_omezarr(
     # write the image data
     store = parse_url(zarr_path, mode="w").store
     root = zarr.group(store=store)
-    root.info
+    # root.info
+
+    # TODO: Add Channel information etc. to the root along those lines
+    """
+    # add omero metadata: the napari ome-zarr plugin uses this to pass rendering
+    # options to napari.
+    root.attrs['omero'] = {
+        'channels': [{
+                'color': 'ffffff',
+                'label': 'LS-data',
+                'active': True,
+                }]
+        }
+    
+    """
 
     # write the OME-ZARR file
     ome_zarr.writer.write_image(
