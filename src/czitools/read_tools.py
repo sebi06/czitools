@@ -18,7 +18,7 @@ from pathlib import Path
 import dask
 import dask.array as da
 import os
-from tqdm import trange, tqdm
+from tqdm import tqdm
 from tqdm.contrib.itertools import product
 
 

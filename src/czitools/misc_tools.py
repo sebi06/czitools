@@ -9,7 +9,6 @@
 #
 #################################################################
 
-# from __future__ import annotations
 import os
 from tkinter import filedialog
 from tkinter import *
@@ -27,7 +26,7 @@ from typing import List, Dict, Tuple, Optional, Type, Any, Union, Mapping
 
 
 def openfile(
-    directory: str,
+    directory: Union[str, os.PathLike[str]],
     title: str = "Open CZI Image File",
     ftypename: str = "CZI Files",
     extension: str = "*.czi",
@@ -40,6 +39,10 @@ def openfile(
     :param extension: extension of allowed file type
     :return: filepath object for the selected
     """
+
+    if isinstance(directory, Path):
+        # convert to string
+        directory = str(directory)
 
     # request input and output image path from user
     root = Tk()
