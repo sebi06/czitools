@@ -34,9 +34,9 @@ array6d, mdata, dim_string6d = read_tools.read_6darray(
     output_order="STCZYX",
     use_dask=False,
     chunk_zyx=False,
-    # planes={"S": (0, 1), "T": (1, 2), "C": (0, 1), "Z": (0, 2)},
+    planes={"S": (0, 1), "T": (1, 2), "C": (0, 0), "Z": (0, 2)},
     # planes={"Z": (2, 2)},
-    planes={"S": (4, 6)},
+    # planes={"S": (4, 6)},
 )
 
 if array6d is None:

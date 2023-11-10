@@ -18,27 +18,42 @@ basedir = Path(__file__).resolve().parents[3]
         ("S=3_1Pos_2Mosaic_T=2=Z=3_CH=2_sm.czi", "STCZYX", "", AttributeError, False),
         ("S=2_3x3_CH=2.czi", "STZCYX", "STZCYX", (2, 1, 1, 2, 1792, 1792), False),
         ("S=2_3x3_CH=2.czi", "STCZYX", "STCZYX", (2, 1, 2, 1, 1792, 1792), False),
-        ("FOV7_HV110_P0500510000.czi", "STZCYX", "STZCYX", (1, 1, 1, 1, 512, 512), False),
+        (
+            "FOV7_HV110_P0500510000.czi",
+            "STZCYX",
+            "STZCYX",
+            (1, 1, 1, 1, 512, 512),
+            False,
+        ),
         ("newCZI_compressed.czi", "STZCYX", "STZCYX", (1, 1, 1, 1, 512, 512), False),
         ("w96_A1+A2.czi", "STCZYX", "STCZYX", (2, 1, 2, 1, 1416, 1960), True),
         ("w96_A1+A2.czi", "STZCYX", "STZCYX", (2, 1, 1, 2, 1416, 1960), True),
         ("S=3_1Pos_2Mosaic_T=2=Z=3_CH=2_sm.czi", "STCZYX", "", AttributeError, True),
         ("S=2_3x3_CH=2.czi", "STZCYX", "STZCYX", (2, 1, 1, 2, 1792, 1792), True),
         ("S=2_3x3_CH=2.czi", "STCZYX", "STCZYX", (2, 1, 2, 1, 1792, 1792), True),
-        ("FOV7_HV110_P0500510000.czi", "STZCYX", "STZCYX", (1, 1, 1, 1, 512, 512), True),
+        (
+            "FOV7_HV110_P0500510000.czi",
+            "STZCYX",
+            "STZCYX",
+            (1, 1, 1, 1, 512, 512),
+            True,
+        ),
         ("newCZI_compressed.czi", "STZCYX", "STZCYX", (1, 1, 1, 1, 512, 512), True),
     ],
 )
-def test_read_mdarray_1(czifile: str,
-                        dimorder: str,
-                        dimstring: str,
-                        shape: Optional[Tuple[int]],
-                        use_dask: bool) -> None:
+def test_read_mdarray_1(
+    czifile: str,
+    dimorder: str,
+    dimstring: str,
+    shape: Optional[Tuple[int]],
+    use_dask: bool,
+) -> None:
     # get the CZI filepath
     filepath = basedir / "data" / czifile
 
-    mdarray, mdata, ds = read_tools.read_6darray(filepath, use_dask=use_dask,
-                                                 output_order=dimorder)
+    mdarray, mdata, ds = read_tools.read_6darray(
+        filepath, use_dask=use_dask, output_order=dimorder
+    )
 
     assert ds == dimstring
 
@@ -50,17 +65,23 @@ def test_read_mdarray_1(czifile: str,
 
 
 @pytest.mark.parametrize(
-    "czifile, dimorder, dimstring, shape, size_s, plane",
+    "czifile, dimorder, dimstring, shape, size_s, planes",
     [
-        ("w96_A1+A2.czi", "STCZYX", "STCZYX",
-         (1, 1, 2, 1, 1416, 1960), 1, {"S": 0}),
+        (
+            "w96_A1+A2.czi",
+            "STCZYX",
+            "STCZYX",
+            (1, 1, 2, 1, 1416, 1960),
+            1,
+            {"S": (0, 0)},
+        ),
         (
             "CellDivision_T=3_Z=5_CH=2_X=240_Y=170.czi",
             "STZCYX",
             "STZCYX",
             (1, 1, 1, 2, 170, 240),
             None,
-            {"S": 0, "T": 0, "Z": 0},
+            {"S": (0, 0), "T": (0, 0), "C": (0, 1), "Z": (0, 0)},
         ),
         (
             "CellDivision_T=3_Z=5_CH=2_X=240_Y=170.czi",
@@ -68,7 +89,7 @@ def test_read_mdarray_1(czifile: str,
             "STZCYX",
             (1, 1, 5, 2, 170, 240),
             None,
-            {"T": 0},
+            {"T": (0, 0)},
         ),
         (
             "CellDivision_T=3_Z=5_CH=2_X=240_Y=170.czi",
@@ -76,7 +97,7 @@ def test_read_mdarray_1(czifile: str,
             "STZCYX",
             (1, 3, 5, 1, 170, 240),
             None,
-            {"C": 0},
+            {"C": (0, 0)},
         ),
     ],
 )
@@ -86,14 +107,14 @@ def test_read_mdarray_substack(
     dimstring: str,
     shape: Tuple[int],
     size_s: Optional[int],
-    plane: Dict[str, int],
+    planes: Dict[str, tuple[int, int]],
 ) -> None:
     # get the CZI filepath
     filepath = basedir / "data" / czifile
 
     # read only a specific scene from the CZI
     mdarray, mdata, ds = read_tools.read_6darray(
-        filepath, output_order=dimorder, **plane
+        filepath, output_order=dimorder, planes=planes
     )
 
     assert ds == dimstring
@@ -124,8 +145,7 @@ def test_readczi_scenes(czifile: str, scene: int, has_scenes: bool) -> None:
             image2d_3 = czidoc.read(
                 plane={"T": 0, "Z": 0, "C": 0, "S": scene}, scene=scene
             )
-            image2d_4 = czidoc.read(
-                plane={"T": 0, "Z": 0, "C": 0}, scene=scene)
+            image2d_4 = czidoc.read(plane={"T": 0, "Z": 0, "C": 0}, scene=scene)
 
             # TODO: This has to be checked why this gives differnet results
 
