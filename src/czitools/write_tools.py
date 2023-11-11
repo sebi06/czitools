@@ -25,7 +25,7 @@ import numpy as np
 def write_omezarr(
     array5d: Union[np.ndarray, da.Array],
     zarr_path: str,
-    axes: str = "stczyx",
+    axes: str = "tczyx",
     overwrite: bool = False,
 ) -> str:
     """
@@ -48,6 +48,10 @@ def write_omezarr(
 
     # make sure lower case is use for axes order
     axes = axes.lower()
+
+    # check for invalid dimensions and clean up
+    for character in ["b", "h", "s", "i", "v", "a"]:
+        axes = axes.replace(character, "")
 
     # check if zarr_path already exits
     if zarr_path.exists() and overwrite:
