@@ -1,8 +1,7 @@
-from czitools import read_tools, misc_tools
+from czitools import read_tools, misc_tools, write_tools
 from czitools import metadata_tools as czimd
 from pylibCZIrw import czi as pyczi
-
-# import os
+import shutil
 from pathlib import Path
 from tifffile import imread, TiffFile
 import numpy as np
@@ -244,3 +243,49 @@ def test_write_4(
 
     # remove files
     Path.unlink(Path(newczi_zscenes))
+
+
+@pytest.mark.parametrize(
+    "czifile, order, use_dask, overwrite, sceneid, zarr_path",
+    [
+        (
+            "CellDivision_T=3_Z=5_CH=2_X=240_Y=170.czi",
+            "STCZYX",
+            True,
+            True,
+            0,
+            "CellDivision_T=3_Z=5_CH=2_X=240_Y=170.ome.zarr",
+        )
+    ],
+)
+def test_write_omezarr(
+    czifile: str,
+    order: str,
+    use_dask: bool,
+    overwrite: bool,
+    sceneid: int,
+    zarr_path: str,
+) -> None:
+    # get the czifile path
+    filepath = basedir / czifile
+
+    # return a array with dimension order STZCYX(A)
+    array, mdata, dim_string6d = read_tools.read_6darray(
+        filepath, output_order=order, use_dask=use_dask
+    )
+
+    array = array[sceneid, ...]
+
+    # write OME-ZARR using utility function
+    zarr_path = write_tools.write_omezarr(
+        array, zarr_path=zarr_path, axes=order, overwrite=overwrite
+    )
+
+    zp = Path(zarr_path)
+
+    print(zp, type(zp))
+
+    assert zp.exists() == True
+
+    # remove files
+    shutil.rmtree(zarr_path, ignore_errors=False, onerror=None)

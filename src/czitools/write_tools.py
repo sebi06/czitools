@@ -10,7 +10,7 @@
 #################################################################
 
 # the ome_zarr imports we require
-import dask
+from pathlib import Path
 import dask.array as da
 import zarr
 import ome_zarr.reader
@@ -54,7 +54,7 @@ def write_omezarr(
         axes = axes.replace(character, "")
 
     # check if zarr_path already exits
-    if zarr_path.exists() and overwrite:
+    if Path(zarr_path).exists() and overwrite:
         shutil.rmtree(zarr_path, ignore_errors=False, onerror=None)
 
     # show currently used version of NGFF specification
@@ -90,7 +90,7 @@ def write_omezarr(
 
     print(f"Finished writing OME-ZARR to: {zarr_path}")
 
-    if zarr_path.exists():
+    if Path(zarr_path).exists():
         return zarr_path
-    if not zarr_path.exists():
+    if not Path(zarr_path).exists():
         return None
