@@ -22,6 +22,7 @@ from pathlib import Path
 from box import Box, BoxList
 import logging
 import time
+from dataclasses import asdict
 
 
 def setup_log(name, create_logfile=False):
@@ -1043,13 +1044,16 @@ def writexml(
     return xmlfile
 
 
-def create_mdict_red(metadata: CziMetadata, sort: bool = True) -> Dict:
+def create_mdict_red(
+    metadata: CziMetadata, sort: bool = True, remove_none: bool = True
+) -> Dict:
     """
-    create_mdict_red: Created a metadata dictionary to be displayed in napari
+    create_mdict_red: Created a reduced metadata dictionary
 
     Args:
         metadata: CziMetadata class
         sort: sort the dictionary
+        remove_none: Remove None values from dictionary
 
     Returns: dictionary with the metadata
 
@@ -1106,6 +1110,9 @@ def create_mdict_red(metadata: CziMetadata, sort: bool = True) -> Dict:
         md_dict["YScale sf"] = metadata.scale.Y_sf
         md_dict["ratio sf"] = metadata.scale.ratio_sf
         md_dict["scalefactorXY"] = metadata.scale.scalefactorXY
+
+    if remove_none:
+        md_dict = misc_tools.remove_none_from_dict(md_dict)
 
     if sort:
         return misc_tools.sort_dict_by_key(md_dict)
@@ -1223,3 +1230,78 @@ def get_czimd_box(filepath: Union[str, os.PathLike[str]]) -> Box:
         czimd_box.has_layers = True
 
     return czimd_box
+
+
+def create_mddict_nested(
+    metadata: CziMetadata, sort: bool = True, remove_none: bool = True
+) -> Dict:
+    """
+    _summary_
+
+    Args:
+        metadata (CziMetadata): CzIMetaData object_
+        sort (bool, optional): Sort the dictionary_. Defaults to True.
+        remove_none (bool, optional): Remove None values from dictionary. Defaults to True.
+
+    Returns:
+        Dict: Nested dictionary with reduced set of metadata
+    """
+    md_box_image = Box(asdict(metadata.image))
+    del md_box_image.czisource
+
+    md_box_scale = Box(asdict(metadata.scale))
+    del md_box_scale.czisource
+
+    md_box_sample = Box(asdict(metadata.sample))
+    del md_box_sample.czisource
+
+    md_box_objective = Box(asdict(metadata.objective))
+    del md_box_objective.czisource
+
+    md_box_channels = Box(asdict(metadata.channelinfo))
+    del md_box_channels.czisource
+
+    md_box_info = Box(
+        {
+            "Directory": metadata.dirname,
+            "Filename": metadata.filename,
+            "AcqDate": metadata.acquisition_date,
+            "CreationDate": metadata.creation_date,
+            "UserName": metadata.user_name,
+            "SW-App": metadata.software_version,
+            "SW-Version": metadata.software_name,
+        }
+    )
+
+    md_box_image_add = Box(
+        {
+            "isRGB": metadata.isRGB,
+            "has_scenes": metadata.has_scenes,
+            "ismosaic": metadata.ismosaic,
+        }
+    )
+
+    md_box_image += md_box_image_add
+
+    IDs = ["image", "scale", "sample", "objectives", "channels", "info"]
+
+    mds = [
+        md_box_image.to_dict(),
+        md_box_scale.to_dict(),
+        md_box_sample.to_dict(),
+        md_box_objective.to_dict(),
+        md_box_channels.to_dict(),
+        md_box_info.to_dict(),
+    ]
+
+    md_dict = dict(zip(IDs, mds))
+
+    if remove_none:
+        md_dict = misc_tools.remove_none_from_dict(md_dict)
+
+    if sort:
+        return misc_tools.sort_dict_by_key(md_dict)
+    if not sort:
+        return md_dict
+
+    return md_dict

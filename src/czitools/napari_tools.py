@@ -9,13 +9,7 @@
 #
 #################################################################
 
-
-from __future__ import annotations
-
-try:
-    import napari
-except ModuleNotFoundError as error:
-    print(error.__class__.__name__ + ": " + error.name)
+import napari
 
 from PyQt5.QtWidgets import (
     # QHBoxLayout,
@@ -34,15 +28,16 @@ from PyQt5.QtWidgets import (
     # QLineEdit,
     # QLabel,
     # QGridLayout
-    QTreeWidget,
-    QTreeWidgetItem,
+    # QTreeWidget,
+    # QTreeWidgetItem,
 )
 
-from PyQt5.QtCore import Qt  # , QDir, QSortFilterProxyModel
-from PyQt5 import QtWidgets  # QtCore, QtGui,
+from PyQt5.QtCore import Qt
+from PyQt5 import QtWidgets
 from PyQt5.QtGui import QFont
 from czitools import metadata_tools as czimd
 from czitools import misc_tools
+from czitools.datatreewiget import DataTreeWidget
 import numpy as np
 from typing import (
     List,
@@ -60,11 +55,8 @@ from napari.utils.colormaps import Colormap
 from napari.utils import resize_dask_cache
 import dask.array as da
 from dataclasses import dataclass
-from pyqtgraph import DataTreeWidget
-from pyqtgraph import TableWidget as TablePG
-from box import Box, BoxList
-from dataclass_dict_convert import dataclass_dict_convert
-from dataclasses import asdict
+
+# from box import Box
 
 
 @dataclass
@@ -134,26 +126,15 @@ class MdTableWidget(QWidget):
 
 
 class MdTreeWidget(QWidget):
-    def __init__(self, data=None) -> None:
+    def __init__(self, data=None, expandlevel=0) -> None:
         super(QWidget, self).__init__()
 
         self.layout = QVBoxLayout(self)
         self.mdtree = DataTreeWidget(data=data)
-        self.mdtree.setData(data, hideRoot=True)
+        self.mdtree.setData(data, expandlevel=expandlevel, hideRoot=True)
         self.mdtree.setAlternatingRowColors(False)
-        self.mdtree.expandToDepth(3)
+        # self.mdtree.expandToDepth(expandlevel)
         self.layout.addWidget(self.mdtree)
-
-
-# class TableWidgetPYQT(QWidget):
-#     def __init__(self, data=None) -> None:
-#         super(QWidget, self).__init__()
-
-#         self.layout = QVBoxLayout(self)
-#         self.table_pg = TablePG()
-#         self.table_pg.setData(data)
-#         # self.mdtree.setAlternatingRowColors(False)
-#         self.layout.addWidget(self.table_pg)
 
 
 def show(
@@ -164,7 +145,7 @@ def show(
     blending: str = "additive",
     contrast: Literal["calc", "napari_auto", "from_czi"] = "calc",
     gamma: float = 0.85,
-    add_mdtable: bool = True,
+    show_metadata: Literal["none", "tree", "table"] = "tree",
     name_sliders: bool = False,
     dask_cache_size: Annotated[float, ValueRange(0.5, 0.9)] = 0.5,
 ) -> List:
@@ -183,7 +164,8 @@ def show(
             - "napari_auto" : Let Napari figure out a display scaling. Will look in the center of an image!
             - "from_czi" : use the display scaling from ZEN stored inside the CZI metadata. Defaults to "calc".
         gamma (float, optional): gamma value for the Viewer for all layers Defaults to 0.85.
-        add_mdtable (bool, optional): option to show the CziMetadata as a table widget. Defaults to True.
+        add_mdtable (bool, optional): option to show the CziMetadata. Defaults to True.
+        show_metadata (mdviewoption, optional): Option to show metadata as tree or table. Defaults to "tree".
         name_sliders (bool, optional): option to use the dimension letters as slider labels for the viewer. Defaults to False.
         dask_cache_size(float, optional): option to resize the dask cache used for opportunistic caching. Range [0 - 1]
 
@@ -218,64 +200,23 @@ def show(
 
     scalefactors[dim_order["Z"]] = metadata.scale.ratio["zx"] * 1.0000001
 
+    if show_metadata.lower == "none":
+        pass
+
     # add Qt widget for metadata
-    if add_mdtable:
-        md_dict = czimd.create_mdict_red(metadata, sort=True)
-
-        md_box_image = Box(asdict(metadata.image))
-        del md_box_image.czisource
-
-        md_box_scale = Box(asdict(metadata.scale))
-        del md_box_scale.czisource
-
-        md_box_sample = Box(asdict(metadata.sample))
-        del md_box_sample.czisource
-
-        md_box_objective = Box(asdict(metadata.objective))
-        del md_box_objective.czisource
-
-        md_box_channels = Box(asdict(metadata.channelinfo))
-        del md_box_channels.czisource
-
-        IDs = ["image", "scale", "sample", "objectives", "channels"]
-
-        mds = [
-            md_box_image.to_dict(),
-            md_box_scale.to_dict(),
-            md_box_sample.to_dict(),
-            md_box_objective.to_dict(),
-            md_box_channels.to_dict(),
-        ]
-
-        md_dict = dict(zip(IDs, mds))
-
-        # md_box += metadata.czi_box.ImageDocument.Metadata.Information.Application
-        # md_box += metadata.czi_box.ImageDocument.Metadata.Scaling
-
-        # delattr(metadata, "czi_box")
-        # delattr(metadata, "add_metadata")
-
-        # md_box = Box(
-        #     asdict(metadata),
-        #     conversion_box=True,
-        #     default_box=True,
-        #     default_box_attr=None,
-        #     default_box_create_on_get=True,
-        #     # default_box_no_key_error=True
-        # )
-
-        # md_box += sample_box
-
-        # create widget for the metadata
-        # mdbrowser = TableWidget()
-        mdbrowser = MdTreeWidget(data=md_dict)
+    if show_metadata == "tree":
+        md_dict = czimd.create_mddict_nested(metadata, sort=True, remove_none=True)
+        mdbrowser = MdTreeWidget(data=md_dict, expandlevel=1)
         viewer.window.add_dock_widget(mdbrowser, name="mdbrowser", area="right")
 
-        # create dictionary with some metadata
+    if show_metadata == "table":
+        md_dict = czimd.create_mdict_red(metadata, sort=True)
 
-        # mdict = czimd.create_mdict_red(metadata, sort=True)
-        # mdbrowser.update_metadata(mdict)
-        # mdbrowser.update_style()
+        # create widget for the metadata
+        mdbrowser = MdTableWidget()
+        mdbrowser.update_metadata(md_dict)
+        mdbrowser.update_style()
+        viewer.window.add_dock_widget(mdbrowser, name="mdbrowser", area="right")
 
     # add all channels as individual layers
     if metadata.image.SizeC is None:

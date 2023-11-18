@@ -575,21 +575,44 @@ def expand5d(array: np.ndarray) -> np.ndarray:
     return array5d
 
 
-def dc_factory(
-    base: dataclass, name: str, exclusions: tuple = ("field1", "fields")
-) -> dataclass:
+# def dc_factory(
+#     base: dataclass, name: str, exclusions: tuple = ("field1", "fields")
+# ) -> dataclass:
+#     """
+#     Adapted from: https://stackoverflow.com/questions/69289547/how-to-remove-dynamically-fields-from-a-dataclass
+
+#     Args:
+#         base (dataclass): Base Dataclass
+#         name (str): name for new dataclass
+#         exclusions (tuple, optional): Fields to be removed. Defaults to ("field1", "field2").
+
+#     Returns:
+#         dataclass: New dataclass with the fields that were removed
+#     """
+
+#     new_fields = [(i.name, i.type, i) for i in fields(base) if i.name not in exclusions]
+
+#     return make_dataclass(name, new_fields)
+
+
+def remove_none_from_dict(dictionary: Dict) -> Dict:
     """
-    Adapted from: https://stackoverflow.com/questions/69289547/how-to-remove-dynamically-fields-from-a-dataclass
+    Remove values equal to: None, [] or {} from dictionary
 
     Args:
-        base (dataclass): Base Dataclass
-        name (str): name for new dataclass
-        exclusions (tuple, optional): Fields to be removed. Defaults to ("field1", "field2").
+        dictionary (Dict): Dictioonary to be checked
 
     Returns:
-        dataclass: New dataclass with the fields that were removed
+        Dict: Cleaned up dictionary
     """
+    for key, value in list(dictionary.items()):
+        if value is None or value == [] or value == {}:
+            del dictionary[key]
+        elif isinstance(value, dict):
+            remove_none_from_dict(value)
+        elif isinstance(value, list):
+            for item in value:
+                if isinstance(item, dict):
+                    remove_none_from_dict(item)
 
-    new_fields = [(i.name, i.type, i) for i in fields(base) if i.name not in exclusions]
-
-    return make_dataclass(name, new_fields)
+    return dictionary

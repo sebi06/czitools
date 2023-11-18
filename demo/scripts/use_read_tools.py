@@ -52,7 +52,7 @@ else:
         blending="additive",
         contrast="from_czi",
         gamma=0.85,
-        add_mdtable=True,
+        show_metadata="tree",
         name_sliders=True,
     )
 
