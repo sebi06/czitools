@@ -12,24 +12,10 @@
 import napari
 
 from PyQt5.QtWidgets import (
-    # QHBoxLayout,
     QVBoxLayout,
-    # QFileSystemModel,
-    # QFileDialog,
-    # QTreeView,
-    # QDialogButtonBox,
     QWidget,
     QTableWidget,
     QTableWidgetItem,
-    # QCheckBox,
-    # QAbstractItemView,
-    # QComboBox,
-    # QPushButton,
-    # QLineEdit,
-    # QLabel,
-    # QGridLayout
-    # QTreeWidget,
-    # QTreeWidgetItem,
 )
 
 from PyQt5.QtCore import Qt
@@ -55,8 +41,6 @@ from napari.utils.colormaps import Colormap
 from napari.utils import resize_dask_cache
 import dask.array as da
 from dataclasses import dataclass
-
-# from box import Box
 
 
 @dataclass
