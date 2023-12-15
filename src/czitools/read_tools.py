@@ -9,7 +9,7 @@
 #
 #################################################################
 
-from typing import List, Dict, Tuple, Optional, Type, Any, Union, Mapping
+from typing import List, Dict, Tuple, Optional, Type, Any, Union, Mapping, Literal
 from pylibCZIrw import czi as pyczi
 from czitools import metadata_tools as czimd
 from czitools import misc_tools
@@ -20,7 +20,9 @@ import dask.array as da
 import os
 from tqdm import tqdm
 from tqdm.contrib.itertools import product
-
+import czifile
+import tempfile
+import shutil
 
 # from memory_profiler import profile
 
@@ -333,3 +335,63 @@ def read_2dplane(
         return image2d[..., 0]
     if not remove_adim:
         return image2d
+
+
+def read_attachments(
+    czi_filepath: str,
+    attachment_type: Literal["SlidePreview", "Label"] = "SlidePreview",
+    copy: bool = True,
+) -> Tuple[np.ndarray, Union[str, None]]:
+    """Read attachment images from a CZI image as numpy array
+
+    Args:
+        czi_filepath (str): FilePath of the CZI image file
+        attachment_type (str, optional): Type of the attachment to be read. Defaults to "SlidePreview".
+        copy (bool, optional): Option to copy the attachments as CZI image directly. Defaults to True.
+
+    Raises:
+        Exception: _description_
+
+    Returns:
+        _type_: _description_
+    """
+    if attachment_type not in ["SlidePreview", "Label"]:
+        raise Exception(
+            f"{attachment_type} is not supported. Valid types are: SlidePreview or Label"
+        )
+
+    # create CZI-object using czifile library
+    cz = czifile.CziFile(czi_filepath)
+
+    with tempfile.TemporaryDirectory() as tmpdirname:
+        # save attachments to temporary directory
+        cz.save_attachments(directory=tmpdirname)
+
+        # iterate over attachments
+        for att in cz.attachments():
+            if att.attachment_entry.name == attachment_type:
+                # get the full path of the attachment image
+                full_path = Path(tmpdirname) / att.attachment_entry.filename
+
+                if copy:
+                    # create a the path to store the attachment image
+                    att_path = (
+                        str(czi_filepath)[:-4]
+                        + "_"
+                        + att.attachment_entry.name
+                        + ".czi"
+                    )
+
+                    # copy the file
+                    dest = shutil.copyfile(full_path, att_path)
+
+                # open the CZI document to read array
+                with pyczi.open_czi(str(full_path)) as czidoc:
+                    img2d = czidoc.read()
+
+    cz.close()
+
+    if copy:
+        return img2d, dest
+    if not copy:
+        return img2d, None
