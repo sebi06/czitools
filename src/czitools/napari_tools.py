@@ -184,23 +184,20 @@ def show(
 
     scalefactors[dim_order["Z"]] = metadata.scale.ratio["zx"] * 1.0000001
 
-    if show_metadata.lower == "none":
-        pass
-
-    # add Qt widget for metadata
-    if show_metadata == "tree":
+    if show_metadata.lower != "none":
         md_dict = czimd.create_mddict_nested(metadata, sort=True, remove_none=True)
-        mdbrowser = MdTreeWidget(data=md_dict, expandlevel=1)
-        viewer.window.add_dock_widget(mdbrowser, name="mdbrowser", area="right")
 
-    if show_metadata == "table":
-        md_dict = czimd.create_mdict_red(metadata, sort=True)
+        # add PyQTGraph DataTreeWidget to Napari viewer to show the metadata
+        if show_metadata == "tree":
+            mdtree = MdTreeWidget(data=md_dict, expandlevel=1)
+            viewer.window.add_dock_widget(mdtree, name="MetadataTree", area="right")
 
-        # create widget for the metadata
-        mdbrowser = MdTableWidget()
-        mdbrowser.update_metadata(md_dict)
-        mdbrowser.update_style()
-        viewer.window.add_dock_widget(mdbrowser, name="mdbrowser", area="right")
+        # add QTableWidget DataTreeWidget to Napari viewer to show the metadata
+        if show_metadata == "table":
+            mdtable = MdTableWidget()
+            mdtable.update_metadata(md_dict)
+            mdtable.update_style()
+            viewer.window.add_dock_widget(mdtable, name="MetadataTable", area="right")
 
     # add all channels as individual layers
     if metadata.image.SizeC is None:
