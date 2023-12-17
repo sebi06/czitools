@@ -23,6 +23,7 @@ from box import Box, BoxList
 import logging
 import time
 from dataclasses import asdict
+import czifile
 
 
 def setup_log(name, create_logfile=False):
@@ -72,6 +73,9 @@ class CziMetadata:
     pixeltypes: Optional[Dict[int, str]] = field(init=False, default_factory=lambda: {})
     isRGB: Optional[bool] = field(init=False, default=False)
     has_scenes: Optional[bool] = field(init=False, default=False)
+    has_label: Optional[bool] = field(init=False, default=False)
+    has_preview: Optional[bool] = field(init=False, default=False)
+    attachments: Optional[CziAttachments] = field(init=False, default=None)
     npdtype: Optional[List[Any]] = field(init=False, default_factory=lambda: [])
     maxvalue: Optional[List[int]] = field(init=False, default_factory=lambda: [])
     image: Optional[CziDimensions] = field(init=False, default=None)
@@ -200,8 +204,10 @@ class CziMetadata:
         # get additional metainformation
         self.add_metadata = CziAddMetaData(self.czi_box)
 
-    # can be also used without creating an instance of the class
+        # check for attached label or preview image
+        self.attachments = CziAttachments(self.czi_box)
 
+    # can be also used without creating an instance of the class
     @staticmethod
     def get_dtype_fromstring(
         pixeltype: str,
@@ -425,6 +431,40 @@ class CziBoundingBox:
                 self.total_bounding_box = None
                 # print("Total Bounding Box not found.")
                 logger.info("Total Bounding Box not found.")
+
+
+@dataclass
+class CziAttachments:
+    czisource: Union[str, os.PathLike[str], Box]
+    has_label: Optional[bool] = field(init=False, default=False)
+    has_preview: Optional[bool] = field(init=False, default=False)
+    names: Optional[List[str]] = field(init=False, default_factory=lambda: [])
+
+    def __post_init__(self):
+        logger = setup_log("CziAttachmentImage")
+
+        if isinstance(self.czisource, Path):
+            # convert to string
+            self.czisource = str(self.czisource)
+        elif isinstance(self.czisource, Box):
+            self.czisource = self.czisource.filepath
+
+        # create CZI-object using czifile library
+        with czifile.CziFile(self.czisource) as cz:
+            # iterate over attachments
+            for att in cz.attachments():
+                self.names.append(att.attachment_entry.name)
+
+                if "SlidePreview" in self.names:
+                    self.has_preview = True
+                    logger.info("Attachment SlidePreview found.")
+                if "Label" in self.names:
+                    self.has_label = True
+                    logger.info("Attachment Label found.")
+
+
+
+
 
 
 @dataclass
@@ -1080,6 +1120,8 @@ def create_mdict_red(
         "SizeI": metadata.image.SizeI,
         "isRGB": metadata.isRGB,
         "has_scenes": metadata.has_scenes,
+        "has_labelimage": metadata.attachments.has_label,
+        "has_previewimage": metadata.attachments.has_preview,
         "ismosaic": metadata.ismosaic,
         "ObjNA": metadata.objective.NA,
         "ObjMag": metadata.objective.totalmag,

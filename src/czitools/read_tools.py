@@ -23,7 +23,6 @@ from tqdm.contrib.itertools import product
 import czifile
 import tempfile
 import shutil
-
 # from memory_profiler import profile
 
 
@@ -44,6 +43,7 @@ def read_6darray(
         filepath (str | Path): filepath for the CZI image
         output_order (str, optional): Order of dimensions for the output array. Defaults to "STCZYX".
         use_dask (bool, optional): Option to store image data as dask array with delayed reading
+        chunk_zyx (bool, optional): Option to chunk dask array along zstacks. Defaults to False.
         planes (dict, optional): Allowed keys S, T, Z, C and their start and end values must be >=0 (zero-based).
                                  planes = {"Z":(0, 2)} will return 3 z-plane with indices (0, 1, 2).
                                  Respectively {"Z":(5, 5)} will return a single z-plane with index 5.
@@ -341,7 +341,7 @@ def read_attachments(
     czi_filepath: str,
     attachment_type: Literal["SlidePreview", "Label"] = "SlidePreview",
     copy: bool = True,
-) -> Tuple[np.ndarray, Union[str, None]]:
+) -> Tuple[np.ndarray, Optional[str]]:
     """Read attachment images from a CZI image as numpy array
 
     Args:
@@ -355,43 +355,53 @@ def read_attachments(
     Returns:
         _type_: _description_
     """
+
+    logger = czimd.setup_log("ReadAttachment")
+
     if attachment_type not in ["SlidePreview", "Label"]:
         raise Exception(
             f"{attachment_type} is not supported. Valid types are: SlidePreview or Label"
         )
 
+    att = czimd.CziAttachments(czi_filepath)
+
+    if attachment_type == "Label" and not att.has_label:
+        return np.array([]), None
+
+    if attachment_type == "SlidePreview" and not att.has_preview:
+        return np.array([]), None
+
     # create CZI-object using czifile library
-    cz = czifile.CziFile(czi_filepath)
+    with czifile.CziFile(czi_filepath) as cz:
 
-    with tempfile.TemporaryDirectory() as tmpdirname:
-        # save attachments to temporary directory
-        cz.save_attachments(directory=tmpdirname)
+        with tempfile.TemporaryDirectory() as tmpdirname:
 
-        # iterate over attachments
-        for att in cz.attachments():
-            if att.attachment_entry.name == attachment_type:
-                # get the full path of the attachment image
-                full_path = Path(tmpdirname) / att.attachment_entry.filename
+            # save attachments to temporary directory
+            cz.save_attachments(directory=tmpdirname)
 
-                if copy:
-                    # create a the path to store the attachment image
-                    att_path = (
-                        str(czi_filepath)[:-4]
-                        + "_"
-                        + att.attachment_entry.name
-                        + ".czi"
-                    )
+            # iterate over attachments
+            for att in cz.attachments():
+                if att.attachment_entry.name == attachment_type:
+                    # get the full path of the attachment image
+                    full_path = Path(tmpdirname) / att.attachment_entry.filename
 
-                    # copy the file
-                    dest = shutil.copyfile(full_path, att_path)
+                    if copy:
+                        # create path to store the attachment image
+                        att_path = (
+                            str(czi_filepath)[:-4]
+                            + "_"
+                            + att.attachment_entry.name
+                            + ".czi"
+                        )
 
-                # open the CZI document to read array
-                with pyczi.open_czi(str(full_path)) as czidoc:
-                    img2d = czidoc.read()
+                        # copy the file
+                        dest = shutil.copyfile(full_path, att_path)
 
-    cz.close()
+                    # open the CZI document to read array
+                    with pyczi.open_czi(str(full_path)) as czidoc:
+                        img2d = czidoc.read()
 
-    if copy:
-        return img2d, dest
-    if not copy:
-        return img2d, None
+                    if copy:
+                        return img2d, dest
+                    if not copy:
+                        return img2d
