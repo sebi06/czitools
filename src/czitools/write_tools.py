@@ -20,6 +20,7 @@ from ome_zarr.io import parse_url
 from typing import List, Dict, Tuple, Optional, Type, Any, Union, Mapping
 import shutil
 import numpy as np
+from .logger import logger as LOGGER
 
 
 def write_omezarr(
@@ -43,7 +44,7 @@ def write_omezarr(
 
     # check number of dimension of input array
     if len(array5d.shape) > 5:
-        print("Input array as more than 5 dimensions.")
+        LOGGER.warning("Input array as more than 5 dimensions.")
         return None
 
     # make sure lower case is use for axes order
@@ -59,7 +60,7 @@ def write_omezarr(
 
     # show currently used version of NGFF specification
     ngff_version = ome_zarr.format.CurrentFormat().version
-    print(f"Using ngff format version: {ngff_version}")
+    LOGGER.info(f"Using ngff format version: {ngff_version}")
 
     # write the image data
     store = parse_url(zarr_path, mode="w").store
@@ -88,7 +89,7 @@ def write_omezarr(
         storage_options=dict(chunks=array5d.shape),
     )
 
-    print(f"Finished writing OME-ZARR to: {zarr_path}")
+    LOGGER.info(f"Finished writing OME-ZARR to: {zarr_path}")
 
     if Path(zarr_path).exists():
         return zarr_path
