@@ -461,15 +461,15 @@ class CziAttachments:
             for att in cz.attachments():
                 self.names.append(att.attachment_entry.name)
 
-                if "SlidePreview" in self.names:
-                    self.has_preview = True
-                    logger.info("Attachment SlidePreview found.")
-                if "Label" in self.names:
-                    self.has_label = True
-                    logger.info("Attachment Label found.")
-                if "Prescan" in self.names:
-                    self.has_prescan = True
-                    logger.info("Attachment Prescan found.")
+            if "SlidePreview" in self.names:
+                self.has_preview = True
+                logger.info("Attachment SlidePreview found.")
+            if "Label" in self.names:
+                self.has_label = True
+                logger.info("Attachment Label found.")
+            if "Prescan" in self.names:
+                self.has_prescan = True
+                logger.info("Attachment Prescan found.")
 
 
 @dataclass
