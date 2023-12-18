@@ -9,41 +9,34 @@
 #
 #################################################################
 
-
-from __future__ import annotations
-try:
-    import napari
-except ModuleNotFoundError as error:
-    print(error.__class__.__name__ + ": " + error.name)
+import napari
 
 from PyQt5.QtWidgets import (
-
-    # QHBoxLayout,
     QVBoxLayout,
-    # QFileSystemModel,
-    # QFileDialog,
-    # QTreeView,
-    # QDialogButtonBox,
     QWidget,
     QTableWidget,
     QTableWidgetItem,
-    # QCheckBox,
-    # QAbstractItemView,
-    # QComboBox,
-    # QPushButton,
-    # QLineEdit,
-    # QLabel,
-    # QGridLayout
-
 )
 
-from PyQt5.QtCore import Qt  # , QDir, QSortFilterProxyModel
-from PyQt5 import QtWidgets  # QtCore, QtGui,
+from PyQt5.QtCore import Qt
+from PyQt5 import QtWidgets
 from PyQt5.QtGui import QFont
 from czitools import metadata_tools as czimd
 from czitools import misc_tools
+from czitools.datatreewiget import DataTreeWidget
 import numpy as np
-from typing import List, Dict, Tuple, Optional, Type, Any, Union, Literal, Mapping, Annotated
+from typing import (
+    List,
+    Dict,
+    Tuple,
+    Optional,
+    Type,
+    Any,
+    Union,
+    Literal,
+    Mapping,
+    Annotated,
+)
 from napari.utils.colormaps import Colormap
 from napari.utils import resize_dask_cache
 import dask.array as da
@@ -56,10 +49,8 @@ class ValueRange:
     hi: float
 
 
-class TableWidget(QWidget):
-
+class MdTableWidget(QWidget):
     def __init__(self) -> None:
-
         super(QWidget, self).__init__()
 
         self.layout = QVBoxLayout(self)
@@ -97,8 +88,7 @@ class TableWidget(QWidget):
         self.mdtable.resizeColumnsToContents()
 
     def update_style(self) -> None:
-        """Update the style for the table
-        """
+        """Update the style for the table"""
 
         # define font size and type
         fnt = QFont()
@@ -109,26 +99,40 @@ class TableWidget(QWidget):
         # update both header items
         fc = (25, 25, 25)
         item1 = QtWidgets.QTableWidgetItem("Parameter")
-        #item1.setForeground(QtGui.QColor(25, 25, 25))
+        # item1.setForeground(QtGui.QColor(25, 25, 25))
         item1.setFont(fnt)
         self.mdtable.setHorizontalHeaderItem(0, item1)
 
         item2 = QtWidgets.QTableWidgetItem("Value")
-        #item2.setForeground(QtGui.QColor(25, 25, 25))
+        # item2.setForeground(QtGui.QColor(25, 25, 25))
         item2.setFont(fnt)
         self.mdtable.setHorizontalHeaderItem(1, item2)
 
 
-def show(viewer: napari.Viewer,
-         array: Union[np.ndarray, List[da.Array], da.Array],
-         metadata: czimd.CziMetadata,
-         dim_string: str,
-         blending: str = "additive",
-         contrast: Literal["calc", "napari_auto", "from_czi"] = "calc",
-         gamma: float = 0.85,
-         add_mdtable: bool = True,
-         name_sliders: bool = False,
-         dask_cache_size: Annotated[float, ValueRange(0.5, 0.9)] = 0.5) -> List:
+class MdTreeWidget(QWidget):
+    def __init__(self, data=None, expandlevel=0) -> None:
+        super(QWidget, self).__init__()
+
+        self.layout = QVBoxLayout(self)
+        self.mdtree = DataTreeWidget(data=data)
+        self.mdtree.setData(data, expandlevel=expandlevel, hideRoot=True)
+        self.mdtree.setAlternatingRowColors(False)
+        # self.mdtree.expandToDepth(expandlevel)
+        self.layout.addWidget(self.mdtree)
+
+
+def show(
+    viewer: napari.Viewer,
+    array: Union[np.ndarray, List[da.Array], da.Array],
+    metadata: czimd.CziMetadata,
+    dim_string: str,
+    blending: str = "additive",
+    contrast: Literal["calc", "napari_auto", "from_czi"] = "calc",
+    gamma: float = 0.85,
+    show_metadata: Literal["none", "tree", "table"] = "tree",
+    name_sliders: bool = False,
+    dask_cache_size: Annotated[float, ValueRange(0.5, 0.9)] = 0.5,
+) -> List:
     """Display the multidimensional array inside the Napari viewer.
     Optionally the CziMetadata class will be used show a table with the metadata.
     Every channel will be added as a new layer to the viewer.
@@ -144,7 +148,8 @@ def show(viewer: napari.Viewer,
             - "napari_auto" : Let Napari figure out a display scaling. Will look in the center of an image!
             - "from_czi" : use the display scaling from ZEN stored inside the CZI metadata. Defaults to "calc".
         gamma (float, optional): gamma value for the Viewer for all layers Defaults to 0.85.
-        add_mdtable (bool, optional): option to show the CziMetadata as a table widget. Defaults to True.
+        add_mdtable (bool, optional): option to show the CziMetadata. Defaults to True.
+        show_metadata (mdviewoption, optional): Option to show metadata as tree or table. Defaults to "tree".
         name_sliders (bool, optional): option to use the dimension letters as slider labels for the viewer. Defaults to False.
         dask_cache_size(float, optional): option to resize the dask cache used for opportunistic caching. Range [0 - 1]
 
@@ -152,7 +157,7 @@ def show(viewer: napari.Viewer,
         List: List of napari layers
     """
 
-    # set napar dask cache size
+    # set napari dask cache size
     cache = resize_dask_cache(dask_cache_size)
 
     dim_order, dim_index, dim_valid = czimd.CziMetadata.get_dimorder(dim_string)
@@ -168,6 +173,9 @@ def show(viewer: napari.Viewer,
     # create scale factor with all ones
     scalefactors = [1.0] * len(array.shape)
 
+    # testing
+    scalefactors = [1.0] * 6
+
     # modify the tuple for the scales for napari
 
     # the "strange factor" is added due to an open (rounding) bug on the Napari side:
@@ -176,19 +184,20 @@ def show(viewer: napari.Viewer,
 
     scalefactors[dim_order["Z"]] = metadata.scale.ratio["zx"] * 1.0000001
 
-    # add Qt widget for metadata
-    if add_mdtable:
+    if show_metadata.lower != "none":
+        md_dict = czimd.create_mddict_nested(metadata, sort=True, remove_none=True)
 
-        # create widget for the metadata
-        mdbrowser = TableWidget()
-        viewer.window.add_dock_widget(mdbrowser,
-                                      name="mdbrowser",
-                                      area="right")
+        # add PyQTGraph DataTreeWidget to Napari viewer to show the metadata
+        if show_metadata == "tree":
+            mdtree = MdTreeWidget(data=md_dict, expandlevel=1)
+            viewer.window.add_dock_widget(mdtree, name="MetadataTree", area="right")
 
-        # create dictionary with some metadata
-        mdict = czimd.create_mdict_red(metadata, sort=True)
-        mdbrowser.update_metadata(mdict)
-        mdbrowser.update_style()
+        # add QTableWidget DataTreeWidget to Napari viewer to show the metadata
+        if show_metadata == "table":
+            mdtable = MdTableWidget()
+            mdtable.update_metadata(md_dict)
+            mdtable.update_style()
+            viewer.window.add_dock_widget(mdtable, name="MetadataTable", area="right")
 
     # add all channels as individual layers
     if metadata.image.SizeC is None:
@@ -198,7 +207,6 @@ def show(viewer: napari.Viewer,
 
     # loop over all channels and add them as layers
     for ch in range(size_c):
-
         try:
             # get the channel name
             chname = metadata.channelinfo.names[ch]
@@ -228,31 +236,37 @@ def show(viewer: napari.Viewer,
             print("Calculated Display Scaling (min & max)", sc)
 
             # add channel to napari viewer
-            new_layer = viewer.add_image(channel,
-                                         name=chname,
-                                         scale=scalefactors,
-                                         contrast_limits=sc,
-                                         blending=blending,
-                                         gamma=gamma,
-                                         colormap=ncmap)
+            new_layer = viewer.add_image(
+                channel,
+                name=chname,
+                scale=scalefactors,
+                contrast_limits=sc,
+                blending=blending,
+                gamma=gamma,
+                colormap=ncmap,
+            )
 
         if contrast == "napari_auto":
             # let Napari figure out what the best display scaling is
             # Attention: It will measure in the center of the image !!!
 
             # add channel to napari viewer
-            new_layer = viewer.add_image(channel,
-                                         name=chname,
-                                         scale=scalefactors,
-                                         blending=blending,
-                                         gamma=gamma,
-                                         colormap=ncmap)
+            new_layer = viewer.add_image(
+                channel,
+                name=chname,
+                scale=scalefactors,
+                blending=blending,
+                gamma=gamma,
+                colormap=ncmap,
+            )
         if contrast == "from_czi":
             # guess an appropriate scaling from the display setting embedded in the CZI
             lower = np.round(
-                metadata.channelinfo.clims[ch][0] * metadata.maxvalue[ch], 0)
+                metadata.channelinfo.clims[ch][0] * metadata.maxvalue[ch], 0
+            )
             higher = np.round(
-                metadata.channelinfo.clims[ch][1] * metadata.maxvalue[ch], 0)
+                metadata.channelinfo.clims[ch][1] * metadata.maxvalue[ch], 0
+            )
 
             # simple validity check
             if lower >= higher:
@@ -260,23 +274,23 @@ def show(viewer: napari.Viewer,
                 lower = 0
                 higher = np.round(metadata.maxvalue[ch] * 0.25, 0)
 
-            print("Display Scaling from CZI for CH:",
-                  ch, "Min-Max", lower, higher)
+            print("Display Scaling from CZI for CH:", ch, "Min-Max", lower, higher)
 
             # add channel to Napari viewer
-            new_layer = viewer.add_image(channel,
-                                         name=chname,
-                                         scale=scalefactors,
-                                         contrast_limits=[lower, higher],
-                                         blending=blending,
-                                         gamma=gamma,
-                                         colormap=ncmap)
+            new_layer = viewer.add_image(
+                channel,
+                name=chname,
+                scale=scalefactors,
+                contrast_limits=[lower, higher],
+                blending=blending,
+                gamma=gamma,
+                colormap=ncmap,
+            )
 
         # append the current layer
         napari_layers.append(new_layer)
 
     if name_sliders:
-
         print("Rename Sliders based on the Dimension String ....")
 
         # get the label of the sliders (as a tuple) ad rename it
@@ -285,7 +299,6 @@ def show(viewer: napari.Viewer,
 
     # workaround because of: https://forum.image.sc/t/napari-3d-view-shows-flat-z-stack/62744/9?u=sebi06
     if dim_string == "STZCYX" or dim_string == "TZCYX":
-
         od = list(viewer.dims.order)
         od[dim_order["C"]], od[dim_order["Z"]] = od[dim_order["Z"]], od[dim_order["C"]]
         viewer.dims.order = tuple(od)
@@ -314,7 +327,6 @@ def rename_sliders(sliders: Tuple, dim_order: Dict) -> Tuple:
     for s in slidernames:
         try:
             if dim_order[s] >= 0:
-
                 # assign the dimension labels
                 tmp_sliders[dim_order[s]] = s
 

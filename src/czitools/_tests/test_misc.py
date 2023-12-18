@@ -26,9 +26,7 @@ def test_slicedim(czifile: str, dimindex: int, posdim: int, shape: Tuple[int]) -
     # get the CZI filepath
     filepath = basedir / "data" / czifile
 
-    mdarray, mdata, dimstring = read_tools.read_6darray(
-        filepath, output_order="STCZYX"
-    )
+    mdarray, mdata, dimstring = read_tools.read_6darray(filepath, output_order="STCZYX")
 
     dim_array = misc_tools.slicedim(mdarray, dimindex, posdim)
     assert dim_array.shape == shape
@@ -79,10 +77,10 @@ def test_get_planetable(
 
     planetable_filtered = misc_tools.filter_planetable(planetable, s=0, t=0, z=0, c=0)
 
-    assert planetable_filtered["xstart"][0] == xstart[0]
-    assert planetable_filtered["xstart"][1] == xstart[1]
-    assert planetable_filtered["ystart"][0] == ystart[0]
-    assert planetable_filtered["ystart"][1] == ystart[1]
+    assert planetable_filtered["xstart"].values[0] == xstart[0]
+    assert planetable_filtered["xstart"].values[1] == xstart[1]
+    assert planetable_filtered["ystart"].values[0] == ystart[0]
+    assert planetable_filtered["ystart"].values[1] == ystart[1]
 
 
 @pytest.mark.parametrize(

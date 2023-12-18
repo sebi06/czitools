@@ -20,34 +20,40 @@ from pathlib import Path
 defaultdir = os.path.join(Path(__file__).resolve().parents[2], "data")
 
 # open s simple dialog to select a CZI file
-filepath = misc_tools.openfile(directory=defaultdir,
-                               title="Open CZI Image File",
-                               ftypename="CZI Files",
-                               extension="*.czi")
+filepath = misc_tools.openfile(
+    directory=defaultdir,
+    title="Open CZI Image File",
+    ftypename="CZI Files",
+    extension="*.czi",
+)
 print(filepath)
 
 # get the complete metadata at once as one big class
 mdata = czimd.CziMetadata(filepath)
 
 # test using AICSImageIO
-aics_img = AICSImage(filepath)
+aics_img = AICSImage(filepath, reconstruct_mosaic=True)
 print(aics_img.shape)
 for k, v in aics_img.dims.items():
     print(k, v)
 
 # get the stack as dask array
-stack = misc_tools.get_daskstack(aics_img)
+stack = aics_img.get_dask_stack()
 
 dim_string6d = "S" + aics_img.dims.order
 
 # start the napari viewer and show the image
 viewer = napari.Viewer()
-layers = napari_tools.show(viewer, stack, mdata,
-                           dim_string=dim_string6d,
-                           blending="additive",
-                           contrast="from_czi",
-                           gamma=0.85,
-                           add_mdtable=True,
-                           name_sliders=True)
+layers = napari_tools.show(
+    viewer,
+    stack,
+    mdata,
+    dim_string=dim_string6d,
+    blending="additive",
+    contrast="from_czi",
+    gamma=0.85,
+    show_metadata="tree",
+    name_sliders=True,
+)
 
 napari.run()

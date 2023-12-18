@@ -18,7 +18,7 @@ from pathlib import Path
 defaultdir = Path(Path(__file__).resolve().parents[2]) / "data"
 
 # open s simple dialog to select a CZI file
-filepath = misc_tools.openfile(directory=defaultdir,
+filepath = misc_tools.openfile(directory=str(defaultdir),
                                title="Open CZI Image File",
                                ftypename="CZI Files",
                                extension="*.czi")

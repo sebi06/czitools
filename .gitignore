@@ -168,3 +168,4 @@ data/Fluorescence_RGB.czi
 /demo/experimental/lazy_read6d.py
 data/CellDivision_T=3_Z=5_CH=2_X=240_Y=170_comp1.czi
 data/CellDivision_T=3_Z=5_CH=2_X=240_Y=170_comp2.czi
+data/CellDivision_T=10_Z=15_CH=2_DCV_small.czi
