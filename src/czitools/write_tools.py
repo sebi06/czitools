@@ -20,7 +20,9 @@ from ome_zarr.io import parse_url
 from typing import List, Dict, Tuple, Optional, Type, Any, Union, Mapping
 import shutil
 import numpy as np
-from .logger import logger as LOGGER
+from czitools import logger as LOGGER
+
+logger = LOGGER.get_logger()
 
 
 def write_omezarr(
@@ -60,7 +62,7 @@ def write_omezarr(
 
     # show currently used version of NGFF specification
     ngff_version = ome_zarr.format.CurrentFormat().version
-    LOGGER.info(f"Using ngff format version: {ngff_version}")
+    logger.info(f"Using ngff format version: {ngff_version}")
 
     # write the image data
     store = parse_url(zarr_path, mode="w").store
@@ -89,7 +91,7 @@ def write_omezarr(
         storage_options=dict(chunks=array5d.shape),
     )
 
-    LOGGER.info(f"Finished writing OME-ZARR to: {zarr_path}")
+    logger.info(f"Finished writing OME-ZARR to: {zarr_path}")
 
     if Path(zarr_path).exists():
         return zarr_path

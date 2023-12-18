@@ -23,9 +23,11 @@ from tqdm.contrib.itertools import product
 import czifile
 import tempfile
 import shutil
-from .logger import logger as LOGGER
+from czitools import logger as LOGGER
 
 # from memory_profiler import profile
+
+logger = LOGGER.get_logger()
 
 
 # instantiating the decorator
@@ -64,7 +66,7 @@ def read_6darray(
     mdata = czimd.CziMetadata(filepath)
 
     if not mdata.consistent_pixeltypes:
-        LOGGER.info("Detected PixelTypes ar not consistent. Cannot create array6d")
+        logger.info("Detected PixelTypes ar not consistent. Cannot create array6d")
         return None, mdata, ""
 
     # check planes
@@ -72,7 +74,7 @@ def read_6darray(
         for k in ["S", "T", "C", "Z"]:
             if k in planes.keys() and k in mdata.bbox.total_bounding_box.keys():
                 if mdata.bbox.total_bounding_box[k][1] - 1 < planes[k][1]:
-                    LOGGER.info(
+                    logger.info(
                         f"Planes indices (zero-based) for {planes[k]} are invalid. BBox for {[k]}: {mdata.bbox.total_bounding_box[k]}"
                     )
                     return None, mdata, ""
@@ -84,11 +86,11 @@ def read_6darray(
     valid_order = ["STCZYX", "STZCYX"]
 
     if output_order not in valid_order:
-        LOGGER.info("Invalid dimension order 6D:", output_order)
+        logger.info("Invalid dimension order 6D:", output_order)
         return None, mdata, ""
 
     if not mdata.scene_shape_is_consistent and not "S" in planes.keys():
-        LOGGER.info("Scenes have inconsistent shape. Cannot read 6D array")
+        logger.info("Scenes have inconsistent shape. Cannot read 6D array")
         return None, mdata, ""
 
     # open the CZI document to read the
