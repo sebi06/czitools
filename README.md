@@ -93,7 +93,7 @@ else:
 
 ![5D CZI inside Napari](https://github.com/sebi06/czitools/raw/main/images/czi_napari1.png)
 
-## Coloab Notebooks
+## Colab Notebooks
 
 ### Read CZI metadata
 
@@ -121,7 +121,7 @@ The basic usage can be inferred from this sample notebook:&nbsp;
 The basic usage can be inferred from this sample notebook:&nbsp;
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/sebi06/czitools/blob/main/demo/notebooks/show_czi_surface.ipynb)
 
-### REad a CZI and segment using Voroni-Otsu provided by PyClesperanto GPU processing
+### Read a CZI and segment using Voroni-Otsu provided by PyClesperanto GPU processing
 
 The basic usage can be inferred from this sample notebook:&nbsp;
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/sebi06/czitools/blob/main/demo/notebooks/read_czi_segment_voroni_otsu.ipynb)
