@@ -370,8 +370,6 @@ def read_attachments(
         Tuple[nd,array, [Optional[str]]: Tuple containing the 2d image array and optionally the location of the copied image.
     """
 
-    logger = czimd.setup_log("ReadAttachment")
-
     if attachment_type not in ["SlidePreview", "Label"]:
         raise Exception(
             f"{attachment_type} is not supported. Valid types are: SlidePreview, Label or Prescan."
