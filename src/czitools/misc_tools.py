@@ -24,7 +24,9 @@ from itertools import product
 from czitools import metadata_tools as czimd
 from typing import List, Dict, Tuple, Optional, Type, Any, Union, Mapping
 from dataclasses import make_dataclass, fields, dataclass
-from .logger import logger as LOGGER
+from czitools import logger as LOGGER
+
+logger = LOGGER.get_logger()
 
 
 def openfile(
@@ -138,8 +140,8 @@ def calc_scaling(
     minvalue = int(np.round((minvalue + offset_min) * corr_min, 0))
     maxvalue = int(np.round((maxvalue + offset_max) * corr_max, 0))
 
-    LOGGER.info("Scaling:", minvalue, maxvalue)
-    LOGGER.info("Calculation of Min-Max [s] : ", end - start)
+    logger.info("Scaling:", minvalue, maxvalue)
+    logger.info("Calculation of Min-Max [s] : ", end - start)
 
     return minvalue, maxvalue
 
@@ -454,7 +456,7 @@ def get_planetable(
     # save planetable as CSV file
     if savetable:
         csvfile = save_planetable(df_czi, czifile, separator=separator, index=index)
-        LOGGER.info(f"PlaneTable saved as CSV file: {csvfile}")
+        logger.info(f"PlaneTable saved as CSV file: {csvfile}")
     if not savetable:
         csvfile = None
 
@@ -503,25 +505,25 @@ def filter_planetable(
 
     # filter planetable for specific scene
     if s > planetable["Scene"].max():
-        LOGGER.info("Scene Index was invalid. Using Scene = 0.")
+        logger.info("Scene Index was invalid. Using Scene = 0.")
         s = 0
     pt = planetable[planetable["Scene"] == s]
 
     # filter planetable for specific timepoint
     if t > planetable["T"].max():
-        LOGGER.info("Time Index was invalid. Using T = 0.")
+        logger.info("Time Index was invalid. Using T = 0.")
         t = 0
     pt = planetable[planetable["T"] == t]
 
     # filter resulting planetable pt for a specific z-plane
     try:
         if z > planetable["Z[micron]"].max():
-            LOGGER.info("Z-Plane Index was invalid. Using Z = 0.")
+            logger.info("Z-Plane Index was invalid. Using Z = 0.")
             zplane = 0
             pt = pt[pt["Z[micron]"] == z]
     except KeyError as e:
         if z > planetable["Z [micron]"].max():
-            LOGGER.info("Z-Plane Index was invalid. Using Z = 0.")
+            logger.info("Z-Plane Index was invalid. Using Z = 0.")
             zplane = 0
             pt = pt[pt["Z [micron]"] == z]
 
