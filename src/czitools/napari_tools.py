@@ -41,6 +41,7 @@ from napari.utils.colormaps import Colormap
 from napari.utils import resize_dask_cache
 import dask.array as da
 from dataclasses import dataclass
+from .logger import logger as LOGGER
 
 
 @dataclass
@@ -164,7 +165,7 @@ def show(
 
     # check if contrast mode
     if contrast not in ["calc", "napari_auto", "from_czi"]:
-        print(contrast, "is not valid contrast method. Use napari_auto instead.")
+        LOGGER.info(contrast, "is not valid contrast method. Use napari_auto instead.")
         contrast = "from_czi"
 
     # create empty list for the napari layers
@@ -226,9 +227,9 @@ def show(
             channel = array
 
         # actually show the image array
-        print("Adding Channel  :", chname)
-        print("Shape Channel   :", ch, channel.shape)
-        print("Scaling Factors :", scalefactors)
+        LOGGER.info("Adding Channel  :", chname)
+        LOGGER.info("Shape Channel   :", ch, channel.shape)
+        LOGGER.info("Scaling Factors :", scalefactors)
 
         if contrast == "calc":
             # really calculate the min and max values - might be slow
@@ -270,11 +271,13 @@ def show(
 
             # simple validity check
             if lower >= higher:
-                print("Fancy Display Scaling detected. Use Defaults")
+                LOGGER.info("Fancy Display Scaling detected. Use Defaults")
                 lower = 0
                 higher = np.round(metadata.maxvalue[ch] * 0.25, 0)
 
-            print("Display Scaling from CZI for CH:", ch, "Min-Max", lower, higher)
+            LOGGER.info(
+                "Display Scaling from CZI for CH:", ch, "Min-Max", lower, higher
+            )
 
             # add channel to Napari viewer
             new_layer = viewer.add_image(
@@ -291,7 +294,7 @@ def show(
         napari_layers.append(new_layer)
 
     if name_sliders:
-        print("Rename Sliders based on the Dimension String ....")
+        LOGGER.info("Rename Sliders based on the Dimension String ....")
 
         # get the label of the sliders (as a tuple) ad rename it
         sliderlabels = rename_sliders(viewer.dims.axis_labels, dim_order)
@@ -331,7 +334,7 @@ def rename_sliders(sliders: Tuple, dim_order: Dict) -> Tuple:
                 tmp_sliders[dim_order[s]] = s
 
         except KeyError:
-            print("No", s, "Dimension found")
+            LOGGER.info("No", s, "Dimension found")
 
     # convert back to tuple
     sliders = tuple(tmp_sliders)
