@@ -23,6 +23,7 @@ from tqdm.contrib.itertools import product
 import czifile
 import tempfile
 import shutil
+
 # from memory_profiler import profile
 
 
@@ -33,6 +34,7 @@ def read_6darray(
     filepath: Union[str, os.PathLike[str]],
     output_order: str = "STCZYX",
     use_dask: bool = False,
+    dask_lazy: bool = False,
     chunk_zyx=False,
     planes: Dict[str, tuple[int, int]] = {},
 ) -> Tuple[Optional[Union[np.ndarray, da.Array]], czimd.CziMetadata, str]:
@@ -43,6 +45,7 @@ def read_6darray(
         filepath (str | Path): filepath for the CZI image
         output_order (str, optional): Order of dimensions for the output array. Defaults to "STCZYX".
         use_dask (bool, optional): Option to store image data as dask array with delayed reading
+        dask_lazy (bool, optional): Option to store image data as dask array with delayed reading
         chunk_zyx (bool, optional): Option to chunk dask array along zstacks. Defaults to False.
         planes (dict, optional): Allowed keys S, T, Z, C and their start and end values must be >=0 (zero-based).
                                  planes = {"Z":(0, 2)} will return 3 z-plane with indices (0, 1, 2).
@@ -153,7 +156,8 @@ def read_6darray(
 
         remove_adim = False if mdata.isRGB else True
 
-        if not use_dask:
+        # either return numpy array or normal dask array
+        if not use_dask or (use_dask and not dask_lazy):
             # assume default dimension order = STZCYX(A)
             shape = [
                 size_s,
@@ -164,7 +168,13 @@ def read_6darray(
                 size_x,
                 3 if mdata.isRGB else 1,
             ]
-            array6d = np.empty(shape, dtype=use_pixeltype)
+
+            # in case of numpy array
+            if not use_dask:
+                array6d = np.empty(shape, dtype=use_pixeltype)
+            # in case of normal dask array
+            if use_dask:
+                array6d = da.empty(shape, dtype=use_pixeltype, chunks=shape)
 
             # read array for the scene 2Dplane-by-2Dplane
             for s, t, c, z in product(
@@ -193,7 +203,8 @@ def read_6darray(
             if remove_adim:
                 array6d = np.squeeze(array6d, axis=-1)
 
-        if use_dask:
+        # return dasl array with delayed reading
+        if use_dask and dask_lazy:
             # initialise empty list to hold the dask arrays
             img = []
 
@@ -339,7 +350,7 @@ def read_2dplane(
 
 def read_attachments(
     czi_filepath: str,
-    attachment_type: Literal["SlidePreview", "Label"] = "SlidePreview",
+    attachment_type: Literal["SlidePreview", "Label", "Prescan"] = "SlidePreview",
     copy: bool = True,
 ) -> Tuple[np.ndarray, Optional[str]]:
     """Read attachment images from a CZI image as numpy array
@@ -350,17 +361,17 @@ def read_attachments(
         copy (bool, optional): Option to copy the attachments as CZI image directly. Defaults to True.
 
     Raises:
-        Exception: _description_
+        Exception: If specified attachment is not found and exception is raised.
 
     Returns:
-        _type_: _description_
+        Tuple[nd,array, [Optional[str]]: Tuple containing the 2d image array and optionally the location of the copied image.
     """
 
     logger = czimd.setup_log("ReadAttachment")
 
     if attachment_type not in ["SlidePreview", "Label"]:
         raise Exception(
-            f"{attachment_type} is not supported. Valid types are: SlidePreview or Label"
+            f"{attachment_type} is not supported. Valid types are: SlidePreview, Label or Prescan."
         )
 
     att = czimd.CziAttachments(czi_filepath)
@@ -373,9 +384,7 @@ def read_attachments(
 
     # create CZI-object using czifile library
     with czifile.CziFile(czi_filepath) as cz:
-
         with tempfile.TemporaryDirectory() as tmpdirname:
-
             # save attachments to temporary directory
             cz.save_attachments(directory=tmpdirname)
 
