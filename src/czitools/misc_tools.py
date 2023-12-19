@@ -140,8 +140,8 @@ def calc_scaling(
     minvalue = int(np.round((minvalue + offset_min) * corr_min, 0))
     maxvalue = int(np.round((maxvalue + offset_max) * corr_max, 0))
 
-    logger.info("Scaling:", minvalue, maxvalue)
-    logger.info("Calculation of Min-Max [s] : ", end - start)
+    logger.info(f"Scaling: {minvalue}, {maxvalue}")
+    logger.info(f"Calculation of Min-Max [s] : {end - start}")
 
     return minvalue, maxvalue
 

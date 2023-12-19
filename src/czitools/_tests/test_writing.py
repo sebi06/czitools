@@ -62,7 +62,7 @@ def test_write_1(tiff_file: str, sp: int) -> None:
 
 
 @pytest.mark.parametrize(
-    "czifile, pyczi_dims, pix_types, is_rgb, is_mosaic",
+    "czifilepath, pyczi_dims, pix_types, is_rgb, is_mosaic",
     [
         (
             "z=16_ch=3.czi",
@@ -74,21 +74,21 @@ def test_write_1(tiff_file: str, sp: int) -> None:
     ],
 )
 def test_write_2(
-    czifile: str,
+    czifilepath: str,
     pyczi_dims: Dict[str, Tuple[int, int]],
     pix_types: Dict[int, str],
     is_rgb: bool,
     is_mosaic: bool,
 ) -> None:
     # get the czifile path
-    filepath = basedir / czifile
+    filepath = basedir / czifilepath
 
     mdarray, mdata, dimstring = read_tools.read_6darray(
         filepath, use_dask=False, output_order="STZCYX"
     )
 
     # create the filename for the new CZI image file
-    newczi = str(Path.cwd() / czifile)
+    newczi = str(Path.cwd() / czifilepath)
 
     # open a new CZI and allow overwrite (!!!) to play around ...
     with pyczi.create_czi(newczi, exist_ok=True) as czidoc_w:
@@ -111,7 +111,7 @@ def test_write_2(
 
 
 @pytest.mark.parametrize(
-    "czifile, xstart, ch, pyczi_dims, pix_types, is_rgb, is_mosaic, tbox",
+    "czifilepath, xstart, ch, pyczi_dims, pix_types, is_rgb, is_mosaic, tbox",
     [
         (
             "z=16_ch=3.czi",
@@ -126,7 +126,7 @@ def test_write_2(
     ],
 )
 def test_write_3(
-    czifile: str,
+    czifilepath: str,
     xstart: int,
     ch: int,
     pyczi_dims: Dict[str, Tuple[int, int]],
@@ -136,7 +136,7 @@ def test_write_3(
     tbox: Dict[str, Tuple[int, int]],
 ) -> None:
     # get the czifile path
-    filepath = basedir / czifile
+    filepath = basedir / czifilepath
 
     mdarray, mdata, dimstring = read_tools.read_6darray(
         filepath, use_dask=False, output_order="STZCYX"
@@ -170,7 +170,7 @@ def test_write_3(
 
 
 @pytest.mark.parametrize(
-    "czifile, ch, gx, gy, xystart, offset, pyczi_dims, pix_types, is_rgb, is_mosaic, tbox",
+    "czifilepath, ch, gx, gy, xystart, offset, pyczi_dims, pix_types, is_rgb, is_mosaic, tbox",
     [
         (
             "z=16_ch=3.czi",
@@ -188,7 +188,7 @@ def test_write_3(
     ],
 )
 def test_write_4(
-    czifile: str,
+    czifilepath: str,
     ch: int,
     gx: int,
     gy: int,
@@ -201,7 +201,7 @@ def test_write_4(
     tbox: Dict[str, Tuple[int, int]],
 ) -> None:
     # get the czifile path
-    filepath = basedir / czifile
+    filepath = basedir / czifilepath
 
     mdarray, mdata, dimstring = read_tools.read_6darray(
         filepath,
@@ -246,7 +246,7 @@ def test_write_4(
 
 
 @pytest.mark.parametrize(
-    "czifile, order, use_dask, overwrite, sceneid, zarr_path",
+    "czifilepath, order, use_dask, overwrite, sceneid, zarr_path",
     [
         (
             "CellDivision_T=3_Z=5_CH=2_X=240_Y=170.czi",
@@ -259,7 +259,7 @@ def test_write_4(
     ],
 )
 def test_write_omezarr(
-    czifile: str,
+    czifilepath: str,
     order: str,
     use_dask: bool,
     overwrite: bool,
@@ -267,7 +267,7 @@ def test_write_omezarr(
     zarr_path: str,
 ) -> None:
     # get the czifile path
-    filepath = basedir / czifile
+    filepath = basedir / czifilepath
 
     # return a array with dimension order STZCYX(A)
     array, mdata, dim_string6d = read_tools.read_6darray(
