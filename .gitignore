@@ -170,3 +170,5 @@ data/CellDivision_T=3_Z=5_CH=2_X=240_Y=170_comp1.czi
 data/CellDivision_T=3_Z=5_CH=2_X=240_Y=170_comp2.czi
 data/CellDivision_T=10_Z=15_CH=2_DCV_small.czi
 /data/w96_A1+A2_SlidePreview.czi
+/data/Tumor_HE_Orig_small_Label.czi
+/data/Tumor_HE_Orig_small_SlidePreview.czi

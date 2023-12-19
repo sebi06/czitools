@@ -3,7 +3,9 @@ from czitools import metadata_tools
 
 
 # define the file location
-filepath = r"data/w96_A1+A2.czi"
+# filepath = r"data/w96_A1+A2.czi"
+# filepath = r"data/Tumor_HE_Orig_small.czi"
+filepath = r"data/CellDivision_T=10_Z=15_CH=2_DCV_small.czi"
 
 # read all metadata and check for the attachment images
 md = metadata_tools.CziMetadata(filepath)
