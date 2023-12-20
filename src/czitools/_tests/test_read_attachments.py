@@ -2,8 +2,7 @@ from czitools import read_tools, metadata_tools
 from pathlib import Path
 import numpy as np
 import pytest
-from pylibCZIrw import czi as pyczi
-from typing import List, Dict, Tuple, Optional, Type, Any, Union, Mapping
+from typing import List, Dict, Tuple, Optional, Type, Any, Union, Mapping, Literal
 
 
 basedir = Path(__file__).resolve().parents[3]
@@ -36,7 +35,7 @@ basedir = Path(__file__).resolve().parents[3]
 )
 def test_read_attachments_images(
     cziname: str,
-    attachment_type: str,
+    attachment_type: Literal["SlidePreview", "Label", "Prescan"],
     copy: bool,
     has_label: bool,
     has_preview: bool,
@@ -62,7 +61,7 @@ def test_read_attachments_images(
     # create path to store the attachment image
     att_path = str(filepath)[:-4] + "_" + attachment_type + ".czi"
 
-    assert att_path.endswith(cziname[:-4] + "_" + attachment_type + ".czi") == True
+    assert att_path.endswith(cziname[:-4] + "_" + attachment_type + ".czi") is True
 
     # remove the files
     if np.any(data):
@@ -70,7 +69,7 @@ def test_read_attachments_images(
 
 
 @pytest.mark.parametrize("cziname, attachment_type", [("w96_A1+A2.czi", "BlaBla")])
-def test_reading_wrong_type(cziname: str, attachment_type: str) -> None:
+def test_reading_wrong_type(cziname: str, attachment_type: Literal["SlidePreview", "Label", "Prescan"]) -> None:
     # get the filepath and the metadata
     filepath = basedir / "data" / cziname
 

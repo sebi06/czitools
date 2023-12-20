@@ -34,12 +34,12 @@ logger = LOGGER.get_logger()
 # @profile
 # code for which memory has to be monitored
 def read_6darray(
-    filepath: Union[str, os.PathLike[str]],
-    output_order: str = "STCZYX",
-    use_dask: bool = False,
-    dask_lazy: bool = False,
-    chunk_zyx=False,
-    planes: Dict[str, tuple[int, int]] = {},
+        filepath: Union[str, os.PathLike[str]],
+        output_order: str = "STCZYX",
+        use_dask: bool = False,
+        dask_lazy: bool = False,
+        chunk_zyx=False,
+        planes: Dict[str, tuple[int, int]] = {},
 ) -> Tuple[Optional[Union[np.ndarray, da.Array]], czimd.CziMetadata, str]:
     """Read a CZI image file as 6D dask array.
     Important: Currently supported are only scenes with equal size and CZIs with consistent pixel types.
@@ -181,12 +181,12 @@ def read_6darray(
 
             # read array for the scene 2Dplane-by-2Dplane
             for s, t, c, z in product(
-                enumerate(range(s_start, s_end)),
-                enumerate(range(t_start, t_end)),
-                enumerate(range(c_start, c_end)),
-                enumerate(range(z_start, z_end)),
-                desc="Reading 2D planes",
-                unit=" 2Dplanes",
+                    enumerate(range(s_start, s_end)),
+                    enumerate(range(t_start, t_end)),
+                    enumerate(range(c_start, c_end)),
+                    enumerate(range(z_start, z_end)),
+                    desc="Reading 2D planes",
+                    unit=" 2Dplanes",
             ):
                 # read a 2D image plane from the CZI
                 if mdata.image.SizeS is None:
@@ -212,9 +212,9 @@ def read_6darray(
             img = []
 
             with tqdm(
-                total=size_s * size_t * size_c * size_z,
-                desc="Reading 2D planes",
-                unit=" 2dplanes",
+                    total=size_s * size_t * size_c * size_z,
+                    desc="Reading 2D planes",
+                    unit=" 2dplanes",
             ) as pbar:
                 for s in enumerate(range(s_start, s_end)):
                     # for s in range(size_s):
@@ -308,13 +308,13 @@ def read_6darray(
 
 @dask.delayed
 def read_2dplane(
-    czidoc: pyczi.CziReader,
-    s: int = 0,
-    t: int = 0,
-    c: int = 0,
-    z: int = 0,
-    has_scenes: bool = True,
-    remove_adim: bool = True,
+        czidoc: pyczi.CziReader,
+        s: int = 0,
+        t: int = 0,
+        c: int = 0,
+        z: int = 0,
+        has_scenes: bool = True,
+        remove_adim: bool = True,
 ):
     """Dask delayed function to read a 2d plane from a CZI image, which has the shape
        (Y, X, 1) or (Y, X, 3).
@@ -352,9 +352,9 @@ def read_2dplane(
 
 
 def read_attachments(
-    czi_filepath: str,
-    attachment_type: Literal["SlidePreview", "Label", "Prescan"] = "SlidePreview",
-    copy: bool = True,
+        czi_filepath: [str, os.PathLike],
+        attachment_type: Literal["SlidePreview", "Label", "Prescan"] = "SlidePreview",
+        copy: bool = True,
 ) -> Tuple[np.ndarray, Optional[str]]:
     """Read attachment images from a CZI image as numpy array
 
@@ -398,10 +398,10 @@ def read_attachments(
                     if copy:
                         # create path to store the attachment image
                         att_path = (
-                            str(czi_filepath)[:-4]
-                            + "_"
-                            + att.attachment_entry.name
-                            + ".czi"
+                                str(czi_filepath)[:-4]
+                                + "_"
+                                + att.attachment_entry.name
+                                + ".czi"
                         )
 
                         # copy the file
