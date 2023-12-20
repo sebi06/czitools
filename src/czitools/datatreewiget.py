@@ -38,12 +38,14 @@ class DataTreeWidget(QTreeWidget):
         self.setColumnCount(3)
         self.setHeaderLabels(["Parameter", "Value", "Type"])
         self.setAlternatingRowColors(True)
+        self.widgets = []
+        self.nodes = {}
 
     def setData(self, data, expandlevel=0, hideRoot=False):
         """data should be a dictionary."""
         self.clear()
-        self.widgets = []
-        self.nodes = {}
+        # self.widgets = []
+        # self.nodes = {}
         self.buildTree(data, self.invisibleRootItem(), hideRoot=hideRoot)
         self.expandToDepth(expandlevel)
         self.resizeColumnToContents(0)
