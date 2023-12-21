@@ -44,7 +44,7 @@ class CustomFormatter(logging.Formatter):
         return formatter.format(record)
 
 
-def get_logger():
+def get_logger(log_to_file: bool = False):
     # Create custom logger logging all five levels
     logger = logging.getLogger(__name__)
     logger.setLevel(logging.DEBUG)
@@ -59,16 +59,18 @@ def get_logger():
 
     # Create file handler for logging to a file (logs all five levels)
     today = datetime.date.today()
-    file_handler = logging.FileHandler(
-        "my_app_{}.log".format(today.strftime("%Y_%m_%d"))
-    )
-    file_handler.setLevel(logging.DEBUG)
-    file_handler.setFormatter(logging.Formatter(fmt))
+    # file_handler = logging.FileHandler(
+    #    "my_app_{}.log".format(today.strftime("%Y_%m_%d"))
+    # )
+    # file_handler.setLevel(logging.DEBUG)
+    # file_handler.setFormatter(logging.Formatter(fmt))
 
     # make sure to only create it once otherwise one will get double entries in log
     if not logger.hasHandlers():
         # Add both handlers to the logger
         logger.addHandler(stdout_handler)
-        logger.addHandler(file_handler)
+
+        # if log_to_file:
+        #    logger.addHandler(file_handler)
 
     return logger

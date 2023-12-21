@@ -229,14 +229,14 @@ def show(
             channel = array
 
         # actually show the image array
-        logger.info("Adding Channel  :", chname)
-        logger.info("Shape Channel   :", ch, channel.shape)
-        logger.info("Scaling Factors :", scalefactors)
+        logger.info(f"Adding Channel: {chname}")
+        logger.info(f"Shape Channel: {ch} , {channel.shape}")
+        logger.info(f"Scaling Factors: {scalefactors}")
 
         if contrast == "calc":
             # really calculate the min and max values - might be slow
             sc = misc_tools.calc_scaling(channel, corr_min=1.1, corr_max=0.9)
-            print("Calculated Display Scaling (min & max)", sc)
+            logger.info(f"Calculated Display Scaling (min & max): {sc}")
 
             # add channel to napari viewer
             new_layer = viewer.add_image(
@@ -273,12 +273,12 @@ def show(
 
             # simple validity check
             if lower >= higher:
-                logger.info("Fancy Display Scaling detected. Use Defaults")
+                logger.info(f"Fancy Display Scaling detected. Use Defaults")
                 lower = 0
                 higher = np.round(metadata.maxvalue[ch] * 0.25, 0)
 
             logger.info(
-                "Display Scaling from CZI for CH:", ch, "Min-Max", lower, higher
+                f"Display Scaling from CZI for CH: {ch} Min-Max: {lower}-{higher}"
             )
 
             # add channel to Napari viewer
@@ -296,8 +296,6 @@ def show(
         napari_layers.append(new_layer)
 
     if name_sliders:
-        logger.info("Rename Sliders based on the Dimension String ....")
-
         # get the label of the sliders (as a tuple) ad rename it
         sliderlabels = rename_sliders(viewer.dims.axis_labels, dim_order)
         viewer.dims.axis_labels = sliderlabels
@@ -336,7 +334,7 @@ def rename_sliders(sliders: Tuple, dim_order: Dict) -> Tuple:
                 tmp_sliders[dim_order[s]] = s
 
         except KeyError:
-            logger.info("No", s, "Dimension found")
+            logger.info(f"No {s} Dimension found")
 
     # convert back to tuple
     sliders = tuple(tmp_sliders)
