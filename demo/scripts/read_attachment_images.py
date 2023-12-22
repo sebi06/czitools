@@ -1,11 +1,17 @@
 from czitools import read_tools
 from czitools import metadata_tools
+from czitools.read_tools import AttachmentType
+from pathlib import Path
+import os
 
+# adapt to your needs
+defaultdir = Path(Path(__file__).resolve().parents[2]) / "data"
+os.chdir(defaultdir)
 
 # define the file location
-# filepath = r"data/w96_A1+A2.czi"
-# filepath = r"data/Tumor_HE_Orig_small.czi"
-filepath = r"data/CellDivision_T=10_Z=15_CH=2_DCV_small.czi"
+# filepath = r"w96_A1+A2.czi"
+# filepath = r"Tumor_HE_Orig_small.czi"
+filepath = r"CellDivision_T=10_Z=15_CH=2_DCV_small.czi"
 
 # read all metadata and check for the attachment images
 md = metadata_tools.CziMetadata(filepath)
@@ -20,7 +26,7 @@ for k, v in attachments.__dict__.items():
     print(k, v)
 
 # read individual images as array and optionally copy the image files as CZIs
-attachment_types = ["SlidePreview", "Label", "Prescan"]
+attachment_types = [AttachmentType.SlidePreview, AttachmentType.Label, AttachmentType.Prescan]
 
 for at in attachment_types:
     if at == "SlidePreview" and attachments.has_preview:

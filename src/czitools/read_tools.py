@@ -24,11 +24,16 @@ import czifile
 import tempfile
 import shutil
 from czitools import logger as LOGGER
+from enum import Enum
 
 # from memory_profiler import profile
 
 logger = LOGGER.get_logger()
 
+class AttachmentType(Enum):
+    SlidePreview = 1
+    Label = 2
+    Prescan = 3
 
 # instantiating the decorator
 # @profile
@@ -353,7 +358,7 @@ def read_2dplane(
 
 def read_attachments(
         czi_filepath: [str, os.PathLike],
-        attachment_type: Literal["SlidePreview", "Label", "Prescan"] = "SlidePreview",
+        attachment_type: AttachmentType = AttachmentType.SlidePreview,
         copy: bool = True,
 ) -> Tuple[np.ndarray, Optional[str]]:
     """Read attachment images from a CZI image as numpy array
@@ -370,17 +375,24 @@ def read_attachments(
         Tuple[nd,array, [Optional[str]]: Tuple containing the 2d image array and optionally the location of the copied image.
     """
 
-    if attachment_type not in ["SlidePreview", "Label"]:
+    if attachment_type not in AttachmentType:
+    # if attachment_type not in ["SlidePreview", "Label", "]:
         raise Exception(
             f"{attachment_type} is not supported. Valid types are: SlidePreview, Label or Prescan."
         )
 
     att = czimd.CziAttachments(czi_filepath)
 
-    if attachment_type == "Label" and not att.has_label:
+    if attachment_type == AttachmentType.Label and not att.has_label:
+    #if attachment_type == "Label" and not att.has_label:
         return np.array([]), None
 
-    if attachment_type == "SlidePreview" and not att.has_preview:
+    if attachment_type == AttachmentType.SlidePreview and not att.has_preview:
+    #if attachment_type == "SlidePreview" and not att.has_preview:
+        return np.array([]), None
+
+    if attachment_type == AttachmentType.Prescan and not att.has_prescan:
+    #if attachment_type == "SlidePreview" and not att.has_preview:
         return np.array([]), None
 
     # create CZI-object using czifile library
@@ -391,7 +403,7 @@ def read_attachments(
 
             # iterate over attachments
             for att in cz.attachments():
-                if att.attachment_entry.name == attachment_type:
+                if att.attachment_entry.name == attachment_type.name:
                     # get the full path of the attachment image
                     full_path = Path(tmpdirname) / att.attachment_entry.filename
 
@@ -415,3 +427,5 @@ def read_attachments(
                         return img2d, dest
                     if not copy:
                         return img2d
+
+
