@@ -65,6 +65,60 @@ def test_read_mdarray_1(
 
 
 @pytest.mark.parametrize(
+    "czifile, dimorder, dimstring, shape, chunk_zyx",
+    [
+        ("w96_A1+A2.czi", "STCZYX", "STCZYX", (2, 1, 2, 1, 1416, 1960), False),
+        ("w96_A1+A2.czi", "STZCYX", "STZCYX", (2, 1, 1, 2, 1416, 1960), False),
+        ("S=3_1Pos_2Mosaic_T=2=Z=3_CH=2_sm.czi", "STCZYX", "", AttributeError, False),
+        ("S=2_3x3_CH=2.czi", "STZCYX", "STZCYX", (2, 1, 1, 2, 1792, 1792), False),
+        ("S=2_3x3_CH=2.czi", "STCZYX", "STCZYX", (2, 1, 2, 1, 1792, 1792), False),
+        (
+            "FOV7_HV110_P0500510000.czi",
+            "STZCYX",
+            "STZCYX",
+            (1, 1, 1, 1, 512, 512),
+            False,
+        ),
+        ("newCZI_compressed.czi", "STZCYX", "STZCYX", (1, 1, 1, 1, 512, 512), False),
+        ("w96_A1+A2.czi", "STCZYX", "STCZYX", (2, 1, 2, 1, 1416, 1960), True),
+        ("w96_A1+A2.czi", "STZCYX", "STZCYX", (2, 1, 1, 2, 1416, 1960), True),
+        ("S=3_1Pos_2Mosaic_T=2=Z=3_CH=2_sm.czi", "STCZYX", "", AttributeError, True),
+        ("S=2_3x3_CH=2.czi", "STZCYX", "STZCYX", (2, 1, 1, 2, 1792, 1792), True),
+        ("S=2_3x3_CH=2.czi", "STCZYX", "STCZYX", (2, 1, 2, 1, 1792, 1792), True),
+        (
+            "FOV7_HV110_P0500510000.czi",
+            "STZCYX",
+            "STZCYX",
+            (1, 1, 1, 1, 512, 512),
+            True,
+        ),
+        ("newCZI_compressed.czi", "STZCYX", "STZCYX", (1, 1, 1, 1, 512, 512), True),
+    ],
+)
+def test_read_mdarray_2(
+    czifile: str,
+    dimorder: str,
+    dimstring: str,
+    shape: Optional[Tuple[int]],
+    chunk_zyx: bool,
+) -> None:
+    # get the CZI filepath
+    filepath = basedir / "data" / czifile
+
+    mdarray, mdata, ds = read_tools.read_6darray_lazy(
+        filepath, chunk_zyx=chunk_zyx, output_order=dimorder
+    )
+
+    assert ds == dimstring
+
+    if type(shape) == type and issubclass(shape, Exception):
+        with pytest.raises(shape):
+            mdarray.shape
+    else:
+        assert mdarray.shape == shape
+
+
+@pytest.mark.parametrize(
     "czifile, dimorder, dimstring, shape, size_s, planes",
     [
         (
@@ -147,7 +201,7 @@ def test_readczi_scenes(czifile: str, scene: int, has_scenes: bool) -> None:
             )
             image2d_4 = czidoc.read(plane={"T": 0, "Z": 0, "C": 0}, scene=scene)
 
-            # TODO: This has to be checked why this gives differnet results
+            # TODO: This has to be checked why this gives different results
 
             image2d_5 = czidoc.read(plane={"T": 0, "Z": 0, "C": 0, "S": scene})
 

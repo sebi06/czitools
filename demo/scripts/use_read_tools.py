@@ -34,10 +34,15 @@ array6d, mdata, dim_string6d = read_tools.read_6darray(
     output_order="STCZYX",
     use_dask=False,
     chunk_zyx=False,
-    # planes={"S": (0, 1), "T": (1, 2), "C": (0, 0), "Z": (0, 2)},
+    # planes={"S": (0, 0), "T": (1, 2), "C": (0, 0), "Z": (0, 2)},
     # planes={"Z": (2, 2)},
     # planes={"S": (4, 6)},
 )
+
+# this is a rather experimental function
+
+# return a array with dimension order STZCYX(A)
+# array6d, mdata, dim_string6d = read_tools.read_6darray_lazy(filepath, chunk_zyx=False)
 
 if array6d is None:
     print("Empty array6d. Nothing to display in Napari")
