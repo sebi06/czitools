@@ -4,6 +4,9 @@ import numpy as np
 import napari
 from pathlib import Path
 from typing import List, Dict, Tuple, Optional, Type, Any, Union, Mapping
+import os
+
+IN_GITHUB_ACTIONS = os.getenv("GITHUB_ACTIONS") == "true"
 
 basedir = Path(__file__).resolve().parents[3]
 
@@ -25,7 +28,7 @@ def test_rename_sliders(
     # Assert
     assert renamed_sliders == expected_sliders
 
-
+@pytest.mark.skipif(IN_GITHUB_ACTIONS, reason="Test doesn't work in Github Actions.")
 @pytest.mark.parametrize(
     "czifile, num_layers",
     [
