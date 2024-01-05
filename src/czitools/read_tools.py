@@ -28,7 +28,7 @@ import shutil
 from czitools import logger as LOGGER
 from enum import Enum
 
-from memory_profiler import profile
+#from memory_profiler import profile
 
 logger = LOGGER.get_logger()
 
@@ -229,8 +229,9 @@ def read_6darray(
 
     return array6d, mdata, dim_string
 
-
-@profile
+# code for which memory has to be monitored
+# instantiating the decorator
+# @profile
 def read_6darray_lazy(
     filepath: Union[str, os.PathLike[str]],
     output_order: str = "STCZYX",
