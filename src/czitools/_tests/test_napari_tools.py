@@ -3,7 +3,7 @@ from czitools import napari_tools, metadata_tools, read_tools
 import numpy as np
 import napari
 from pathlib import Path
-from typing import List, Dict, Tuple, Optional, Type, Any, Union, Mapping
+from typing import List, Dict, Tuple, Optional, Type, Any, Union, Mapping, Literal
 import os
 
 # check if the test in executed as part of a GITHUB action
@@ -33,13 +33,17 @@ def test_rename_sliders(
 # exclude the test when executed inside a GITHUB action
 @pytest.mark.skipif(IN_GITHUB_ACTIONS, reason="Test doesn't work in Github Actions.")
 @pytest.mark.parametrize(
-    "czifile, num_layers",
+    "czifile, num_layers, show_metadata, wdname",
     [
-        ("w96_A1+A2.czi", 2),
+        ("w96_A1+A2.czi", 2, "tree", "MetadataTree"),
+        ("CellDivision_T=3_Z=5_CH=2_X=240_Y=170.czi", 2, "table", "MetadataTable"),
     ],
 )
-def test_show_image(czifile: str, num_layers: int) -> None:
-    """Test that the `show` function correctly displays a two-channel image."""
+def test_show_image(czifile: str,
+                    num_layers: int,
+                    show_metadata: Literal["none", "tree", "table"],
+                    wdname: str) -> None:
+    """Test that the `show` function correctly displays a two-channel image and the metadada widgets."""
 
     filepath = basedir / "data" / czifile
     md = metadata_tools.CziMetadata(filepath)
@@ -63,9 +67,12 @@ def test_show_image(czifile: str, num_layers: int) -> None:
         blending="additive",
         contrast="from_czi",
         gamma=0.85,
-        show_metadata="tree",
+        show_metadata=show_metadata,
         name_sliders=True,
     )
+
+    # Check that a tree widget is visible in the viewer
+    assert (wdname in viewer.window.__dict__["_dock_widgets"].data.keys()) is True
 
     # Check that the layer is present in the viewer
     assert len(viewer.layers) == num_layers
@@ -75,6 +82,6 @@ def test_show_image(czifile: str, num_layers: int) -> None:
         assert isinstance(viewer.layers[layer], napari.layers.Image)
 
         # Check that the layer's data is the same as the input image
-        np.testing.assert_array_equal(viewer.layers[layer].data, array6d[:, :, layer:layer+1, :, :, :])
+        np.testing.assert_array_equal(viewer.layers[layer].data, array6d[:, :, layer:layer + 1, :, :, :])
 
     viewer.close()

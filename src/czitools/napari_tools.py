@@ -151,7 +151,6 @@ def show(
             - "napari_auto" : Let Napari figure out a display scaling. Will look in the center of an image!
             - "from_czi" : use the display scaling from ZEN stored inside the CZI metadata. Defaults to "calc".
         gamma (float, optional): gamma value for the Viewer for all layers Defaults to 0.85.
-        add_mdtable (bool, optional): option to show the CziMetadata. Defaults to True.
         show_metadata (mdviewoption, optional): Option to show metadata as tree or table. Defaults to "tree".
         name_sliders (bool, optional): option to use the dimension letters as slider labels for the viewer. Defaults to False.
         dask_cache_size(float, optional): option to resize the dask cache used for opportunistic caching. Range [0 - 1]
