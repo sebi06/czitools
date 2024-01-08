@@ -184,7 +184,7 @@ def show(
     # https://github.com/napari/napari/issues/4861
     # https://forum.image.sc/t/image-layer-in-napari-showing-the-wrong-dimension-size-one-plane-is-missing/69939/12
 
-    scalefactors[dim_order["Z"]] = metadata.scale.ratio["zx"] * 1.0000001
+    scalefactors[dim_order["Z"]] = metadata.scale.ratio["zx"] * 1.0001
 
     if show_metadata.lower != "none":
         md_dict = czimd.create_mddict_nested(metadata, sort=True, remove_none=True)

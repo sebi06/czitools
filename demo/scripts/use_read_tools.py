@@ -28,10 +28,9 @@ filepath = misc_tools.openfile(
 
 print(filepath)
 
-# return a array with dimension order STZCYX(A)
+# return an array with dimension order STZCYX(A)
 array6d, mdata, dim_string6d = read_tools.read_6darray(
     filepath,
-    output_order="STCZYX",
     use_dask=False,
     chunk_zyx=False,
     # planes={"S": (0, 0), "T": (1, 2), "C": (0, 0), "Z": (0, 2)},
@@ -41,7 +40,7 @@ array6d, mdata, dim_string6d = read_tools.read_6darray(
 
 # this is a rather experimental function
 
-# return a array with dimension order STZCYX(A)
+# return an array with dimension order STZCYX(A)
 # array6d, mdata, dim_string6d = read_tools.read_6darray_lazy(filepath, chunk_zyx=False)
 
 if array6d is None:
