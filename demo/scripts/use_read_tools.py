@@ -31,8 +31,8 @@ print(filepath)
 # return an array with dimension order STCZYX(A)
 array6d, mdata = read_tools.read_6darray(
     filepath,
-    use_dask=True,
-    chunk_zyx=True,
+    use_dask=False,
+    chunk_zyx=False,
     # planes={"S": (0, 0), "T": (1, 2), "C": (0, 0), "Z": (0, 2)},
     # planes={"Z": (2, 2)},
     # planes={"S": (4, 6)},
