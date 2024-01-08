@@ -21,7 +21,7 @@ basedir = Path(__file__).resolve().parents[3]
 def test_rename_sliders(
     dim_order: Dict[str, int], sliders: Tuple[str], expected_sliders: Tuple[str]
 ) -> None:
-    """Test that `rename_sliders` correctly renames the sliders based on the `dim_order` dict."""
+    """Test that "rename_sliders" correctly renames the sliders based on the `dim_order` dict."""
 
     # Act
     renamed_sliders = napari_tools.rename_sliders(sliders, dim_order)
@@ -39,18 +39,19 @@ def test_rename_sliders(
         ("CellDivision_T=3_Z=5_CH=2_X=240_Y=170.czi", 2, "table", "MetadataTable"),
     ],
 )
-def test_show_image(czifile: str,
-                    num_layers: int,
-                    show_metadata: Literal["none", "tree", "table"],
-                    wdname: str) -> None:
+def test_show_image(
+    czifile: str,
+    num_layers: int,
+    show_metadata: Literal["none", "tree", "table"],
+    wdname: str,
+) -> None:
     """Test that the `show` function correctly displays a two-channel image and the metadada widgets."""
 
     filepath = basedir / "data" / czifile
     md = metadata_tools.CziMetadata(filepath)
 
-    array6d, mdata, dim_string6d = read_tools.read_6darray(
+    array6d, mdata = read_tools.read_6darray(
         filepath,
-        output_order="STCZYX",
         use_dask=False,
         chunk_zyx=False,
     )
@@ -63,7 +64,6 @@ def test_show_image(czifile: str,
         viewer,
         array6d,
         mdata,
-        dim_string=dim_string6d,
         blending="additive",
         contrast="from_czi",
         gamma=0.85,
@@ -82,6 +82,8 @@ def test_show_image(czifile: str,
         assert isinstance(viewer.layers[layer], napari.layers.Image)
 
         # Check that the layer's data is the same as the input image
-        np.testing.assert_array_equal(viewer.layers[layer].data, array6d[:, :, layer:layer + 1, :, :, :])
+        np.testing.assert_array_equal(
+            viewer.layers[layer].data, array6d[:, :, layer : layer + 1, :, :, :]
+        )
 
     viewer.close()

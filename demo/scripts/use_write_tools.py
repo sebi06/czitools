@@ -23,7 +23,7 @@ mdata = czimd.CziMetadata(filepath)
 print("Number of Scenes: ", mdata.image.SizeS)
 scene_id = 0
 
-# return a array with dimension order STZCYX(A)
+# return a array with dimension order STCZYX(A)
 array, mdata, dim_string6d = read_tools.read_6darray(
     filepath, output_order="STCZYX", use_dask=True
 )

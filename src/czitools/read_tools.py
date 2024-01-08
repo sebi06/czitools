@@ -13,7 +13,8 @@ from typing import List, Dict, Tuple, Optional, Type, Any, Union, Mapping, Liter
 from pylibCZIrw import czi as pyczi
 from czitools import metadata_tools as czimd
 from czitools import misc_tools
-#from dataclasses import dataclass, field, fields, Field
+
+# from dataclasses import dataclass, field, fields, Field
 import numpy as np
 from pathlib import Path
 import dask
@@ -28,7 +29,7 @@ import shutil
 from czitools import logger as LOGGER
 from enum import Enum
 
-#from memory_profiler import profile
+# from memory_profiler import profile
 
 logger = LOGGER.get_logger()
 
@@ -45,9 +46,9 @@ class AttachmentType(Enum):
 def read_6darray(
     filepath: Union[str, os.PathLike[str]],
     use_dask: bool = False,
-    chunk_zyx=False,
+    chunk_zyx: bool = False,
     planes: Dict[str, tuple[int, int]] = {},
-) -> Tuple[Optional[Union[np.ndarray, da.Array]], czimd.CziMetadata, str]:
+) -> Tuple[Optional[Union[np.ndarray, da.Array]], czimd.CziMetadata]:
     """Read a CZI image file as 6D dask array.
     Important: Currently supported are only scenes with equal size and CZIs with consistent pixel types.
     The output array has always the dimension order: STCZYX(A)
@@ -61,7 +62,7 @@ def read_6darray(
                                  Respectively {"Z":(5, 5)} will return a single z-plane with index 5.
 
     Returns:
-        Tuple[array6d, mdata, dim_string]: output as 6D dask array, metadata and dimstring
+        Tuple[array6d, mdata]: output as 6D dask array and metadata
     """
 
     if isinstance(filepath, Path):
@@ -91,7 +92,7 @@ def read_6darray(
 
     if not mdata.scene_shape_is_consistent and not "S" in planes.keys():
         logger.info("Scenes have inconsistent shape. Cannot read 6D array")
-        return None, mdata, ""
+        return None, mdata
 
     # open the CZI document to read the
     with pyczi.open_czi(filepath) as czidoc:
@@ -160,7 +161,7 @@ def read_6darray(
         # check if ADim can be removed because image is grayscale
         remove_adim = False if mdata.isRGB else True
 
-        # assume default dimension order = STZCYX(A)
+        # assume default dimension order = STCZYX(A)
         shape = [
             size_s,
             size_t,
@@ -198,12 +199,12 @@ def read_6darray(
             # insert 2D image plane into the array6d
             array6d[s[0], t[0], c[0], z[0], ...] = image2d
 
-        dim_string = "STCZYXA"
+        # dim_string = "STCZYXA"
 
         # remove the A dimension
         if remove_adim:
             array6d = np.squeeze(array6d, axis=-1)
-            dim_string = dim_string.replace("A", "")
+            # dim_string = dim_string.replace("A", "")
 
             if use_dask and chunk_zyx:
                 # for testing
@@ -214,7 +215,7 @@ def read_6darray(
                 # for testing
                 array6d = array6d.rechunk(chunks=(1, 1, 1, size_z, size_y, size_x, 3))
 
-    return array6d, mdata, dim_string
+    return array6d, mdata  # , dim_string
 
 
 # code for which memory has to be monitored
@@ -224,7 +225,7 @@ def read_6darray_lazy(
     filepath: Union[str, os.PathLike[str]],
     chunk_zyx=False,
     planes: Dict[str, tuple[int, int]] = {},
-) -> Tuple[Optional[Union[np.ndarray, da.Array]], czimd.CziMetadata, str]:
+) -> Tuple[Optional[Union[np.ndarray, da.Array]], czimd.CziMetadata]:
     """Read a CZI image file as 6D dask array with delayed plane reading.
     Important: Currently supported are only scenes with equal size and CZIs with consistent pixel types.
     The output array has always the dimension order: STCZYX(A)
@@ -237,7 +238,7 @@ def read_6darray_lazy(
                                  Respectively {"Z":(5, 5)} will return a single z-plane with index 5.
 
     Returns:
-        Tuple[array6d, mdata, dim_string]: output as 6D dask array, metadata and dimstring
+        Tuple[array6d, mdata]: output as 6D dask array and metadata
     """
 
     if isinstance(filepath, Path):
@@ -363,7 +364,7 @@ def read_6darray_lazy(
                                         c=ch[1],
                                         z=z[1],
                                         has_scenes=mdata.has_scenes,
-                                        #has_scenes=True,
+                                        # has_scenes=True,
                                         remove_adim=remove_adim,
                                     ),
                                     shape=shape2d,
@@ -408,11 +409,11 @@ def read_6darray_lazy(
             # create final STCZYX dask array
             array6d = da.stack(img, axis=0)
 
-        dim_string = "STCZYXA"
+        # dim_string = "STCZYXA"
 
         # remove the A dimension
         if remove_adim:
-            dim_string = dim_string.replace("A", "")
+            # dim_string = dim_string.replace("A", "")
             if chunk_zyx:
                 # for testing
                 array6d = array6d.rechunk(chunks=(1, 1, 1, size_z, size_y, size_x))
@@ -422,7 +423,7 @@ def read_6darray_lazy(
                 # for testing
                 array6d = array6d.rechunk(chunks=(1, 1, 1, size_z, size_y, size_x, 3))
 
-    return array6d, mdata, dim_string
+    return array6d, mdata  # , dim_string
 
 
 @dask.delayed

@@ -60,19 +60,18 @@ czi_bbox = czimd.CziBoundingBox(filepath)
 
 ## Reading CZI pixel data
 
-While the [pylibCZIrw](https://pypi.org/project/pylibCZIrw/) is focussing on reading individual planes it is also helpful to read CZI pixel data as a STZCYX(A) stack. Please check [use_read_tools.py](https://github.com/sebi06/czitools/blob/main/demo/scripts/use_read_tools.py) for some examples.
+While the [pylibCZIrw](https://pypi.org/project/pylibCZIrw/) is focussing on reading individual planes it is also helpful to read CZI pixel data as a STCZYX(A) stack. Please check [use_read_tools.py](https://github.com/sebi06/czitools/blob/main/demo/scripts/use_read_tools.py) for some examples.
 
 ```python
-# return a dask or numpy array with dimension order STZCYX(A)
-array6d, mdata, dim_string6d = read_tools.read_6darray(filepath,
-                                                       output_order="STCZYX",
-                                                       use_dask=True,
-                                                       chunk_zyx=False,
-                                                       # T=0,
-                                                       # Z=0
-                                                       # S=0
-                                                       # C=0
-                                                       )
+# return a dask or numpy array with dimension order STCZYX(A)
+array6d, mdata = read_tools.read_6darray(filepath,
+                                         use_dask=True,
+                                         chunk_zyx=False,
+                                         # T=0,
+                                         # Z=0
+                                         # S=0
+                                         # C=0
+                                        )
 
 if array6d is None:
     print("Empty array6d. Nothing to display in Napari")
@@ -81,7 +80,6 @@ else:
     # show array inside napari viewer
     viewer = napari.Viewer()
     layers = napari_tools.show(viewer, array6d, mdata,
-                               dim_string=dim_string6d,
                                blending="additive",
                                contrast='from_czi',
                                gamma=0.85,

@@ -28,11 +28,11 @@ filepath = misc_tools.openfile(
 
 print(filepath)
 
-# return an array with dimension order STZCYX(A)
-array6d, mdata, dim_string6d = read_tools.read_6darray(
+# return an array with dimension order STCZYX(A)
+array6d, mdata = read_tools.read_6darray(
     filepath,
-    use_dask=False,
-    chunk_zyx=False,
+    use_dask=True,
+    chunk_zyx=True,
     # planes={"S": (0, 0), "T": (1, 2), "C": (0, 0), "Z": (0, 2)},
     # planes={"Z": (2, 2)},
     # planes={"S": (4, 6)},
@@ -40,8 +40,8 @@ array6d, mdata, dim_string6d = read_tools.read_6darray(
 
 # this is a rather experimental function
 
-# return an array with dimension order STZCYX(A)
-# array6d, mdata, dim_string6d = read_tools.read_6darray_lazy(filepath, chunk_zyx=False)
+# return an array with dimension order STCZYX(A)
+# array6d, mdata = read_tools.read_6darray_lazy(filepath, use_dask=True, chunk_zyx=False)
 
 if array6d is None:
     print("Empty array6d. Nothing to display in Napari")
@@ -52,7 +52,6 @@ else:
         viewer,
         array6d,
         mdata,
-        dim_string=dim_string6d,
         blending="additive",
         contrast="from_czi",
         gamma=0.85,

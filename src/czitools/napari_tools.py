@@ -128,7 +128,7 @@ def show(
     viewer: napari.Viewer,
     array: Union[np.ndarray, List[da.Array], da.Array],
     metadata: czimd.CziMetadata,
-    dim_string: str,
+    dim_string: str = "STCZYX",
     blending: str = "additive",
     contrast: Literal["calc", "napari_auto", "from_czi"] = "calc",
     gamma: float = 0.85,
@@ -142,7 +142,7 @@ def show(
 
     Args:
         viewer (Any): Napari viewer object
-        array (Union[np.ndarray, List[da.Array], da.Array]): multi-dimensional array containing the pixel data (Numpy, List of Dask Array or Dask array
+        array (Union[np.ndarray, List[da.Array], da.Array]): multi-dimensional array containing the pixel data (Numpy, List of Dask Array or Dask array.
         metadata (czimd.CziMetadata): CziMetadata class
         dim_string (str): dimension string for the array to be shown
         blending (str, optional): blending mode for viewer. Defaults to "additive".
@@ -184,7 +184,7 @@ def show(
     # https://github.com/napari/napari/issues/4861
     # https://forum.image.sc/t/image-layer-in-napari-showing-the-wrong-dimension-size-one-plane-is-missing/69939/12
 
-    scalefactors[dim_order["Z"]] = metadata.scale.ratio["zx"] * 1.0001
+    scalefactors[dim_order["Z"]] = metadata.scale.ratio["zx"] * 1.001
 
     if show_metadata.lower != "none":
         md_dict = czimd.create_mddict_nested(metadata, sort=True, remove_none=True)
@@ -212,14 +212,14 @@ def show(
         try:
             # get the channel name
             chname = metadata.channelinfo.names[ch]
-        except KeyError as e:
-            print(e)
+            # inside the CZI metadata colors are defined as ARGB hexstring
+            rgb = "#" + metadata.channelinfo.colors[ch][3:]
+            ncmap = Colormap(["#000000", rgb], name="cm_" + chname)
+        except (KeyError, IndexError) as e:
+            logger.warning(e)
             # or use CH1 etc. as string for the name
             chname = "CH" + str(ch + 1)
-
-        # inside the CZI metadata colors are defined as ARGB hexstring
-        rgb = "#" + metadata.channelinfo.colors[ch][3:]
-        ncmap = Colormap(["#000000", rgb], name="cm_" + chname)
+            ncmap = Colormap(["#000000", "#ffffff"], name="cm_" + chname)
 
         # cut out channel
         if metadata.image.SizeC is not None:
@@ -263,12 +263,19 @@ def show(
             )
         if contrast == "from_czi":
             # guess an appropriate scaling from the display setting embedded in the CZI
-            lower = np.round(
-                metadata.channelinfo.clims[ch][0] * metadata.maxvalue[ch], 0
-            )
-            higher = np.round(
-                metadata.channelinfo.clims[ch][1] * metadata.maxvalue[ch], 0
-            )
+            try:
+                lower = np.round(
+                    metadata.channelinfo.clims[ch][0] * metadata.maxvalue[ch], 0
+                )
+                higher = np.round(
+                    metadata.channelinfo.clims[ch][1] * metadata.maxvalue[ch], 0
+                )
+            except IndexError as e:
+                logger.warning(
+                    "Calculation from display setting from CZI failed. Use 0-Max instead."
+                )
+                lower = 0
+                higher = metadata.maxvalue[ch]
 
             # simple validity check
             if lower >= higher:
@@ -299,11 +306,12 @@ def show(
         sliderlabels = rename_sliders(viewer.dims.axis_labels, dim_order)
         viewer.dims.axis_labels = sliderlabels
 
-    # workaround because of: https://forum.image.sc/t/napari-3d-view-shows-flat-z-stack/62744/9?u=sebi06
-    if dim_string == "STZCYX" or dim_string == "TZCYX":
-        od = list(viewer.dims.order)
-        od[dim_order["C"]], od[dim_order["Z"]] = od[dim_order["Z"]], od[dim_order["C"]]
-        viewer.dims.order = tuple(od)
+    # # workaround because of: https://forum.image.sc/t/napari-3d-view-shows-flat-z-stack/62744/9?u=sebi06
+    # not needed anymore since output is always STCZYX now.
+    # if dim_string == "STCZYX" or dim_string == "TZCYX":
+    #     od = list(viewer.dims.order)
+    #     od[dim_order["C"]], od[dim_order["Z"]] = od[dim_order["Z"]], od[dim_order["C"]]
+    #     viewer.dims.order = tuple(od)
 
     return napari_layers
 

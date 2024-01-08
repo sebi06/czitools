@@ -610,7 +610,12 @@ def remove_none_from_dict(dictionary: Dict) -> Dict:
         Dict: Cleaned up dictionary
     """
     for key, value in list(dictionary.items()):
-        if value is None or value == [] or value == {}:
+        # if value is None or value == [] or value == {}:
+        if (
+            value is None
+            or (isinstance(value, list) and not bool(value))
+            or value == {}
+        ):
             del dictionary[key]
         elif isinstance(value, dict):
             remove_none_from_dict(value)

@@ -83,9 +83,7 @@ def test_write_2(
     # get the czifile path
     filepath = basedir / czifilepath
 
-    mdarray, mdata, dimstring = read_tools.read_6darray(
-        filepath, use_dask=False, output_order="STZCYX"
-    )
+    mdarray, mdata = read_tools.read_6darray(filepath, use_dask=False)
 
     # create the filename for the new CZI image file
     newczi = str(Path.cwd() / czifilepath)
@@ -93,10 +91,10 @@ def test_write_2(
     # open a new CZI and allow overwrite (!!!) to play around ...
     with pyczi.create_czi(newczi, exist_ok=True) as czidoc_w:
         # loop over all z-planes and channels
-        for z, ch in it.product(range(mdata.image.SizeZ), range(mdata.image.SizeC)):
+        for ch, z in it.product(range(mdata.image.SizeC), range(mdata.image.SizeZ)):
             # get the 2d array for the current plane and add axis to get (Y, X, 1) as shape
             # write the plane with shape (Y, X, 1) to the new CZI file
-            czidoc_w.write(data=mdarray[0, 0, z, ch, ...], plane={"Z": z, "C": ch})
+            czidoc_w.write(data=mdarray[0, 0, ch, z, ...], plane={"C": ch, "Z": z})
 
     # get the complete metadata at once as one big class
     mdata = czimd.CziMetadata(newczi)
@@ -138,9 +136,7 @@ def test_write_3(
     # get the czifile path
     filepath = basedir / czifilepath
 
-    mdarray, mdata, dimstring = read_tools.read_6darray(
-        filepath, use_dask=False, output_order="STZCYX"
-    )
+    mdarray, mdata = read_tools.read_6darray(filepath, use_dask=False)
 
     # create the filename for the new CZI image file
     newczi_zloc = str(Path.cwd() / "newCZI_zloc.czi")
@@ -150,7 +146,7 @@ def test_write_3(
         for z in tqdm(range(mdata.image.SizeZ)):
             # for fun - write the z-planes to different locations
             czidoc_w.write(
-                data=mdarray[0, 0, z, ch, ...], plane={"C": ch}, location=(xstart, 0)
+                data=mdarray[0, 0, ch, z, ...], plane={"C": ch}, location=(xstart, 0)
             )
 
             # change the x-position for the next round to write "side-by-side"
@@ -203,11 +199,7 @@ def test_write_4(
     # get the czifile path
     filepath = basedir / czifilepath
 
-    mdarray, mdata, dimstring = read_tools.read_6darray(
-        filepath,
-        use_dask=False,
-        output_order="STZCYX",
-    )
+    mdarray, mdata = read_tools.read_6darray(filepath, use_dask=False)
 
     # first step is to create some kind of grid of locations
     locx = []
@@ -226,7 +218,7 @@ def test_write_4(
         for z in tqdm(range(mdata.image.SizeZ)):
             # for "fun" - write the z-planes to different locations using the locations we just created
             czidoc_w.write(
-                data=mdarray[0, 0, z, ch, ...],
+                data=mdarray[0, 0, ch, z, ...],
                 plane={"C": ch},
                 scene=z,
                 location=(locx[z], locy[z]),
@@ -269,10 +261,8 @@ def test_write_omezarr(
     # get the czifile path
     filepath = basedir / czifilepath
 
-    # return a array with dimension order STZCYX(A)
-    array, mdata, dim_string6d = read_tools.read_6darray(
-        filepath, output_order=order, use_dask=use_dask
-    )
+    # return a array with dimension order STCZYX(A)
+    array, mdata = read_tools.read_6darray(filepath, use_dask=use_dask)
 
     array = array[sceneid, ...]
 

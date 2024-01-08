@@ -26,7 +26,8 @@ def test_slicedim(czifile: str, dimindex: int, posdim: int, shape: Tuple[int]) -
     # get the CZI filepath
     filepath = basedir / "data" / czifile
 
-    mdarray, mdata, dimstring = read_tools.read_6darray(filepath, output_order="STCZYX")
+    # mdarray, mdata, dimstring = read_tools.read_6darray(filepath, output_order="STCZYX")
+    mdarray, mdata = read_tools.read_6darray(filepath)
 
     dim_array = misc_tools.slicedim(mdarray, dimindex, posdim)
     assert dim_array.shape == shape
