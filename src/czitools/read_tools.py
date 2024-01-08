@@ -74,7 +74,7 @@ def read_6darray(
 
     if not mdata.consistent_pixeltypes:
         logger.info("Detected PixelTypes ar not consistent. Cannot create array6d")
-        return None, mdata, ""
+        return None, mdata
 
     # check planes
     if not planes is False:
@@ -84,7 +84,7 @@ def read_6darray(
                     logger.info(
                         f"Planes indices (zero-based) for {planes[k]} are invalid. BBox for {[k]}: {mdata.bbox.total_bounding_box[k]}"
                     )
-                    return None, mdata, ""
+                    return None, mdata
 
     if mdata.consistent_pixeltypes:
         # use pixel type from first channel
@@ -264,7 +264,7 @@ def read_6darray_lazy(
 
     if not mdata.scene_shape_is_consistent and not "S" in planes.keys():
         logger.info("Scenes have inconsistent shape. Cannot read 6D array")
-        return None, mdata, ""
+        return None, mdata
 
     # open the CZI document to read the
     with pyczi.open_czi(filepath) as czidoc:
