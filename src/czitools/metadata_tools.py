@@ -22,8 +22,8 @@ from pathlib import Path
 from box import Box, BoxList
 from czitools import logger as LOGGER
 import time
+import validators
 from dataclasses import asdict
-import czifile
 
 
 logger = LOGGER.get_logger()
@@ -34,6 +34,7 @@ class CziMetadata:
     filepath: Union[str, os.PathLike[str]]
     filename: Optional[str] = field(init=False, default=None)
     dirname: Optional[str] = field(init=False, default=None)
+    is_url: Optional[bool] = field(init=False, default=False)
     software_name: Optional[str] = field(init=False, default=None)
     software_version: Optional[str] = field(init=False, default=None)
     acquisition_date: Optional[str] = field(init=False, default=None)
@@ -46,7 +47,7 @@ class CziMetadata:
         init=False, default_factory=lambda: {}
     )
     aics_size: Optional[Tuple[int]] = field(init=False, default_factory=lambda: ())
-    aics_ismosaic: Optional[bool] = field(init=False, default=False)
+    aics_ismosaic: Optional[bool] = field(init=False, default=None)
     aics_dim_order: Optional[Dict[str, int]] = field(
         init=False, default_factory=lambda: {}
     )
@@ -70,12 +71,24 @@ class CziMetadata:
     microscope: Optional[CziMicroscope] = field(init=False, default=None)
     sample: Optional[CziSampleInfo] = field(init=False, default=None)
     add_metadata: Optional[CziAddMetaData] = field(init=False, default=None)
+    pyczi_readertype: Optional[pyczi.ReaderFileInputTypes] = field(
+        init=False, default=None
+    )
     """
     Create a CziMetadata object from the filename of the CZI image file.
     """
 
     def __post_init__(self):
-        ##logger = setup_log("CziMetaData")
+        # check if filepath is a valid url
+        if validators.url(self.filepath):
+            self.is_url = True
+            self.pyczi_readertype = pyczi.ReaderFileInputTypes.Curl
+            logger.info(
+                "FilePath is a valid link. Only pylibCZIrw functionality is available."
+            )
+
+        elif not validators.url(self.filepath):
+            self.pyczi_readertype = pyczi.ReaderFileInputTypes.Standard
 
         if isinstance(self.filepath, Path):
             # convert to string
@@ -117,7 +130,7 @@ class CziMetadata:
         self.has_scenes = self.czi_box.has_scenes
 
         # get metadata using pylibCZIrw
-        with pyczi.open_czi(self.filepath) as czidoc:
+        with pyczi.open_czi(self.filepath, self.pyczi_readertype) as czidoc:
             # get dimensions
             self.pyczi_dims = czidoc.total_bounding_box
 
@@ -130,27 +143,28 @@ class CziMetadata:
                 czidoc, size_s=self.image.SizeS
             )
 
-        # get some additional metadata using aicspylibczi
-        try:
-            from aicspylibczi import CziFile
+        if not self.is_url:
+            # get some additional metadata using aicspylibczi
+            try:
+                from aicspylibczi import CziFile
 
-            # get the general CZI object using aicspylibczi
-            aicsczi = CziFile(self.filepath)
+                # get the general CZI object using aicspylibczi
+                aicsczi = CziFile(self.filepath)
 
-            self.aics_dimstring = aicsczi.dims
-            self.aics_dims_shape = aicsczi.get_dims_shape()
-            self.aics_size = aicsczi.size
-            self.aics_ismosaic = aicsczi.is_mosaic()
-            (
-                self.aics_dim_order,
-                self.aics_dim_index,
-                self.aics_dim_valid,
-            ) = self.get_dimorder(aicsczi.dims)
-            self.aics_posC = self.aics_dim_order["C"]
+                self.aics_dimstring = aicsczi.dims
+                self.aics_dims_shape = aicsczi.get_dims_shape()
+                self.aics_size = aicsczi.size
+                self.aics_ismosaic = aicsczi.is_mosaic()
+                (
+                    self.aics_dim_order,
+                    self.aics_dim_index,
+                    self.aics_dim_valid,
+                ) = self.get_dimorder(aicsczi.dims)
+                self.aics_posC = self.aics_dim_order["C"]
 
-        except ImportError as e:
-            # print("Package aicspylibczi not found. Use Fallback values.")
-            logger.info("Package aicspylibczi not found. Use Fallback values.")
+            except ImportError as e:
+                # print("Package aicspylibczi not found. Use Fallback values.")
+                logger.warning("Package aicspylibczi not found. Use Fallback values.")
 
         for ch, px in self.pixeltypes.items():
             npdtype, maxvalue = self.get_dtype_fromstring(px)
@@ -394,7 +408,12 @@ class CziBoundingBox:
         elif isinstance(self.czisource, Box):
             self.czisource = self.czisource.filepath
 
-        with pyczi.open_czi(self.czisource) as czidoc:
+        if validators.url(self.czisource):
+            pyczi_readertype = pyczi.ReaderFileInputTypes.Curl
+        if not validators.url(self.czisource):
+            pyczi_readertype = pyczi.ReaderFileInputTypes.Standard
+
+        with pyczi.open_czi(self.czisource, pyczi_readertype) as czidoc:
             try:
                 self.scenes_bounding_rect = czidoc.scenes_bounding_rectangle
             except Exception as e:
@@ -428,27 +447,40 @@ class CziAttachments:
     def __post_init__(self):
         logger.info("Reading AttachmentImages from CZI image data.")
 
-        if isinstance(self.czisource, Path):
-            # convert to string
-            self.czisource = str(self.czisource)
-        elif isinstance(self.czisource, Box):
-            self.czisource = self.czisource.filepath
+        try:
+            import czifile
 
-        # create CZI-object using czifile library
-        with czifile.CziFile(self.czisource) as cz:
-            # iterate over attachments
-            for att in cz.attachments():
-                self.names.append(att.attachment_entry.name)
+            if isinstance(self.czisource, Path):
+                # convert to string
+                self.czisource = str(self.czisource)
+            elif isinstance(self.czisource, Box):
+                self.czisource = self.czisource.filepath
 
-            if "SlidePreview" in self.names:
-                self.has_preview = True
-                logger.info("Attachment SlidePreview found.")
-            if "Label" in self.names:
-                self.has_label = True
-                logger.info("Attachment Label found.")
-            if "Prescan" in self.names:
-                self.has_prescan = True
-                logger.info("Attachment Prescan found.")
+            if validators.url(self.czisource):
+                logger.warning(
+                    "Reading Attachments from CZI via a link is not supported."
+                )
+            else:
+                # create CZI-object using czifile library
+                with czifile.CziFile(self.czisource) as cz:
+                    # iterate over attachments
+                    for att in cz.attachments():
+                        self.names.append(att.attachment_entry.name)
+
+                    if "SlidePreview" in self.names:
+                        self.has_preview = True
+                        logger.info("Attachment SlidePreview found.")
+                    if "Label" in self.names:
+                        self.has_label = True
+                        logger.info("Attachment Label found.")
+                    if "Prescan" in self.names:
+                        self.has_prescan = True
+                        logger.info("Attachment Prescan found.")
+
+        except ImportError as e:
+            logger.warning(
+                "Package czifile not found. Cannot extract information about attached images."
+            )
 
 
 @dataclass
@@ -1156,13 +1188,22 @@ def get_czimd_box(filepath: Union[str, os.PathLike[str]]) -> Box:
         Box: CZI metadata as a Box object
     """
 
-    if isinstance(filepath, Path):
-        # convert to string
-        filepath = str(filepath)
+    is_url = False
 
-    # get metadata dictionary using pylibCZIrw
-    with pyczi.open_czi(filepath) as czi_document:
-        metadata_dict = czi_document.metadata
+    # check if filepath is a valiud url
+    if validators.url(filepath):
+        is_url = True
+        # get metadata dictionary using a valid linkusing pylibCZIrw
+        with pyczi.open_czi(filepath, pyczi.ReaderFileInputTypes.Curl) as czi_document:
+            metadata_dict = czi_document.metadata
+
+    else:  # check if the input is a path-like objeject
+        if isinstance(filepath, Path) or isinstance(filepath, str):
+            # convert to string
+            filepath = str(filepath)
+            # get metadata dictionary using pylibCZIrw
+            with pyczi.open_czi(filepath) as czi_document:
+                metadata_dict = czi_document.metadata
 
     czimd_box = Box(
         metadata_dict,
@@ -1175,6 +1216,12 @@ def get_czimd_box(filepath: Union[str, os.PathLike[str]]) -> Box:
 
     # add the filepath
     czimd_box.filepath = filepath
+    czimd_box.is_url = is_url
+
+    if is_url:
+        czimd_box.czi_open_args = [pyczi.ReaderFileInputTypes.Curl]
+    if not is_url:
+        czimd_box.czi_open_args = [pyczi.ReaderFileInputTypes.Standard]
 
     # set the defaults to False
     czimd_box.has_customattr = False
