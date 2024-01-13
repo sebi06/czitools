@@ -133,3 +133,26 @@ def test_calc_scaling(
 
     assert min_value == minv
     assert max_value == maxv
+
+
+@pytest.mark.parametrize(
+    "link, https_only, link_ok",
+    [
+        ("https://www.dropbox.com/scl/fi/un31xfnxma1ssffoh6d2h/CellDivision_T-10_Z-15_CH-2_DCV_small.czi?rlkey=92lj0i9sm3tyecyqp8b53l0o9&dl=0", True, True),
+        ("https://www.google.de", True, True),
+        ("http://www.google.de", True, False),
+        ("http://www.google.de", False, True),
+        ("E:\Github\czitools\data\CellDivision_T=10_Z=15_CH=2_DCV_small.czi", True, False),
+        ("data/CellDivision_T=10_Z=15_CH=2_DCV_small.czi", False, False),
+        ("data/CellDivision_T=10_Z=15_CH=2_DCV_small.czi", True, False),
+        ("CellDivision_T=10_Z=15_CH=2_DCV_small.czi", False, False),
+        ("CellDivision_T=10_Z=15_CH=2_DCV_small.czi", True, False),
+        ("https://github.com/sebi06/czitools/raw/123/data/CellDivision_T=10_Z=15_CH=2_DCV_small.czi", True, True),
+        ("https://www.github.com/sebi06/czitools/raw/123/data/CellDivision_T=10_Z=15_CH=2_DCV_small.czi", True, True),
+        ("http://github.com/sebi06/czitools/raw/123/data/CellDivision_T=10_Z=15_CH=2_DCV_small.czi", False, True),
+    ]
+)
+def test_links(link: str, https_only: bool, link_ok: bool) -> None:
+
+    assert link_ok is misc_tools.is_valid_url(link, https_only=https_only)
+

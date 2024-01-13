@@ -25,6 +25,8 @@ from typing import List, Dict, Tuple, Optional, Type, Any, Union, Mapping
 from dataclasses import make_dataclass, fields, dataclass
 from czitools import logger as LOGGER
 import validators
+import re
+from urllib.parse import urlparse
 
 logger = LOGGER.get_logger()
 
@@ -619,7 +621,7 @@ def remove_none_from_dict(dictionary: Dict) -> Dict:
     Remove values equal to: None, [] or {} from dictionary
 
     Args:
-        dictionary (Dict): Dictioonary to be checked
+        dictionary (Dict): Dictionary to be checked
 
     Returns:
         Dict: Cleaned up dictionary
@@ -640,3 +642,36 @@ def remove_none_from_dict(dictionary: Dict) -> Dict:
                     remove_none_from_dict(item)
 
     return dictionary
+
+
+def is_valid_url(url: str, https_only: bool) -> bool:
+
+    if https_only:
+        pattern = r'^(https):\/\/*'
+    if not https_only:
+        pattern = r'^(http|https):\/\/*'
+
+    r = re.compile(pattern)
+    if re.search(r, str(url)):
+        check_https = True
+    else:
+        check_https = False
+
+    try:
+        result = urlparse(str(url))
+        check_urlib = all([result.scheme, result.netloc])
+    except ValueError:
+        check_urlib = False
+
+    check_validators = validators.url(url)
+
+    if check_https and check_urlib and check_validators:
+        return True
+    else:
+        logger.error("Checking link failed.")
+        return False
+
+
+
+
+

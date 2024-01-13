@@ -79,8 +79,10 @@ class CziMetadata:
     """
 
     def __post_init__(self):
+
         # check if filepath is a valid url
-        if validators.url(self.filepath):
+        if misc_tools.is_valid_url(self.filepath, https_only=True):
+        #if validators.url(self.filepath):
             self.is_url = True
             self.pyczi_readertype = pyczi.ReaderFileInputTypes.Curl
             logger.info(
@@ -1190,14 +1192,17 @@ def get_czimd_box(filepath: Union[str, os.PathLike[str]]) -> Box:
 
     is_url = False
 
-    # check if filepath is a valiud url
-    if validators.url(filepath):
+    # check if filepath is a valid url and is a https link
+    if misc_tools.is_valid_url(filepath, https_only=True):
+    #if validators.url(filepath):
         is_url = True
-        # get metadata dictionary using a valid linkusing pylibCZIrw
+        # get metadata dictionary using a valid link using pylibCZIrw
         with pyczi.open_czi(filepath, pyczi.ReaderFileInputTypes.Curl) as czi_document:
             metadata_dict = czi_document.metadata
 
-    else:  # check if the input is a path-like objeject
+    else:
+
+        # check if the input is a path-like object
         if isinstance(filepath, Path) or isinstance(filepath, str):
             # convert to string
             filepath = str(filepath)
