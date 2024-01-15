@@ -187,15 +187,15 @@ def show(
     scalefactors[dim_order["Z"]] = metadata.scale.ratio["zx"] * 1.001
 
     if show_metadata.lower != "none":
-        md_dict = czimd.create_mddict_nested(metadata, sort=True, remove_none=True)
-
         # add PyQTGraph DataTreeWidget to Napari viewer to show the metadata
         if show_metadata == "tree":
+            md_dict = czimd.create_md_dict_nested(metadata, sort=True, remove_none=True)
             mdtree = MdTreeWidget(data=md_dict, expandlevel=1)
             viewer.window.add_dock_widget(mdtree, name="MetadataTree", area="right")
 
         # add QTableWidget DataTreeWidget to Napari viewer to show the metadata
         if show_metadata == "table":
+            md_dict = czimd.create_md_dict_red(metadata, sort=True, remove_none=True)
             mdtable = MdTableWidget()
             mdtable.update_metadata(md_dict)
             mdtable.update_style()
