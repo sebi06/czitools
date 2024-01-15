@@ -335,9 +335,6 @@ def read_6darray_lazy(
         # check if ADim can be removed because image is grayscale
         remove_adim = False if mdata.isRGB else True
 
-        if mdata.is_url:
-            logger.info("Reading pixel data via network from link location.")
-
         # initialise empty list to hold the dask arrays
         img = []
 
@@ -360,21 +357,21 @@ def read_6darray_lazy(
 
                         # for z in range(size_z):
                         for z in enumerate(range(z_start, z_end)):
-                            if mdata.image.SizeS is not None:
-                                z_slice = da.from_delayed(
-                                    read_2dplane(
-                                        czidoc,
-                                        s=s[1],
-                                        t=time[1],
-                                        c=ch[1],
-                                        z=z[1],
-                                        has_scenes=mdata.has_scenes,
-                                        remove_adim=remove_adim,
-                                    ),
-                                    shape=shape2d,
-                                    dtype=mdata.npdtype[0],
-                                )
-                                pbar.update()
+                            # if mdata.image.SizeS is not None:
+                            z_slice = da.from_delayed(
+                                read_2dplane(
+                                    czidoc,
+                                    s=s[1],
+                                    t=time[1],
+                                    c=ch[1],
+                                    z=z[1],
+                                    has_scenes=mdata.has_scenes,
+                                    remove_adim=remove_adim,
+                                ),
+                                shape=shape2d,
+                                dtype=mdata.npdtype[0],
+                            )
+                            pbar.update()
 
                             # if mdata.image.SizeS is None:
                             #     z_slice = da.from_delayed(

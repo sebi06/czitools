@@ -1100,7 +1100,7 @@ def writexml(
     return xmlfile
 
 
-def create_mdict_red(
+def create_md_dict_red(
     metadata: CziMetadata, sort: bool = True, remove_none: bool = True
 ) -> Dict:
     """
@@ -1309,11 +1309,11 @@ def get_czimd_box(filepath: Union[str, os.PathLike[str]]) -> Box:
     return czimd_box
 
 
-def create_mddict_nested(
+def create_md_dict_nested(
     metadata: CziMetadata, sort: bool = True, remove_none: bool = True
 ) -> Dict:
     """
-    _summary_
+    Create nested dictionary from metadata
 
     Args:
         metadata (CziMetadata): CzIMetaData object_

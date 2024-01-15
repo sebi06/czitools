@@ -15,17 +15,12 @@ class CustomFormatter(logging.Formatter):
     def __init__(self, fmt):
         super().__init__()
         self.fmt = fmt
-        # self.FORMATS = {
-        #     logging.DEBUG: self.grey + self.fmt + self.reset,
-        #     logging.INFO: self.blue + self.fmt + self.reset,
-        #     logging.WARNING: self.yellow + self.fmt + self.reset,
-        #     logging.ERROR: self.red + self.fmt + self.reset,
-        #     logging.CRITICAL: self.bold_red + self.fmt + self.reset,
-        # }
 
+        # define ANSI color codes - see: https://talyian.github.io/ansicolors/
         grey = "\x1b[38;21m"
         green = "\x1b[0;30;42m"
         yellow = "\x1b[1;30;43m"
+        orange = "\x1b[38;5;214m"
         red = "\x1b[0:30;41m"
         bold_red = "\x1b[1;30;1m"
         reset = "\x1b[0m"
@@ -33,7 +28,7 @@ class CustomFormatter(logging.Formatter):
         self.FORMATS = {
             logging.DEBUG: f"%(asctime)s -  {grey}%(levelname)s{reset} - %(message)s",
             logging.INFO: f"%(asctime)s -  {green}%(levelname)s{reset} - %(message)s",
-            logging.WARNING: f"%(asctime)s -  {yellow}%(levelname)s{reset} - %(message)s",
+            logging.WARNING: f"%(asctime)s -  {orange}%(levelname)s{reset} - %(message)s",
             logging.ERROR: f"%(asctime)s -  {red}%(levelname)s{reset} - %(message)s",
             logging.CRITICAL: f"%(asctime)s -  {bold_red}%(levelname)s{reset} - %(message)s",
         }
@@ -59,18 +54,18 @@ def get_logger(log_to_file: bool = False):
 
     # Create file handler for logging to a file (logs all five levels)
     today = datetime.date.today()
-    # file_handler = logging.FileHandler(
-    #    "my_app_{}.log".format(today.strftime("%Y_%m_%d"))
-    # )
-    # file_handler.setLevel(logging.DEBUG)
-    # file_handler.setFormatter(logging.Formatter(fmt))
 
     # make sure to only create it once otherwise one will get double entries in log
     if not logger.hasHandlers():
         # Add both handlers to the logger
         logger.addHandler(stdout_handler)
 
-        # if log_to_file:
-        #    logger.addHandler(file_handler)
+        if log_to_file:
+            file_handler = logging.FileHandler(
+                "my_app_{}.log".format(today.strftime("%Y_%m_%d"))
+            )
+            file_handler.setLevel(logging.DEBUG)
+            file_handler.setFormatter(logging.Formatter(fmt))
+            logger.addHandler(file_handler)
 
     return logger
