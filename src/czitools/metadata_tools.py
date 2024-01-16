@@ -10,7 +10,7 @@
 #################################################################
 
 from __future__ import annotations
-from typing import List, Dict, Tuple, Optional, Type, Any, Union, Mapping
+from typing import List, Dict, Tuple, Optional, Type, Any, Union, Mapping, Annotated
 import os
 from collections import Counter
 import xml.etree.ElementTree as ET
@@ -27,6 +27,12 @@ from dataclasses import asdict
 
 
 logger = LOGGER.get_logger()
+
+
+@dataclass
+class ValueRange:
+    lo: float
+    hi: float
 
 
 @dataclass
@@ -74,15 +80,16 @@ class CziMetadata:
     pyczi_readertype: Optional[pyczi.ReaderFileInputTypes] = field(
         init=False, default=None
     )
+    array6d_size: Optional[Tuple[int]] = field(init=False, default_factory=lambda: ())
+    scene_size_consistent: Optional[Tuple[int]] = field(init=False, default_factory=lambda: ())
     """
     Create a CziMetadata object from the filename of the CZI image file.
     """
 
     def __post_init__(self):
-
         # check if filepath is a valid url
         if misc_tools.is_valid_url(self.filepath, https_only=True):
-        #if validators.url(self.filepath):
+            # if validators.url(self.filepath):
             self.is_url = True
             self.pyczi_readertype = pyczi.ReaderFileInputTypes.Curl
             logger.info(
@@ -102,6 +109,9 @@ class CziMetadata:
 
         # get the metadata as box
         self.czi_box = get_czimd_box(self.filepath)
+
+        # check for existence of scenes
+        self.has_scenes = self.czi_box.has_scenes
 
         # get acquisition data and SW version
         if self.czi_box.ImageDocument.Metadata.Information.Application is not None:
@@ -128,9 +138,6 @@ class CziMetadata:
         # get the dimensions and order
         self.image = CziDimensions(self.czi_box)
 
-        # check for existence of scenes
-        self.has_scenes = self.czi_box.has_scenes
-
         # get metadata using pylibCZIrw
         with pyczi.open_czi(self.filepath, self.pyczi_readertype) as czidoc:
             # get dimensions
@@ -144,6 +151,10 @@ class CziMetadata:
             self.scene_shape_is_consistent = self.check_scenes_shape(
                 czidoc, size_s=self.image.SizeS
             )
+
+            # if self.scene_shape_is_consistent:
+            #    self.image.SizeX_scene = czidoc.scenes_bounding_rectangle[0].w
+            #    self.image.SizeY_scene = czidoc.scenes_bounding_rectangle[0].h
 
         if not self.is_url:
             # get some additional metadata using aicspylibczi
@@ -318,8 +329,10 @@ class CziMetadata:
 @dataclass
 class CziDimensions:
     czisource: Union[str, os.PathLike[str], Box]
-    SizeX: Optional[int] = field(init=False, default=None)
-    SizeY: Optional[int] = field(init=False, default=None)
+    SizeX: Optional[int] = field(init=False, default=None)  # total size X including scenes
+    SizeY: Optional[int] = field(init=False, default=None)  # total size Y including scenes
+    SizeX_scene: Optional[int] = field(init=False, default=None)  # size X per scene (if equal scene sizes)
+    SizeY_scene: Optional[int] = field(init=False, default=None)  # size Y per scene (if equal scene sizes)
     SizeS: Optional[int] = field(init=False, default=None)
     SizeT: Optional[int] = field(init=False, default=None)
     SizeZ: Optional[int] = field(init=False, default=None)
@@ -330,8 +343,6 @@ class CziDimensions:
     SizeI: Optional[int] = field(init=False, default=None)
     SizeV: Optional[int] = field(init=False, default=None)
     SizeB: Optional[int] = field(init=False, default=None)
-    SizeX_sf: Optional[int] = field(init=False, default=None)
-    SizeY_sf: Optional[int] = field(init=False, default=None)
     """Dataclass containing the image dimensions.
 
     Information official CZI Dimension Characters:
@@ -352,6 +363,10 @@ class CziDimensions:
     def __post_init__(self):
         self.set_dimensions()
         logger.info("Reading Dimensions from CZI image data.")
+
+        # set dimensions in XY with respect to possible down scaling
+        self.SizeX_sf = self.SizeX
+        self.SizeY_sf = self.SizeY
 
     def set_dimensions(self):
         """Populate the image dimensions with the detected values from the metadata"""
@@ -385,6 +400,11 @@ class CziDimensions:
             if fd.name in dims:
                 if dimensions[fd.name] is not None:
                     setattr(self, fd.name, int(dimensions[fd.name]))
+
+        if czi_box.has_scenes:
+            with pyczi.open_czi(czi_box.filepath, czi_box.czi_open_arg) as czidoc:
+                self.SizeX_scene = czidoc.scenes_bounding_rectangle[0].w
+                self.SizeY_scene = czidoc.scenes_bounding_rectangle[0].h
 
 
 @dataclass
@@ -573,9 +593,10 @@ class CziScaling:
     X_sf: Optional[float] = field(init=False, default=None)
     Y_sf: Optional[float] = field(init=False, default=None)
     ratio: Optional[Dict[str, float]] = field(init=False, default=None)
-    ratio_sf: Optional[Dict[float, float]] = field(init=False, default=None)
-    scalefactorXY: Optional[float] = field(init=False, default=None)
+    # ratio_sf: Optional[Dict[str, float]] = field(init=False, default=None)
+    # scalefactorXY: Optional[float] = field(init=False, default=None)
     unit: Optional[str] = field(init=True, default="micron")
+    zoom: Annotated[float, ValueRange(0.01, 1.0)] = field(init=True, default=1.0)
 
     def __post_init__(self):
         logger.info("Reading Scaling from CZI image data.")
@@ -589,18 +610,22 @@ class CziScaling:
             distances = czi_box.ImageDocument.Metadata.Scaling.Items.Distance
 
             # get the scaling values for X,Y and Z
-            self.X = self.safe_get_scale(distances, 0)
-            self.Y = self.safe_get_scale(distances, 1)
-            self.Z = self.safe_get_scale(distances, 2)
+            self.X = np.round(self.safe_get_scale(distances, 0), 3)
+            self.Y = np.round(self.safe_get_scale(distances, 1), 3)
+            self.Z = np.round(self.safe_get_scale(distances, 2), 3)
+
+            # calc the scaling values for X,Y when applying downscaling
+            self.X_sf = np.round(self.X * (1 / self.zoom), 3)
+            self.Y_sf = np.round(self.Y * (1 / self.zoom), 3)
 
             # calc the scaling ratio
             self.ratio = {
                 "xy": np.round(self.X / self.Y, 3),
                 "zx": np.round(self.Z / self.X, 3),
+                #"zx_sf": np.round(self.Z / self.X_sf, 3),
             }
 
         elif not czi_box.has_scale:
-            # print("No scaling information found.")
             logger.info("No scaling information found.")
 
     @staticmethod
@@ -614,8 +639,6 @@ class CziScaling:
             # check for the value = 0.0
             if sc == 0.0:
                 sc = 1.0
-                # print("Detected Scaling = 0.0 for " +
-                #      scales[idx] + " Using default = 1.0 [micron].")
                 logger.info(
                     "Detected Scaling = 0.0 for "
                     + scales[idx]
@@ -624,7 +647,6 @@ class CziScaling:
             return sc
 
         except (IndexError, TypeError, AttributeError):
-            # print("No " + scales[idx] + "-Scaling found. Using default = 1.0 [micron].")
             logger.info(
                 "No " + scales[idx] + "-Scaling found. Using default = 1.0 [micron]."
             )
@@ -1135,6 +1157,7 @@ def create_md_dict_red(
         "SizeH": metadata.image.SizeH,
         "SizeI": metadata.image.SizeI,
         "isRGB": metadata.isRGB,
+        "array6d_size": metadata.array6d_size,
         "has_scenes": metadata.has_scenes,
         "has_label": metadata.attachments.has_label,
         "has_preview": metadata.attachments.has_preview,
@@ -1145,7 +1168,10 @@ def create_md_dict_red(
         "TubelensMag": metadata.objective.tubelensmag,
         "XScale": metadata.scale.X,
         "YScale": metadata.scale.Y,
+        "XScale_sf": metadata.scale.X_sf,
+        "YScale_sf": metadata.scale.Y_sf,
         "ZScale": metadata.scale.Z,
+        "ScaleRatio_XYZ": metadata.scale.ratio,
         "ChannelNames": metadata.channelinfo.names,
         "ChannelDyes": metadata.channelinfo.dyes,
         "ChannelColors": metadata.channelinfo.colors,
@@ -1159,16 +1185,17 @@ def create_md_dict_red(
         "SceneCenterStageY": metadata.sample.scene_stageX,
         "ImageStageX": metadata.sample.image_stageX,
         "ImageStageY": metadata.sample.image_stageX,
+        "BoundingBoxX": metadata.bbox
     }
 
     # check for extra entries when reading mosaic file with a scale factor
     if hasattr(metadata.image, "SizeX_sf"):
-        md_dict["SizeX sf"] = metadata.image.SizeX_sf
-        md_dict["SizeY sf"] = metadata.image.SizeY_sf
-        md_dict["XScale sf"] = metadata.scale.X_sf
-        md_dict["YScale sf"] = metadata.scale.Y_sf
-        md_dict["ratio sf"] = metadata.scale.ratio_sf
-        md_dict["scalefactorXY"] = metadata.scale.scalefactorXY
+        md_dict["XScale_sf"] = metadata.scale.X_sf
+        md_dict["YScale_sf"] = metadata.scale.Y_sf
+
+    if metadata.has_scenes:
+        md_dict["SizeX_scene"] = metadata.image.SizeX_scene
+        md_dict["SizeY_scene"] = metadata.image.SizeY_scene
 
     if remove_none:
         md_dict = misc_tools.remove_none_from_dict(md_dict)
@@ -1194,14 +1221,13 @@ def get_czimd_box(filepath: Union[str, os.PathLike[str]]) -> Box:
 
     # check if filepath is a valid url and is a https link
     if misc_tools.is_valid_url(filepath, https_only=True):
-    #if validators.url(filepath):
+        # if validators.url(filepath):
         is_url = True
         # get metadata dictionary using a valid link using pylibCZIrw
         with pyczi.open_czi(filepath, pyczi.ReaderFileInputTypes.Curl) as czi_document:
             metadata_dict = czi_document.metadata
 
     else:
-
         # check if the input is a path-like object
         if isinstance(filepath, Path) or isinstance(filepath, str):
             # convert to string
@@ -1224,9 +1250,9 @@ def get_czimd_box(filepath: Union[str, os.PathLike[str]]) -> Box:
     czimd_box.is_url = is_url
 
     if is_url:
-        czimd_box.czi_open_args = [pyczi.ReaderFileInputTypes.Curl]
+        czimd_box.czi_open_arg = pyczi.ReaderFileInputTypes.Curl
     if not is_url:
-        czimd_box.czi_open_args = [pyczi.ReaderFileInputTypes.Standard]
+        czimd_box.czi_open_arg = pyczi.ReaderFileInputTypes.Standard
 
     # set the defaults to False
     czimd_box.has_customattr = False
@@ -1323,6 +1349,9 @@ def create_md_dict_nested(
     Returns:
         Dict: Nested dictionary with reduced set of metadata
     """
+
+    md_array6d = {"array6d": metadata.array6d_size}
+
     md_box_image = Box(asdict(metadata.image))
     del md_box_image.czisource
 
@@ -1337,6 +1366,9 @@ def create_md_dict_nested(
 
     md_box_channels = Box(asdict(metadata.channelinfo))
     del md_box_channels.czisource
+
+    md_box_bbox = Box(asdict(metadata.bbox))
+    del md_box_bbox.czisource
 
     md_box_info = Box(
         {
@@ -1360,14 +1392,16 @@ def create_md_dict_nested(
 
     md_box_image += md_box_image_add
 
-    IDs = ["image", "scale", "sample", "objectives", "channels", "info"]
+    IDs = ["array6d", "image", "scale", "sample", "objectives", "channels", "bbox", "info"]
 
     mds = [
+        md_array6d,
         md_box_image.to_dict(),
         md_box_scale.to_dict(),
         md_box_sample.to_dict(),
         md_box_objective.to_dict(),
         md_box_channels.to_dict(),
+        md_box_bbox.to_dict(),
         md_box_info.to_dict(),
     ]
 

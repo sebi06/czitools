@@ -9,12 +9,22 @@
 #
 #################################################################
 
-from typing import List, Dict, Tuple, Optional, Type, Any, Union, Mapping, Literal
+from typing import (
+    List,
+    Dict,
+    Tuple,
+    Optional,
+    Type,
+    Any,
+    Union,
+    Mapping,
+    Literal,
+    Annotated,
+)
 from pylibCZIrw import czi as pyczi
 from czitools import metadata_tools as czimd
 from czitools import misc_tools
-
-# from dataclasses import dataclass, field, fields, Field
+from dataclasses import dataclass, field, fields, Field
 import numpy as np
 from pathlib import Path
 import dask
@@ -39,6 +49,12 @@ class AttachmentType(Enum):
     Prescan = 3
 
 
+@dataclass
+class ValueRange:
+    lo: float
+    hi: float
+
+
 # code for which memory has to be monitored
 # instantiating the decorator
 # @profile
@@ -47,6 +63,7 @@ def read_6darray(
     use_dask: bool = False,
     chunk_zyx: bool = False,
     planes: Dict[str, tuple[int, int]] = {},
+    zoom: Annotated[float, ValueRange(0.01, 1.0)] = 1.0,
 ) -> Tuple[Optional[Union[np.ndarray, da.Array]], czimd.CziMetadata]:
     """Read a CZI image file as 6D dask array.
     Important: Currently supported are only scenes with equal size and CZIs with consistent pixel types.
@@ -59,6 +76,7 @@ def read_6darray(
         planes (dict, optional): Allowed keys S, T, Z, C and their start and end values must be >=0 (zero-based).
                                  planes = {"Z":(0, 2)} will return 3 z-plane with indices (0, 1, 2).
                                  Respectively {"Z":(5, 5)} will return a single z-plane with index 5.
+        zoom (float, options): Downsample CZI image by a factor [0.01 - 1.0]. Defaults to 1.0.
 
     Returns:
         Tuple[array6d, mdata]: output as 6D dask array and metadata
@@ -74,6 +92,21 @@ def read_6darray(
     if not mdata.consistent_pixeltypes:
         logger.info("Detected PixelTypes ar not consistent. Cannot create array6d")
         return None, mdata
+
+    # check zoomlevels
+    if zoom < 0.01:
+        logger.warning(
+            f"Zoomlevel: {zoom} is outside allowed range [0.05 - 1.0]. Using 0.5 instead"
+        )
+    elif zoom > 1.0:
+        logger.warning(
+            f"Zoomlevel: {zoom} is outside allowed range [0.05 - 1.0]. Using 1.0 instead"
+        )
+
+    # update scaling
+    mdata.scale.X_sf = np.round(mdata.scale.X * (1 / zoom), 3)
+    mdata.scale.Y_sf = np.round(mdata.scale.Y * (1 / zoom), 3)
+    mdata.scale.ratio["zx_sf"] = np.round(mdata.scale.Z / mdata.scale.X_sf, 3)
 
     # check planes
     if not planes is False:
@@ -95,18 +128,18 @@ def read_6darray(
 
     # open the CZI document to read the
     with pyczi.open_czi(filepath, mdata.pyczi_readertype) as czidoc:
-        if mdata.image.SizeS is not None:
-            # get size for a single scene using the 1st
-            # works only if scene shape is consistent
+        # if mdata.image.SizeS is not None:
+        #     # get size for a single scene using the 1st
+        #     # works only if scene shape is consistent
 
-            # use the size of the 1st scenes_bounding_rectangle
-            size_x = czidoc.scenes_bounding_rectangle[0].w
-            size_y = czidoc.scenes_bounding_rectangle[0].h
+        #     # use the size of the 1st scenes_bounding_rectangle
+        #     size_x = czidoc.scenes_bounding_rectangle[0].w
+        #     size_y = czidoc.scenes_bounding_rectangle[0].h
 
-        if mdata.image.SizeS is None:
-            # use the size of the total_bounding_rectangle
-            size_x = czidoc.total_bounding_rectangle.w
-            size_y = czidoc.total_bounding_rectangle.h
+        # if mdata.image.SizeS is None:
+        #     # use the size of the total_bounding_rectangle
+        #     size_x = czidoc.total_bounding_rectangle.w
+        #     size_y = czidoc.total_bounding_rectangle.h
 
         # check if dimensions are None (because they do not exist for that image)
         size_c = misc_tools.check_dimsize(mdata.image.SizeC, set2value=1)
@@ -152,34 +185,39 @@ def read_6darray(
             c_start = planes["C"][0]
             c_end = planes["C"][1] + 1
 
-        # if mdata.isRGB:
-        #     shape2d = (size_y, size_x, 3)
-        # if not mdata.isRGB:
-        #     shape2d = (size_y, size_x)
-
         # check if ADim can be removed because image is grayscale
         remove_adim = False if mdata.isRGB else True
 
-        # assume default dimension order = STCZYX(A)
-        shape = [
-            size_s,
-            size_t,
-            size_c,
-            size_z,
-            size_y,
-            size_x,
-            3 if mdata.isRGB else 1,
-        ]
+        # # assume default dimension order = STCZYX(A)
+        # shape = [
+        #     size_s,
+        #     size_t,
+        #     size_c,
+        #     size_z,
+        #     size_y,
+        #     size_x,
+        #     3 if mdata.isRGB else 1,
+        # ]
 
-        # in case of numpy array
-        if not use_dask:
-            array6d = np.empty(shape, dtype=use_pixeltype)
-        # in case of normal dask array
-        if use_dask:
-            array6d = da.empty(shape, dtype=use_pixeltype, chunks=shape)
+        # # in case of numpy array
+        # if not use_dask:
+        #     array6d = np.empty((0), dtype=use_pixeltype)
+        # # in case of normal dask array
+        # if use_dask:
+        #     array6d = da.empty((0), dtype=use_pixeltype)
+
+        # # in case of numpy array
+        # if not use_dask:
+        #     array6d = np.empty(shape, dtype=use_pixeltype)
+        # # in case of normal dask array
+        # if use_dask:
+        #     array6d = da.empty(shape, dtype=use_pixeltype, chunks=shape)
 
         if mdata.is_url:
             logger.info("Reading pixel data via network from link location.")
+
+        planecount = 0
+        shape = ()
 
         # read array for the scene 2Dplane-by-2Dplane
         for s, t, c, z in product(
@@ -190,18 +228,40 @@ def read_6darray(
             desc="Reading 2D planes",
             unit=" 2Dplanes",
         ):
+            planecount += 1
+
             # read a 2D image plane from the CZI
             if mdata.image.SizeS is None:
-                image2d = czidoc.read(plane={"T": t[1], "Z": z[1], "C": c[1]})
+                image2d = czidoc.read(
+                    plane={"T": t[1], "Z": z[1], "C": c[1]}, zoom=zoom
+                )
             else:
                 image2d = czidoc.read(
-                    plane={"T": t[1], "Z": z[1], "C": c[1]}, scene=s[1]
+                    plane={"T": t[1], "Z": z[1], "C": c[1]}, scene=s[1], zoom=zoom
                 )
+
+            if planecount == 1:
+                # allocate array based on the expected size incl. down scaling
+                shape = (
+                    size_s,
+                    size_t,
+                    size_c,
+                    size_z,
+                    image2d.shape[0],
+                    image2d.shape[1],
+                    3 if mdata.isRGB else 1,
+                )
+
+                # in case of numpy array
+                if not use_dask:
+                    array6d = np.empty(shape, dtype=use_pixeltype)
+
+                # in case of normal dask array
+                elif use_dask:
+                    array6d = da.empty(shape, dtype=use_pixeltype, chunks=shape)
 
             # insert 2D image plane into the array6d
             array6d[s[0], t[0], c[0], z[0], ...] = image2d
-
-        # dim_string = "STCZYXA"
 
         # remove the A dimension
         if remove_adim:
@@ -217,7 +277,10 @@ def read_6darray(
                 # for testing
                 array6d = array6d.rechunk(chunks=(1, 1, 1, size_z, size_y, size_x, 3))
 
-    return array6d, mdata  # , dim_string
+    # update metadata
+    mdata.array6d_size = array6d.shape
+
+    return array6d, mdata
 
 
 # code for which memory has to be monitored
