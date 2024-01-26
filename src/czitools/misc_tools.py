@@ -642,38 +642,3 @@ def remove_none_from_dict(dictionary: Dict) -> Dict:
                     remove_none_from_dict(item)
 
     return dictionary
-
-
-def check_url(url: str, https_only: bool = False) -> bool:
-    if https_only:
-        pattern = r"^(https):\/\/*"
-    elif not https_only:
-        pattern = r"^(http|https):\/\/*"
-
-    r = re.compile(pattern)
-    if re.search(r, str(url)):
-        check_https = True
-    else:
-        check_https = False
-
-    try:
-        result = urlparse(str(url))
-        check_urlib = all([result.scheme, result.netloc])
-    except ValueError:
-        check_urlib = False
-
-    check_validators = validators.url(str(url))
-
-    if check_https and check_urlib and check_validators:
-        return True
-    else:
-        logger.error("Checking link failed.")
-        return False
-
-
-def is_local_file(url: str) -> bool:
-    url_parsed = urlparse(str(url))
-    if url_parsed.scheme in ("file", "", "f"):  # Possibly a local file
-        return os.path.exists(url_parsed.path)
-    else:
-        return False

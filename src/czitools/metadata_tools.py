@@ -77,9 +77,6 @@ class CziMetadata:
     microscope: Optional[CziMicroscope] = field(init=False, default=None)
     sample: Optional[CziSampleInfo] = field(init=False, default=None)
     add_metadata: Optional[CziAddMetaData] = field(init=False, default=None)
-    pyczi_readertype: Optional[pyczi.ReaderFileInputTypes] = field(
-        init=False, default=None
-    )
     array6d_size: Optional[Tuple[int]] = field(init=False, default_factory=lambda: ())
     scene_size_consistent: Optional[Tuple[int]] = field(
         init=False, default_factory=lambda: ()
@@ -89,21 +86,19 @@ class CziMetadata:
     """
 
     def __post_init__(self):
-        # check if the location is actually a local file
-        if misc_tools.is_local_file(str(self.filepath)):
-            self.is_url = False
-            self.pyczi_readertype = pyczi.ReaderFileInputTypes.Standard
-            if isinstance(self.filepath, Path):
-                # convert to string
-                self.filepath = str(self.filepath)
-
-        # check if filepath is a valid url
-        elif misc_tools.check_url(self.filepath, https_only=True):
-            self.is_url = True
+        if validators.url(str(self.filepath)):
             self.pyczi_readertype = pyczi.ReaderFileInputTypes.Curl
+            self.is_url = True
             logger.info(
                 "FilePath is a valid link. Only pylibCZIrw functionality is available."
             )
+        else:
+            self.pyczi_readertype = pyczi.ReaderFileInputTypes.Standard
+            self.is_url = False
+
+            if isinstance(self.filepath, Path):
+                # convert to string
+                self.filepath = str(self.filepath)
 
         # get directory and filename etc.
         self.dirname = str(Path(self.filepath).parent)
@@ -438,20 +433,13 @@ class CziBoundingBox:
         if isinstance(self.czisource, Box):
             self.czisource = self.czisource.filepath
 
-        # check if czisource is a valid url
-        if misc_tools.check_url(self.czisource, https_only=True):
+        if validators.url(str(self.czisource)):
             pyczi_readertype = pyczi.ReaderFileInputTypes.Curl
             logger.info(
                 "FilePath is a valid link. Only pylibCZIrw functionality is available."
             )
 
-        # check if the location is actually a local file
-        elif misc_tools.is_local_file(str(self.czisource)):
-            if isinstance(self.czisource, Path):
-                # convert to string
-                self.czisource = str(self.czisource)
-
-        with pyczi.open_czi(self.czisource, pyczi_readertype) as czidoc:
+        with pyczi.open_czi(str(self.czisource), pyczi_readertype) as czidoc:
             try:
                 self.scenes_bounding_rect = czidoc.scenes_bounding_rectangle
             except Exception as e:
@@ -1227,7 +1215,10 @@ def create_md_dict_red(
         return md_dict
 
 
-def get_czimd_box(filepath: Union[str, os.PathLike[str]]) -> Box:
+def get_czimd_box(
+    filepath: Union[str, os.PathLike[str]],
+    readertype: pyczi.ReaderFileInputTypes = pyczi.ReaderFileInputTypes.Standard,
+) -> Box:
     """
     get_czimd_box: Get CZI metadata as a python-box. For details: https://pypi.org/project/python-box/
 
@@ -1238,27 +1229,14 @@ def get_czimd_box(filepath: Union[str, os.PathLike[str]]) -> Box:
         Box: CZI metadata as a Box object
     """
 
-    is_url = False
+    readertype = pyczi.ReaderFileInputTypes.Standard
 
-    # check if the location is actually a local file
-    if misc_tools.is_local_file(str(filepath)):
-        # check if the input is a path-like object
-        if isinstance(filepath, Path) or isinstance(filepath, str):
-            # convert to string
-            filepath = str(filepath)
+    if validators.url(str(filepath)):
+        readertype = pyczi.ReaderFileInputTypes.Curl
 
-        # get metadata dictionary using pylibCZIrw
-        with pyczi.open_czi(
-            filepath, pyczi.ReaderFileInputTypes.Standard
-        ) as czi_document:
-            metadata_dict = czi_document.metadata
-
-    # check if filepath is a valid url
-    elif misc_tools.check_url(str(filepath), https_only=True):
-        is_url = True
-        # get metadata dictionary using a valid link using pylibCZIrw
-        with pyczi.open_czi(filepath, pyczi.ReaderFileInputTypes.Curl) as czi_document:
-            metadata_dict = czi_document.metadata
+    # get metadata dictionary using pylibCZIrw
+    with pyczi.open_czi(str(filepath), readertype) as czi_document:
+        metadata_dict = czi_document.metadata
 
     czimd_box = Box(
         metadata_dict,
@@ -1271,12 +1249,8 @@ def get_czimd_box(filepath: Union[str, os.PathLike[str]]) -> Box:
 
     # add the filepath
     czimd_box.filepath = filepath
-    czimd_box.is_url = is_url
-
-    if is_url:
-        czimd_box.czi_open_arg = pyczi.ReaderFileInputTypes.Curl
-    if not is_url:
-        czimd_box.czi_open_arg = pyczi.ReaderFileInputTypes.Standard
+    czimd_box.is_url = validators.url(str(filepath))
+    czimd_box.czi_open_arg = readertype
 
     # set the defaults to False
     czimd_box.has_customattr = False
