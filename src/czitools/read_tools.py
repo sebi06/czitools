@@ -75,7 +75,6 @@ def read_6darray(
     filepath: Union[str, os.PathLike[str]],
     use_dask: bool = False,
     chunk_zyx: bool = False,
-    zoom: Annotated[float, ValueRange(0.5, 0.9)] = 1.0,
     planes: Dict[str, tuple[int, int]] = {},
     zoom: Annotated[float, ValueRange(0.01, 1.0)] = 1.0,
 ) -> Tuple[Optional[Union[np.ndarray, da.Array]], czimd.CziMetadata]:
