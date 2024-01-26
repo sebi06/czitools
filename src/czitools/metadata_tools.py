@@ -407,9 +407,14 @@ class CziDimensions:
                     setattr(self, fd.name, int(dimensions[fd.name]))
 
         if czi_box.has_scenes:
-            with pyczi.open_czi(czi_box.filepath, czi_box.czi_open_arg) as czidoc:
-                self.SizeX_scene = czidoc.scenes_bounding_rectangle[0].w
-                self.SizeY_scene = czidoc.scenes_bounding_rectangle[0].h
+            try:
+                with pyczi.open_czi(czi_box.filepath, czi_box.czi_open_arg) as czidoc:
+                    self.SizeX_scene = czidoc.scenes_bounding_rectangle[0].w
+                    self.SizeY_scene = czidoc.scenes_bounding_rectangle[0].h
+            except KeyError as e:
+                self.SizeX_scene = None
+                self.SizeY_scene = None
+                logger.warning("Scenes Dimension detected but no bounding rectangle information found.")
 
 
 @dataclass
@@ -1303,8 +1308,7 @@ def get_czimd_box(
                 ):
                     czimd_box.has_channels = True
 
-                # if "S" in czimd_box.ImageDocument.Metadata.Information.Image.Dimensions:
-                if "S" in czimd_box.ImageDocument.Metadata.Information.Image:
+                if "S" in czimd_box.ImageDocument.Metadata.Information.Image.Dimensions:
                     czimd_box.has_scenes = True
 
         if "Instrument" in czimd_box.ImageDocument.Metadata.Information:
