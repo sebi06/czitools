@@ -68,12 +68,6 @@ class ValueRange:
     hi: float
 
 
-@dataclass
-class ValueRange:
-    lo: float
-    hi: float
-
-
 # code for which memory has to be monitored
 # instantiating the decorator
 # @profile
@@ -221,31 +215,6 @@ def read_6darray(
         # check if ADim can be removed because image is grayscale
         remove_adim = False if mdata.isRGB else True
 
-        # # assume default dimension order = STCZYX(A)
-        # shape = [
-        #     size_s,
-        #     size_t,
-        #     size_c,
-        #     size_z,
-        #     size_y,
-        #     size_x,
-        #     3 if mdata.isRGB else 1,
-        # ]
-
-        # # in case of numpy array
-        # if not use_dask:
-        #     array6d = np.empty((0), dtype=use_pixeltype)
-        # # in case of normal dask array
-        # if use_dask:
-        #     array6d = da.empty((0), dtype=use_pixeltype)
-
-        # # in case of numpy array
-        # if not use_dask:
-        #     array6d = np.empty(shape, dtype=use_pixeltype)
-        # # in case of normal dask array
-        # if use_dask:
-        #     array6d = da.empty(shape, dtype=use_pixeltype, chunks=shape)
-
         if mdata.is_url:
             logger.info("Reading pixel data via network from link location.")
 
@@ -261,8 +230,6 @@ def read_6darray(
             desc="Reading 2D planes",
             unit=" 2Dplanes",
         ):
-            planecount += 1
-
             planecount += 1
 
             # read a 2D image plane from the CZI
