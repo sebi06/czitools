@@ -271,12 +271,12 @@ def read_6darray(
 
             if use_dask and chunk_zyx:
                 # for testing
-                array6d = array6d.rechunk(chunks=(1, 1, 1, size_z, size_y, size_x))
+                array6d = array6d.rechunk(chunks=(1, 1, 1, size_z, image2d.shape[0], image2d.shape[1]))
 
         if not remove_adim:
             if use_dask and chunk_zyx:
                 # for testing
-                array6d = array6d.rechunk(chunks=(1, 1, 1, size_z, size_y, size_x, 3))
+                array6d = array6d.rechunk(chunks=(1, 1, 1, size_z, image2d.shape[0], image2d.shape[1], 3))
 
     # update metadata
     mdata.array6d_size = array6d.shape

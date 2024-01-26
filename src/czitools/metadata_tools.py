@@ -1322,7 +1322,8 @@ def get_czimd_box(filepath: Union[str, os.PathLike[str]]) -> Box:
                 ):
                     czimd_box.has_channels = True
 
-                if "S" in czimd_box.ImageDocument.Metadata.Information.Image.Dimensions:
+                #if "S" in czimd_box.ImageDocument.Metadata.Information.Image.Dimensions:
+                if "S" in czimd_box.ImageDocument.Metadata.Information.Image:
                     czimd_box.has_scenes = True
 
         if "Instrument" in czimd_box.ImageDocument.Metadata.Information:
