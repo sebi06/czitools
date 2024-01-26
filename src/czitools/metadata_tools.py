@@ -87,21 +87,23 @@ class CziMetadata:
     """
 
     def __post_init__(self):
+
+        # check if the location is actually a local file
+        if misc_tools.is_local_file(str(self.filepath)):
+
+            self.is_url = False
+            self.pyczi_readertype = pyczi.ReaderFileInputTypes.Standard
+            if isinstance(self.filepath, Path):
+                # convert to string
+                self.filepath = str(self.filepath)
+
         # check if filepath is a valid url
-        if misc_tools.is_valid_url(self.filepath, https_only=True):
-            # if validators.url(self.filepath):
+        elif misc_tools.check_url(self.filepath, https_only=True):
             self.is_url = True
             self.pyczi_readertype = pyczi.ReaderFileInputTypes.Curl
             logger.info(
                 "FilePath is a valid link. Only pylibCZIrw functionality is available."
             )
-
-        elif not validators.url(self.filepath):
-            self.pyczi_readertype = pyczi.ReaderFileInputTypes.Standard
-
-        if isinstance(self.filepath, Path):
-            # convert to string
-            self.filepath = str(self.filepath)
 
         # get directory and filename etc.
         self.dirname = str(Path(self.filepath).parent)
@@ -423,17 +425,24 @@ class CziBoundingBox:
     def __post_init__(self):
         logger.info("Reading BoundingBoxes from CZI image data.")
 
-        if isinstance(self.czisource, Path):
-            # convert to string
-            self.czisource = str(self.czisource)
+        pyczi_readertype = pyczi.ReaderFileInputTypes.Standard
 
-        elif isinstance(self.czisource, Box):
+        if isinstance(self.czisource, Box):
             self.czisource = self.czisource.filepath
 
-        if validators.url(self.czisource):
+        # check if czisource is a valid url
+        if misc_tools.check_url(self.czisource, https_only=True):
             pyczi_readertype = pyczi.ReaderFileInputTypes.Curl
-        if not validators.url(self.czisource):
-            pyczi_readertype = pyczi.ReaderFileInputTypes.Standard
+            logger.info(
+                "FilePath is a valid link. Only pylibCZIrw functionality is available."
+            )
+
+        # check if the location is actually a local file
+        elif misc_tools.is_local_file(str(self.czisource)):
+
+            if isinstance(self.czisource, Path):
+                # convert to string
+                self.czisource = str(self.czisource)
 
         with pyczi.open_czi(self.czisource, pyczi_readertype) as czidoc:
             try:
@@ -1219,22 +1228,24 @@ def get_czimd_box(filepath: Union[str, os.PathLike[str]]) -> Box:
 
     is_url = False
 
-    # check if filepath is a valid url and is a https link
-    if misc_tools.is_valid_url(filepath, https_only=True):
-        # if validators.url(filepath):
-        is_url = True
-        # get metadata dictionary using a valid link using pylibCZIrw
-        with pyczi.open_czi(filepath, pyczi.ReaderFileInputTypes.Curl) as czi_document:
-            metadata_dict = czi_document.metadata
+    # check if the location is actually a local file
+    if misc_tools.is_local_file(str(filepath)):
 
-    else:
         # check if the input is a path-like object
         if isinstance(filepath, Path) or isinstance(filepath, str):
             # convert to string
             filepath = str(filepath)
-            # get metadata dictionary using pylibCZIrw
-            with pyczi.open_czi(filepath) as czi_document:
-                metadata_dict = czi_document.metadata
+
+        # get metadata dictionary using pylibCZIrw
+        with pyczi.open_czi(filepath, pyczi.ReaderFileInputTypes.Standard) as czi_document:
+            metadata_dict = czi_document.metadata
+
+    # check if filepath is a valid url
+    elif misc_tools.check_url(filepath, https_only=True):
+        is_url = True
+        # get metadata dictionary using a valid link using pylibCZIrw
+        with pyczi.open_czi(filepath, pyczi.ReaderFileInputTypes.Curl) as czi_document:
+            metadata_dict = czi_document.metadata
 
     czimd_box = Box(
         metadata_dict,

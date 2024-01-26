@@ -21,6 +21,18 @@ from typing import (
     Literal,
     Annotated,
 )
+from typing import (
+    List,
+    Dict,
+    Tuple,
+    Optional,
+    Type,
+    Any,
+    Union,
+    Mapping,
+    Literal,
+    Annotated,
+)
 from pylibCZIrw import czi as pyczi
 from czitools import metadata_tools as czimd
 from czitools import misc_tools
@@ -37,6 +49,7 @@ import tempfile
 import shutil
 from czitools import logger as LOGGER
 from enum import Enum
+from dataclasses import dataclass
 
 # from memory_profiler import profile
 
@@ -55,6 +68,12 @@ class ValueRange:
     hi: float
 
 
+@dataclass
+class ValueRange:
+    lo: float
+    hi: float
+
+
 # code for which memory has to be monitored
 # instantiating the decorator
 # @profile
@@ -62,6 +81,7 @@ def read_6darray(
     filepath: Union[str, os.PathLike[str]],
     use_dask: bool = False,
     chunk_zyx: bool = False,
+    zoom: Annotated[float, ValueRange(0.5, 0.9)] = 1.0,
     planes: Dict[str, tuple[int, int]] = {},
     zoom: Annotated[float, ValueRange(0.01, 1.0)] = 1.0,
 ) -> Tuple[Optional[Union[np.ndarray, da.Array]], czimd.CziMetadata]:
@@ -73,6 +93,7 @@ def read_6darray(
         filepath (str | Path): filepath for the CZI image
         use_dask (bool, optional): Option to store image data as dask array with delayed reading
         chunk_zyx (bool, optional): Option to chunk dask array along z-stacks. Defaults to False.
+        zoom (float, optional): Downscale images using a factor [0.01 - 1.0]. Defaults to 1.0
         planes (dict, optional): Allowed keys S, T, Z, C and their start and end values must be >=0 (zero-based).
                                  planes = {"Z":(0, 2)} will return 3 z-plane with indices (0, 1, 2).
                                  Respectively {"Z":(5, 5)} will return a single z-plane with index 5.
@@ -85,6 +106,18 @@ def read_6darray(
     if isinstance(filepath, Path):
         # convert to string
         filepath = str(filepath)
+
+    # check zoom factor
+    if zoom > 1.0:
+        logger.warning(
+            f"Zoom factor f{zoom} is not in valid range [0.01 - 1.0]. Using 1.0 instead."
+        )
+        zoom = 1.0
+    if zoom < 0.01:
+        logger.warning(
+            f"Zoom factor f{zoom} is not in valid range [0.01 - 1.0]. Using 0.01 instead."
+        )
+        zoom = 0.01
 
     # get the complete metadata at once as one big class
     mdata = czimd.CziMetadata(filepath)
@@ -228,6 +261,8 @@ def read_6darray(
             desc="Reading 2D planes",
             unit=" 2Dplanes",
         ):
+            planecount += 1
+
             planecount += 1
 
             # read a 2D image plane from the CZI

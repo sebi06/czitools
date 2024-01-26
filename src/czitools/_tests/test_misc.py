@@ -154,5 +154,5 @@ def test_calc_scaling(
 )
 def test_links(link: str, https_only: bool, link_ok: bool) -> None:
 
-    assert link_ok is misc_tools.is_valid_url(link, https_only=https_only)
+    assert link_ok is misc_tools.check_url(link, https_only=https_only)
 

@@ -644,11 +644,11 @@ def remove_none_from_dict(dictionary: Dict) -> Dict:
     return dictionary
 
 
-def is_valid_url(url: str, https_only: bool) -> bool:
+def check_url(url: str, https_only: bool = False) -> bool:
 
     if https_only:
         pattern = r'^(https):\/\/*'
-    if not https_only:
+    elif not https_only:
         pattern = r'^(http|https):\/\/*'
 
     r = re.compile(pattern)
@@ -672,6 +672,12 @@ def is_valid_url(url: str, https_only: bool) -> bool:
         return False
 
 
+def is_local_file(url: str) -> bool:
+    url_parsed = urlparse(url)
+    if url_parsed.scheme in ('file', ''): # Possibly a local file
+        return os.path.exists(url_parsed.path)
+    else:
+        return False
 
 
 
