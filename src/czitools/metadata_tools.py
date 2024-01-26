@@ -81,16 +81,16 @@ class CziMetadata:
         init=False, default=None
     )
     array6d_size: Optional[Tuple[int]] = field(init=False, default_factory=lambda: ())
-    scene_size_consistent: Optional[Tuple[int]] = field(init=False, default_factory=lambda: ())
+    scene_size_consistent: Optional[Tuple[int]] = field(
+        init=False, default_factory=lambda: ()
+    )
     """
     Create a CziMetadata object from the filename of the CZI image file.
     """
 
     def __post_init__(self):
-
         # check if the location is actually a local file
         if misc_tools.is_local_file(str(self.filepath)):
-
             self.is_url = False
             self.pyczi_readertype = pyczi.ReaderFileInputTypes.Standard
             if isinstance(self.filepath, Path):
@@ -331,10 +331,18 @@ class CziMetadata:
 @dataclass
 class CziDimensions:
     czisource: Union[str, os.PathLike[str], Box]
-    SizeX: Optional[int] = field(init=False, default=None)  # total size X including scenes
-    SizeY: Optional[int] = field(init=False, default=None)  # total size Y including scenes
-    SizeX_scene: Optional[int] = field(init=False, default=None)  # size X per scene (if equal scene sizes)
-    SizeY_scene: Optional[int] = field(init=False, default=None)  # size Y per scene (if equal scene sizes)
+    SizeX: Optional[int] = field(
+        init=False, default=None
+    )  # total size X including scenes
+    SizeY: Optional[int] = field(
+        init=False, default=None
+    )  # total size Y including scenes
+    SizeX_scene: Optional[int] = field(
+        init=False, default=None
+    )  # size X per scene (if equal scene sizes)
+    SizeY_scene: Optional[int] = field(
+        init=False, default=None
+    )  # size Y per scene (if equal scene sizes)
     SizeS: Optional[int] = field(init=False, default=None)
     SizeT: Optional[int] = field(init=False, default=None)
     SizeZ: Optional[int] = field(init=False, default=None)
@@ -439,7 +447,6 @@ class CziBoundingBox:
 
         # check if the location is actually a local file
         elif misc_tools.is_local_file(str(self.czisource)):
-
             if isinstance(self.czisource, Path):
                 # convert to string
                 self.czisource = str(self.czisource)
@@ -631,7 +638,7 @@ class CziScaling:
             self.ratio = {
                 "xy": np.round(self.X / self.Y, 3),
                 "zx": np.round(self.Z / self.X, 3),
-                #"zx_sf": np.round(self.Z / self.X_sf, 3),
+                # "zx_sf": np.round(self.Z / self.X_sf, 3),
             }
 
         elif not czi_box.has_scale:
@@ -709,7 +716,6 @@ class CziObjectives:
             )
 
             if isinstance(tubelens, Box):
-
                 if tubelens.Magnification is not None:
                     self.tubelensmag.append(float(tubelens.Magnification))
                 elif tubelens.Magnification is None:
@@ -1200,7 +1206,7 @@ def create_md_dict_red(
         "SceneCenterStageY": metadata.sample.scene_stageX,
         "ImageStageX": metadata.sample.image_stageX,
         "ImageStageY": metadata.sample.image_stageX,
-        "BoundingBoxX": metadata.bbox
+        "BoundingBoxX": metadata.bbox,
     }
 
     # check for extra entries when reading mosaic file with a scale factor
@@ -1236,18 +1242,19 @@ def get_czimd_box(filepath: Union[str, os.PathLike[str]]) -> Box:
 
     # check if the location is actually a local file
     if misc_tools.is_local_file(str(filepath)):
-
         # check if the input is a path-like object
         if isinstance(filepath, Path) or isinstance(filepath, str):
             # convert to string
             filepath = str(filepath)
 
         # get metadata dictionary using pylibCZIrw
-        with pyczi.open_czi(filepath, pyczi.ReaderFileInputTypes.Standard) as czi_document:
+        with pyczi.open_czi(
+            filepath, pyczi.ReaderFileInputTypes.Standard
+        ) as czi_document:
             metadata_dict = czi_document.metadata
 
     # check if filepath is a valid url
-    elif misc_tools.check_url(filepath, https_only=True):
+    elif misc_tools.check_url(str(filepath), https_only=True):
         is_url = True
         # get metadata dictionary using a valid link using pylibCZIrw
         with pyczi.open_czi(filepath, pyczi.ReaderFileInputTypes.Curl) as czi_document:
@@ -1322,7 +1329,7 @@ def get_czimd_box(filepath: Union[str, os.PathLike[str]]) -> Box:
                 ):
                     czimd_box.has_channels = True
 
-                #if "S" in czimd_box.ImageDocument.Metadata.Information.Image.Dimensions:
+                # if "S" in czimd_box.ImageDocument.Metadata.Information.Image.Dimensions:
                 if "S" in czimd_box.ImageDocument.Metadata.Information.Image:
                     czimd_box.has_scenes = True
 
@@ -1410,7 +1417,16 @@ def create_md_dict_nested(
 
     md_box_image += md_box_image_add
 
-    IDs = ["array6d", "image", "scale", "sample", "objectives", "channels", "bbox", "info"]
+    IDs = [
+        "array6d",
+        "image",
+        "scale",
+        "sample",
+        "objectives",
+        "channels",
+        "bbox",
+        "info",
+    ]
 
     mds = [
         md_array6d,

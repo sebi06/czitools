@@ -645,11 +645,10 @@ def remove_none_from_dict(dictionary: Dict) -> Dict:
 
 
 def check_url(url: str, https_only: bool = False) -> bool:
-
     if https_only:
-        pattern = r'^(https):\/\/*'
+        pattern = r"^(https):\/\/*"
     elif not https_only:
-        pattern = r'^(http|https):\/\/*'
+        pattern = r"^(http|https):\/\/*"
 
     r = re.compile(pattern)
     if re.search(r, str(url)):
@@ -663,7 +662,7 @@ def check_url(url: str, https_only: bool = False) -> bool:
     except ValueError:
         check_urlib = False
 
-    check_validators = validators.url(url)
+    check_validators = validators.url(str(url))
 
     if check_https and check_urlib and check_validators:
         return True
@@ -673,11 +672,8 @@ def check_url(url: str, https_only: bool = False) -> bool:
 
 
 def is_local_file(url: str) -> bool:
-    url_parsed = urlparse(url)
-    if url_parsed.scheme in ('file', ''): # Possibly a local file
+    url_parsed = urlparse(str(url))
+    if url_parsed.scheme in ("file", "", "f"):  # Possibly a local file
         return os.path.exists(url_parsed.path)
     else:
         return False
-
-
-
