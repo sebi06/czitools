@@ -37,7 +37,7 @@ array6d, mdata = read_tools.read_6darray(
     # planes={"S": (0, 0), "T": (1, 2), "C": (0, 0), "Z": (0, 2)},
     # planes={"Z": (2, 2)},
     # planes={"S": (4, 6)},
-    zoom=1.0,
+    # zoom=1.0,
 )
 
 # this is a rather experimental function
@@ -57,7 +57,7 @@ else:
         blending="additive",
         contrast="from_czi",
         gamma=0.85,
-        show_metadata="tree",
+        show_metadata="table",
         name_sliders=True,
     )
 

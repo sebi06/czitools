@@ -709,7 +709,13 @@ class CziObjectives:
             )
 
             if isinstance(tubelens, Box):
-                self.tubelensmag.append(float(tubelens.Magnification))
+
+                if tubelens.Magnification is not None:
+                    self.tubelensmag.append(float(tubelens.Magnification))
+                elif tubelens.Magnification is None:
+                    logger.warning("No tubelens magnification found. Use 1.0x instead.")
+                    self.tubelensmag.append(1.0)
+
             elif isinstance(tubelens, BoxList):
                 for tl in range(len(tubelens)):
                     self.tubelensmag.append(float(tubelens[tl].Magnification))
