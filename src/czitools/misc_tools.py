@@ -39,11 +39,14 @@ def openfile(
 ) -> str:
     """Open a simple Tk dialog to select a file.
 
-    :param directory: default directory
-    :param title: title of the dialog window
-    :param ftypename: name of allowed file type
-    :param extension: extension of allowed file type
-    :return: filepath object for the selected
+    Args:
+        directory: Default directory.
+        title: Title of the dialog window, defaults to "Open CZI Image File".
+        ftypename: Name of allowed file type, defaults to "CZI Files".
+        extension: Extension of allowed file type, defaults to "*.czi".
+
+    Returns:
+        Filepath object for the selected file.
     """
 
     if isinstance(directory, Path):
@@ -67,34 +70,24 @@ def slicedim(
 ) -> np.ndarray:
     """Slice out a specific dimension without (!) dropping the dimension
     of the array to conserve the dimorder string
-    this should work for Numpy.Array, Dask and ZARR ...
+    This works for Numpy.Array, Dask and ZARR.
 
     Example:
+        array.shape = (1, 3, 2, 5, 170, 240) and dim_order is STCZYX.
+        Index for C inside array is 2.
+        Task: Cut out the fist channel = 0.
+        channel = slicedim(array, 0, 2).
+        The resulting channel.shape = (1, 3, 1, 5, 170, 240)
 
-    - array.shape = (1, 3, 2, 5, 170, 240) and dim_order is STCZYX
-    - index for C inside array = 2
-    - task: Cut out the fist channel = 0
-    - call: channel = slicedim(array, 0, 2)
-    - the resulting channel.shape = (1, 3, 1, 5, 170, 240)
+    Args:
+        array: Input array.
+        dimindex: Index of the slice dimension to be kept.
+        posdim: Position of the dimension to be sliced.
 
-    :param array: input array
-    :param dimindex: index of the slice dimension to be kept
-    :param posdim: position of the dimension to be sliced
-    :return: sliced array
+    Returns:
+        Sliced array.
+
     """
-
-    # if posdim == 0:
-    #    array_sliced = array[dimindex:dimindex + 1, ...]
-    # if posdim == 1:
-    #    array_sliced = array[:, dimindex:dimindex + 1, ...]
-    # if posdim == 2:
-    #    array_sliced = array[:, :, dimindex:dimindex + 1, ...]
-    # if posdim == 3:
-    #    array_sliced = array[:, :, :, dimindex:dimindex + 1, ...]
-    # if posdim == 4:
-    #    array_sliced = array[:, :, :, :, dimindex:dimindex + 1, ...]
-    # if posdim == 5:
-    #    array_sliced = array[:, :, :, :, :, dimindex:dimindex + 1, ...]
 
     idl_all = [slice(None, None, None)] * (len(array.shape) - 2)
     idl_all[posdim] = slice(dimindex, dimindex + 1, None)
@@ -112,18 +105,19 @@ def calc_scaling(
 ) -> Tuple[int, int]:
     """Calculate the scaling for better display
 
-    :param data: Calculate min / max scaling
-    :type data: Numpy.Array or dask.array or zarr.array
-    :param corr_min: correction factor for minvalue, defaults to 1.0
-    :type corr_min: float, optional
-    :param offset_min: offset for min value, defaults to 0
-    :type offset_min: int, optional
-    :param corr_max: correction factor for max value, defaults to 0.85
-    :type corr_max: float, optional
-    :param offset_max: offset for max value, defaults to 0
-    :type offset_max: int, optional
-    :return: list with [minvalue, maxvalue]
-    :rtype: list
+    Args:
+        data (Union[numpy.ndarray, dask.array, zarr.array]): Array to calculate scaling.
+        corr_min (float, optional): Correction factor for minimum value. Defaults to 1.0.
+        offset_min (int, optional): Offset for minimum value. Defaults to 0.
+        corr_max (float, optional): Correction factor for maximum value. Defaults to 0.85.
+        offset_max (int, optional): Offset for maximum value. Defaults to 0.
+
+    Returns:
+        Tuple[int, int]: Tuple with minimum value and maximum value.
+
+    Raises:
+        ValueError: If the data array is not of type numpy.ndarray, dask.array or zarr.array.
+
     """
 
     start = time.time()
@@ -151,16 +145,15 @@ def calc_scaling(
 def md2dataframe(
     md_dict: Dict, paramcol: str = "Parameter", keycol: str = "Value"
 ) -> pd.DataFrame:
-    """Convert the metadata dictionary to a Pandas DataFrame.
+    """Converts the given metadata dictionary to a Pandas DataFrame.
 
-    :param md_dict: MeteData dictionary
-    :type md_dict: dict
-    :param paramcol: Name of Columns for the MetaData Parameters, defaults to "Parameter"
-    :type paramcol: str, optional
-    :param keycol: Name of Columns for the MetaData Values, defaults to "Value"
-    :type keycol: str, optional
-    :return: Pandas DataFrame containing all the metadata
-    :rtype: Pandas.DataFrame
+    Args:
+        md_dict (dict): A dictionary containing metadata.
+        paramcol (str, optional): The name of the column for metadata parameters. Defaults to "Parameter".
+        keycol (str, optional): The name of the column for metadata values. Defaults to "Value".
+
+    Returns:
+        pd.DataFrame: A Pandas DataFrame containing all the metadata.
     """
     mdframe = pd.DataFrame(columns=[paramcol, keycol])
 
@@ -241,14 +234,14 @@ def get_fname_woext(filepath: Union[str, os.PathLike[str]]) -> str:
 def check_dimsize(
     mdata_entry: Union[Any, None], set2value: Any = 1
 ) -> Union[Any, None]:
-    """Check the entries for None
+    """Check the entries for None.
 
     Args:
-        mdata_entry: entry to be checked
-        set2value: value to replace None
+        mdata_entry: The entry to be checked.
+        set2value: The value to replace None.
 
     Returns:
-        A list of dask arrays
+        Union of Any and None
     """
 
     if mdata_entry is None:
@@ -505,53 +498,66 @@ def norm_columns(
     return df
 
 
-def filter_planetable(
-    planetable: pd.DataFrame, s: int = 0, t: int = 0, z: int = 0, c: int = 0
-) -> pd.DataFrame:
-    """Filter the planetable for specific dimension entries
+def filter_planetable(planetable: pd.DataFrame, **kwargs) -> pd.DataFrame:
+    """
+    Filters the input planetable DataFrame based on specified dimension entries.
+
+    The function uses optional keyword arguments to filter the planetable on
+    various dimensions such as scene index, time index, z-plane index, and channel index.
+    If a dimension is not specified in the keyword arguments, it will not be used for filtering.
+    Only valid arguments are accepted, which are 's', 't', 'z', and 'c'. An error is raised for invalid arguments.
+
     Args:
-        planetable: The planetable to be filtered
-        s: scene index
-        t: time index
-        z: z-plane index
-        c: channel index
+        planetable (pd.DataFrame): The DataFrame to be filtered.
+            It should contain columns "Scene", "T", "Z" and "C".
+
+        **kwargs: Optional keyword arguments specifying the indices to filter on.
+            These can include:
+                'S': The scene index.
+                'T': The time index.
+                'Z': The z-plane index.
+                'C': The channel index.
 
     Returns:
-        The filtered planetable
+        pd.DataFrame: The filtered planetable.
+
+    Raises:
+        KeyError: If a specified index is not a column in the DataFrame.
+        ValueError: If an invalid keyword argument is passed.
+
+    Examples:
+        >>> planetable = pd.DataFrame({'Scene': [0, 1, 1], 'T': [0, 1, 0], 'Z': [0, 1, 1], 'C': [0, 1, 1]})
+        >>> filter_planetable(planetable, S=1, T=0)
+        Scene  T  Z  C
+        2      1  0  1  1
     """
 
-    # filter planetable for specific scene
-    if s > planetable["Scene"].max():
-        logger.info("Scene Index was invalid. Using Scene = 0.")
-        s = 0
-    pt = planetable[planetable["Scene"] == s]
+    valid_args = ["S", "T", "Z", "C"]
 
-    # filter planetable for specific timepoint
-    if t > planetable["T"].max():
-        logger.info("Time Index was invalid. Using T = 0.")
-        t = 0
-    pt = planetable[planetable["T"] == t]
+    # check for invalid arguments
+    for k, v in kwargs.items():
 
-    # filter resulting planetable pt for a specific z-plane
-    try:
-        if z > planetable["Z[micron]"].max():
-            logger.info("Z-Plane Index was invalid. Using Z = 0.")
-            zplane = 0
-            pt = pt[pt["Z[micron]"] == z]
-    except KeyError as e:
-        if z > planetable["Z [micron]"].max():
-            logger.info("Z-Plane Index was invalid. Using Z = 0.")
-            zplane = 0
-            pt = pt[pt["Z [micron]"] == z]
+        if k not in valid_args:
+            raise ValueError(f"Invalid keyword argument: {k}")
 
-    # filter planetable for specific channel
-    if c > planetable["C"].max():
-        print("Channel Index was invalid. Using C = 0.")
-        c = 0
-    pt = planetable[planetable["C"] == c]
+    if "S" in kwargs:
+        # filter planetable for specific scene
+        planetable = planetable[planetable["Scene"] == kwargs["S"]]
+
+    if "T" in kwargs:
+        # filter planetable for specific timepoint
+        planetable = planetable[planetable["T"] == kwargs["T"]]
+
+    if "Z" in kwargs:
+        # filter resulting planetable pt for a specific z-plane
+        planetable = planetable[planetable["Z"] == kwargs["Z"]]
+
+    if "C" in kwargs:
+        # filter planetable for specific channel
+        planetable = planetable[planetable["C"] == kwargs["C"]]
 
     # return filtered planetable
-    return pt
+    return planetable
 
 
 def save_planetable(
