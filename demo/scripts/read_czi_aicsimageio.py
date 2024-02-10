@@ -28,7 +28,7 @@ filepath = misc_tools.openfile(
 )
 print(filepath)
 
-# get the complete metadata at once as one big class
+# get the complete metadata using czitools
 mdata = czimd.CziMetadata(filepath)
 
 # test using AICSImageIO
@@ -37,7 +37,7 @@ print(aics_img.shape)
 for k, v in aics_img.dims.items():
     print(k, v)
 
-# get the stack as dask array
+# get the stack as dask array using AICSImageIO
 stack = aics_img.get_dask_stack()
 
 dim_string6d = "S" + aics_img.dims.order

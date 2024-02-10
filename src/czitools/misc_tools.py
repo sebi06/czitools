@@ -26,7 +26,7 @@ from dataclasses import make_dataclass, fields, dataclass
 from czitools import logger as LOGGER
 import validators
 import re
-from urllib.parse import urlparse
+#from urllib.parse import urlparse
 
 logger = LOGGER.get_logger()
 
@@ -648,3 +648,32 @@ def remove_none_from_dict(dictionary: Dict) -> Dict:
                     remove_none_from_dict(item)
 
     return dictionary
+
+
+def download_zip(source_link: str) -> str:
+
+    if not validators.url(source_link):
+        logger.warning("Not a valid link.")
+        return ""
+
+    import io
+    import zipfile
+
+    compressed_data = os .path.join(os.getcwd(), os.path.basename(source_link))
+
+    if not os.path.isfile(compressed_data):
+        response = requests.get(GITHUB_IMAGES_PATH, stream=True)
+        compressed_data = io.BytesIO(response.content)
+
+    with zipfile.ZipFile(compressed_data, 'r') as zip_accessor:
+        zip_accessor.extractall('./')
+
+    return compressed_data[:-4]
+
+
+
+    
+
+    
+
+
