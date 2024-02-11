@@ -21,15 +21,31 @@ basedir = Path(__file__).resolve().parents[3]
         "S=2_3x3_CH=2.czi",
         "S=3_1Pos_2Mosaic_T=2=Z=3_CH=2_sm.czi",
         "test_z=16_ch=3.czi",
-        "Tumor_HE_RGB.czi"
+        "Tumor_HE_RGB.czi",
     ]
 )
-def test_read_metadata(czifile: str) -> None:
+def test_read_metadata_local(czifile: str) -> None:
 
     filepath = basedir / "data" / czifile
     md = czimd.CziMetadata(filepath)
 
     assert (isinstance(md, czimd.CziMetadata) is True)
+
+
+@pytest.mark.parametrize(
+    "link",
+    [
+        "https://raw.githubusercontent.com/zeiss-microscopy/OAD/master/jupyter_notebooks/pylibCZIrw/images/S%3D2_CH%3D2_well_A1%2BA2_zstd.czi",
+        "https://github.com/sebi06/czitools/raw/7d1fec6193c0428e39a758414c289c91e3431def/data/CellDivision_T%3D10_Z%3D15_CH%3D2_DCV_small.czi",
+        #"https://www.dropbox.com/scl/fi/lazndscc5etck38k1vz8e/S-2_3x3_T-1_Z-1_CH-2.czi?rlkey=60apu65t2dza2zor15gq4sw15&dl=1"
+    ]
+)
+def test_read_metadata_links(link: str) -> None:
+
+    md = czimd.CziMetadata(link)
+
+    assert (isinstance(md, czimd.CziMetadata) is True)
+
 
 @pytest.mark.parametrize(
     "czifile, px, rgb, maxvalue",

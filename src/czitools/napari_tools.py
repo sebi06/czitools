@@ -176,7 +176,7 @@ def show(
     scalefactors = [1.0] * len(array.shape)
 
     # testing
-    scalefactors = [1.0] * 6
+    #scalefactors = [1.0] * 6
 
     # modify the tuple for the scales for napari
 
@@ -184,7 +184,7 @@ def show(
     # https://github.com/napari/napari/issues/4861
     # https://forum.image.sc/t/image-layer-in-napari-showing-the-wrong-dimension-size-one-plane-is-missing/69939/12
 
-    scalefactors[dim_order["Z"]] = metadata.scale.ratio["zx"] * 1.001
+    scalefactors[dim_order["Z"]] = metadata.scale.ratio["zx_sf"] * 1.001
 
     if show_metadata.lower != "none":
         # add PyQTGraph DataTreeWidget to Napari viewer to show the metadata

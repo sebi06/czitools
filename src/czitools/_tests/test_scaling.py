@@ -9,13 +9,13 @@ basedir = Path(__file__).resolve().parents[3]
 @pytest.mark.parametrize(
     "czifile, results",
     [
-        ("CellDivision_T=3_Z=5_CH=2_X=240_Y=170.czi", {'X': 0.09057667415221031, 'Y': 0.09057667415221031, 'Z': 0.32, 'ratio': {'xy': 1.0, 'zx': 3.533}, 'unit': 'micron'}),
-        ("Al2O3_SE_020_sp.czi", {'X': 0.02791, 'Y': 0.02791, 'Z': 1.0, 'ratio': {'xy': 1.0, 'zx': 35.829}, 'unit': 'micron'}),
-        ("w96_A1+A2.czi", {'X': 0.45715068250381635, 'Y': 0.45715068250381635, 'Z': 1.0, 'ratio': {'xy': 1.0, 'zx': 2.187}, 'unit': 'micron'}),
-        ("Airyscan.czi", {'X': 0.04392940851660524, 'Y': 0.04392940851660524, 'Z': 1.0, 'ratio': {'xy': 1.0, 'zx': 22.764}, 'unit': 'micron'}),
-        ("newCZI_zloc.czi", {'X': 1.0, 'Y': 1.0, 'Z': 1.0, 'ratio': {'xy': 1.0, 'zx': 1.0}, 'unit': 'micron'}),
-        ("FOV7_HV110_P0500510000.czi", {'X': 1.0, 'Y': 1.0, 'Z': 1.0, 'ratio': {'xy': 1.0, 'zx': 1.0}, 'unit': 'micron'}),
-        ("Tumor_HE_RGB.czi", {'X': 0.21999999999999997, 'Y': 0.21999999999999997, 'Z': 1.0, 'ratio': {'xy': 1.0, 'zx': 4.545}, 'unit': 'micron'})
+        ("CellDivision_T=3_Z=5_CH=2_X=240_Y=170.czi", {'X': 0.091, 'X_sf': 0.091, 'Y': 0.091, 'Y_sf': 0.091, 'Z': 0.32, 'ratio': {'xy': 1.0, 'zx': 3.516}, 'unit': 'micron', 'zoom': 1.0}),
+        ("Al2O3_SE_020_sp.czi", {'X': 0.028, 'X_sf': 0.028, 'Y': 0.028, 'Y_sf': 0.028, 'Z': 1.0, 'ratio': {'xy': 1.0, 'zx': 35.714}, 'unit': 'micron', 'zoom': 1.0}),
+        ("w96_A1+A2.czi", {'X': 0.457, 'X_sf': 0.457, 'Y': 0.457, 'Y_sf': 0.457, 'Z': 1.0, 'ratio': {'xy': 1.0, 'zx': 2.188}, 'unit': 'micron', 'zoom': 1.0}),
+        ("Airyscan.czi", {'X': 0.044, 'X_sf': 0.044, 'Y': 0.044, 'Y_sf': 0.044, 'Z': 1.0, 'ratio': {'xy': 1.0, 'zx': 22.727}, 'unit': 'micron', 'zoom': 1.0}),
+        ("newCZI_zloc.czi", {'X': 1.0, 'X_sf': 1.0, 'Y': 1.0, 'Y_sf': 1.0, 'Z': 1.0, 'ratio': {'xy': 1.0, 'zx': 1.0}, 'unit': 'micron', 'zoom': 1.0}),
+        ("FOV7_HV110_P0500510000.czi", {'X': 1.0, 'X_sf': 1.0, 'Y': 1.0, 'Y_sf': 1.0, 'Z': 1.0, 'ratio': {'xy': 1.0, 'zx': 1.0}, 'unit': 'micron', 'zoom': 1.0}),
+        ("Tumor_HE_RGB.czi", {'X': 0.22, 'X_sf': 0.22, 'Y': 0.22, 'Y_sf': 0.22, 'Z': 1.0, 'ratio': {'xy': 1.0, 'zx': 4.545}, 'unit': 'micron', 'zoom': 1.0})
     ]
 )
 def test_scaling1(czifile: str, results: Dict) -> None:
@@ -27,7 +27,7 @@ def test_scaling1(czifile: str, results: Dict) -> None:
 
     del out['czisource']
 
-    assert(out == results)
+    assert (out == results)
 
 
 @pytest.mark.parametrize(

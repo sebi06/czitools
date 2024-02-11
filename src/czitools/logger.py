@@ -3,7 +3,12 @@ import datetime
 
 
 class CustomFormatter(logging.Formatter):
-    """Logging colored formatter, adapted from https://stackoverflow.com/a/56944256/3638629"""
+    """
+    Logging colored formatter.
+    This class is used to colorize the output of a logger based on the level of the log message.
+
+    Logging colored formatter, adapted from https://stackoverflow.com/a/56944256/3638629
+    """
 
     grey = "\x1b[38;21m"
     blue = "\x1b[38;5;39m"
@@ -34,12 +39,31 @@ class CustomFormatter(logging.Formatter):
         }
 
     def format(self, record):
+        """
+        Format the specified record as text.
+
+        :param record: A LogRecord class object.
+        :return: Returns the formatted record.
+        """
+
         log_fmt = self.FORMATS.get(record.levelno)
         formatter = logging.Formatter(log_fmt)
         return formatter.format(record)
 
 
 def get_logger(log_to_file: bool = False):
+    """
+    Creates a custom logger with two handlers:
+    - stdout_handler: logging to console (logs all five levels)
+    - file_handler: logging to a file (logs all five levels) if `log_to_file` is True
+
+    Args:
+        log_to_file (bool): Whether or not to log to file. Defaults to False.
+
+    Returns:
+        logging.Logger: A custom logger with two handlers.
+    """
+
     # Create custom logger logging all five levels
     logger = logging.getLogger(__name__)
     logger.setLevel(logging.DEBUG)
