@@ -24,7 +24,7 @@ basedir = Path(__file__).resolve().parents[3]
         ),
         ("Tumor_HE_Orig_small.czi", AttachmentType.Label, True, True, True, False, (523, 532, 3)),
         (
-            "CellDivision_T=10_Z=15_CH=2_DCV_small.czi",
+            "CellDivision_T10_Z15_CH2_DCV_small.czi",
             AttachmentType.Label,
             True,
             False,

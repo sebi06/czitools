@@ -9,7 +9,7 @@ basedir = Path(__file__).resolve().parents[3]
 @pytest.mark.parametrize(
     "czifile, result_mic, result_det",
     [
-        ("CellDivision_T=3_Z=5_CH=2_X=240_Y=170.czi",
+        ("CellDivision_T3_Z5_CH2_X240_Y170.czi",
          ['Microscope:1', 'Castor.Stand'],
          [['Detector:Axiocam 506'], [None], [None], ['Axiocam 506']]),
 
@@ -53,7 +53,7 @@ def test_instrument(czifile: str, result_mic: Dict, result_det: Dict) -> None:
                             'tubelensmag': [],
                             'totalmag': [13.3, 44.83]}),
 
-        ("CellDivision_T=3_Z=5_CH=2_X=240_Y=170.czi", {'name': ['Plan-Apochromat 50x/1.2'],
+        ("CellDivision_T3_Z5_CH2_X240_Y170.czi", {'name': ['Plan-Apochromat 50x/1.2'],
                                                        'model': [],
                                                        'immersion': ['Water'],
                                                        'NA': [1.2],

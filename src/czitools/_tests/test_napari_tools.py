@@ -36,7 +36,7 @@ def test_rename_sliders(
     "czifile, num_layers, show_metadata, wdname",
     [
         ("w96_A1+A2.czi", 2, "tree", "MetadataTree"),
-        ("CellDivision_T=3_Z=5_CH=2_X=240_Y=170.czi", 2, "table", "MetadataTable"),
+        ("CellDivision_T3_Z5_CH2_X240_Y170.czi", 2, "table", "MetadataTable"),
     ],
 )
 def test_show_image(

@@ -9,7 +9,7 @@ basedir = Path(__file__).resolve().parents[3]
 @pytest.mark.parametrize(
     "czifile, clims, colors, gamma, names, dyes",
     [
-        ("CellDivision_T=3_Z=5_CH=2_X=240_Y=170.czi",
+        ("CellDivision_T3_Z5_CH2_X240_Y170.czi",
          [[0.0, 0.05983062485694667], [0.0, 0.24975967040512703]],
          ["#FFFF7E00", "#FF00FF33"],
          [0.7999999999999998, 0.7999999999999998],

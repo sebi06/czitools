@@ -13,14 +13,13 @@ basedir = Path(__file__).resolve().parents[3]
     [
         "LLS7_small.czi",
         "FOV7_HV110_P0500510000.czi",
-        "S=3_1Pos_2Mosaic_T=2=Z=3_CH=2_sm.czi",
         "newCZI_compressed.czi",
         "Airyscan.czi",
-        "CellDivision_T=3_Z=5_CH=2_X=240_Y=170.czi",
+        "CellDivision_T3_Z5_CH2_X240_Y170.czi",
         "2_tileregions.czi",
-        "S=2_3x3_CH=2.czi",
-        "S=3_1Pos_2Mosaic_T=2=Z=3_CH=2_sm.czi",
-        "test_z=16_ch=3.czi",
+        "S2_3x3_CH2.czi",
+        "S3_1Pos_2Mosaic_T2_Z3_CH2_sm.czi",
+        "test_z16_ch3.czi",
         "Tumor_HE_RGB.czi",
     ]
 )
@@ -36,7 +35,7 @@ def test_read_metadata_local(czifile: str) -> None:
     "link",
     [
         "https://raw.githubusercontent.com/zeiss-microscopy/OAD/master/jupyter_notebooks/pylibCZIrw/images/S%3D2_CH%3D2_well_A1%2BA2_zstd.czi",
-        "https://github.com/sebi06/czitools/raw/7d1fec6193c0428e39a758414c289c91e3431def/data/CellDivision_T%3D10_Z%3D15_CH%3D2_DCV_small.czi",
+        "https://github.com/sebi06/czitools/raw/main/data/CellDivision_T10_Z15_CH2_DCV_small.czi"
         #"https://www.dropbox.com/scl/fi/lazndscc5etck38k1vz8e/S-2_3x3_T-1_Z-1_CH-2.czi?rlkey=60apu65t2dza2zor15gq4sw15&dl=1"
     ]
 )
@@ -92,7 +91,7 @@ def test_pixeltypes_2(pts: str, dts: np.dtype, mvs: int) -> None:
 def test_dimorder():
 
     # get the CZI filepath
-    filepath = basedir / r"data/S=2_3x3_CH=2.czi"
+    filepath = basedir / r"data/S2_3x3_CH2.czi"
     md = czimd.CziMetadata(filepath)
 
     assert (md.aics_dim_order == {'R': -1, 'I': -1, 'M': 5, 'H': 0, 'V': -1,
@@ -104,8 +103,8 @@ def test_dimorder():
 @pytest.mark.parametrize(
     "czifile, shape",
     [
-        ("S=3_1Pos_2Mosaic_T=2=Z=3_CH=2_sm.czi", False),
-        ("CellDivision_T=3_Z=5_CH=2_X=240_Y=170.czi", True),
+        ("S3_1Pos_2Mosaic_T2_Z3_CH2_sm.czi", False),
+        ("CellDivision_T3_Z5_CH2_X240_Y170.czi", True),
         ("WP96_4Pos_B4-10_DAPI.czi", True)
     ]
 )

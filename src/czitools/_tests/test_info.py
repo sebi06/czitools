@@ -10,13 +10,13 @@ basedir = Path(__file__).resolve().parents[3]
     "czifile, result",
     [
         (
-            "CellDivision_T=3_Z=5_CH=2_X=240_Y=170.czi",
+            "CellDivision_T3_Z5_CH2_X240_Y170.czi",
             [
                 "ZEN 3.2 (blue edition)",
                 "3.2.0.00001",
                 "2016-02-12T09:41:02.4915604Z",
                 True,
-                "CellDivision_T=3_Z=5_CH=2_X=240_Y=170.czi",
+                "CellDivision_T3_Z5_CH2_X240_Y170.czi",
             ],
         ),
         (

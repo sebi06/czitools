@@ -1199,7 +1199,7 @@ def create_md_dict_red(
         "SceneCenterStageY": metadata.sample.scene_stageX,
         "ImageStageX": metadata.sample.image_stageX,
         "ImageStageY": metadata.sample.image_stageX,
-        "BoundingBoxX": metadata.bbox,
+        "TotalBoundingBox": metadata.bbox.total_bounding_box,
     }
 
     # check for extra entries when reading mosaic file with a scale factor
@@ -1370,8 +1370,8 @@ def create_md_dict_nested(
     md_box_channels = Box(asdict(metadata.channelinfo))
     del md_box_channels.czisource
 
-    md_box_bbox = Box(asdict(metadata.bbox))
-    del md_box_bbox.czisource
+    md_box_bbox = Box(metadata.bbox.total_bounding_box)
+    #del md_box_bbox.czisource
 
     md_box_info = Box(
         {
