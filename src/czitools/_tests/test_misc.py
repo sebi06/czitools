@@ -13,13 +13,13 @@ basedir = Path(__file__).resolve().parents[3]
 @pytest.mark.parametrize(
     "czifile, dimindex, posdim, shape",
     [
-        ("CellDivision_T=3_Z=5_CH=2_X=240_Y=170.czi", 0, 2, (1, 3, 1, 5, 170, 240)),
-        ("CellDivision_T=3_Z=5_CH=2_X=240_Y=170.czi", 0, 1, (1, 1, 2, 5, 170, 240)),
-        ("CellDivision_T=3_Z=5_CH=2_X=240_Y=170.czi", 2, 3, (1, 3, 2, 1, 170, 240)),
-        ("S=2_3x3_CH=2.czi", 0, 0, (1, 1, 2, 1, 1792, 1792)),
-        ("S=2_3x3_CH=2.czi", 0, 1, (2, 1, 2, 1, 1792, 1792)),
-        ("S=2_3x3_CH=2.czi", 0, 2, (2, 1, 1, 1, 1792, 1792)),
-        ("S=2_3x3_CH=2.czi", 1, 2, (2, 1, 1, 1, 1792, 1792)),
+        ("CellDivision_T3_Z5_CH2_X240_Y170.czi", 0, 2, (1, 3, 1, 5, 170, 240)),
+        ("CellDivision_T3_Z5_CH2_X240_Y170.czi", 0, 1, (1, 1, 2, 5, 170, 240)),
+        ("CellDivision_T3_Z5_CH2_X240_Y170.czi", 2, 3, (1, 3, 2, 1, 170, 240)),
+        ("S2_3x3_CH2.czi", 0, 0, (1, 1, 2, 1, 1792, 1792)),
+        ("S2_3x3_CH2.czi", 0, 1, (2, 1, 2, 1, 1792, 1792)),
+        ("S2_3x3_CH2.czi", 0, 2, (2, 1, 1, 1, 1792, 1792)),
+        ("S2_3x3_CH2.czi", 1, 2, (2, 1, 1, 1, 1792, 1792)),
     ],
 )
 def test_slicedim(czifile: str, dimindex: int, posdim: int, shape: Tuple[int]) -> None:

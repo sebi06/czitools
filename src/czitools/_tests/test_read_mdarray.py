@@ -16,10 +16,10 @@ basedir = Path(__file__).resolve().parents[3]
         ("w96_A1+A2.czi", (2, 1, 2, 1, 1416, 1960), False, False),
         ("w96_A1+A2.czi", (2, 1, 2, 1, 1416, 1960), True, False),
         ("w96_A1+A2.czi", (2, 1, 2, 1, 1416, 1960), True, True),
-        ("S=3_1Pos_2Mosaic_T=2=Z=3_CH=2_sm.czi", AttributeError, False, False),
-        ("S=2_3x3_CH=2.czi", (2, 1, 2, 1, 1792, 1792), False, False),
-        ("S=2_3x3_CH=2.czi", (2, 1, 2, 1, 1792, 1792), True, False),
-        ("S=2_3x3_CH=2.czi", (2, 1, 2, 1, 1792, 1792), True, True),
+        ("S3_1Pos_2Mosaic_T2_Z3_CH2_sm.czi", AttributeError, False, False),
+        ("S2_3x3_CH2.czi", (2, 1, 2, 1, 1792, 1792), False, False),
+        ("S2_3x3_CH2.czi", (2, 1, 2, 1, 1792, 1792), True, False),
+        ("S2_3x3_CH2.czi", (2, 1, 2, 1, 1792, 1792), True, True),
         (
             "FOV7_HV110_P0500510000.czi",
             (1, 1, 1, 1, 512, 512),
@@ -70,19 +70,19 @@ def test_read_mdarray(
             {"S": (0, 0)},
         ),
         (
-            "CellDivision_T=3_Z=5_CH=2_X=240_Y=170.czi",
+            "CellDivision_T3_Z5_CH2_X240_Y170.czi",
             (1, 1, 2, 1, 170, 240),
             None,
             {"S": (0, 0), "T": (0, 0), "C": (0, 1), "Z": (0, 0)},
         ),
         (
-            "CellDivision_T=3_Z=5_CH=2_X=240_Y=170.czi",
+            "CellDivision_T3_Z5_CH2_X240_Y170.czi",
             (1, 1, 2, 5, 170, 240),
             None,
             {"T": (0, 0)},
         ),
         (
-            "CellDivision_T=3_Z=5_CH=2_X=240_Y=170.czi",
+            "CellDivision_T3_Z5_CH2_X240_Y170.czi",
             (1, 3, 1, 5, 170, 240),
             None,
             {"C": (0, 0)},
@@ -108,8 +108,8 @@ def test_read_mdarray_substack(
 @pytest.mark.parametrize(
     "czifile, scene, has_scenes",
     [
-        ("CellDivision_T=3_Z=5_CH=2_X=240_Y=170.czi", 0, False),
-        ("S=2_3x3_CH=2.czi", 0, True),
+        ("CellDivision_T3_Z5_CH2_X240_Y170.czi", 0, False),
+        ("S2_3x3_CH2.czi", 0, True),
     ],
 )
 def test_readczi_scenes(czifile: str, scene: int, has_scenes: bool) -> None:

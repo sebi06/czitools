@@ -14,7 +14,7 @@ basedir = Path(__file__).resolve().parents[3] / "data"
 
 
 @pytest.mark.parametrize(
-    "tiff_file, sp", [("CH=1_16bit.tif", 1), ("Fluorescence_RGB.tif", 3)]
+    "tiff_file, sp", [("CH1_16bit.tif", 1), ("Fluorescence_RGB.tif", 3)]
 )
 def test_write_1(tiff_file: str, sp: int) -> None:
     # get the TIFF filepath
@@ -65,7 +65,7 @@ def test_write_1(tiff_file: str, sp: int) -> None:
     "czifilepath, pyczi_dims, pix_types, is_rgb, is_mosaic",
     [
         (
-            "z=16_ch=3.czi",
+            "z16_ch3.czi",
             {"T": (0, 1), "Z": (0, 16), "C": (0, 3), "X": (0, 512), "Y": (0, 512)},
             {0: "Gray16", 1: "Gray16", 2: "Gray16"},
             False,
@@ -112,7 +112,7 @@ def test_write_2(
     "czifilepath, xstart, ch, pyczi_dims, pix_types, is_rgb, is_mosaic, tbox",
     [
         (
-            "z=16_ch=3.czi",
+            "z16_ch3.czi",
             0,
             0,
             {"T": (0, 1), "Z": (0, 1), "C": (0, 1), "X": (0, 8192), "Y": (0, 512)},
@@ -169,7 +169,7 @@ def test_write_3(
     "czifilepath, ch, gx, gy, xystart, offset, pyczi_dims, pix_types, is_rgb, is_mosaic, tbox",
     [
         (
-            "z=16_ch=3.czi",
+            "z16_ch3.czi",
             0,
             4,
             4,
@@ -241,12 +241,12 @@ def test_write_4(
     "czifilepath, order, use_dask, overwrite, sceneid, zarr_path",
     [
         (
-            "CellDivision_T=3_Z=5_CH=2_X=240_Y=170.czi",
+            "CellDivision_T3_Z5_CH2_X240_Y170.czi",
             "STCZYX",
             True,
             True,
             0,
-            "CellDivision_T=3_Z=5_CH=2_X=240_Y=170.ome.zarr",
+            "CellDivision_T3_Z5_CH2_X240_Y170.ome.zarr",
         )
     ],
 )

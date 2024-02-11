@@ -9,7 +9,7 @@ basedir = Path(__file__).resolve().parents[3]
 @pytest.mark.parametrize(
     "czifile, results",
     [
-        ("CellDivision_T=3_Z=5_CH=2_X=240_Y=170.czi", {'X': 0.091, 'X_sf': 0.091, 'Y': 0.091, 'Y_sf': 0.091, 'Z': 0.32, 'ratio': {'xy': 1.0, 'zx': 3.516}, 'unit': 'micron', 'zoom': 1.0}),
+        ("CellDivision_T3_Z5_CH2_X240_Y170.czi", {'X': 0.091, 'X_sf': 0.091, 'Y': 0.091, 'Y_sf': 0.091, 'Z': 0.32, 'ratio': {'xy': 1.0, 'zx': 3.516}, 'unit': 'micron', 'zoom': 1.0}),
         ("Al2O3_SE_020_sp.czi", {'X': 0.028, 'X_sf': 0.028, 'Y': 0.028, 'Y_sf': 0.028, 'Z': 1.0, 'ratio': {'xy': 1.0, 'zx': 35.714}, 'unit': 'micron', 'zoom': 1.0}),
         ("w96_A1+A2.czi", {'X': 0.457, 'X_sf': 0.457, 'Y': 0.457, 'Y_sf': 0.457, 'Z': 1.0, 'ratio': {'xy': 1.0, 'zx': 2.188}, 'unit': 'micron', 'zoom': 1.0}),
         ("Airyscan.czi", {'X': 0.044, 'X_sf': 0.044, 'Y': 0.044, 'Y_sf': 0.044, 'Z': 1.0, 'ratio': {'xy': 1.0, 'zx': 22.727}, 'unit': 'micron', 'zoom': 1.0}),
