@@ -31,7 +31,7 @@ print(filepath)
 # get the complete metadata using czitools
 mdata = czimd.CziMetadata(filepath)
 
-# test using AICSImageIO
+# test using AICSImageIO (needs to be installed)
 aics_img = AICSImage(filepath, reconstruct_mosaic=True)
 print(aics_img.shape)
 for k, v in aics_img.dims.items():

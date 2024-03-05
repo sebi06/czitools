@@ -67,14 +67,9 @@ def test_get_planetable(
         planetable = pd.read_csv(filepath, sep=separator)
     if isczi:
         # read the data from CZI file
-        planetable, csvfile = misc_tools.get_planetable(
-            filepath, norm_time=True, savetable=True, separator=",", index=True
+        planetable = misc_tools.get_planetable(
+            filepath, norm_time=True, pt_complete=True
         )
-
-        assert csvfile == (basedir / "data" / csvfile).as_posix()
-
-        # remove the file
-        Path.unlink(Path(csvfile))
 
     planetable_filtered = misc_tools.filter_planetable(planetable, S=0, T=0, Z=0, C=0)
 

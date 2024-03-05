@@ -149,10 +149,6 @@ class CziMetadata:
                 czidoc, size_s=self.image.SizeS
             )
 
-            # if self.scene_shape_is_consistent:
-            #    self.image.SizeX_scene = czidoc.scenes_bounding_rectangle[0].w
-            #    self.image.SizeY_scene = czidoc.scenes_bounding_rectangle[0].h
-
         if not self.is_url:
             # get some additional metadata using aicspylibczi
             try:
@@ -414,7 +410,9 @@ class CziDimensions:
             except KeyError as e:
                 self.SizeX_scene = None
                 self.SizeY_scene = None
-                logger.warning("Scenes Dimension detected but no bounding rectangle information found.")
+                logger.warning(
+                    "Scenes Dimension detected but no bounding rectangle information found."
+                )
 
 
 @dataclass
@@ -540,15 +538,19 @@ class CziChannelInfo:
                 )
                 if isinstance(channels, Box):
                     # get the data in case of only one channel
-                    self.names.append(
-                        "CH1"
-                    ) if channels.Name is None else self.names.append(channels.Name)
+                    (
+                        self.names.append("CH1")
+                        if channels.Name is None
+                        else self.names.append(channels.Name)
+                    )
                 elif isinstance(channels, BoxList):
                     # get the data in case multiple channels
                     for ch in range(len(channels)):
-                        self.names.append("CH1") if channels[
-                            ch
-                        ].Name is None else self.names.append(channels[ch].Name)
+                        (
+                            self.names.append("CH1")
+                            if channels[ch].Name is None
+                            else self.names.append(channels[ch].Name)
+                        )
             except AttributeError:
                 channels = None
         elif not czi_box.has_channels:
@@ -572,19 +574,25 @@ class CziChannelInfo:
 
     def get_channel_info(self, display: Box):
         if display is not None:
-            self.dyes.append(
-                "Dye-CH1"
-            ) if display.ShortName is None else self.dyes.append(display.ShortName)
-            self.colors.append(
-                "#80808000"
-            ) if display.Color is None else self.colors.append(display.Color)
+            (
+                self.dyes.append("Dye-CH1")
+                if display.ShortName is None
+                else self.dyes.append(display.ShortName)
+            )
+            (
+                self.colors.append("#80808000")
+                if display.Color is None
+                else self.colors.append(display.Color)
+            )
 
             low = 0.0 if display.Low is None else float(display.Low)
             high = 0.5 if display.High is None else float(display.High)
 
             self.clims.append([low, high])
-            self.gamma.append(0.85) if display.Gamma is None else self.gamma.append(
-                float(display.Gamma)
+            (
+                self.gamma.append(0.85)
+                if display.Gamma is None
+                else self.gamma.append(float(display.Gamma))
             )
         else:
             self.dyes.append("Dye-CH1")
@@ -888,8 +896,8 @@ class CziSampleInfo:
 
             try:
                 # read the data from CSV file
-                planetable, csvfile = misc_tools.get_planetable(
-                    czi_box.filepath, read_one_only=True, savetable=False
+                planetable = misc_tools.get_planetable(
+                    czi_box.filepath, pt_complete=False, t=0, c=0, z=0
                 )
 
                 self.image_stageX = float(planetable["X[micron]"][0])
@@ -1371,7 +1379,7 @@ def create_md_dict_nested(
     del md_box_channels.czisource
 
     md_box_bbox = Box(metadata.bbox.total_bounding_box)
-    #del md_box_bbox.czisource
+    # del md_box_bbox.czisource
 
     md_box_info = Box(
         {
