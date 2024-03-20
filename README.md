@@ -8,6 +8,20 @@
 
 This repository provides a collection of tools to simplify reading CZI (Carl Zeiss Image) pixel and metadata in Python. In addition it also contains other useful utilities to visualize CZI images inside Napari (needs to be installed). It is also available as a [Python Package on PyPi](https://pypi.org/project/czitools/)
 
+## Installation
+
+To install the basic functionality (will not install Napari und plotting functionality) use:
+
+```text
+pip install czitools"
+```
+
+To install the package with all optional dependencies use:
+
+```text
+pip install czitools[all]
+```
+
 ## Reading the metadata
 
 Please check [use_metadata_tools.py](https://github.com/sebi06/czitools/blob/main/demo/scripts/use_metadata_tools.py) for some examples.
@@ -127,3 +141,17 @@ The basic usage can be inferred from this sample notebook:&nbsp;
 ## Remarks
 
 The code to read multi-dimensional with delayed reading using Dask array was heavily inspired by input from: [Pradeep Rajasekhar](https://github.com/pr4deepr).
+
+Local installation (base functionality only):
+
+```text
+pip install -e .
+```
+
+### Local Installation
+
+Local installation (full functionality):
+
+```text
+pip install -e ".[all]"
+```
