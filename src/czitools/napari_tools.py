@@ -9,41 +9,54 @@
 #
 #################################################################
 
-import napari
-
-from PyQt5.QtWidgets import (
-    QVBoxLayout,
-    QWidget,
-    QTableWidget,
-    QTableWidgetItem,
-)
-
-from PyQt5.QtCore import Qt
-from PyQt5 import QtWidgets
-from PyQt5.QtGui import QFont
-from czitools import metadata_tools as czimd
-from czitools import misc_tools
-from czitools.datatreewiget import DataTreeWidget
-import numpy as np
-from typing import (
-    List,
-    Dict,
-    Tuple,
-    Optional,
-    Type,
-    Any,
-    Union,
-    Literal,
-    Mapping,
-    Annotated,
-)
-from napari.utils.colormaps import Colormap
-from napari.utils import resize_dask_cache
-import dask.array as da
-from dataclasses import dataclass
 from czitools import logger as LOGGER
+import sys
 
 logger = LOGGER.get_logger()
+
+# check if Napari is actually installed
+try:
+    import napari
+except (ImportError, ModuleNotFoundError) as error:
+    # Output expected ImportErrors.
+    logger.error(error.__class__.__name__ + ": " + error.msg)
+    sys.exit(1)
+else:
+
+    from PyQt5.QtWidgets import (
+        QVBoxLayout,
+        QWidget,
+        QTableWidget,
+        QTableWidgetItem,
+    )
+
+    from PyQt5.QtCore import Qt
+    from PyQt5 import QtWidgets
+    from PyQt5.QtGui import QFont
+    from czitools import metadata_tools as czimd
+    from czitools import misc_tools
+    from czitools.datatreewiget import DataTreeWidget
+    import numpy as np
+    from typing import (
+        List,
+        Dict,
+        Tuple,
+        Optional,
+        Type,
+        Any,
+        Union,
+        Literal,
+        Mapping,
+        Annotated,
+    )
+    from napari.utils.colormaps import Colormap
+    from napari.utils import resize_dask_cache
+    import dask.array as da
+    from dataclasses import dataclass
+
+# from czitools import logger as LOGGER
+
+# logger = LOGGER.get_logger()
 
 
 @dataclass
@@ -176,7 +189,7 @@ def show(
     scalefactors = [1.0] * len(array.shape)
 
     # testing
-    #scalefactors = [1.0] * 6
+    # scalefactors = [1.0] * 6
 
     # modify the tuple for the scales for napari
 

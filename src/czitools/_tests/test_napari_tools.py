@@ -1,7 +1,18 @@
 import pytest
-from czitools import napari_tools, metadata_tools, read_tools
+
+try:
+    import napari
+    from czitools import napari_tools
+
+    NAPARI_INSTALLED = True
+except (ImportError, ModuleNotFoundError) as error:
+    NAPARI_INSTALLED = False
+
+
+from czitools import metadata_tools, read_tools
 import numpy as np
-import napari
+
+# import napari
 from pathlib import Path
 from typing import List, Dict, Tuple, Optional, Type, Any, Union, Mapping, Literal
 import os
@@ -12,6 +23,7 @@ IN_GITHUB_ACTIONS = os.getenv("GITHUB_ACTIONS") == "true"
 basedir = Path(__file__).resolve().parents[3]
 
 
+@pytest.mark.skipif(not NAPARI_INSTALLED, reason="Napari is not installed.")
 @pytest.mark.parametrize(
     "dim_order, sliders, expected_sliders",
     [
@@ -31,6 +43,7 @@ def test_rename_sliders(
 
 
 # exclude the test when executed inside a GITHUB action
+@pytest.mark.skipif(not NAPARI_INSTALLED, reason="Napari is not installed.")
 @pytest.mark.skipif(IN_GITHUB_ACTIONS, reason="Test doesn't work in Github Actions.")
 @pytest.mark.parametrize(
     "czifile, num_layers, show_metadata, wdname",

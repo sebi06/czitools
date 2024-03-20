@@ -904,7 +904,7 @@ class CziSampleInfo:
                 self.image_stageY = float(planetable["Y[micron]"][0])
 
             except Exception as e:
-                print(e)
+                logger.error(e)
 
     def get_well_info(self, well: Box):
         # logger = setup_log("CziSampleInfo")
