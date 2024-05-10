@@ -14,25 +14,25 @@ from typing import List, Dict, Tuple, Optional, Any, Union
 import os
 import xml.etree.ElementTree as ET
 from pylibCZIrw import czi as pyczi
-from czitools.tools import logger, misc
+from czitools.utils import logger, misc
 import numpy as np
 from dataclasses import dataclass, field
 from pathlib import Path
 from box import Box
 import validators
 from dataclasses import asdict
-from czitools.metadata.dimension import CziDimensions
-from czitools.metadata.boundingbox import CziBoundingBox
-from czitools.metadata.attachment import CziAttachments
-from czitools.metadata.channel import CziChannelInfo
-from czitools.metadata.scaling import CziScaling
-from czitools.metadata.sample import CziSampleInfo
-from czitools.metadata.objective import CziObjectives
-from czitools.metadata.microscope import CziMicroscope
-from czitools.metadata.add_metadata import CziAddMetaData
-from czitools.metadata.detector import CziDetector
-from czitools.tools.box import get_czimd_box
-from czitools.metadata.helper import DictObj
+from czitools.metadata_tools.dimension import CziDimensions
+from czitools.metadata_tools.boundingbox import CziBoundingBox
+from czitools.metadata_tools.attachment import CziAttachments
+from czitools.metadata_tools.channel import CziChannelInfo
+from czitools.metadata_tools.scaling import CziScaling
+from czitools.metadata_tools.sample import CziSampleInfo
+from czitools.metadata_tools.objective import CziObjectives
+from czitools.metadata_tools.microscope import CziMicroscope
+from czitools.metadata_tools.add_metadata import CziAddMetaData
+from czitools.metadata_tools.detector import CziDetector
+from czitools.utils.box import get_czimd_box
+from czitools.metadata_tools.helper import DictObj
 
 logger = logger.get_logger()
 
@@ -106,7 +106,7 @@ class CziMetadata:
         self.dirname = str(Path(self.filepath).parent)
         self.filename = str(Path(self.filepath).name)
 
-        # get the metadata as box
+        # get the metadata_tools as box
         self.czi_box = get_czimd_box(self.filepath)
 
         # check for existence of scenes
@@ -137,7 +137,7 @@ class CziMetadata:
         # get the dimensions and order
         self.image = CziDimensions(self.czi_box)
 
-        # get metadata using pylibCZIrw
+        # get metadata_tools using pylibCZIrw
         with pyczi.open_czi(self.filepath, self.pyczi_readertype) as czidoc:
             # get dimensions
             self.pyczi_dims = czidoc.total_bounding_box
@@ -152,7 +152,7 @@ class CziMetadata:
             )
 
         if not self.is_url:
-            # get some additional metadata using aicspylibczi
+            # get some additional metadata_tools using aicspylibczi
             try:
                 from aicspylibczi import CziFile
 
@@ -323,7 +323,7 @@ class CziMetadata:
 
 def get_metadata_as_object(filepath: Union[str, os.PathLike[str]]) -> DictObj:
     """
-    Get the complete CZI metadata as an object created based on the
+    Get the complete CZI metadata_tools as an object created based on the
     dictionary created from the XML data.
     """
 
@@ -331,7 +331,7 @@ def get_metadata_as_object(filepath: Union[str, os.PathLike[str]]) -> DictObj:
         # convert to string
         filepath = str(filepath)
 
-    # get metadata dictionary using pylibCZIrw
+    # get metadata_tools dictionary using pylibCZIrw
     with pyczi.open_czi(filepath) as czidoc:
         md_dict = czidoc.metadata
 
@@ -403,7 +403,7 @@ def writexml(
         # convert to string
         filepath = str(filepath)
 
-    # get the raw metadata as XML or dictionary
+    # get the raw metadata_tools as XML or dictionary
     with pyczi.open_czi(filepath) as czidoc:
         metadata_xmlstr = czidoc.raw_metadata
 
@@ -423,18 +423,18 @@ def create_md_dict_red(
     metadata: CziMetadata, sort: bool = True, remove_none: bool = True
 ) -> Dict:
     """
-    create_mdict_red: Created a reduced metadata dictionary
+    create_mdict_red: Created a reduced metadata_tools dictionary
 
     Args:
         metadata: CziMetadata class
         sort: sort the dictionary
         remove_none: Remove None values from dictionary
 
-    Returns: dictionary with the metadata
+    Returns: dictionary with the metadata_tools
 
     """
 
-    # create a dictionary with the metadata
+    # create a dictionary with the metadata_tools
     md_dict = {
         "Directory": metadata.dirname,
         "Filename": metadata.filename,
@@ -507,13 +507,13 @@ def create_md_dict_red(
 #     filepath: Union[str, os.PathLike[str]]
 # ) -> Box:
 #     """
-#     get_czimd_box: Get CZI metadata as a python-box. For details: https://pypi.org/project/python-box/
+#     get_czimd_box: Get CZI metadata_tools as a python-box. For details: https://pypi.org/project/python-box/
 #
 #     Args:
 #         filepath (Union[str, os.PathLike[str]]): Filepath of the CZI file
 #
 #     Returns:
-#         Box: CZI metadata as a Box object
+#         Box: CZI metadata_tools as a Box object
 #     """
 #
 #     readertype = pyczi.ReaderFileInputTypes.Standard
@@ -521,9 +521,9 @@ def create_md_dict_red(
 #     if validators.url(str(filepath)):
 #         readertype = pyczi.ReaderFileInputTypes.Curl
 #
-#     # get metadata dictionary using pylibCZIrw
+#     # get metadata_tools dictionary using pylibCZIrw
 #     with pyczi.open_czi(str(filepath), readertype) as czi_document:
-#         metadata_dict = czi_document.metadata
+#         metadata_dict = czi_document.metadata_tools
 #
 #     czimd_box = Box(
 #         metadata_dict,
@@ -624,7 +624,7 @@ def create_md_dict_nested(
     metadata: CziMetadata, sort: bool = True, remove_none: bool = True
 ) -> Dict:
     """
-    Create nested dictionary from metadata
+    Create nested dictionary from metadata_tools
 
     Args:
         metadata (CziMetadata): CzIMetaData object_
@@ -632,7 +632,7 @@ def create_md_dict_nested(
         remove_none (bool, optional): Remove None values from dictionary. Defaults to True.
 
     Returns:
-        Dict: Nested dictionary with reduced set of metadata
+        Dict: Nested dictionary with reduced set of metadata_tools
     """
 
     md_array6d = {"array6d": metadata.array6d_size}

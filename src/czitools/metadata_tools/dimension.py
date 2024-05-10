@@ -2,8 +2,8 @@ from typing import Tuple, Optional, Union
 from dataclasses import dataclass, field, fields, Field
 from box import Box
 import os
-from czitools.tools.logger import get_logger
-from czitools.tools.box import get_czimd_box
+from czitools.utils.logger import get_logger
+from czitools.utils.box import get_czimd_box
 from pylibCZIrw import czi as pyczi
 
 logger = get_logger()
@@ -61,9 +61,9 @@ class CziDimensions:
         self.SizeY_sf = self.SizeY
 
     def set_dimensions(self):
-        """Populate the image dimensions with the detected values from the metadata"""
+        """Populate the image dimensions with the detected values from the metadata_tools"""
 
-        # get the Box and extract the relevant dimension metadata
+        # get the Box and extract the relevant dimension metadata_tools
         if isinstance(self.czisource, Box):
             czi_box = self.czisource
         else:

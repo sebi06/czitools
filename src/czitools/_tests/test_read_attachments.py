@@ -1,5 +1,6 @@
-from czitools import read_tools, czi_metadata
-from czitools.read_tools import AttachmentType
+from czitools.read_tools import read_tools
+from czitools.metadata_tools import czi_metadata
+from czitools.metadata_tools.helper import AttachmentType
 from pathlib import Path
 import numpy as np
 import pytest
@@ -42,7 +43,7 @@ def test_read_attachments_images(
     has_prescan: bool,
     array_shape: Tuple[int, int, int],
 ) -> None:
-    # get the filepath and the metadata
+    # get the filepath and the metadata_tools
     filepath = basedir / "data" / cziname
 
     # get info about attachments only

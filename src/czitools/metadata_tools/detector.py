@@ -2,8 +2,8 @@ from typing import Union, List
 from dataclasses import dataclass, field
 from box import Box, BoxList
 import os
-from czitools.tools.logger import get_logger
-from czitools.tools.box import get_czimd_box
+from czitools.utils.logger import get_logger
+from czitools.utils.box import get_czimd_box
 
 logger = get_logger()
 

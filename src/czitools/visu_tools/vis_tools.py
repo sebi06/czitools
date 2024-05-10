@@ -13,7 +13,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib import cm
 import plotly.graph_objects as go
-from czitools.tools import logger
+from czitools.utils import logger
 
 logger = logger.get_logger()
 

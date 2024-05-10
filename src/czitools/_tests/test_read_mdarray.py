@@ -1,4 +1,4 @@
-from czitools import read_tools
+from czitools.read_tools import read_tools
 from pathlib import Path
 import dask.array as da
 import numpy as np

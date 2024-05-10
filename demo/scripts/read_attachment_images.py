@@ -2,8 +2,8 @@ from czitools import read_tools
 from czitools.read_tools import AttachmentType
 from pathlib import Path
 import os
-from czitools.czi_metadata import CziMetadata
-from czitools.metadata.attachment import CziAttachments
+from czitools.metadata_tools.czi_metadata import CziMetadata
+from czitools.metadata_tools.attachment import CziAttachments
 
 # adapt to your needs
 defaultdir = Path(Path(__file__).resolve().parents[2]) / "data"
@@ -14,7 +14,7 @@ filepath = r"w96_A1+A2.czi"
 # filepath = r"Tumor_HE_Orig_small.czi"
 # filepath = r"CellDivision_T=10_Z=15_CH=2_DCV_small.czi"
 
-# read all metadata and check for the attachment images
+# read all metadata_tools and check for the attachment images
 md = CziMetadata(filepath)
 print(f"CZI Image has Label {md.attachments.has_label}")
 print(f"CZI Image has SlidePreview {md.attachments.has_preview}")

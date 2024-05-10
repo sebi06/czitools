@@ -27,10 +27,10 @@ pip install czitools[all]
 Please check [use_metadata_tools.py](https://github.com/sebi06/czitools/blob/main/demo/scripts/use_metadata_tools.py) for some examples.
 
 ```python
-# get the metadata at once as one big class
+# get the metadata_tools at once as one big class
 mdata = czimd.CziMetadata(filepath)
 
-# get only specific metadata
+# get only specific metadata_tools
 czi_dimensions = czimd.CziDimensions(filepath)
 print("SizeS: ", czi_dimensions.SizeS)
 print("SizeT: ", czi_dimensions.SizeT)
@@ -45,7 +45,7 @@ xmlfile = czimd.writexml(filepath)
 # get info about the channels
 czi_channels = czimd.CziChannelInfo(filepath)
 
-# get the complete metadata from the CZI as one big object
+# get the complete metadata_tools from the CZI as one big object
 czimd_complete = czimd.get_metadata_as_object(filepath)
 
 # get an object containing only the dimension information

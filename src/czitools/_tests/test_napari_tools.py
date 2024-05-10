@@ -2,16 +2,17 @@ import pytest
 
 try:
     import napari
-    from czitools import napari_tools, czi_metadata
+    from czitools.napari_tools import napari_tools
+    from czitools.metadata_tools import czi_metadata
 
     NAPARI_INSTALLED = True
 except (ImportError, ModuleNotFoundError) as error:
     NAPARI_INSTALLED = False
 
 
-from czitools import read_tools
+from czitools.read_tools import read_tools
 import numpy as np
-from czitools.czi_metadata import CziMetadata
+from czitools.metadata_tools.czi_metadata import CziMetadata
 from pathlib import Path
 from typing import Dict, Tuple, Literal
 import os

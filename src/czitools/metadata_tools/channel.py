@@ -2,8 +2,8 @@ from typing import Union, List
 from dataclasses import dataclass, field
 from box import Box, BoxList
 import os
-from czitools.tools.logger import get_logger
-from czitools.tools.box import get_czimd_box
+from czitools.utils.logger import get_logger
+from czitools.utils.box import get_czimd_box
 
 logger = get_logger()
 
@@ -28,7 +28,7 @@ class CziChannelInfo:
         # get channels part of dict
         if czi_box.has_channels:
             try:
-                # extract the relevant dimension metadata
+                # extract the relevant dimension metadata_tools
                 channels = (
                     czi_box.ImageDocument.Metadata.Information.Image.Dimensions.Channels.Channel
                 )
@@ -54,7 +54,7 @@ class CziChannelInfo:
 
         if czi_box.has_disp:
             try:
-                # extract the relevant dimension metadata
+                # extract the relevant dimension metadata_tools
                 disp = czi_box.ImageDocument.Metadata.DisplaySetting.Channels.Channel
                 if isinstance(disp, Box):
                     self.get_channel_info(disp)

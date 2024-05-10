@@ -4,10 +4,10 @@ from box import Box, BoxList
 import os
 import numpy as np
 from collections import Counter
-from czitools.tools.logger import get_logger
-from czitools.tools.box import get_czimd_box
-from czitools.tools.misc import get_planetable
-from czitools.metadata.dimension import CziDimensions
+from czitools.utils.logger import get_logger
+from czitools.utils.box import get_czimd_box
+from czitools.utils.misc import get_planetable
+from czitools.metadata_tools.dimension import CziDimensions
 
 logger = get_logger()
 
@@ -50,7 +50,7 @@ class CziSampleInfo:
                         self.get_well_info(allscenes[well])
 
             except AttributeError:
-                logger.info("CZI contains no scene metadata.")
+                logger.info("CZI contains no scene metadata_tools.")
 
         elif size_s is None:
             logger.info(

@@ -23,7 +23,7 @@ from tqdm.contrib.itertools import product
 from typing import Dict, Tuple, Any, Union
 import validators
 from aicspylibczi import CziFile
-from czitools.tools import logger
+from czitools.utils import logger
 
 
 logger = logger.get_logger()
@@ -143,15 +143,15 @@ def calc_scaling(
 def md2dataframe(
     md_dict: Dict, paramcol: str = "Parameter", keycol: str = "Value"
 ) -> pd.DataFrame:
-    """Converts the given metadata dictionary to a Pandas DataFrame.
+    """Converts the given metadata_tools dictionary to a Pandas DataFrame.
 
     Args:
-        md_dict (dict): A dictionary containing metadata.
-        paramcol (str, optional): The name of the column for metadata parameters. Defaults to "Parameter".
-        keycol (str, optional): The name of the column for metadata values. Defaults to "Value".
+        md_dict (dict): A dictionary containing metadata_tools.
+        paramcol (str, optional): The name of the column for metadata_tools parameters. Defaults to "Parameter".
+        keycol (str, optional): The name of the column for metadata_tools values. Defaults to "Value".
 
     Returns:
-        pd.DataFrame: A Pandas DataFrame containing all the metadata.
+        pd.DataFrame: A Pandas DataFrame containing all the metadata_tools.
     """
     mdframe = pd.DataFrame(columns=[paramcol, keycol])
 

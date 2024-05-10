@@ -17,8 +17,8 @@ from typing import (
     Annotated,
 )
 from pylibCZIrw import czi as pyczi
-from czitools import czi_metadata as czimd
-from czitools.tools import misc
+from czitools.metadata_tools import czi_metadata as czimd
+from czitools.utils import misc
 import numpy as np
 from pathlib import Path
 import dask.array as da
@@ -28,9 +28,9 @@ from tqdm import tqdm
 from tqdm.contrib.itertools import product
 import tempfile
 import shutil
-from czitools.tools import logger
-from czitools.metadata.helper import ValueRange
-from czitools.metadata.helper import AttachmentType
+from czitools.utils import logger
+from czitools.metadata_tools.helper import ValueRange
+from czitools.metadata_tools.helper import AttachmentType
 
 # from memory_profiler import profile
 
@@ -62,7 +62,7 @@ def read_6darray(
         zoom (float, options): Downsample CZI image by a factor [0.01 - 1.0]. Defaults to 1.0.
 
     Returns:
-        Tuple[array6d, mdata]: output as 6D dask array and metadata
+        Tuple[array6d, mdata]: output as 6D dask array and metadata_tools
     """
 
     if isinstance(filepath, Path):
@@ -81,7 +81,7 @@ def read_6darray(
         )
         zoom = 0.01
 
-    # get the complete metadata at once as one big class
+    # get the complete metadata_tools at once as one big class
     mdata = czimd.CziMetadata(filepath)
 
     if not mdata.consistent_pixeltypes:
@@ -247,7 +247,7 @@ def read_6darray(
                 # for testing
                 array6d = array6d.rechunk(chunks=(1, 1, 1, size_z, image2d.shape[0], image2d.shape[1], 3))
 
-    # update metadata
+    # update metadata_tools
     mdata.array6d_size = array6d.shape
 
     return array6d, mdata
@@ -273,14 +273,14 @@ def read_6darray_lazy(
                                  Respectively {"Z":(5, 5)} will return a single z-plane with index 5.
 
     Returns:
-        Tuple[array6d, mdata]: output as 6D dask array and metadata
+        Tuple[array6d, mdata]: output as 6D dask array and metadata_tools
     """
 
     if isinstance(filepath, Path):
         # convert to string
         filepath = str(filepath)
 
-    # get the complete metadata at once as one big class
+    # get the complete metadata_tools at once as one big class
     mdata = czimd.CziMetadata(filepath)
 
     if not mdata.consistent_pixeltypes:

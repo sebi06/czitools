@@ -1,7 +1,7 @@
 from typing import Optional, Union
 from dataclasses import dataclass, field
 import os
-from czitools.tools.logger import get_logger
+from czitools.utils.logger import get_logger
 from pylibCZIrw import czi as pyczi
 from pathlib import Path
 

@@ -11,8 +11,9 @@
 
 import napari
 from aicsimageio import AICSImage
-from czitools import napari_tools, czi_metadata as czimd
-from czitools.tools import misc
+from czitools import napari_tools
+from czitools.metadata_tools import czi_metadata as czimd
+from czitools.utils import misc
 import os
 from pathlib import Path
 
@@ -28,7 +29,7 @@ filepath = misc.openfile(
 )
 print(filepath)
 
-# get the complete metadata using czitools
+# get the complete metadata_tools using czitools
 mdata = czimd.CziMetadata(filepath)
 
 # test using AICSImageIO (needs to be installed)

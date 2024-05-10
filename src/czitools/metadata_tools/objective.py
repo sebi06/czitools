@@ -2,8 +2,8 @@ from typing import Union, Optional, List
 from dataclasses import dataclass, field
 from box import Box, BoxList
 import os
-from czitools.tools.logger import get_logger
-from czitools.tools.box import get_czimd_box
+from czitools.utils.logger import get_logger
+from czitools.utils.box import get_czimd_box
 
 logger = get_logger()
 
@@ -28,7 +28,7 @@ class CziObjectives:
         else:
             czi_box = get_czimd_box(self.czisource)
 
-        # check if objective metadata actually exist
+        # check if objective metadata_tools actually exist
         if czi_box.has_objectives:
             try:
                 # get objective data
@@ -46,7 +46,7 @@ class CziObjectives:
         elif not czi_box.has_objectives:
             logger.info("No Objective Information found.")
 
-        # check if tubelens metadata exist
+        # check if tubelens metadata_tools exist
         if czi_box.has_tubelenses:
             # get tubelenes data
             tubelens = (

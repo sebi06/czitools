@@ -1,5 +1,5 @@
 from pathlib import Path
-from czitools import czi_metadata as czimd
+from czitools.metadata_tools import czi_metadata as czimd
 import pytest
 from typing import List
 

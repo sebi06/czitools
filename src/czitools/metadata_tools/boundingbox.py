@@ -2,7 +2,7 @@ from typing import Optional, Union, Dict
 from dataclasses import dataclass, field
 from box import Box
 import os
-from czitools.tools.logger import get_logger
+from czitools.utils.logger import get_logger
 from pylibCZIrw import czi as pyczi
 import validators
 

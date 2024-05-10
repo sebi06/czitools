@@ -1,4 +1,4 @@
-from czitools import czi_metadata as czimd
+from czitools.metadata_tools import czi_metadata as czimd
 from pathlib import Path
 from box import BoxList
 import pytest
@@ -21,7 +21,7 @@ basedir = Path(__file__).resolve().parents[3]
 )
 def test_scaling1(czifile: str, results: Dict) -> None:
 
-    # get the filepath and the metadata
+    # get the filepath and the metadata_tools
     filepath = basedir / "data" / czifile
     czi_scaling = czimd.CziScaling(filepath)
     out = czi_scaling.__dict__

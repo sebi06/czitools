@@ -1,7 +1,7 @@
 import pandas as pd
 import unittest
 import os
-from czitools.tools import misc
+from czitools.utils import misc
 
 
 class TestSavePlanetTable(unittest.TestCase):

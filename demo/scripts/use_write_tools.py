@@ -9,7 +9,8 @@
 #
 #################################################################
 
-from czitools import read_tools, write_tools, czi_metadata as czimd
+from czitools import read_tools, write_tools
+from czitools.metadata_tools import czi_metadata as czimd
 import napari
 from pathlib import Path
 
@@ -18,7 +19,7 @@ defaultdir = Path(Path(__file__).resolve().parents[2]) / "data"
 filepath = defaultdir / "CellDivision_T3_Z5_CH2_X240_Y170.czi"
 zarr_path = Path(str(filepath)[:-4] + ".ome.zarr")
 
-# get the metadata at once as one big class
+# get the metadata_tools at once as one big class
 mdata = czimd.CziMetadata(filepath)
 print("Number of Scenes: ", mdata.image.SizeS)
 scene_id = 0

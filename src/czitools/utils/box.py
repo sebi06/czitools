@@ -10,13 +10,13 @@ def get_czimd_box(
     filepath: Union[str, os.PathLike[str]]
 ) -> Box:
     """
-    get_czimd_box: Get CZI metadata as a python-box. For details: https://pypi.org/project/python-box/
+    get_czimd_box: Get CZI metadata_tools as a python-box. For details: https://pypi.org/project/python-box/
 
     Args:
         filepath (Union[str, os.PathLike[str]]): Filepath of the CZI file
 
     Returns:
-        Box: CZI metadata as a Box object
+        Box: CZI metadata_tools as a Box object
     """
 
     readertype = pyczi.ReaderFileInputTypes.Standard
@@ -24,7 +24,7 @@ def get_czimd_box(
     if validators.url(str(filepath)):
         readertype = pyczi.ReaderFileInputTypes.Curl
 
-    # get metadata dictionary using pylibCZIrw
+    # get metadata_tools dictionary using pylibCZIrw
     with pyczi.open_czi(str(filepath), readertype) as czi_document:
         metadata_dict = czi_document.metadata
 

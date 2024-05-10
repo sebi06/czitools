@@ -21,7 +21,7 @@ from ome_zarr.io import parse_url
 from typing import Union
 import shutil
 import numpy as np
-from czitools.tools import logger
+from czitools.utils import logger
 
 logger = logger.get_logger()
 
@@ -72,7 +72,7 @@ def write_omezarr(
 
     # TODO: Add Channel information etc. to the root along those lines
     """
-    # add omero metadata: the napari ome-zarr plugin uses this to pass rendering
+    # add omero metadata_tools: the napari ome-zarr plugin uses this to pass rendering
     # options to napari.
     root.attrs['omero'] = {
         'channels': [{

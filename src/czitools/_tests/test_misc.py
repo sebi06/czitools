@@ -1,5 +1,5 @@
-from czitools import read_tools
-from czitools.tools import misc
+from czitools.read_tools import read_tools
+from czitools.utils import misc
 from pathlib import Path
 import dask.array as da
 import zarr
