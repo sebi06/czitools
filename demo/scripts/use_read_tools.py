@@ -9,8 +9,8 @@
 #
 #################################################################
 
-from czitools import read_tools
-from czitools import napari_tools
+from czitools.read_tools import read_tools
+from czitools.napari_tools import napari_tools
 from czitools.utils import misc
 import napari
 from pathlib import Path

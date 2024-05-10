@@ -27,11 +27,25 @@ pip install czitools[all]
 Please check [use_metadata_tools.py](https://github.com/sebi06/czitools/blob/main/demo/scripts/use_metadata_tools.py) for some examples.
 
 ```python
+from czitools.metadata_tools.czi_metadata import CziMetadata, writexml
+from czitools.metadata_tools.dimension import CziDimensions
+from czitools.metadata_tools.boundingbox import CziBoundingBox
+from czitools.metadata_tools.channel import CziChannelInfo
+from czitools.metadata_tools.scaling import CziScaling
+from czitools.metadata_tools.sample import CziSampleInfo
+from czitools.metadata_tools.objective import CziObjectives
+from czitools.metadata_tools.microscope import CziMicroscope
+from czitools.metadata_tools.add_metadata import CziAddMetaData
+from czitools.metadata_tools.detector import CziDetector
+from czitools.read_tools import read_tools
+from czitools.napari_tools import napari_tools
+import napari
+
 # get the metadata_tools at once as one big class
-mdata = czimd.CziMetadata(filepath)
+mdata = CziMetadata(filepath)
 
 # get only specific metadata_tools
-czi_dimensions = czimd.CziDimensions(filepath)
+czi_dimensions = CziDimensions(filepath)
 print("SizeS: ", czi_dimensions.SizeS)
 print("SizeT: ", czi_dimensions.SizeT)
 print("SizeZ: ", czi_dimensions.SizeZ)
@@ -40,36 +54,36 @@ print("SizeY: ", czi_dimensions.SizeY)
 print("SizeX: ", czi_dimensions.SizeX)
 
 # try to write XML to file
-xmlfile = czimd.writexml(filepath)
+xmlfile = writexml(filepath)
 
 # get info about the channels
-czi_channels = czimd.CziChannelInfo(filepath)
+czi_channels = CziChannelInfo(filepath)
 
 # get the complete metadata_tools from the CZI as one big object
-czimd_complete = czimd.get_metadata_as_object(filepath)
+czimd_complete = get_metadata_as_object(filepath)
 
 # get an object containing only the dimension information
-czi_dimensions = czimd.CziDimensions(filepath)
+czi_dimensions = CziDimensions(filepath)
 
 # get an object containing only the dimension information
-czi_scale = czimd.CziScaling(filepath)
+czi_scale = CziScaling(filepath)
 
 # get an object containing information about the sample
-czi_sample = czimd.CziSampleInfo(filepath)
+czi_sample = CziSampleInfo(filepath)
 
 # get info about the objective, the microscope and the detectors
-czi_objectives = czimd.CziObjectives(filepath)
-czi_detectors = czimd.CziDetector(filepath)
-czi_microscope = czimd.CziMicroscope(filepath)
+czi_objectives = CziObjectives(filepath)
+czi_detectors = CziDetector(filepath)
+czi_microscope = CziMicroscope(filepath)
 
 # get info about the sample carrier
-czi_sample = czimd.CziSampleInfo(filepath)
+czi_sample = CziSampleInfo(filepath)
 
 # get additional metainformation
-czi_addmd = czimd.CziAddMetaData(filepath)
+czi_addmd = CziAddMetaData(filepath)
 
 # get the complete data about the bounding boxes
-czi_bbox = czimd.CziBoundingBox(filepath)
+czi_bbox = CziBoundingBox(filepath)
 ```
 
 ## Reading CZI pixel data

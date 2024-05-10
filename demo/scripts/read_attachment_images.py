@@ -1,9 +1,9 @@
-from czitools import read_tools
-from czitools.read_tools import AttachmentType
+from czitools.read_tools import read_tools
 from pathlib import Path
 import os
 from czitools.metadata_tools.czi_metadata import CziMetadata
 from czitools.metadata_tools.attachment import CziAttachments
+from czitools.metadata_tools.helper import AttachmentType
 
 # adapt to your needs
 defaultdir = Path(Path(__file__).resolve().parents[2]) / "data"

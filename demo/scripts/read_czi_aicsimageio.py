@@ -11,7 +11,7 @@
 
 import napari
 from aicsimageio import AICSImage
-from czitools import napari_tools
+from czitools.napari_tools import napari_tools
 from czitools.metadata_tools import czi_metadata as czimd
 from czitools.utils import misc
 import os
@@ -35,8 +35,6 @@ mdata = czimd.CziMetadata(filepath)
 # test using AICSImageIO (needs to be installed)
 aics_img = AICSImage(filepath, reconstruct_mosaic=True)
 print(aics_img.shape)
-for k, v in aics_img.dims.items():
-    print(k, v)
 
 # get the stack as dask array using AICSImageIO
 stack = aics_img.get_dask_stack()

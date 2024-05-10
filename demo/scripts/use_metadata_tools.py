@@ -9,7 +9,12 @@
 #
 #################################################################
 
-from czitools.metadata_tools.czi_metadata import CziMetadata, writexml, get_metadata_as_object, obj2dict
+from czitools.metadata_tools.czi_metadata import (
+    CziMetadata,
+    writexml,
+    get_metadata_as_object,
+    obj2dict
+)
 from czitools.metadata_tools.dimension import CziDimensions
 from czitools.metadata_tools.boundingbox import CziBoundingBox
 from czitools.metadata_tools.channel import CziChannelInfo

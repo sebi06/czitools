@@ -9,7 +9,8 @@
 #
 #################################################################
 
-from czitools import read_tools, write_tools
+from czitools.read_tools import read_tools
+from czitools.write_tools import write_tools
 from czitools.metadata_tools import czi_metadata as czimd
 import napari
 from pathlib import Path
