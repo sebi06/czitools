@@ -58,7 +58,7 @@ def get_logger(log_to_file: bool = False):
     - file_handler: logging to a file (logs all five levels) if `log_to_file` is True
 
     Args:
-        log_to_file (bool): Whether or not to log to file. Defaults to False.
+        log_to_file (bool): Whether to log to file. Defaults to False.
 
     Returns:
         logging.Logger: A custom logger with two handlers.

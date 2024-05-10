@@ -2,19 +2,18 @@ import pytest
 
 try:
     import napari
-    from czitools import napari_tools
+    from czitools import napari_tools, czi_metadata
 
     NAPARI_INSTALLED = True
 except (ImportError, ModuleNotFoundError) as error:
     NAPARI_INSTALLED = False
 
 
-from czitools import metadata_tools, read_tools
+from czitools import read_tools
 import numpy as np
-
-# import napari
+from czitools.czi_metadata import CziMetadata
 from pathlib import Path
-from typing import List, Dict, Tuple, Optional, Type, Any, Union, Mapping, Literal
+from typing import Dict, Tuple, Literal
 import os
 
 # check if the test in executed as part of a GITHUB action
@@ -61,7 +60,7 @@ def test_show_image(
     """Test that the `show` function correctly displays a two-channel image and the metadada widgets."""
 
     filepath = basedir / "data" / czifile
-    md = metadata_tools.CziMetadata(filepath)
+    #md = CziMetadata(filepath)
 
     array6d, mdata = read_tools.read_6darray(
         filepath,

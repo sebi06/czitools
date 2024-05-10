@@ -1,8 +1,8 @@
-from czitools import metadata_tools as czimd
+from czitools import czi_metadata as czimd
 from pathlib import Path
 from pylibCZIrw import czi
 import pytest
-from typing import List, Dict, Tuple, Optional, Type, Any, Union, Mapping
+from typing import Dict, Tuple
 
 basedir = Path(__file__).resolve().parents[3] / "data"
 

@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 #################################################################
-# File        : misc_tools.py
+# File        : misc.py
 # Author      : sebi06
 #
 # Disclaimer: The code is purely experimental. Feel free to
@@ -20,17 +20,13 @@ import time
 from pathlib import Path
 import dateutil.parser as dt
 from tqdm.contrib.itertools import product
-from czitools import metadata_tools as czimd
-from typing import List, Dict, Tuple, Optional, Type, Any, Union, Mapping
-from dataclasses import make_dataclass, fields, dataclass
-from czitools import logger as LOGGER
+from typing import Dict, Tuple, Any, Union
 import validators
-import re
 from aicspylibczi import CziFile
+from czitools.tools import logger
 
-# from urllib.parse import urlparse
 
-logger = LOGGER.get_logger()
+logger = logger.get_logger()
 
 
 def openfile(

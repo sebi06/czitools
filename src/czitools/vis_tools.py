@@ -11,15 +11,11 @@
 
 import numpy as np
 import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import axes3d
 from matplotlib import cm
 import plotly.graph_objects as go
-import plotly.express as px
-from plotly.subplots import make_subplots
-from typing import List, Dict, Tuple, Optional, Type, Any, Union
-from czitools import logger as LOGGER
+from czitools.tools import logger
 
-logger = LOGGER.get_logger()
+logger = logger.get_logger()
 
 
 def scatterplot_mpl(

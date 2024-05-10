@@ -10,23 +10,25 @@
 #################################################################
 
 from __future__ import annotations
-from typing import List, Dict, Tuple, Optional, Type, Any, Union, Mapping, Annotated
+from typing import List, Dict, Tuple, Optional, Any, Union, Annotated
 import os
 from collections import Counter
 import xml.etree.ElementTree as ET
 from pylibCZIrw import czi as pyczi
 from czitools import misc_tools
+from czitools.tools import logger
 import numpy as np
 from dataclasses import dataclass, field, fields, Field
 from pathlib import Path
 from box import Box, BoxList
-from czitools import logger as LOGGER
-import time
 import validators
 from dataclasses import asdict
+from czitools.metadata.dimension import CziDimensions
+from czitools.metadata.boundingbox import CziBoundingBox
+from czitools.metadata.attachment import CziAttachments
 
 
-logger = LOGGER.get_logger()
+logger = logger.get_logger()
 
 
 @dataclass
@@ -319,287 +321,287 @@ class CziMetadata:
         return is_rgb, is_consistant
 
 
-@dataclass
-class CziDimensions:
-    czisource: Union[str, os.PathLike[str], Box]
-    SizeX: Optional[int] = field(
-        init=False, default=None
-    )  # total size X including scenes
-    SizeY: Optional[int] = field(
-        init=False, default=None
-    )  # total size Y including scenes
-    SizeX_scene: Optional[int] = field(
-        init=False, default=None
-    )  # size X per scene (if equal scene sizes)
-    SizeY_scene: Optional[int] = field(
-        init=False, default=None
-    )  # size Y per scene (if equal scene sizes)
-    SizeS: Optional[int] = field(init=False, default=None)
-    SizeT: Optional[int] = field(init=False, default=None)
-    SizeZ: Optional[int] = field(init=False, default=None)
-    SizeC: Optional[int] = field(init=False, default=None)
-    SizeM: Optional[int] = field(init=False, default=None)
-    SizeR: Optional[int] = field(init=False, default=None)
-    SizeH: Optional[int] = field(init=False, default=None)
-    SizeI: Optional[int] = field(init=False, default=None)
-    SizeV: Optional[int] = field(init=False, default=None)
-    SizeB: Optional[int] = field(init=False, default=None)
-    """Dataclass containing the image dimensions.
-
-    Information official CZI Dimension Characters:
-    "X":"Width"        : width of image [pixel]
-    "Y":"Height"       : height of image [pixel]
-    "C":"Channel"      : number of channels
-    "Z":"Slice"        : number of z-planes
-    "T":"Time"         : number of time points
-    "R":"Rotation"     :
-    "S":"Scene"        : contiguous regions of interest in a mosaic image
-    "I":"Illumination" : SPIM direction for LightSheet
-    "B":"Block"        : acquisition
-    "M":"Mosaic"       : index of tile for compositing a scene
-    "H":"Phase"        : e.g. Airy detector fibers
-    "V":"View"         : e.g. for SPIM
-    """
-
-    def __post_init__(self):
-        self.set_dimensions()
-        logger.info("Reading Dimensions from CZI image data.")
-
-        # set dimensions in XY with respect to possible down scaling
-        self.SizeX_sf = self.SizeX
-        self.SizeY_sf = self.SizeY
-
-    def set_dimensions(self):
-        """Populate the image dimensions with the detected values from the metadata"""
-
-        # get the Box and extract the relevant dimension metadata
-        if isinstance(self.czisource, Box):
-            czi_box = self.czisource
-        else:
-            czi_box = get_czimd_box(self.czisource)
-
-        dimensions = czi_box.ImageDocument.Metadata.Information.Image
-
-        # define the image dimensions to check for
-        dims = [
-            "SizeX",
-            "SizeY",
-            "SizeS",
-            "SizeT",
-            "SizeZ",
-            "SizeC",
-            "SizeM",
-            "SizeR",
-            "SizeH",
-            "SizeI",
-            "SizeV",
-            "SizeB",
-        ]
-
-        cls_fields: Tuple[Field, ...] = fields(self.__class__)
-        for fd in cls_fields:
-            if fd.name in dims:
-                if dimensions[fd.name] is not None:
-                    setattr(self, fd.name, int(dimensions[fd.name]))
-
-        if czi_box.has_scenes:
-            try:
-                with pyczi.open_czi(czi_box.filepath, czi_box.czi_open_arg) as czidoc:
-                    self.SizeX_scene = czidoc.scenes_bounding_rectangle[0].w
-                    self.SizeY_scene = czidoc.scenes_bounding_rectangle[0].h
-            except KeyError as e:
-                self.SizeX_scene = None
-                self.SizeY_scene = None
-                logger.warning(
-                    "Scenes Dimension detected but no bounding rectangle information found."
-                )
-
-
-@dataclass
-class CziBoundingBox:
-    czisource: Union[str, os.PathLike[str], Box]
-    scenes_bounding_rect: Optional[Dict[int, pyczi.Rectangle]] = field(
-        init=False, default_factory=lambda: []
-    )
-    total_rect: Optional[pyczi.Rectangle] = field(init=False, default=None)
-    total_bounding_box: Optional[Dict[str, tuple]] = field(
-        init=False, default_factory=lambda: []
-    )
-
-    # TODO Is this really needed as a separate class or better integrate directly into CziMetadata class?
-
-    def __post_init__(self):
-        logger.info("Reading BoundingBoxes from CZI image data.")
-
-        pyczi_readertype = pyczi.ReaderFileInputTypes.Standard
-
-        if isinstance(self.czisource, Box):
-            self.czisource = self.czisource.filepath
-
-        if validators.url(str(self.czisource)):
-            pyczi_readertype = pyczi.ReaderFileInputTypes.Curl
-            logger.info(
-                "FilePath is a valid link. Only pylibCZIrw functionality is available."
-            )
-
-        with pyczi.open_czi(str(self.czisource), pyczi_readertype) as czidoc:
-            try:
-                self.scenes_bounding_rect = czidoc.scenes_bounding_rectangle
-            except Exception as e:
-                self.scenes_bounding_rect = None
-                # print("Scenes Bounding rectangle not found.")
-                logger.info("Scenes Bounding rectangle not found.")
-
-            try:
-                self.total_rect = czidoc.total_bounding_rectangle
-            except Exception as e:
-                self.total_rect = None
-                # print("Total Bounding rectangle not found.")
-                logger.info("Total Bounding rectangle not found.")
-
-            try:
-                self.total_bounding_box = czidoc.total_bounding_box
-            except Exception as e:
-                self.total_bounding_box = None
-                # print("Total Bounding Box not found.")
-                logger.info("Total Bounding Box not found.")
+# @dataclass
+# class CziDimensions:
+#     czisource: Union[str, os.PathLike[str], Box]
+#     SizeX: Optional[int] = field(
+#         init=False, default=None
+#     )  # total size X including scenes
+#     SizeY: Optional[int] = field(
+#         init=False, default=None
+#     )  # total size Y including scenes
+#     SizeX_scene: Optional[int] = field(
+#         init=False, default=None
+#     )  # size X per scene (if equal scene sizes)
+#     SizeY_scene: Optional[int] = field(
+#         init=False, default=None
+#     )  # size Y per scene (if equal scene sizes)
+#     SizeS: Optional[int] = field(init=False, default=None)
+#     SizeT: Optional[int] = field(init=False, default=None)
+#     SizeZ: Optional[int] = field(init=False, default=None)
+#     SizeC: Optional[int] = field(init=False, default=None)
+#     SizeM: Optional[int] = field(init=False, default=None)
+#     SizeR: Optional[int] = field(init=False, default=None)
+#     SizeH: Optional[int] = field(init=False, default=None)
+#     SizeI: Optional[int] = field(init=False, default=None)
+#     SizeV: Optional[int] = field(init=False, default=None)
+#     SizeB: Optional[int] = field(init=False, default=None)
+#     """Dataclass containing the image dimensions.
+#
+#     Information official CZI Dimension Characters:
+#     "X":"Width"        : width of image [pixel]
+#     "Y":"Height"       : height of image [pixel]
+#     "C":"Channel"      : number of channels
+#     "Z":"Slice"        : number of z-planes
+#     "T":"Time"         : number of time points
+#     "R":"Rotation"     :
+#     "S":"Scene"        : contiguous regions of interest in a mosaic image
+#     "I":"Illumination" : SPIM direction for LightSheet
+#     "B":"Block"        : acquisition
+#     "M":"Mosaic"       : index of tile for compositing a scene
+#     "H":"Phase"        : e.g. Airy detector fibers
+#     "V":"View"         : e.g. for SPIM
+#     """
+#
+#     def __post_init__(self):
+#         self.set_dimensions()
+#         logger.info("Reading Dimensions from CZI image data.")
+#
+#         # set dimensions in XY with respect to possible down scaling
+#         self.SizeX_sf = self.SizeX
+#         self.SizeY_sf = self.SizeY
+#
+#     def set_dimensions(self):
+#         """Populate the image dimensions with the detected values from the metadata"""
+#
+#         # get the Box and extract the relevant dimension metadata
+#         if isinstance(self.czisource, Box):
+#             czi_box = self.czisource
+#         else:
+#             czi_box = get_czimd_box(self.czisource)
+#
+#         dimensions = czi_box.ImageDocument.Metadata.Information.Image
+#
+#         # define the image dimensions to check for
+#         dims = [
+#             "SizeX",
+#             "SizeY",
+#             "SizeS",
+#             "SizeT",
+#             "SizeZ",
+#             "SizeC",
+#             "SizeM",
+#             "SizeR",
+#             "SizeH",
+#             "SizeI",
+#             "SizeV",
+#             "SizeB",
+#         ]
+#
+#         cls_fields: Tuple[Field, ...] = fields(self.__class__)
+#         for fd in cls_fields:
+#             if fd.name in dims:
+#                 if dimensions[fd.name] is not None:
+#                     setattr(self, fd.name, int(dimensions[fd.name]))
+#
+#         if czi_box.has_scenes:
+#             try:
+#                 with pyczi.open_czi(czi_box.filepath, czi_box.czi_open_arg) as czidoc:
+#                     self.SizeX_scene = czidoc.scenes_bounding_rectangle[0].w
+#                     self.SizeY_scene = czidoc.scenes_bounding_rectangle[0].h
+#             except KeyError as e:
+#                 self.SizeX_scene = None
+#                 self.SizeY_scene = None
+#                 logger.warning(
+#                     "Scenes Dimension detected but no bounding rectangle information found."
+#                 )
 
 
-@dataclass
-class CziAttachments:
-    czisource: Union[str, os.PathLike[str], Box]
-    has_label: Optional[bool] = field(init=False, default=False)
-    has_preview: Optional[bool] = field(init=False, default=False)
-    has_prescan: Optional[bool] = field(init=False, default=False)
-    names: Optional[List[str]] = field(init=False, default_factory=lambda: [])
+# @dataclass
+# class CziBoundingBox:
+#     czisource: Union[str, os.PathLike[str], Box]
+#     scenes_bounding_rect: Optional[Dict[int, pyczi.Rectangle]] = field(
+#         init=False, default_factory=lambda: []
+#     )
+#     total_rect: Optional[pyczi.Rectangle] = field(init=False, default=None)
+#     total_bounding_box: Optional[Dict[str, tuple]] = field(
+#         init=False, default_factory=lambda: []
+#     )
+#
+#     # TODO Is this really needed as a separate class or better integrate directly into CziMetadata class?
+#
+#     def __post_init__(self):
+#         logger.info("Reading BoundingBoxes from CZI image data.")
+#
+#         pyczi_readertype = pyczi.ReaderFileInputTypes.Standard
+#
+#         if isinstance(self.czisource, Box):
+#             self.czisource = self.czisource.filepath
+#
+#         if validators.url(str(self.czisource)):
+#             pyczi_readertype = pyczi.ReaderFileInputTypes.Curl
+#             logger.info(
+#                 "FilePath is a valid link. Only pylibCZIrw functionality is available."
+#             )
+#
+#         with pyczi.open_czi(str(self.czisource), pyczi_readertype) as czidoc:
+#             try:
+#                 self.scenes_bounding_rect = czidoc.scenes_bounding_rectangle
+#             except Exception as e:
+#                 self.scenes_bounding_rect = None
+#                 # print("Scenes Bounding rectangle not found.")
+#                 logger.info("Scenes Bounding rectangle not found.")
+#
+#             try:
+#                 self.total_rect = czidoc.total_bounding_rectangle
+#             except Exception as e:
+#                 self.total_rect = None
+#                 # print("Total Bounding rectangle not found.")
+#                 logger.info("Total Bounding rectangle not found.")
+#
+#             try:
+#                 self.total_bounding_box = czidoc.total_bounding_box
+#             except Exception as e:
+#                 self.total_bounding_box = None
+#                 # print("Total Bounding Box not found.")
+#                 logger.info("Total Bounding Box not found.")
 
-    def __post_init__(self):
-        logger.info("Reading AttachmentImages from CZI image data.")
 
-        try:
-            import czifile
+# @dataclass
+# class CziAttachments:
+#     czisource: Union[str, os.PathLike[str], Box]
+#     has_label: Optional[bool] = field(init=False, default=False)
+#     has_preview: Optional[bool] = field(init=False, default=False)
+#     has_prescan: Optional[bool] = field(init=False, default=False)
+#     names: Optional[List[str]] = field(init=False, default_factory=lambda: [])
+#
+#     def __post_init__(self):
+#         logger.info("Reading AttachmentImages from CZI image data.")
+#
+#         try:
+#             import czifile
+#
+#             if isinstance(self.czisource, Path):
+#                 # convert to string
+#                 self.czisource = str(self.czisource)
+#             elif isinstance(self.czisource, Box):
+#                 self.czisource = self.czisource.filepath
+#
+#             if validators.url(self.czisource):
+#                 logger.warning(
+#                     "Reading Attachments from CZI via a link is not supported."
+#                 )
+#             else:
+#                 # create CZI-object using czifile library
+#                 with czifile.CziFile(self.czisource) as cz:
+#                     # iterate over attachments
+#                     for att in cz.attachments():
+#                         self.names.append(att.attachment_entry.name)
+#
+#                     if "SlidePreview" in self.names:
+#                         self.has_preview = True
+#                         logger.info("Attachment SlidePreview found.")
+#                     if "Label" in self.names:
+#                         self.has_label = True
+#                         logger.info("Attachment Label found.")
+#                     if "Prescan" in self.names:
+#                         self.has_prescan = True
+#                         logger.info("Attachment Prescan found.")
+#
+#         except ImportError as e:
+#             logger.warning(
+#                 "Package czifile not found. Cannot extract information about attached images."
+#             )
 
-            if isinstance(self.czisource, Path):
-                # convert to string
-                self.czisource = str(self.czisource)
-            elif isinstance(self.czisource, Box):
-                self.czisource = self.czisource.filepath
 
-            if validators.url(self.czisource):
-                logger.warning(
-                    "Reading Attachments from CZI via a link is not supported."
-                )
-            else:
-                # create CZI-object using czifile library
-                with czifile.CziFile(self.czisource) as cz:
-                    # iterate over attachments
-                    for att in cz.attachments():
-                        self.names.append(att.attachment_entry.name)
-
-                    if "SlidePreview" in self.names:
-                        self.has_preview = True
-                        logger.info("Attachment SlidePreview found.")
-                    if "Label" in self.names:
-                        self.has_label = True
-                        logger.info("Attachment Label found.")
-                    if "Prescan" in self.names:
-                        self.has_prescan = True
-                        logger.info("Attachment Prescan found.")
-
-        except ImportError as e:
-            logger.warning(
-                "Package czifile not found. Cannot extract information about attached images."
-            )
-
-
-@dataclass
-class CziChannelInfo:
-    czisource: Union[str, os.PathLike[str], Box]
-    names: List[str] = field(init=False, default_factory=lambda: [])
-    dyes: List[str] = field(init=False, default_factory=lambda: [])
-    colors: List[str] = field(init=False, default_factory=lambda: [])
-    clims: List[List[float]] = field(init=False, default_factory=lambda: [])
-    gamma: List[float] = field(init=False, default_factory=lambda: [])
-
-    def __post_init__(self):
-        logger.info("Reading Channel Information from CZI image data.")
-
-        if isinstance(self.czisource, Box):
-            czi_box = self.czisource
-        else:
-            czi_box = get_czimd_box(self.czisource)
-
-        # get channels part of dict
-        if czi_box.has_channels:
-            try:
-                # extract the relevant dimension metadata
-                channels = (
-                    czi_box.ImageDocument.Metadata.Information.Image.Dimensions.Channels.Channel
-                )
-                if isinstance(channels, Box):
-                    # get the data in case of only one channel
-                    (
-                        self.names.append("CH1")
-                        if channels.Name is None
-                        else self.names.append(channels.Name)
-                    )
-                elif isinstance(channels, BoxList):
-                    # get the data in case multiple channels
-                    for ch in range(len(channels)):
-                        (
-                            self.names.append("CH1")
-                            if channels[ch].Name is None
-                            else self.names.append(channels[ch].Name)
-                        )
-            except AttributeError:
-                channels = None
-        elif not czi_box.has_channels:
-            logger.info("Channel(s) information not found.")
-
-        if czi_box.has_disp:
-            try:
-                # extract the relevant dimension metadata
-                disp = czi_box.ImageDocument.Metadata.DisplaySetting.Channels.Channel
-                if isinstance(disp, Box):
-                    self.get_channel_info(disp)
-                elif isinstance(disp, BoxList):
-                    for ch in range(len(disp)):
-                        self.get_channel_info(disp[ch])
-            except AttributeError:
-                disp = None
-
-        elif not czi_box.has_disp:
-            # print("DisplaySetting(s) not found.")
-            logger.info("DisplaySetting(s) not found.")
-
-    def get_channel_info(self, display: Box):
-        if display is not None:
-            (
-                self.dyes.append("Dye-CH1")
-                if display.ShortName is None
-                else self.dyes.append(display.ShortName)
-            )
-            (
-                self.colors.append("#80808000")
-                if display.Color is None
-                else self.colors.append(display.Color)
-            )
-
-            low = 0.0 if display.Low is None else float(display.Low)
-            high = 0.5 if display.High is None else float(display.High)
-
-            self.clims.append([low, high])
-            (
-                self.gamma.append(0.85)
-                if display.Gamma is None
-                else self.gamma.append(float(display.Gamma))
-            )
-        else:
-            self.dyes.append("Dye-CH1")
-            self.colors.append("#80808000")
-            self.clims.append([0.0, 0.5])
-            self.gamma.append(0.85)
-
+# @dataclass
+# class CziChannelInfo:
+#     czisource: Union[str, os.PathLike[str], Box]
+#     names: List[str] = field(init=False, default_factory=lambda: [])
+#     dyes: List[str] = field(init=False, default_factory=lambda: [])
+#     colors: List[str] = field(init=False, default_factory=lambda: [])
+#     clims: List[List[float]] = field(init=False, default_factory=lambda: [])
+#     gamma: List[float] = field(init=False, default_factory=lambda: [])
+#
+#     def __post_init__(self):
+#         logger.info("Reading Channel Information from CZI image data.")
+#
+#         if isinstance(self.czisource, Box):
+#             czi_box = self.czisource
+#         else:
+#             czi_box = get_czimd_box(self.czisource)
+#
+#         # get channels part of dict
+#         if czi_box.has_channels:
+#             try:
+#                 # extract the relevant dimension metadata
+#                 channels = (
+#                     czi_box.ImageDocument.Metadata.Information.Image.Dimensions.Channels.Channel
+#                 )
+#                 if isinstance(channels, Box):
+#                     # get the data in case of only one channel
+#                     (
+#                         self.names.append("CH1")
+#                         if channels.Name is None
+#                         else self.names.append(channels.Name)
+#                     )
+#                 elif isinstance(channels, BoxList):
+#                     # get the data in case multiple channels
+#                     for ch in range(len(channels)):
+#                         (
+#                             self.names.append("CH1")
+#                             if channels[ch].Name is None
+#                             else self.names.append(channels[ch].Name)
+#                         )
+#             except AttributeError:
+#                 channels = None
+#         elif not czi_box.has_channels:
+#             logger.info("Channel(s) information not found.")
+#
+#         if czi_box.has_disp:
+#             try:
+#                 # extract the relevant dimension metadata
+#                 disp = czi_box.ImageDocument.Metadata.DisplaySetting.Channels.Channel
+#                 if isinstance(disp, Box):
+#                     self.get_channel_info(disp)
+#                 elif isinstance(disp, BoxList):
+#                     for ch in range(len(disp)):
+#                         self.get_channel_info(disp[ch])
+#             except AttributeError:
+#                 disp = None
+#
+#         elif not czi_box.has_disp:
+#             # print("DisplaySetting(s) not found.")
+#             logger.info("DisplaySetting(s) not found.")
+#
+#     def get_channel_info(self, display: Box):
+#         if display is not None:
+#             (
+#                 self.dyes.append("Dye-CH1")
+#                 if display.ShortName is None
+#                 else self.dyes.append(display.ShortName)
+#             )
+#             (
+#                 self.colors.append("#80808000")
+#                 if display.Color is None
+#                 else self.colors.append(display.Color)
+#             )
+#
+#             low = 0.0 if display.Low is None else float(display.Low)
+#             high = 0.5 if display.High is None else float(display.High)
+#
+#             self.clims.append([low, high])
+#             (
+#                 self.gamma.append(0.85)
+#                 if display.Gamma is None
+#                 else self.gamma.append(float(display.Gamma))
+#             )
+#         else:
+#             self.dyes.append("Dye-CH1")
+#             self.colors.append("#80808000")
+#             self.clims.append([0.0, 0.5])
+#             self.gamma.append(0.85)
+#
 
 @dataclass
 class CziScaling:
@@ -999,35 +1001,35 @@ class CziAddMetaData:
             logger.info("No Layers information found.")
 
 
-@dataclass
-class CziScene:
-    filepath: Union[str, os.PathLike[str]]
-    index: int
-    bbox: Optional[pyczi.Rectangle] = field(init=False, default=None)
-    xstart: Optional[int] = field(init=False, default=None)
-    ystart: Optional[int] = field(init=False, default=None)
-    width: Optional[int] = field(init=False, default=None)
-    height: Optional[int] = field(init=False, default=None)
-
-    def __post_init__(self):
-        logger.info("Reading Scene Information from CZI image data.")
-
-        if isinstance(self.filepath, Path):
-            # convert to string
-            self.filepath = str(self.filepath)
-
-        # get scene information from the CZI file
-        with pyczi.open_czi(self.filepath) as czidoc:
-            try:
-                self.bbox = czidoc.scenes_bounding_rectangle[self.index]
-                self.xstart = self.bbox.x
-                self.ystart = self.bbox.y
-                self.width = self.bbox.w
-                self.height = self.bbox.h
-            except KeyError:
-                # in case an invalid index was used
-                # print("No Scenes detected.")
-                logger.info("No Scenes detected.")
+# @dataclass
+# class CziScene:
+#     filepath: Union[str, os.PathLike[str]]
+#     index: int
+#     bbox: Optional[pyczi.Rectangle] = field(init=False, default=None)
+#     xstart: Optional[int] = field(init=False, default=None)
+#     ystart: Optional[int] = field(init=False, default=None)
+#     width: Optional[int] = field(init=False, default=None)
+#     height: Optional[int] = field(init=False, default=None)
+#
+#     def __post_init__(self):
+#         logger.info("Reading Scene Information from CZI image data.")
+#
+#         if isinstance(self.filepath, Path):
+#             # convert to string
+#             self.filepath = str(self.filepath)
+#
+#         # get scene information from the CZI file
+#         with pyczi.open_czi(self.filepath) as czidoc:
+#             try:
+#                 self.bbox = czidoc.scenes_bounding_rectangle[self.index]
+#                 self.xstart = self.bbox.x
+#                 self.ystart = self.bbox.y
+#                 self.width = self.bbox.w
+#                 self.height = self.bbox.h
+#             except KeyError:
+#                 # in case an invalid index was used
+#                 # print("No Scenes detected.")
+#                 logger.info("No Scenes detected.")
 
 
 def get_metadata_as_object(filepath: Union[str, os.PathLike[str]]) -> DictObj:
@@ -1229,8 +1231,7 @@ def create_md_dict_red(
 
 
 def get_czimd_box(
-    filepath: Union[str, os.PathLike[str]],
-    readertype: pyczi.ReaderFileInputTypes = pyczi.ReaderFileInputTypes.Standard,
+    filepath: Union[str, os.PathLike[str]]
 ) -> Box:
     """
     get_czimd_box: Get CZI metadata as a python-box. For details: https://pypi.org/project/python-box/

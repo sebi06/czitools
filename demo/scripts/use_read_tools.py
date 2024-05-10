@@ -11,7 +11,7 @@
 
 from czitools import read_tools
 from czitools import napari_tools
-from czitools import misc_tools
+from czitools.tools import misc
 import napari
 from pathlib import Path
 
@@ -19,7 +19,7 @@ from pathlib import Path
 defaultdir = Path(Path(__file__).resolve().parents[2]) / "data"
 
 # open s simple dialog to select a CZI file
-filepath = misc_tools.openfile(
+filepath = misc.openfile(
     directory=defaultdir,
     title="Open CZI Image File",
     ftypename="CZI Files",

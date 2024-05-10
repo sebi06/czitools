@@ -1,5 +1,5 @@
-from czitools import read_tools, misc_tools, write_tools
-from czitools import metadata_tools as czimd
+from czitools import read_tools, write_tools, czi_metadata as czimd
+from czitools.tools import misc
 from pylibCZIrw import czi as pyczi
 import shutil
 from pathlib import Path
@@ -8,7 +8,7 @@ import numpy as np
 from tqdm.contrib import itertools as it
 from tqdm import tqdm
 import pytest
-from typing import List, Dict, Tuple, Optional, Type, Any, Union, Mapping
+from typing import Dict, Tuple
 
 basedir = Path(__file__).resolve().parents[3] / "data"
 
@@ -21,7 +21,7 @@ def test_write_1(tiff_file: str, sp: int) -> None:
     filepath = basedir / tiff_file
 
     czi_path = filepath.parent / Path(
-        misc_tools.get_fname_woext(str(filepath)) + ".czi"
+        misc.get_fname_woext(str(filepath)) + ".czi"
     )
 
     # remove the CZI if it already exits

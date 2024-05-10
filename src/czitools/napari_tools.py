@@ -9,10 +9,11 @@
 #
 #################################################################
 
-from czitools import logger as LOGGER
 import sys
+from czitools.tools import logger
+from czitools.metadata.helper import ValueRange
 
-logger = LOGGER.get_logger()
+logger = logger.get_logger()
 
 # check if Napari is actually installed
 try:
@@ -33,9 +34,9 @@ else:
     from PyQt5.QtCore import Qt
     from PyQt5 import QtWidgets
     from PyQt5.QtGui import QFont
-    from czitools import metadata_tools as czimd
-    from czitools import misc_tools
-    from czitools.datatreewiget import DataTreeWidget
+    from czitools import czi_metadata as czimd
+    from czitools.tools import misc
+    from czitools.tools.datatreewiget import DataTreeWidget
     import numpy as np
     from typing import (
         List,
@@ -53,16 +54,6 @@ else:
     from napari.utils import resize_dask_cache
     import dask.array as da
     from dataclasses import dataclass
-
-# from czitools import logger as LOGGER
-
-# logger = LOGGER.get_logger()
-
-
-@dataclass
-class ValueRange:
-    lo: float
-    hi: float
 
 
 class MdTableWidget(QWidget):
@@ -236,7 +227,7 @@ def show(
 
         # cut out channel
         if metadata.image.SizeC is not None:
-            channel = misc_tools.slicedim(array, ch, dim_order["C"])
+            channel = misc.slicedim(array, ch, dim_order["C"])
         if metadata.image.SizeC is None:
             channel = array
 
@@ -247,7 +238,7 @@ def show(
 
         if contrast == "calc":
             # really calculate the min and max values - might be slow
-            sc = misc_tools.calc_scaling(channel, corr_min=1.1, corr_max=0.9)
+            sc = misc.calc_scaling(channel, corr_min=1.1, corr_max=0.9)
             logger.info(f"Calculated Display Scaling (min & max): {sc}")
 
             # add channel to napari viewer

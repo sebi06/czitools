@@ -1,10 +1,9 @@
-from czitools import read_tools, metadata_tools
+from czitools import read_tools, czi_metadata
 from czitools.read_tools import AttachmentType
 from pathlib import Path
 import numpy as np
 import pytest
-from typing import List, Dict, Tuple, Optional, Type, Any, Union, Mapping, Literal
-
+from typing import Tuple
 
 basedir = Path(__file__).resolve().parents[3]
 
@@ -47,7 +46,7 @@ def test_read_attachments_images(
     filepath = basedir / "data" / cziname
 
     # get info about attachments only
-    attachments = metadata_tools.CziAttachments(filepath)
+    attachments = czi_metadata.CziAttachments(filepath)
 
     assert attachments.has_label == has_label
     assert attachments.has_preview == has_preview

@@ -16,13 +16,14 @@ import zarr
 import ome_zarr.reader
 import ome_zarr.scale
 import ome_zarr.writer
+import ome_zarr.format
 from ome_zarr.io import parse_url
-from typing import List, Dict, Tuple, Optional, Type, Any, Union, Mapping
+from typing import Union
 import shutil
 import numpy as np
-from czitools import logger as LOGGER
+from czitools.tools import logger
 
-logger = LOGGER.get_logger()
+logger = logger.get_logger()
 
 
 def write_omezarr(
@@ -38,7 +39,7 @@ def write_omezarr(
         array5d (Union[np.ndarary, da.Array]): Up-to 5 dimensional array to be written as OME-ZARR
         zarr_path (str): Path for the OME-ZARR folder to be created
         axes (str): Defines the dimension order (lower case string). Defaults to "STCZYX"
-        overwrite (False): If True, than an existing folder will be overwritten.Defaults to False
+        overwrite (False): If True, then an existing folder will be overwritten. Defaults to False
 
     Returns:
         str: Path for location of OME-ZARR folder
@@ -46,7 +47,7 @@ def write_omezarr(
 
     # check number of dimension of input array
     if len(array5d.shape) > 5:
-        LOGGER.warning("Input array as more than 5 dimensions.")
+        logger.warning("Input array as more than 5 dimensions.")
         return None
 
     # make sure lower case is use for axes order
