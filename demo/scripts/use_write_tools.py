@@ -9,30 +9,29 @@
 #
 #################################################################
 
-from czitools import read_tools, write_tools
-from czitools import metadata_tools as czimd
+from czitools.read_tools import read_tools
+from czitools.write_tools import write_tools
+from czitools.metadata_tools import czi_metadata as czimd
 import napari
 from pathlib import Path
 
 # open s simple dialog to select a CZI file
-filepath = r"data/CellDivision_T=3_Z=5_CH=2_X=240_Y=170.czi"
-zarr_path = Path(filepath[:-4] + ".ome.zarr")
+defaultdir = Path(Path(__file__).resolve().parents[2]) / "data"
+filepath = defaultdir / "CellDivision_T3_Z5_CH2_X240_Y170.czi"
+zarr_path = Path(str(filepath)[:-4] + ".ome.zarr")
 
-# get the metadata at once as one big class
+# get the metadata_tools at once as one big class
 mdata = czimd.CziMetadata(filepath)
 print("Number of Scenes: ", mdata.image.SizeS)
 scene_id = 0
 
-# return a array with dimension order STCZYX(A)
-array, mdata, dim_string6d = read_tools.read_6darray(
-    filepath, output_order="STCZYX", use_dask=True
-)
-
+# return a 6D array with dimension order STCZYX(A)
+array, mdata = read_tools.read_6darray(filepath, use_dask=True)
 array = array[scene_id, ...]
 
 # write OME-ZARR using utility function
 zarr_path = write_tools.write_omezarr(
-    array, zarr_path=zarr_path, axes="tczyx", overwrite=True
+    array, zarr_path=str(zarr_path), axes="tczyx", overwrite=True
 )
 
 if array is None:

@@ -10,36 +10,17 @@
 #################################################################
 
 from typing import (
-    List,
     Dict,
     Tuple,
     Optional,
-    Type,
-    Any,
     Union,
-    Mapping,
-    Literal,
-    Annotated,
-)
-from typing import (
-    List,
-    Dict,
-    Tuple,
-    Optional,
-    Type,
-    Any,
-    Union,
-    Mapping,
-    Literal,
     Annotated,
 )
 from pylibCZIrw import czi as pyczi
-from czitools import metadata_tools as czimd
-from czitools import misc_tools
-from dataclasses import dataclass, field, fields, Field
+from czitools.metadata_tools import czi_metadata as czimd
+from czitools.utils import misc
 import numpy as np
 from pathlib import Path
-import dask
 import dask.array as da
 import dask.delayed
 import os
@@ -47,25 +28,13 @@ from tqdm import tqdm
 from tqdm.contrib.itertools import product
 import tempfile
 import shutil
-from czitools import logger as LOGGER
-from enum import Enum
-from dataclasses import dataclass
+from czitools.utils import logger
+from czitools.metadata_tools.helper import ValueRange
+from czitools.metadata_tools.helper import AttachmentType
 
 # from memory_profiler import profile
 
-logger = LOGGER.get_logger()
-
-
-class AttachmentType(Enum):
-    SlidePreview = 1
-    Label = 2
-    Prescan = 3
-
-
-@dataclass
-class ValueRange:
-    lo: float
-    hi: float
+logger = logger.get_logger()
 
 
 # code for which memory has to be monitored
@@ -93,7 +62,7 @@ def read_6darray(
         zoom (float, options): Downsample CZI image by a factor [0.01 - 1.0]. Defaults to 1.0.
 
     Returns:
-        Tuple[array6d, mdata]: output as 6D dask array and metadata
+        Tuple[array6d, mdata]: output as 6D dask array and metadata_tools
     """
 
     if isinstance(filepath, Path):
@@ -112,7 +81,7 @@ def read_6darray(
         )
         zoom = 0.01
 
-    # get the complete metadata at once as one big class
+    # get the complete metadata_tools at once as one big class
     mdata = czimd.CziMetadata(filepath)
 
     if not mdata.consistent_pixeltypes:
@@ -168,10 +137,10 @@ def read_6darray(
         #     size_y = czidoc.total_bounding_rectangle.h
 
         # check if dimensions are None (because they do not exist for that image)
-        size_c = misc_tools.check_dimsize(mdata.image.SizeC, set2value=1)
-        size_z = misc_tools.check_dimsize(mdata.image.SizeZ, set2value=1)
-        size_t = misc_tools.check_dimsize(mdata.image.SizeT, set2value=1)
-        size_s = misc_tools.check_dimsize(mdata.image.SizeS, set2value=1)
+        size_c = misc.check_dimsize(mdata.image.SizeC, set2value=1)
+        size_z = misc.check_dimsize(mdata.image.SizeZ, set2value=1)
+        size_t = misc.check_dimsize(mdata.image.SizeT, set2value=1)
+        size_s = misc.check_dimsize(mdata.image.SizeS, set2value=1)
 
         s_start = 0
         s_end = size_s
@@ -278,7 +247,7 @@ def read_6darray(
                 # for testing
                 array6d = array6d.rechunk(chunks=(1, 1, 1, size_z, image2d.shape[0], image2d.shape[1], 3))
 
-    # update metadata
+    # update metadata_tools
     mdata.array6d_size = array6d.shape
 
     return array6d, mdata
@@ -304,19 +273,19 @@ def read_6darray_lazy(
                                  Respectively {"Z":(5, 5)} will return a single z-plane with index 5.
 
     Returns:
-        Tuple[array6d, mdata]: output as 6D dask array and metadata
+        Tuple[array6d, mdata]: output as 6D dask array and metadata_tools
     """
 
     if isinstance(filepath, Path):
         # convert to string
         filepath = str(filepath)
 
-    # get the complete metadata at once as one big class
+    # get the complete metadata_tools at once as one big class
     mdata = czimd.CziMetadata(filepath)
 
     if not mdata.consistent_pixeltypes:
         logger.info("Detected PixelTypes ar not consistent. Cannot create array6d")
-        return None, mdata, ""
+        return None, mdata
 
     # check planes
     if not planes is False:
@@ -326,7 +295,7 @@ def read_6darray_lazy(
                     logger.info(
                         f"Planes indices (zero-based) for {planes[k]} are invalid. BBox for {[k]}: {mdata.bbox.total_bounding_box[k]}"
                     )
-                    return None, mdata, ""
+                    return None, mdata
 
     if not mdata.scene_shape_is_consistent and not "S" in planes.keys():
         logger.info("Scenes have inconsistent shape. Cannot read 6D array")
@@ -348,10 +317,10 @@ def read_6darray_lazy(
             size_y = czidoc.total_bounding_rectangle.h
 
         # check if dimensions are None (because they do not exist for that image)
-        size_c = misc_tools.check_dimsize(mdata.image.SizeC, set2value=1)
-        size_z = misc_tools.check_dimsize(mdata.image.SizeZ, set2value=1)
-        size_t = misc_tools.check_dimsize(mdata.image.SizeT, set2value=1)
-        size_s = misc_tools.check_dimsize(mdata.image.SizeS, set2value=1)
+        size_c = misc.check_dimsize(mdata.image.SizeC, set2value=1)
+        size_z = misc.check_dimsize(mdata.image.SizeZ, set2value=1)
+        size_t = misc.check_dimsize(mdata.image.SizeT, set2value=1)
+        size_s = misc.check_dimsize(mdata.image.SizeS, set2value=1)
 
         s_start = 0
         s_end = size_s
@@ -488,7 +457,7 @@ def read_6darray_lazy(
                 # for testing
                 array6d = array6d.rechunk(chunks=(1, 1, 1, size_z, size_y, size_x, 3))
 
-    return array6d, mdata  # , dim_string
+    return array6d, mdata
 
 
 @dask.delayed

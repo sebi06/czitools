@@ -1,5 +1,7 @@
-from czitools import read_tools, misc_tools, write_tools
-from czitools import metadata_tools as czimd
+from czitools.read_tools import read_tools
+from czitools.write_tools import write_tools
+from czitools.metadata_tools import czi_metadata as czimd
+from czitools.utils import misc
 from pylibCZIrw import czi as pyczi
 import shutil
 from pathlib import Path
@@ -8,7 +10,7 @@ import numpy as np
 from tqdm.contrib import itertools as it
 from tqdm import tqdm
 import pytest
-from typing import List, Dict, Tuple, Optional, Type, Any, Union, Mapping
+from typing import Dict, Tuple
 
 basedir = Path(__file__).resolve().parents[3] / "data"
 
@@ -21,7 +23,7 @@ def test_write_1(tiff_file: str, sp: int) -> None:
     filepath = basedir / tiff_file
 
     czi_path = filepath.parent / Path(
-        misc_tools.get_fname_woext(str(filepath)) + ".czi"
+        misc.get_fname_woext(str(filepath)) + ".czi"
     )
 
     # remove the CZI if it already exits
@@ -96,7 +98,7 @@ def test_write_2(
             # write the plane with shape (Y, X, 1) to the new CZI file
             czidoc_w.write(data=mdarray[0, 0, ch, z, ...], plane={"C": ch, "Z": z})
 
-    # get the complete metadata at once as one big class
+    # get the complete metadata_tools at once as one big class
     mdata = czimd.CziMetadata(newczi)
 
     assert mdata.pyczi_dims == pyczi_dims
@@ -152,7 +154,7 @@ def test_write_3(
             # change the x-position for the next round to write "side-by-side"
             xstart = xstart + 512
 
-    # get the complete metadata at once as one big class
+    # get the complete metadata_tools at once as one big class
     mdata = czimd.CziMetadata(newczi_zloc)
 
     assert mdata.pyczi_dims == pyczi_dims
@@ -224,7 +226,7 @@ def test_write_4(
                 location=(locx[z], locy[z]),
             )
 
-        # get the complete metadata at once as one big class
+        # get the complete metadata_tools at once as one big class
     mdata = czimd.CziMetadata(newczi_zscenes)
 
     assert mdata.pyczi_dims == pyczi_dims

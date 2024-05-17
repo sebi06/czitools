@@ -1,8 +1,7 @@
-from czitools import metadata_tools as czimd
-from pathlib import Path, PurePath
+from czitools.metadata_tools import czi_metadata as czimd
+from pathlib import Path
 import pytest
-from typing import List, Dict, Tuple, Optional, Type, Any, Union, Mapping
-
+from typing import List
 
 # adapt to your needs
 defaultdir = Path(__file__).resolve().parents[3] / "data"

@@ -1,9 +1,8 @@
-
-from czitools import metadata_tools as czimd
+from czitools.metadata_tools import czi_metadata as czimd
 from pathlib import Path
 import numpy as np
 import pytest
-from typing import List, Dict, Tuple, Optional, Type, Any, Union, Mapping
+from typing import Dict
 
 basedir = Path(__file__).resolve().parents[3]
 
@@ -114,7 +113,7 @@ def test_scene_shape(czifile: str, shape: bool) -> None:
 
     assert (Path.exists(filepath) is True)
 
-    # get the complete metadata at once as one big class
+    # get the complete metadata_tools at once as one big class
     md = czimd.CziMetadata(filepath)
 
     assert (md.scene_shape_is_consistent == shape)
@@ -124,7 +123,7 @@ def test_reading_czi_fresh():
 
     filepath = basedir / r"data/A01_segSD.czi"
 
-    # get the complete metadata at once as one big class
+    # get the complete metadata_tools at once as one big class
     mdata = czimd.CziMetadata(filepath)
 
     assert (mdata.sample.well_array_names == [])

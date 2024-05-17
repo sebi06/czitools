@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 #################################################################
-# File        : misc_tools.py
+# File        : misc.py
 # Author      : sebi06
 #
 # Disclaimer: The code is purely experimental. Feel free to
@@ -19,16 +19,14 @@ import numpy as np
 import time
 from pathlib import Path
 import dateutil.parser as dt
-from itertools import product
-from czitools import metadata_tools as czimd
-from typing import List, Dict, Tuple, Optional, Type, Any, Union, Mapping
-from dataclasses import make_dataclass, fields, dataclass
-from czitools import logger as LOGGER
+from tqdm.contrib.itertools import product
+from typing import Dict, Tuple, Any, Union
 import validators
-import re
-#from urllib.parse import urlparse
+from aicspylibczi import CziFile
+from czitools.utils import logger
 
-logger = LOGGER.get_logger()
+
+logger = logger.get_logger()
 
 
 def openfile(
@@ -145,15 +143,15 @@ def calc_scaling(
 def md2dataframe(
     md_dict: Dict, paramcol: str = "Parameter", keycol: str = "Value"
 ) -> pd.DataFrame:
-    """Converts the given metadata dictionary to a Pandas DataFrame.
+    """Converts the given metadata_tools dictionary to a Pandas DataFrame.
 
     Args:
-        md_dict (dict): A dictionary containing metadata.
-        paramcol (str, optional): The name of the column for metadata parameters. Defaults to "Parameter".
-        keycol (str, optional): The name of the column for metadata values. Defaults to "Value".
+        md_dict (dict): A dictionary containing metadata_tools.
+        paramcol (str, optional): The name of the column for metadata_tools parameters. Defaults to "Parameter".
+        keycol (str, optional): The name of the column for metadata_tools values. Defaults to "Value".
 
     Returns:
-        pd.DataFrame: A Pandas DataFrame containing all the metadata.
+        pd.DataFrame: A Pandas DataFrame containing all the metadata_tools.
     """
     mdframe = pd.DataFrame(columns=[paramcol, keycol])
 
@@ -253,224 +251,249 @@ def check_dimsize(
 def get_planetable(
     czifile: Union[str, os.PathLike[str]],
     norm_time: bool = True,
-    savetable: bool = False,
-    separator: str = ",",
-    read_one_only: bool = False,
-    index: bool = True,
-) -> Tuple[pd.DataFrame, Optional[str]]:
+    pt_complete: bool = True,
+    t: int = 0,
+    c: int = 0,
+    z: int = 0,
+) -> pd.DataFrame:
     """Get the planetable from the individual subblocks
     Args:
         czifile: the source for the CZI image file
         norm_time: normalize the timestamps
-        savetable: option save the planetable as CSV file
-        separator: specify the separator for the CSV file
-        read_one_only: option to read only the first entry
-        index: option to save CSV file with an index
+        pt_complete: Read data from all subblocks or only use the ones to be shown in the plot
 
     Returns:
-        Planetable as pd.DataFrame or np.recarray and the location of the CSV file
+        Planetable as pd.DataFrame
     """
 
-    try:
-        from aicspylibczi import CziFile
+    if isinstance(czifile, Path):
+        # convert to string
+        czifile = str(czifile)
 
-        if isinstance(czifile, Path):
-            # convert to string
-            czifile = str(czifile)
-
-        if validators.url(czifile):
-            logger.warning("Reading PlaneTable from CZI via a link is not supported.")
-
-        # get the czi metadata
-        czi_dimensions = czimd.CziDimensions(czifile)
-        aicsczi = CziFile(czifile)
-
-        # initialize the plane table
-        df_czi = pd.DataFrame(
-            columns=[
-                "Subblock",
-                "Scene",
-                "Tile",
-                "T",
-                "Z",
-                "C",
-                "X[micron]",
-                "Y[micron]",
-                "Z[micron]",
-                "Time[s]",
-                "xstart",
-                "ystart",
-                "width",
-                "height",
-            ]
-        )
-
-        # define subblock counter
-        sbcount = -1
-
-        # check if dimensions are None (because they do not exist for that image)
-        size_c = check_dimsize(czi_dimensions.SizeC, set2value=1)
-        size_z = check_dimsize(czi_dimensions.SizeZ, set2value=1)
-        size_t = check_dimsize(czi_dimensions.SizeT, set2value=1)
-        size_s = check_dimsize(czi_dimensions.SizeS, set2value=1)
-        size_m = check_dimsize(czi_dimensions.SizeM, set2value=1)
-
-        def getsbinfo(subblock: Any) -> Tuple[float, float, float, float]:
-            try:
-                time = subblock.findall(".//AcquisitionTime")[0].text
-                timestamp = dt.parse(time).timestamp()
-            except IndexError as e:
-                timestamp = 0.0
-
-            try:
-                xpos = np.double(subblock.findall(".//StageXPosition")[0].text)
-            except IndexError as e:
-                xpos = 0.0
-
-            try:
-                ypos = np.double(subblock.findall(".//StageYPosition")[0].text)
-            except IndexError as e:
-                ypos = 0.0
-
-            try:
-                zpos = np.double(subblock.findall(".//FocusPosition")[0].text)
-            except IndexError as e:
-                zpos = 0.0
-
-            return timestamp, xpos, ypos, zpos
-
-        # do if the data is not a mosaic
-        if size_m > 1:
-            for s, m, t, z, c in product(
-                range(size_s),
-                range(size_m),
-                range(size_t),
-                range(size_z),
-                range(size_c),
-            ):
-                sbcount += 1
-
-                # get x, y, width and height for a specific tile
-                tilebbox = aicsczi.get_mosaic_tile_bounding_box(S=s, M=m, T=t, Z=z, C=c)
-
-                # read information from subblock
-                sb = aicsczi.read_subblock_metadata(
-                    unified_xml=True, B=0, S=s, M=m, T=t, Z=z, C=c
-                )
-
-                # get information from subblock
-                timestamp, xpos, ypos, zpos = getsbinfo(sb)
-
-                plane = pd.DataFrame(
-                    {
-                        "Subblock": sbcount,
-                        "Scene": s,
-                        "Tile": m,
-                        "T": t,
-                        "Z": z,
-                        "C": c,
-                        "X[micron]": xpos,
-                        "Y[micron]": ypos,
-                        "Z[micron]": zpos,
-                        "Time[s]": timestamp,
-                        "xstart": tilebbox.x,
-                        "ystart": tilebbox.y,
-                        "width": tilebbox.w,
-                        "height": tilebbox.h,
-                    },
-                    index=[0],
-                )
-
-                # df_czi = pd.concat([df_czi, plane], ignore_index=True)
-
-                df_czi = pd.concat([df_czi if not df_czi.empty else None, plane])
-
-                if read_one_only:
-                    break
-
-        # do if the data is not a mosaic
-        if size_m == 1:
-            for s, t, z, c in product(
-                range(size_s), range(size_t), range(size_z), range(size_c)
-            ):
-                sbcount += 1
-
-                # get x, y, width and height for a specific tile
-                tilebbox = aicsczi.get_tile_bounding_box(S=s, T=t, Z=z, C=c)
-
-                # read information from subblocks
-                sb = aicsczi.read_subblock_metadata(
-                    unified_xml=True, B=0, S=s, T=t, Z=z, C=c
-                )
-
-                # get information from subblock
-                timestamp, xpos, ypos, zpos = getsbinfo(sb)
-
-                plane = pd.DataFrame(
-                    {
-                        "Subblock": sbcount,
-                        "Scene": s,
-                        "Tile": 0,
-                        "T": t,
-                        "Z": z,
-                        "C": c,
-                        "X[micron]": xpos,
-                        "Y[micron]": ypos,
-                        "Z[micron]": zpos,
-                        "Time[s]": timestamp,
-                        "xstart": tilebbox.x,
-                        "ystart": tilebbox.y,
-                        "width": tilebbox.w,
-                        "height": tilebbox.h,
-                    },
-                    index=[0],
-                )
-
-                # df_czi = pd.concat([df_czi, plane], ignore_index=True)
-
-                df_czi = pd.concat([df_czi if not df_czi.empty else None, plane])
-
-                if read_one_only:
-                    break
-
-        # cast data  types
-        df_czi = df_czi.astype(
-            {
-                "Subblock": "int32",
-                "Scene": "int32",
-                "Tile": "int32",
-                "T": "int32",
-                "Z": "int32",
-                "C": "int16",
-                "X[micron]": "float",
-                "Y[micron]": "float",
-                "Z[micron]": "float",
-                "xstart": "int32",
-                "ystart": "int32",
-                "width": "int32",
-                "height": "int32",
-            },
-            copy=False,
-            errors="ignore",
-        )
-
-        # normalize time stamps
-        if norm_time:
-            df_czi = norm_columns(df_czi, colname="Time[s]", mode="min")
-
-        # save planetable as CSV file
-        if savetable:
-            csvfile = save_planetable(df_czi, czifile, separator=separator, index=index)
-            logger.info(f"PlaneTable saved as CSV file: {csvfile}")
-        if not savetable:
-            csvfile = None
-
-    except ImportError as e:
-        # print("Package aicspylibczi not found. Use Fallback values.")
-        logger.warning("Package aicspylibczi not found. Cannot extract planetable.")
+    if validators.url(czifile):
+        logger.warning("Reading PlaneTable from CZI via a link is not supported.")
         return None, None
 
-    return df_czi, csvfile
+    # initialize the plane table
+    df_czi = pd.DataFrame(
+        columns=[
+            "Subblock",
+            "Scene",
+            "Tile",
+            "T",
+            "Z",
+            "C",
+            "X[micron]",
+            "Y[micron]",
+            "Z[micron]",
+            "Time[s]",
+            "xstart",
+            "ystart",
+            "width",
+            "height",
+        ]
+    )
+
+    # define subblock counter
+    sbcount = -1
+
+    aicsczi = CziFile(czifile)
+    dims = aicsczi.get_dims_shape()
+
+    if "S" in dims[0].keys():
+        size_s = dims[0]["S"][1]
+    else:
+        size_s = 1
+
+    if "M" in dims[0].keys():
+        size_m = dims[0]["M"][1]
+    else:
+        size_m = 1
+
+    if "T" in dims[0].keys():
+        size_t = dims[0]["T"][1]
+    else:
+        size_t = 1
+
+    if "C" in dims[0].keys():
+        size_c = dims[0]["C"][1]
+    else:
+        size_c = 1
+
+    if "Z" in dims[0].keys():
+        size_z = dims[0]["Z"][1]
+    else:
+        size_z = 1
+
+    def getsbinfo(subblock: Any) -> Tuple[float, float, float, float]:
+        try:
+            time = subblock.findall(".//AcquisitionTime")[0].text
+            timestamp = dt.parse(time).timestamp()
+        except IndexError as e:
+            timestamp = 0.0
+
+        try:
+            xpos = np.double(subblock.findall(".//StageXPosition")[0].text)
+        except IndexError as e:
+            xpos = 0.0
+
+        try:
+            ypos = np.double(subblock.findall(".//StageYPosition")[0].text)
+        except IndexError as e:
+            ypos = 0.0
+
+        try:
+            zpos = np.double(subblock.findall(".//FocusPosition")[0].text)
+        except IndexError as e:
+            zpos = 0.0
+
+        return timestamp, xpos, ypos, zpos
+
+    if pt_complete:
+        t_start = 0
+        t_end = size_t
+        c_start = 0
+        c_end = size_c
+        z_start = 0
+        z_end = size_z
+
+    elif not pt_complete:
+        t_start = t
+        t_end = t + 1
+        c_start = c
+        c_end = c + 1
+        z_start = 0
+        z_end = z + 1
+
+    # do if the data is not a mosaic
+    if size_m > 1:
+        # for s, m, t, z, c in product(
+        #    range(size_s),
+        #    range(size_m),
+        #    range(size_t),
+        #    range(size_z),
+        #    range(size_c),
+        # ):
+        for s, m, t, c, z in product(
+            range(size_s),
+            range(size_m),
+            enumerate(range(t_start, t_end)),
+            enumerate(range(c_start, c_end)),
+            enumerate(range(z_start, z_end)),
+            desc="Reading sublocks planes",
+            unit=" 2Dplanes",
+        ):
+            sbcount += 1
+
+            # get x, y, width and height for a specific tile
+            tilebbox = aicsczi.get_mosaic_tile_bounding_box(
+                S=s, M=m, T=t[1], Z=z[1], C=c[1]
+            )
+
+            # read information from subblock
+            sb = aicsczi.read_subblock_metadata(
+                unified_xml=True, B=0, S=s, M=m, T=t[1], Z=z[1], C=c[1]
+            )
+
+            # get information from subblock
+            timestamp, xpos, ypos, zpos = getsbinfo(sb)
+
+            plane = pd.DataFrame(
+                {
+                    "Subblock": sbcount,
+                    "Scene": s,
+                    "Tile": m,
+                    "T": t[1],
+                    "Z": z[1],
+                    "C": c[1],
+                    "X[micron]": xpos,
+                    "Y[micron]": ypos,
+                    "Z[micron]": zpos,
+                    "Time[s]": timestamp,
+                    "xstart": tilebbox.x,
+                    "ystart": tilebbox.y,
+                    "width": tilebbox.w,
+                    "height": tilebbox.h,
+                },
+                index=[0],
+            )
+
+            df_czi = pd.concat([df_czi if not df_czi.empty else None, plane])
+
+    # do if the data is not a mosaic
+    if size_m == 1:
+        # for s, t, z, c in product(
+        #    range(size_s), range(size_t), range(size_z), range(size_c)
+        # ):
+        for s, t, c, z in product(
+            range(size_s),
+            enumerate(range(t_start, t_end)),
+            enumerate(range(c_start, c_end)),
+            enumerate(range(z_start, z_end)),
+            desc="Reading sublocks planes",
+            unit=" 2Dplanes",
+        ):
+            sbcount += 1
+
+            # get x, y, width and height for a specific tile
+            tilebbox = aicsczi.get_tile_bounding_box(S=s, T=t[1], Z=z[1], C=c[1])
+
+            # read information from subblocks
+            sb = aicsczi.read_subblock_metadata(
+                unified_xml=True, B=0, S=s, T=t[1], Z=z[1], C=c[1]
+            )
+
+            # get information from subblock
+            timestamp, xpos, ypos, zpos = getsbinfo(sb)
+
+            plane = pd.DataFrame(
+                {
+                    "Subblock": sbcount,
+                    "Scene": s,
+                    "Tile": 0,
+                    "T": t[1],
+                    "Z": z[1],
+                    "C": c[1],
+                    "X[micron]": xpos,
+                    "Y[micron]": ypos,
+                    "Z[micron]": zpos,
+                    "Time[s]": timestamp,
+                    "xstart": tilebbox.x,
+                    "ystart": tilebbox.y,
+                    "width": tilebbox.w,
+                    "height": tilebbox.h,
+                },
+                index=[0],
+            )
+
+            df_czi = pd.concat([df_czi if not df_czi.empty else None, plane])
+
+    # cast data  types
+    df_czi = df_czi.astype(
+        {
+            "Subblock": "int32",
+            "Scene": "int32",
+            "Tile": "int32",
+            "T": "int32",
+            "Z": "int32",
+            "C": "int16",
+            "X[micron]": "float",
+            "Y[micron]": "float",
+            "Z[micron]": "float",
+            "xstart": "int32",
+            "ystart": "int32",
+            "width": "int32",
+            "height": "int32",
+        },
+        copy=False,
+        errors="ignore",
+    )
+
+    # normalize time stamps
+    if norm_time:
+        df_czi = norm_columns(df_czi, colname="Time[s]", mode="min")
+
+    return df_czi
 
 
 def norm_columns(
@@ -659,21 +682,13 @@ def download_zip(source_link: str) -> str:
     import io
     import zipfile
 
-    compressed_data = os .path.join(os.getcwd(), os.path.basename(source_link))
+    compressed_data = os.path.join(os.getcwd(), os.path.basename(source_link))
 
     if not os.path.isfile(compressed_data):
         response = requests.get(GITHUB_IMAGES_PATH, stream=True)
         compressed_data = io.BytesIO(response.content)
 
-    with zipfile.ZipFile(compressed_data, 'r') as zip_accessor:
-        zip_accessor.extractall('./')
+    with zipfile.ZipFile(compressed_data, "r") as zip_accessor:
+        zip_accessor.extractall("./")
 
     return compressed_data[:-4]
-
-
-
-    
-
-    
-
-

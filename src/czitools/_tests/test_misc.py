@@ -1,11 +1,12 @@
-from czitools import read_tools, misc_tools
+from czitools.read_tools import read_tools
+from czitools.utils import misc
 from pathlib import Path
 import dask.array as da
 import zarr
 import pandas as pd
 import pytest
 import numpy as np
-from typing import List, Dict, Tuple, Optional, Type, Any, Union, Mapping
+from typing import List, Tuple, Optional, Union
 
 basedir = Path(__file__).resolve().parents[3]
 
@@ -29,7 +30,7 @@ def test_slicedim(czifile: str, dimindex: int, posdim: int, shape: Tuple[int]) -
     # mdarray, mdata, dimstring = read_tools.read_6darray(filepath, output_order="STCZYX")
     mdarray, mdata = read_tools.read_6darray(filepath)
 
-    dim_array = misc_tools.slicedim(mdarray, dimindex, posdim)
+    dim_array = misc.slicedim(mdarray, dimindex, posdim)
     assert dim_array.shape == shape
 
 
@@ -67,16 +68,11 @@ def test_get_planetable(
         planetable = pd.read_csv(filepath, sep=separator)
     if isczi:
         # read the data from CZI file
-        planetable, csvfile = misc_tools.get_planetable(
-            filepath, norm_time=True, savetable=True, separator=",", index=True
+        planetable = misc.get_planetable(
+            filepath, norm_time=True, pt_complete=True
         )
 
-        assert csvfile == (basedir / "data" / csvfile).as_posix()
-
-        # remove the file
-        Path.unlink(Path(csvfile))
-
-    planetable_filtered = misc_tools.filter_planetable(planetable, S=0, T=0, Z=0, C=0)
+    planetable_filtered = misc.filter_planetable(planetable, S=0, T=0, Z=0, C=0)
 
     assert planetable_filtered["xstart"].values[0] == xstart[0]
     # assert planetable_filtered["xstart"].values[1] == xstart[1]
@@ -99,7 +95,7 @@ def test_check_dimsize(entry: Optional[int], set2value: int, result: int) -> Non
     Returns: None.
     """
 
-    assert misc_tools.check_dimsize(entry, set2value=set2value) == result
+    assert misc.check_dimsize(entry, set2value=set2value) == result
 
 
 @pytest.mark.parametrize(
@@ -129,20 +125,20 @@ def test_calc_scaling(
     corr_min: float,
     corr_max: float,
 ) -> None:
-    minv, maxv = misc_tools.calc_scaling(array, corr_min=corr_min, corr_max=corr_max)
+    minv, maxv = misc.calc_scaling(array, corr_min=corr_min, corr_max=corr_max)
 
     assert min_value == minv
     assert max_value == maxv
 
 
 def test_norm_columns_min(df):
-    result = misc_tools.norm_columns(df, colname="Time [s]", mode="min")
+    result = misc.norm_columns(df, colname="Time [s]", mode="min")
     expected = pd.DataFrame({"Time [s]": [0, 1, 2, 3], "Value": [10, 20, 30, 40]})
     pd.testing.assert_frame_equal(result, expected)
 
 
 def test_norm_columns_max(df):
-    result = misc_tools.norm_columns(df, colname="Time [s]", mode="max")
+    result = misc.norm_columns(df, colname="Time [s]", mode="max")
     expected = pd.DataFrame({"Time [s]": [-3, -2, -1, 0], "Value": [10, 20, 30, 40]})
     pd.testing.assert_frame_equal(result, expected)
 
@@ -150,21 +146,21 @@ def test_norm_columns_max(df):
 def test_filter_planetable(planetable):
 
     # Test for scene index
-    result = misc_tools.filter_planetable(planetable, S=1)
+    result = misc.filter_planetable(planetable, S=1)
     assert result["Scene"].eq(1).all(), "Scene index filter failed"
 
     # Test for time index
-    result = misc_tools.filter_planetable(planetable, T=1)
+    result = misc.filter_planetable(planetable, T=1)
     assert result["T"].eq(1).all(), "Time index filter failed"
 
     # Test for z-plane index
-    result = misc_tools.filter_planetable(planetable, Z=1)
+    result = misc.filter_planetable(planetable, Z=1)
     assert result["Z"].eq(1).all(), "Z-plane index filter failed"
 
     # Test for channel index
-    result = misc_tools.filter_planetable(planetable, C=5)
+    result = misc.filter_planetable(planetable, C=5)
     assert result["C"].eq(5).all(), "Channel index filter failed"
 
     # Test for invalid indices
-    result = misc_tools.filter_planetable(planetable, S=2, T=2, Z=2, C=2)
+    result = misc.filter_planetable(planetable, S=2, T=2, Z=2, C=2)
     assert result.empty, "Invalid index filter failed"

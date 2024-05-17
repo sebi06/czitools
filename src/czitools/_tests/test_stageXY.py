@@ -1,7 +1,7 @@
-from czitools import metadata_tools as czimd
+from czitools.metadata_tools import czi_metadata as czimd
 from pathlib import Path
 import pytest
-from typing import List, Dict, Tuple, Optional, Type, Any, Union, Mapping
+from typing import Dict
 
 basedir = Path(__file__).resolve().parents[3]
 
@@ -28,7 +28,7 @@ def test_stage_xy(czifile: str, results: Dict) -> None:
     # get the CZI filepath
     filepath = basedir / "data" / czifile
 
-    # read the metadata
+    # read the metadata_tools
     md = czimd.CziMetadata(filepath)
 
     if md.image.SizeS is not None:

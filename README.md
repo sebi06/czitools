@@ -8,16 +8,44 @@
 
 This repository provides a collection of tools to simplify reading CZI (Carl Zeiss Image) pixel and metadata in Python. In addition it also contains other useful utilities to visualize CZI images inside Napari (needs to be installed). It is also available as a [Python Package on PyPi](https://pypi.org/project/czitools/)
 
+## Installation
+
+To install the basic functionality (will not install Napari und plotting functionality) use:
+
+```text
+pip install czitools"
+```
+
+To install the package with all optional dependencies use:
+
+```text
+pip install czitools[all]
+```
+
 ## Reading the metadata
 
 Please check [use_metadata_tools.py](https://github.com/sebi06/czitools/blob/main/demo/scripts/use_metadata_tools.py) for some examples.
 
 ```python
-# get the metadata at once as one big class
-mdata = czimd.CziMetadata(filepath)
+from czitools.metadata_tools.czi_metadata import CziMetadata, writexml
+from czitools.metadata_tools.dimension import CziDimensions
+from czitools.metadata_tools.boundingbox import CziBoundingBox
+from czitools.metadata_tools.channel import CziChannelInfo
+from czitools.metadata_tools.scaling import CziScaling
+from czitools.metadata_tools.sample import CziSampleInfo
+from czitools.metadata_tools.objective import CziObjectives
+from czitools.metadata_tools.microscope import CziMicroscope
+from czitools.metadata_tools.add_metadata import CziAddMetaData
+from czitools.metadata_tools.detector import CziDetector
+from czitools.read_tools import read_tools
+from czitools.napari_tools import napari_tools
+import napari
 
-# get only specific metadata
-czi_dimensions = czimd.CziDimensions(filepath)
+# get the metadata_tools at once as one big class
+mdata = CziMetadata(filepath)
+
+# get only specific metadata_tools
+czi_dimensions = CziDimensions(filepath)
 print("SizeS: ", czi_dimensions.SizeS)
 print("SizeT: ", czi_dimensions.SizeT)
 print("SizeZ: ", czi_dimensions.SizeZ)
@@ -26,36 +54,36 @@ print("SizeY: ", czi_dimensions.SizeY)
 print("SizeX: ", czi_dimensions.SizeX)
 
 # try to write XML to file
-xmlfile = czimd.writexml(filepath)
+xmlfile = writexml(filepath)
 
 # get info about the channels
-czi_channels = czimd.CziChannelInfo(filepath)
+czi_channels = CziChannelInfo(filepath)
 
-# get the complete metadata from the CZI as one big object
-czimd_complete = czimd.get_metadata_as_object(filepath)
-
-# get an object containing only the dimension information
-czi_dimensions = czimd.CziDimensions(filepath)
+# get the complete metadata_tools from the CZI as one big object
+czimd_complete = get_metadata_as_object(filepath)
 
 # get an object containing only the dimension information
-czi_scale = czimd.CziScaling(filepath)
+czi_dimensions = CziDimensions(filepath)
+
+# get an object containing only the dimension information
+czi_scale = CziScaling(filepath)
 
 # get an object containing information about the sample
-czi_sample = czimd.CziSampleInfo(filepath)
+czi_sample = CziSampleInfo(filepath)
 
 # get info about the objective, the microscope and the detectors
-czi_objectives = czimd.CziObjectives(filepath)
-czi_detectors = czimd.CziDetector(filepath)
-czi_microscope = czimd.CziMicroscope(filepath)
+czi_objectives = CziObjectives(filepath)
+czi_detectors = CziDetector(filepath)
+czi_microscope = CziMicroscope(filepath)
 
 # get info about the sample carrier
-czi_sample = czimd.CziSampleInfo(filepath)
+czi_sample = CziSampleInfo(filepath)
 
 # get additional metainformation
-czi_addmd = czimd.CziAddMetaData(filepath)
+czi_addmd = CziAddMetaData(filepath)
 
 # get the complete data about the bounding boxes
-czi_bbox = czimd.CziBoundingBox(filepath)
+czi_bbox = CziBoundingBox(filepath)
 ```
 
 ## Reading CZI pixel data
@@ -127,3 +155,17 @@ The basic usage can be inferred from this sample notebook:&nbsp;
 ## Remarks
 
 The code to read multi-dimensional with delayed reading using Dask array was heavily inspired by input from: [Pradeep Rajasekhar](https://github.com/pr4deepr).
+
+Local installation (base functionality only):
+
+```text
+pip install -e .
+```
+
+### Local Installation
+
+Local installation (full functionality):
+
+```text
+pip install -e ".[all]"
+```

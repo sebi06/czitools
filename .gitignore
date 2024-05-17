@@ -174,3 +174,4 @@ data/CellDivision_T=10_Z=15_CH=2_DCV_small.czi
 /data/Tumor_HE_Orig_small_SlidePreview.czi
 /data/est_ngff_plate.zarr
 /data/est_ngff_plate.zarr
+**/czitools/*.old

@@ -1,7 +1,7 @@
-from czitools import metadata_tools as czimd
+from czitools.metadata_tools import czi_metadata as czimd
 from pathlib import Path
 import pytest
-from typing import List, Dict, Tuple, Optional, Type, Any, Union, Mapping
+from typing import Dict
 
 basedir = Path(__file__).resolve().parents[3]
 
@@ -25,7 +25,7 @@ basedir = Path(__file__).resolve().parents[3]
 )
 def test_instrument(czifile: str, result_mic: Dict, result_det: Dict) -> None:
 
-    # get the filepath and the metadata
+    # get the filepath and the metadata_tools
     filepath = basedir / "data" / czifile
     mic = czimd.CziMicroscope(filepath)
     det = czimd.CziDetector(filepath)
@@ -120,7 +120,7 @@ def test_instrument(czifile: str, result_mic: Dict, result_det: Dict) -> None:
 )
 def test_objectives(czifile: str, result: Dict) -> None:
 
-    # get the filepath and the metadata
+    # get the filepath and the metadata_tools
     filepath = basedir / "data" / czifile
     obj = czimd.CziObjectives(filepath)
 
