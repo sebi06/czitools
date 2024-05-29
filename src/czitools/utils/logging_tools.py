@@ -1,5 +1,7 @@
 import logging
 import datetime
+from loguru import logger as loguru_logger
+import sys
 
 
 class CustomFormatter(logging.Formatter):
@@ -93,3 +95,15 @@ def get_logger(log_to_file: bool = False):
             logger.addHandler(file_handler)
 
     return logger
+
+
+def set_logging():
+
+    loguru_logger.remove()
+    loguru_logger.add(
+        sys.stdout,
+        colorize=True,
+        format="<green>{time}s</green> - <level>{level}</level> - <level>{message}</level>",
+    )
+
+    return loguru_logger

@@ -1,11 +1,12 @@
 from typing import Optional, Union
 from dataclasses import dataclass, field
 import os
-from czitools.utils.logger import get_logger
+from czitools.utils.logging_tools import get_logger, set_logging
 from pylibCZIrw import czi as pyczi
 from pathlib import Path
 
-logger = get_logger()
+#logger = get_logger()
+logger = set_logging()
 
 
 @dataclass

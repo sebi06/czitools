@@ -23,10 +23,11 @@ from tqdm.contrib.itertools import product
 from typing import Dict, Tuple, Any, Union
 import validators
 from aicspylibczi import CziFile
-from czitools.utils import logger
+from czitools.utils import logging_tools
 
 
-logger = logger.get_logger()
+#logger = logging_tools.get_logger()
+logger = logging_tools.set_logging()
 
 
 def openfile(

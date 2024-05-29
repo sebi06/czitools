@@ -28,14 +28,14 @@ from tqdm import tqdm
 from tqdm.contrib.itertools import product
 import tempfile
 import shutil
-from czitools.utils import logger
+from czitools.utils import logging_tools
 from czitools.metadata_tools.helper import ValueRange
 from czitools.metadata_tools.helper import AttachmentType
 
 # from memory_profiler import profile
 
-logger = logger.get_logger()
-
+#logger = logging_tools.get_logger()
+logger = logging_tools.set_logging()
 
 # code for which memory has to be monitored
 # instantiating the decorator
