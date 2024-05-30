@@ -13,7 +13,6 @@ import sys
 from czitools.utils import logging_tools
 from czitools.metadata_tools.helper import ValueRange
 
-#logger = logging_tools.get_logger()
 logger = logging_tools.set_logging()
 
 # check if Napari is actually installed

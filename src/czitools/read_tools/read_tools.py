@@ -34,7 +34,6 @@ from czitools.metadata_tools.helper import AttachmentType
 
 # from memory_profiler import profile
 
-#logger = logging_tools.get_logger()
 logger = logging_tools.set_logging()
 
 # code for which memory has to be monitored

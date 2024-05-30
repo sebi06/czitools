@@ -34,7 +34,6 @@ from czitools.metadata_tools.detector import CziDetector
 from czitools.utils.box import get_czimd_box
 from czitools.metadata_tools.helper import DictObj
 
-#logger = logging_tools.get_logger()
 logger = logging_tools.set_logging()
 
 

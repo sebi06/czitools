@@ -2,12 +2,11 @@ from typing import Optional, Union, Dict
 from dataclasses import dataclass, field
 from box import Box
 import os
-from czitools.utils.logging_tools import get_logger, set_logging
+from czitools.utils import logging_tools
 from pylibCZIrw import czi as pyczi
 import validators
 
-#logger = get_logger()
-logger = set_logging()
+logger = logging_tools.set_logging()
 
 
 @dataclass

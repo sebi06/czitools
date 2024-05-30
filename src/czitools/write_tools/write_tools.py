@@ -23,7 +23,6 @@ import shutil
 import numpy as np
 from czitools.utils import logging_tools
 
-#logger = logging_tools.get_logger()
 logger = logging_tools.set_logging()
 
 

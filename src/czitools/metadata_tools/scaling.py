@@ -3,12 +3,11 @@ from dataclasses import dataclass, field
 from box import Box, BoxList
 import os
 import numpy as np
-from czitools.utils.logging_tools import get_logger, set_logging
+from czitools.utils import logging_tools
 from czitools.utils.box import get_czimd_box
 from czitools.metadata_tools.helper import ValueRange
 
-#logger = get_logger()
-logger = set_logging()
+logger = logging_tools.set_logging()
 
 
 @dataclass

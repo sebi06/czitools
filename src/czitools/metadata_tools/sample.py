@@ -4,13 +4,12 @@ from box import Box, BoxList
 import os
 import numpy as np
 from collections import Counter
-from czitools.utils.logging_tools import get_logger, set_logging
+from czitools.utils import logging_tools
 from czitools.utils.box import get_czimd_box
 from czitools.utils.misc import get_planetable
 from czitools.metadata_tools.dimension import CziDimensions
 
-#logger = get_logger()
-logger = set_logging()
+logger = logging_tools.set_logging()
 
 
 @dataclass

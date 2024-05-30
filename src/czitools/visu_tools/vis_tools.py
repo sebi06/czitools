@@ -15,7 +15,6 @@ from matplotlib import cm
 import plotly.graph_objects as go
 from czitools.utils import logging_tools
 
-#logger = logger.get_logger()
 logger = logging_tools.set_logging()
 
 

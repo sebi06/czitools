@@ -2,11 +2,10 @@ from typing import Union, Optional
 from dataclasses import dataclass, field
 from box import Box
 import os
-from czitools.utils.logging_tools import get_logger, set_logging
+from czitools.utils import logging_tools
 from czitools.utils.box import get_czimd_box
 
-#logger = get_logger()
-logger = set_logging()
+logger = logging_tools.set_logging()
 
 
 @dataclass
