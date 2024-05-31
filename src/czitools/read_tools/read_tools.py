@@ -610,44 +610,21 @@ def read_tiles(filepath: Union[str, os.PathLike[str]], scene: int, tile: int, **
     # read CZI using aicspylibczi: : https://pypi.org/project/aicspylibczi/
     czi = CziFile(filepath)
 
-    # read the dimensions of the bounding box
-    mosaic_bbox = czi.get_mosaic_scene_bounding_box()
-
     # show the values
     logger.info(f"Reading File: {filepath} Scene: {scene} - Tile {tile}")
     logger.info(f"Dimensions Shape: {czi.get_dims_shape()}")
 
-    tile_stack = None
-    size = None
+    # in case the CZI is a mosaic file and has the M-dimension
+    if czi.is_mosaic():
+        tile_stack, size = czi.read_image(S=scene, M=tile, **kwargs)
 
-    # in case kwargs != {}
-    if kwargs:
-
-        # read the tile from scene and if applicable sub dimensions (specified in kwargs)
-        if "T" in kwargs:
-            tile_stack, size = czi.read_image(S=scene, M=tile, T=kwargs["T"])
-
-        elif "C" in kwargs:
-            tile_stack, size = czi.read_image(S=scene, M=tile, C=kwargs["C"])
-
-        elif "Z" in kwargs:
-            tile_stack, size = czi.read_image(S=scene, M=tile, Z=kwargs["Z"])
-
-        elif "T" in kwargs and "C" in kwargs:
-            tile_stack, size = czi.read_image(S=scene, M=tile, T=kwargs["T"], C=kwargs["C"])
-
-        elif "T" in kwargs and "Z" in kwargs:
-            tile_stack, size = czi.read_image(S=scene, M=tile, T=kwargs["T"], Z=kwargs["Z"])
-
-        elif "T" in kwargs and "Z" in kwargs and "C" in kwargs:
-            tile_stack, size = czi.read_image(S=scene, M=tile, T=kwargs["T"], C=kwargs["C"], Z=kwargs["Z"])
-
-    else:
-        tile_stack, size = czi.read_image(S=scene, M=tile)
-
-    if tile_stack is not None:
         # remove the M-Dimension from the array and size
         tile_stack = np.squeeze(tile_stack, axis=czi.dims.find("M"))
         size.remove(("M", 1))
+
+    # in case the CZI is not a mosaic file and has no M-dimension
+    elif not czi.is_mosaic():
+        logger.warning(f"CZI file is not a mosaic. No M-Dimension found.")
+        tile_stack, size = czi.read_image(S=scene, **kwargs)
 
     return tile_stack, size
