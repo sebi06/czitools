@@ -15,8 +15,10 @@ from typing import (
     Optional,
     Union,
     Annotated,
+    List
 )
 from pylibCZIrw import czi as pyczi
+from aicspylibczi import CziFile
 from czitools.metadata_tools import czi_metadata as czimd
 from czitools.utils import misc
 import numpy as np
@@ -35,6 +37,7 @@ from czitools.metadata_tools.helper import AttachmentType
 # from memory_profiler import profile
 
 logger = logging_tools.set_logging()
+
 
 # code for which memory has to be monitored
 # instantiating the decorator
@@ -87,15 +90,15 @@ def read_6darray(
         logger.info("Detected PixelTypes ar not consistent. Cannot create array6d")
         return None, mdata
 
-    # check zoomlevels
-    if zoom < 0.01:
-        logger.warning(
-            f"Zoomlevel: {zoom} is outside allowed range [0.05 - 1.0]. Using 0.5 instead"
-        )
-    elif zoom > 1.0:
-        logger.warning(
-            f"Zoomlevel: {zoom} is outside allowed range [0.05 - 1.0]. Using 1.0 instead"
-        )
+    # # check zoomlevels
+    # if zoom < 0.01:
+    #     logger.warning(
+    #         f"Zoomlevel: {zoom} is outside allowed range [0.05 - 1.0]. Using 0.5 instead"
+    #     )
+    # elif zoom > 1.0:
+    #     logger.warning(
+    #         f"Zoomlevel: {zoom} is outside allowed range [0.05 - 1.0]. Using 1.0 instead"
+    #     )
 
     # update scaling
     mdata.scale.X_sf = np.round(mdata.scale.X * (1 / zoom), 3)
@@ -508,7 +511,7 @@ def read_attachments(
     czi_filepath: [str, os.PathLike],
     attachment_type: AttachmentType = AttachmentType.SlidePreview,
     copy: bool = True,
-) -> Tuple[np.ndarray, Optional[str]]:
+) -> Tuple[Optional[np.ndarray], Optional[str]]:
     """Read attachment images from a CZI image as numpy array
 
     Args:
@@ -585,3 +588,63 @@ def read_attachments(
         )
 
         return None, None
+
+
+def read_tiles(filepath: Union[str, os.PathLike[str]], scene: int, tile: int, **kwargs) -> Tuple[np.ndarray, List]:
+
+    if isinstance(filepath, Path):
+        # convert to string
+        filepath = str(filepath)
+
+    valid_args = ["T", "Z", "C"]
+
+    # check for invalid arguments
+    for k, v in kwargs.items():
+
+        if k not in valid_args:
+            raise ValueError(f"Invalid keyword argument: {k}")
+
+    # read CZI using aicspylibczi: : https://pypi.org/project/aicspylibczi/
+    czi = CziFile(filepath)
+
+    # read the dimensions of the bounding box
+    mosaic_bbox = czi.get_mosaic_scene_bounding_box()
+
+    # show the values
+    logger.info(f"Reading File: {filepath} Scene: {scene} - Tile {tile}")
+    logger.info(f"Dimensions Shape: {czi.get_dims_shape()}")
+
+    tile_stack = None
+    size = None
+
+    # in case kwargs != {}
+    if kwargs:
+
+        # read the tile from scene and if applicable sub dimensions (specified in kwargs)
+        if "T" in kwargs:
+            tile_stack, size = czi.read_image(S=scene, M=tile, T=kwargs["T"])
+
+        elif "C" in kwargs:
+            tile_stack, size = czi.read_image(S=scene, M=tile, C=kwargs["C"])
+
+        elif "Z" in kwargs:
+            tile_stack, size = czi.read_image(S=scene, M=tile, Z=kwargs["Z"])
+
+        elif "T" in kwargs and "C" in kwargs:
+            tile_stack, size = czi.read_image(S=scene, M=tile, T=kwargs["T"], C=kwargs["C"])
+
+        elif "T" in kwargs and "Z" in kwargs:
+            tile_stack, size = czi.read_image(S=scene, M=tile, T=kwargs["T"], Z=kwargs["Z"])
+
+        elif "T" in kwargs and "Z" in kwargs and "C" in kwargs:
+            tile_stack, size = czi.read_image(S=scene, M=tile, T=kwargs["T"], C=kwargs["C"], Z=kwargs["Z"])
+
+    else:
+        tile_stack, size = czi.read_image(S=scene, M=tile)
+
+    if tile_stack is not None:
+        # remove the M-Dimension from the array and size
+        tile_stack = np.squeeze(tile_stack, axis=czi.dims.find("M"))
+        size.remove(("M", 1))
+
+    return tile_stack, size
