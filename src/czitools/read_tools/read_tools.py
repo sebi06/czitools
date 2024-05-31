@@ -9,14 +9,7 @@
 #
 #################################################################
 
-from typing import (
-    Dict,
-    Tuple,
-    Optional,
-    Union,
-    Annotated,
-    List
-)
+from typing import Dict, Tuple, Optional, Union, Annotated, List
 from pylibCZIrw import czi as pyczi
 from aicspylibczi import CziFile
 from czitools.metadata_tools import czi_metadata as czimd
@@ -90,23 +83,14 @@ def read_6darray(
         logger.info("Detected PixelTypes ar not consistent. Cannot create array6d")
         return None, mdata
 
-    # # check zoomlevels
-    # if zoom < 0.01:
-    #     logger.warning(
-    #         f"Zoomlevel: {zoom} is outside allowed range [0.05 - 1.0]. Using 0.5 instead"
-    #     )
-    # elif zoom > 1.0:
-    #     logger.warning(
-    #         f"Zoomlevel: {zoom} is outside allowed range [0.05 - 1.0]. Using 1.0 instead"
-    #     )
-
     # update scaling
     mdata.scale.X_sf = np.round(mdata.scale.X * (1 / zoom), 3)
     mdata.scale.Y_sf = np.round(mdata.scale.Y * (1 / zoom), 3)
     mdata.scale.ratio["zx_sf"] = np.round(mdata.scale.Z / mdata.scale.X_sf, 3)
 
     # check planes
-    if not planes is False:
+    #if not planes is False:
+    if planes is not False:
         for k in ["S", "T", "C", "Z"]:
             if k in planes.keys() and k in mdata.bbox.total_bounding_box.keys():
                 if mdata.bbox.total_bounding_box[k][1] - 1 < planes[k][1]:
@@ -119,7 +103,7 @@ def read_6darray(
         # use pixel type from first channel
         use_pixeltype = mdata.npdtype[0]
 
-    if not mdata.scene_shape_is_consistent and not "S" in planes.keys():
+    if not mdata.scene_shape_is_consistent and "S" not in planes.keys():
         logger.info("Scenes have inconsistent shape. Cannot read 6D array")
         return None, mdata
 
@@ -242,12 +226,16 @@ def read_6darray(
 
             if use_dask and chunk_zyx:
                 # for testing
-                array6d = array6d.rechunk(chunks=(1, 1, 1, size_z, image2d.shape[0], image2d.shape[1]))
+                array6d = array6d.rechunk(
+                    chunks=(1, 1, 1, size_z, image2d.shape[0], image2d.shape[1])
+                )
 
         if not remove_adim:
             if use_dask and chunk_zyx:
                 # for testing
-                array6d = array6d.rechunk(chunks=(1, 1, 1, size_z, image2d.shape[0], image2d.shape[1], 3))
+                array6d = array6d.rechunk(
+                    chunks=(1, 1, 1, size_z, image2d.shape[0], image2d.shape[1], 3)
+                )
 
     # update metadata_tools
     mdata.array6d_size = array6d.shape
@@ -590,8 +578,9 @@ def read_attachments(
         return None, None
 
 
-def read_tiles(filepath: Union[str, os.PathLike[str]], scene: int, tile: int, **kwargs) -> Tuple[np.ndarray, List]:
-
+def read_tiles(
+    filepath: Union[str, os.PathLike[str]], scene: int, tile: int, **kwargs
+) -> Tuple[np.ndarray, List]:
     # TODO: Write docstring
     # TODO: Write tests
 
@@ -603,7 +592,6 @@ def read_tiles(filepath: Union[str, os.PathLike[str]], scene: int, tile: int, **
 
     # check for invalid arguments to specify substacks
     for k, v in kwargs.items():
-
         if k not in valid_args:
             raise ValueError(f"Invalid keyword argument: {k}")
 
@@ -624,7 +612,7 @@ def read_tiles(filepath: Union[str, os.PathLike[str]], scene: int, tile: int, **
 
     # in case the CZI is not a mosaic file and has no M-dimension
     elif not czi.is_mosaic():
-        logger.warning(f"CZI file is not a mosaic. No M-Dimension found.")
+        logger.warning("CZI file is not a mosaic. No M-Dimension found.")
         tile_stack, size = czi.read_image(S=scene, **kwargs)
 
     return tile_stack, size
