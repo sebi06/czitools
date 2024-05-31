@@ -592,13 +592,16 @@ def read_attachments(
 
 def read_tiles(filepath: Union[str, os.PathLike[str]], scene: int, tile: int, **kwargs) -> Tuple[np.ndarray, List]:
 
+    # TODO: Write docstring
+    # TODO: Write tests
+
     if isinstance(filepath, Path):
         # convert to string
         filepath = str(filepath)
 
     valid_args = ["T", "Z", "C"]
 
-    # check for invalid arguments
+    # check for invalid arguments to specify substacks
     for k, v in kwargs.items():
 
         if k not in valid_args:
