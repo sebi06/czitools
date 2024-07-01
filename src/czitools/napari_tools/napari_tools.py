@@ -42,18 +42,19 @@ else:
         List,
         Dict,
         Tuple,
-        Optional,
-        Type,
-        Any,
+        # Optional,
+        # Type,
+        # Any,
         Union,
         Literal,
-        Mapping,
+        # Mapping,
         Annotated,
     )
     from napari.utils.colormaps import Colormap
     from napari.utils import resize_dask_cache
     import dask.array as da
-    from dataclasses import dataclass
+
+    # from dataclasses import dataclass
 
 
 class MdTableWidget(QWidget):
