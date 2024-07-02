@@ -89,7 +89,7 @@ def read_6darray(
     mdata.scale.ratio["zx_sf"] = np.round(mdata.scale.Z / mdata.scale.X_sf, 3)
 
     # check planes
-    #if not planes is False:
+    # if not planes is False:
     if planes is not False:
         for k in ["S", "T", "C", "Z"]:
             if k in planes.keys() and k in mdata.bbox.total_bounding_box.keys():
@@ -139,7 +139,7 @@ def read_6darray(
 
         # check for additional arguments to create substacks
         if (
-            not planes is False
+            planes is not False
             and mdata.image.SizeS is not None
             and "S" in planes.keys()
         ):
@@ -148,19 +148,19 @@ def read_6darray(
             s_start = planes["S"][0]
             s_end = planes["S"][1] + 1
 
-        if not planes is False and "T" in planes.keys():
+        if planes is not False and "T" in planes.keys():
             size_t = planes["T"][1] - planes["T"][0] + 1
             mdata.image.SizeT = size_t
             t_start = planes["T"][0]
             t_end = planes["T"][1] + 1
 
-        if not planes is False and "Z" in planes.keys():
+        if planes is not False and "Z" in planes.keys():
             size_z = planes["Z"][1] - planes["Z"][0] + 1
             mdata.image.SizeZ = size_z
             z_start = planes["Z"][0]
             z_end = planes["Z"][1] + 1
 
-        if not planes is False and "C" in planes.keys():
+        if planes is not False and "C" in planes.keys():
             size_c = planes["C"][1] - planes["C"][0] + 1
             mdata.image.SizeC = size_c
             c_start = planes["C"][0]
@@ -278,7 +278,7 @@ def read_6darray_lazy(
         return None, mdata
 
     # check planes
-    if not planes is False:
+    if planes is not False:
         for k in ["S", "T", "C", "Z"]:
             if k in planes.keys() and k in mdata.bbox.total_bounding_box.keys():
                 if mdata.bbox.total_bounding_box[k][1] - 1 < planes[k][1]:
@@ -287,7 +287,7 @@ def read_6darray_lazy(
                     )
                     return None, mdata
 
-    if not mdata.scene_shape_is_consistent and not "S" in planes.keys():
+    if not mdata.scene_shape_is_consistent and "S" not in planes.keys():
         logger.info("Scenes have inconsistent shape. Cannot read 6D array")
         return None, mdata
 
@@ -323,7 +323,7 @@ def read_6darray_lazy(
 
         # check for additional arguments to create substacks
         if (
-            not planes is False
+            planes is not False
             and mdata.image.SizeS is not None
             and "S" in planes.keys()
         ):
@@ -332,19 +332,19 @@ def read_6darray_lazy(
             s_start = planes["S"][0]
             s_end = planes["S"][1] + 1
 
-        if not planes is False and "T" in planes.keys():
+        if planes is not False and "T" in planes.keys():
             size_t = planes["T"][1] - planes["T"][0] + 1
             mdata.image.SizeT = size_t
             t_start = planes["T"][0]
             t_end = planes["T"][1] + 1
 
-        if not planes is False and "Z" in planes.keys():
+        if planes is not False and "Z" in planes.keys():
             size_z = planes["Z"][1] - planes["Z"][0] + 1
             mdata.image.SizeZ = size_z
             z_start = planes["Z"][0]
             z_end = planes["Z"][1] + 1
 
-        if not planes is False and "C" in planes.keys():
+        if planes is not False and "C" in planes.keys():
             size_c = planes["C"][1] - planes["C"][0] + 1
             mdata.image.SizeC = size_c
             c_start = planes["C"][0]
@@ -496,7 +496,7 @@ def read_2dplane(
 
 
 def read_attachments(
-    czi_filepath: [str, os.PathLike],
+    czi_filepath: Union[str, os.PathLike],
     attachment_type: AttachmentType = AttachmentType.SlidePreview,
     copy: bool = True,
 ) -> Tuple[Optional[np.ndarray], Optional[str]]:
@@ -570,7 +570,7 @@ def read_attachments(
                         if not copy:
                             return img2d
 
-    except ImportError as e:
+    except ImportError:  # as e:
         logger.warning(
             "Package czifile not found. Cannot extract information about attached images."
         )
