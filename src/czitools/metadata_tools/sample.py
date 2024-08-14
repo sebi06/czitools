@@ -1,15 +1,15 @@
-from typing import Union, List, Dict
+from typing import Union, List, Dict, Tuple
 from dataclasses import dataclass, field
 from box import Box, BoxList
 import os
 import numpy as np
 from collections import Counter
-from czitools.utils.logger import get_logger
+from czitools.utils import logging_tools
 from czitools.utils.box import get_czimd_box
 from czitools.utils.misc import get_planetable
 from czitools.metadata_tools.dimension import CziDimensions
 
-logger = get_logger()
+logger = logging_tools.set_logging()
 
 
 @dataclass
@@ -107,3 +107,21 @@ class CziSampleInfo:
             logger.info("Stage Positions XY not found.")
             self.scene_stageX.append(0.0)
             self.scene_stageY.append(0.0)
+
+
+def get_scenes_for_well(sample: CziSampleInfo, wellID: str) -> Tuple[int]:
+    """
+    Returns a list of scene indices for a given well ID. The list of wells is stored inside
+    the "sample" section of the metadata
+
+    Args:
+        sample_info (CziSampleInfo): The CziSampleInfo object containing well information.
+        wellID (str): The ID of the well.
+
+    Returns:
+        Tuple[int]: A list of scene indices corresponding to the given well ID.
+    """
+
+    scene_indices = [i for i, x in enumerate(sample.well_array_names) if x == wellID]
+
+    return tuple(scene_indices)

@@ -1,0 +1,37 @@
+# Tested on Windows only but should also work for Linux.
+#
+# Disclaimer:
+#
+# Carl Zeiss Microscopy GmbH's ZEN software undertakes no warranty concerning the use of this YML file. Use at your won risk.
+# By using any of those examples you agree to this disclaimer.
+#
+name: pylibczirw
+channels:
+  - defaults
+  - conda-forge
+dependencies:
+  - python=3.11
+  - docutils
+  - pip
+  - setuptools
+  - autopep8
+  - nb_conda_kernels
+  - pytest
+
+  - pip:
+      - czitools
+
+
+# Create an environment
+# conda env create --file env_czitools.yml
+
+# Update an environment
+# conda env update --name czitools --file env_czitools.yml --prune
+
+# Remove an environment
+# conda remove --name czitools --all
+# conda clean --all
+
+# Show the locations of all versions of Python that are currently in the path
+# Windows: where python
+# Linux which -a python

@@ -10,10 +10,10 @@
 #################################################################
 
 import sys
-from czitools.utils import logger
+from czitools.utils import logging_tools
 from czitools.metadata_tools.helper import ValueRange
 
-logger = logger.get_logger()
+logger = logging_tools.set_logging()
 
 # check if Napari is actually installed
 try:
@@ -42,18 +42,19 @@ else:
         List,
         Dict,
         Tuple,
-        Optional,
-        Type,
-        Any,
+        # Optional,
+        # Type,
+        # Any,
         Union,
         Literal,
-        Mapping,
+        # Mapping,
         Annotated,
     )
     from napari.utils.colormaps import Colormap
     from napari.utils import resize_dask_cache
     import dask.array as da
-    from dataclasses import dataclass
+
+    # from dataclasses import dataclass
 
 
 class MdTableWidget(QWidget):

@@ -14,7 +14,7 @@ from typing import List, Dict, Tuple, Optional, Any, Union
 import os
 import xml.etree.ElementTree as ET
 from pylibCZIrw import czi as pyczi
-from czitools.utils import logger, misc
+from czitools.utils import logging_tools, misc
 import numpy as np
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -34,7 +34,7 @@ from czitools.metadata_tools.detector import CziDetector
 from czitools.utils.box import get_czimd_box
 from czitools.metadata_tools.helper import DictObj
 
-logger = logger.get_logger()
+logger = logging_tools.set_logging()
 
 
 @dataclass

@@ -2,11 +2,11 @@ from typing import Tuple, Optional, Union
 from dataclasses import dataclass, field, fields, Field
 from box import Box
 import os
-from czitools.utils.logger import get_logger
+from czitools.utils import logging_tools
 from czitools.utils.box import get_czimd_box
 from pylibCZIrw import czi as pyczi
 
-logger = get_logger()
+logger = logging_tools.set_logging()
 
 
 @dataclass

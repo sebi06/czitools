@@ -9,14 +9,9 @@
 #
 #################################################################
 
-from typing import (
-    Dict,
-    Tuple,
-    Optional,
-    Union,
-    Annotated,
-)
+from typing import Dict, Tuple, Optional, Union, Annotated, List
 from pylibCZIrw import czi as pyczi
+from aicspylibczi import CziFile
 from czitools.metadata_tools import czi_metadata as czimd
 from czitools.utils import misc
 import numpy as np
@@ -28,13 +23,13 @@ from tqdm import tqdm
 from tqdm.contrib.itertools import product
 import tempfile
 import shutil
-from czitools.utils import logger
+from czitools.utils import logging_tools
 from czitools.metadata_tools.helper import ValueRange
 from czitools.metadata_tools.helper import AttachmentType
 
 # from memory_profiler import profile
 
-logger = logger.get_logger()
+logger = logging_tools.set_logging()
 
 
 # code for which memory has to be monitored
@@ -88,23 +83,14 @@ def read_6darray(
         logger.info("Detected PixelTypes ar not consistent. Cannot create array6d")
         return None, mdata
 
-    # check zoomlevels
-    if zoom < 0.01:
-        logger.warning(
-            f"Zoomlevel: {zoom} is outside allowed range [0.05 - 1.0]. Using 0.5 instead"
-        )
-    elif zoom > 1.0:
-        logger.warning(
-            f"Zoomlevel: {zoom} is outside allowed range [0.05 - 1.0]. Using 1.0 instead"
-        )
-
     # update scaling
     mdata.scale.X_sf = np.round(mdata.scale.X * (1 / zoom), 3)
     mdata.scale.Y_sf = np.round(mdata.scale.Y * (1 / zoom), 3)
     mdata.scale.ratio["zx_sf"] = np.round(mdata.scale.Z / mdata.scale.X_sf, 3)
 
     # check planes
-    if not planes is False:
+    # if not planes is False:
+    if planes is not False:
         for k in ["S", "T", "C", "Z"]:
             if k in planes.keys() and k in mdata.bbox.total_bounding_box.keys():
                 if mdata.bbox.total_bounding_box[k][1] - 1 < planes[k][1]:
@@ -117,7 +103,7 @@ def read_6darray(
         # use pixel type from first channel
         use_pixeltype = mdata.npdtype[0]
 
-    if not mdata.scene_shape_is_consistent and not "S" in planes.keys():
+    if not mdata.scene_shape_is_consistent and "S" not in planes.keys():
         logger.info("Scenes have inconsistent shape. Cannot read 6D array")
         return None, mdata
 
@@ -153,7 +139,7 @@ def read_6darray(
 
         # check for additional arguments to create substacks
         if (
-            not planes is False
+            planes is not False
             and mdata.image.SizeS is not None
             and "S" in planes.keys()
         ):
@@ -162,19 +148,19 @@ def read_6darray(
             s_start = planes["S"][0]
             s_end = planes["S"][1] + 1
 
-        if not planes is False and "T" in planes.keys():
+        if planes is not False and "T" in planes.keys():
             size_t = planes["T"][1] - planes["T"][0] + 1
             mdata.image.SizeT = size_t
             t_start = planes["T"][0]
             t_end = planes["T"][1] + 1
 
-        if not planes is False and "Z" in planes.keys():
+        if planes is not False and "Z" in planes.keys():
             size_z = planes["Z"][1] - planes["Z"][0] + 1
             mdata.image.SizeZ = size_z
             z_start = planes["Z"][0]
             z_end = planes["Z"][1] + 1
 
-        if not planes is False and "C" in planes.keys():
+        if planes is not False and "C" in planes.keys():
             size_c = planes["C"][1] - planes["C"][0] + 1
             mdata.image.SizeC = size_c
             c_start = planes["C"][0]
@@ -240,12 +226,16 @@ def read_6darray(
 
             if use_dask and chunk_zyx:
                 # for testing
-                array6d = array6d.rechunk(chunks=(1, 1, 1, size_z, image2d.shape[0], image2d.shape[1]))
+                array6d = array6d.rechunk(
+                    chunks=(1, 1, 1, size_z, image2d.shape[0], image2d.shape[1])
+                )
 
         if not remove_adim:
             if use_dask and chunk_zyx:
                 # for testing
-                array6d = array6d.rechunk(chunks=(1, 1, 1, size_z, image2d.shape[0], image2d.shape[1], 3))
+                array6d = array6d.rechunk(
+                    chunks=(1, 1, 1, size_z, image2d.shape[0], image2d.shape[1], 3)
+                )
 
     # update metadata_tools
     mdata.array6d_size = array6d.shape
@@ -288,7 +278,7 @@ def read_6darray_lazy(
         return None, mdata
 
     # check planes
-    if not planes is False:
+    if planes is not False:
         for k in ["S", "T", "C", "Z"]:
             if k in planes.keys() and k in mdata.bbox.total_bounding_box.keys():
                 if mdata.bbox.total_bounding_box[k][1] - 1 < planes[k][1]:
@@ -297,7 +287,7 @@ def read_6darray_lazy(
                     )
                     return None, mdata
 
-    if not mdata.scene_shape_is_consistent and not "S" in planes.keys():
+    if not mdata.scene_shape_is_consistent and "S" not in planes.keys():
         logger.info("Scenes have inconsistent shape. Cannot read 6D array")
         return None, mdata
 
@@ -333,7 +323,7 @@ def read_6darray_lazy(
 
         # check for additional arguments to create substacks
         if (
-            not planes is False
+            planes is not False
             and mdata.image.SizeS is not None
             and "S" in planes.keys()
         ):
@@ -342,19 +332,19 @@ def read_6darray_lazy(
             s_start = planes["S"][0]
             s_end = planes["S"][1] + 1
 
-        if not planes is False and "T" in planes.keys():
+        if planes is not False and "T" in planes.keys():
             size_t = planes["T"][1] - planes["T"][0] + 1
             mdata.image.SizeT = size_t
             t_start = planes["T"][0]
             t_end = planes["T"][1] + 1
 
-        if not planes is False and "Z" in planes.keys():
+        if planes is not False and "Z" in planes.keys():
             size_z = planes["Z"][1] - planes["Z"][0] + 1
             mdata.image.SizeZ = size_z
             z_start = planes["Z"][0]
             z_end = planes["Z"][1] + 1
 
-        if not planes is False and "C" in planes.keys():
+        if planes is not False and "C" in planes.keys():
             size_c = planes["C"][1] - planes["C"][0] + 1
             mdata.image.SizeC = size_c
             c_start = planes["C"][0]
@@ -506,10 +496,10 @@ def read_2dplane(
 
 
 def read_attachments(
-    czi_filepath: [str, os.PathLike],
+    czi_filepath: Union[str, os.PathLike],
     attachment_type: AttachmentType = AttachmentType.SlidePreview,
     copy: bool = True,
-) -> Tuple[np.ndarray, Optional[str]]:
+) -> Tuple[Optional[np.ndarray], Optional[str]]:
     """Read attachment images from a CZI image as numpy array
 
     Args:
@@ -580,9 +570,49 @@ def read_attachments(
                         if not copy:
                             return img2d
 
-    except ImportError as e:
+    except ImportError:  # as e:
         logger.warning(
             "Package czifile not found. Cannot extract information about attached images."
         )
 
         return None, None
+
+
+def read_tiles(
+    filepath: Union[str, os.PathLike[str]], scene: int, tile: int, **kwargs
+) -> Tuple[np.ndarray, List]:
+    # TODO: Write docstring
+    # TODO: Write tests
+
+    if isinstance(filepath, Path):
+        # convert to string
+        filepath = str(filepath)
+
+    valid_args = ["T", "Z", "C"]
+
+    # check for invalid arguments to specify substacks
+    for k, v in kwargs.items():
+        if k not in valid_args:
+            raise ValueError(f"Invalid keyword argument: {k}")
+
+    # read CZI using aicspylibczi: : https://pypi.org/project/aicspylibczi/
+    czi = CziFile(filepath)
+
+    # show the values
+    logger.info(f"Reading File: {filepath} Scene: {scene} - Tile {tile}")
+    logger.info(f"Dimensions Shape: {czi.get_dims_shape()}")
+
+    # in case the CZI is a mosaic file and has the M-dimension
+    if czi.is_mosaic():
+        tile_stack, size = czi.read_image(S=scene, M=tile, **kwargs)
+
+        # remove the M-Dimension from the array and size
+        tile_stack = np.squeeze(tile_stack, axis=czi.dims.find("M"))
+        size.remove(("M", 1))
+
+    # in case the CZI is not a mosaic file and has no M-dimension
+    elif not czi.is_mosaic():
+        logger.warning("CZI file is not a mosaic. No M-Dimension found.")
+        tile_stack, size = czi.read_image(S=scene, **kwargs)
+
+    return tile_stack, size

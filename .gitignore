@@ -175,3 +175,9 @@ data/CellDivision_T=10_Z=15_CH=2_DCV_small.czi
 /data/est_ngff_plate.zarr
 /data/est_ngff_plate.zarr
 **/czitools/*.old
+data/nuc_small_new.czi
+data/meta_nuc_small.png
+data/nuc_small.czi
+data/nuc_small.czi
+data/nuc_small_green.czi
+data/nuc_small.czi

@@ -23,10 +23,10 @@ from tqdm.contrib.itertools import product
 from typing import Dict, Tuple, Any, Union
 import validators
 from aicspylibczi import CziFile
-from czitools.utils import logger
+from czitools.utils import logging_tools
+import requests
 
-
-logger = logger.get_logger()
+logger = logging_tools.set_logging()
 
 
 def openfile(
@@ -682,11 +682,8 @@ def download_zip(source_link: str) -> str:
     import io
     import zipfile
 
-    compressed_data = os.path.join(os.getcwd(), os.path.basename(source_link))
-
-    if not os.path.isfile(compressed_data):
-        response = requests.get(GITHUB_IMAGES_PATH, stream=True)
-        compressed_data = io.BytesIO(response.content)
+    response = requests.get(source_link, stream=True)
+    compressed_data = io.BytesIO(response.content)
 
     with zipfile.ZipFile(compressed_data, "r") as zip_accessor:
         zip_accessor.extractall("./")

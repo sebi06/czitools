@@ -2,11 +2,11 @@ from typing import Optional, Union, List
 from dataclasses import dataclass, field
 from box import Box
 import os
-from czitools.utils.logger import get_logger
+from czitools.utils import logging_tools
 from pathlib import Path
 import validators
 
-logger = get_logger()
+logger = logging_tools.set_logging()
 
 
 @dataclass

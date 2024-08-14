@@ -21,9 +21,9 @@ from ome_zarr.io import parse_url
 from typing import Union
 import shutil
 import numpy as np
-from czitools.utils import logger
+from czitools.utils import logging_tools
 
-logger = logger.get_logger()
+logger = logging_tools.set_logging()
 
 
 def write_omezarr(
