@@ -34,13 +34,11 @@ array6d, mdata = read_tools.read_6darray(
     use_dask=False,
     chunk_zyx=False,
     zoom=1.0,
-    # planes={"S": (0, 0), "T": (1, 2), "C": (0, 0), "Z": (0, 2)},
+    planes={"S": (0, 0), "T": (1, 2), "C": (0, 0), "Z": (0, 2)},
     # planes={"Z": (2, 2)},
-    planes={"S": (4, 6)},
+    # planes={"S": (4, 6)},
     # zoom=1.0,
 )
-
-# this is a rather experimental function
 
 # return an array with dimension order STCZYX(A)
 # array6d, mdata = read_tools.read_6darray_lazy(filepath, chunk_zyx=True)
