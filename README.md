@@ -4,6 +4,7 @@
 [![PyPI - Downloads](https://img.shields.io/pypi/dm/czitools)](https://pypistats.org/packages/czitools)
 [![License](https://img.shields.io/pypi/l/czitools.svg?color=green)](https://github.com/sebi06/czitools/raw/master/LICENSE)
 [![codecov](https://codecov.io/gh/sebi06f/czitools/branch/master/graph/badge.svg)](https://codecov.io/sebi06/czitools)
+![Codecov](https://img.shields.io/codecov/c/github/sebi06/czitools)
 [![Python Version](https://img.shields.io/pypi/pyversions/czitools.svg?color=green)](https://python.org)
 [![Development Status](https://img.shields.io/pypi/status/czitools.svg)](https://en.wikipedia.org/wiki/Software_release_life_cycle#Alpha)
 
