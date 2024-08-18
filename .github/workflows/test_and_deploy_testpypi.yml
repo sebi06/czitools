@@ -35,7 +35,7 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install setuptools tox tox-gh-actions pytest pytest-cov
+        pip install setuptools tox tox-gh-actions pytest pytest-cov pandas
     - name: Run tests and collect coverage
       run: pytest --cov=api.calculator --cov-report=xml
     - name: Upload coverage reports to Codecov with GitHub Action
@@ -51,7 +51,7 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install setuptools tox tox-gh-actions pytest pytest-cov
+        pip install setuptools tox tox-gh-actions pytest pytest-cov pandas
 
     # this runs the platform-specific tests declared in tox.ini
     - name: Test with tox
