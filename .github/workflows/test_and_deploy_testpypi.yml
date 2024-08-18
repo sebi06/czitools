@@ -32,12 +32,6 @@ jobs:
       uses: actions/setup-python@v5
       with:
         python-version: ${{ matrix.python-version }}
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install setuptools tox tox-gh-actions pytest pytest-cov pandas
-    - name: Run tests and collect coverage
-      run: pytest --cov --cov-report=xml
     - name: Upload coverage reports to Codecov with GitHub Action
       uses: codecov/codecov-action@v4.2.0
       env:
@@ -51,7 +45,7 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install setuptools tox tox-gh-actions pytest pytest-cov pandas
+        pip install setuptools tox tox-gh-actions pytest pytest-qt pytest-cov pandas
 
     # this runs the platform-specific tests declared in tox.ini
     - name: Test with tox
