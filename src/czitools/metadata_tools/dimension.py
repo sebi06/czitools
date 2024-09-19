@@ -53,7 +53,7 @@ class CziDimensions:
 
     def __post_init__(self):
 
-        self.set_dimensions()
+        self.set_dimensions_new()
         logger.info("Reading Dimensions from CZI image data.")
 
         # set dimensions in XY with respect to possible down scaling
@@ -86,6 +86,70 @@ class CziDimensions:
             "SizeV",
             "SizeB",
         ]
+
+        cls_fields: Tuple[Field, ...] = fields(self.__class__)
+        for fd in cls_fields:
+            if fd.name in dims:
+                if dimensions[fd.name] is not None:
+                    setattr(self, fd.name, int(dimensions[fd.name]))
+
+        if czi_box.has_scenes:
+            try:
+                with pyczi.open_czi(czi_box.filepath, czi_box.czi_open_arg) as czidoc:
+                    self.SizeX_scene = czidoc.scenes_bounding_rectangle[0].w
+                    self.SizeY_scene = czidoc.scenes_bounding_rectangle[0].h
+            except KeyError as e:
+                self.SizeX_scene = None
+                self.SizeY_scene = None
+                logger.warning(
+                    "Scenes Dimension detected but no bounding rectangle information found."
+                )
+
+    def set_dimensions_new(self):
+        """Populate the image dimensions with the detected values from the metadata_tools"""
+
+        # get the Box and extract the relevant dimension metadata_tools
+        if isinstance(self.czisource, Box):
+            czi_box = self.czisource
+        else:
+            czi_box = get_czimd_box(self.czisource)
+
+        dimensions = czi_box.ImageDocument.Metadata.Information.Image
+
+        # define the image dimensions to check for
+        dims = [
+            "SizeX",
+            "SizeY",
+            "SizeS",
+            "SizeT",
+            "SizeZ",
+            "SizeC",
+            "SizeM",
+            "SizeR",
+            "SizeH",
+            "SizeI",
+            "SizeV",
+            "SizeB",
+        ]
+
+        dims_dict = {
+            "SizeX": "X",
+            "SizeY": "Y",
+            "SizeS": "S",
+            "SizeT": "T",
+            "SizeZ": "Z",
+            "SizeC": "C",
+            "SizeM": "M",
+            "SizeR": "R",
+            "SizeH": "H",
+            "SizeI": "I",
+            "SizeV": "V",
+            "SizeB": "B",
+        }
+
+        with pyczi.open_czi(czi_box.filepath, czi_box.czi_open_arg) as czidoc:
+
+            total_bounding_box = czidoc.total_bounding_box
 
         cls_fields: Tuple[Field, ...] = fields(self.__class__)
         for fd in cls_fields:
