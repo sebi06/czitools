@@ -34,7 +34,6 @@ class CziDimensions:
     SizeI: Optional[int] = field(init=False, default=None)
     SizeV: Optional[int] = field(init=False, default=None)
     SizeB: Optional[int] = field(init=False, default=None)
-    verbose: bool = False
     """Dataclass containing the image dimensions.
 
     Information official CZI Dimension Characters:
@@ -53,10 +52,9 @@ class CziDimensions:
     """
 
     def __post_init__(self):
-        if self.verbose:
-            logger.info("Reading Dimensions from CZI image data.")
 
         self.set_dimensions()
+        logger.info("Reading Dimensions from CZI image data.")
 
         # set dimensions in XY with respect to possible down scaling
         self.SizeX_sf = self.SizeX
