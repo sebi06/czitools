@@ -53,7 +53,7 @@ class CziDimensions:
 
     def __post_init__(self):
 
-        self.set_dimensions_new()
+        self.set_dimensions()
         logger.info("Reading Dimensions from CZI image data.")
 
         # set dimensions in XY with respect to possible down scaling
