@@ -1,4 +1,4 @@
-from typing import Tuple, Optional, Union
+from typing import Tuple, Optional, Union, List
 from dataclasses import dataclass, field, fields, Field
 from box import Box
 import os
@@ -7,6 +7,21 @@ from czitools.utils.box import get_czimd_box
 from pylibCZIrw import czi as pyczi
 
 logger = logging_tools.set_logging()
+
+def string_to_float_list(string: str) -> List[float]:
+  """Converts a space-separated string of numbers into a list of floats.
+
+  Args:
+    string: The input string.
+
+  Returns:
+    A list of floats.
+  """
+
+  numbers = string.split()
+  float_numbers = [float(num) for num in numbers]
+
+  return float_numbers
 
 
 @dataclass
@@ -34,6 +49,8 @@ class CziDimensions:
     SizeI: Optional[int] = field(init=False, default=None)
     SizeV: Optional[int] = field(init=False, default=None)
     SizeB: Optional[int] = field(init=False, default=None)
+    posZ: Optional[List[float]] = field(init=False, default=None)
+    posT: Optional[List[float]] = field(init=False, default=None)
     """Dataclass containing the image dimensions.
 
     Information official CZI Dimension Characters:
@@ -49,12 +66,16 @@ class CziDimensions:
     "M":"Mosaic"       : index of tile for compositing a scene
     "H":"Phase"        : e.g. Airy detector fibers
     "V":"View"         : e.g. for SPIM
+
+    In addition in contains the Z-Positions [microns] and T-Positions [s] if they exist. Otherwise they
+    are set to None
+
     """
 
     def __post_init__(self):
 
-        self.set_dimensions()
         logger.info("Reading Dimensions from CZI image data.")
+        self.set_dimensions()
 
         # set dimensions in XY with respect to possible down scaling
         self.SizeX_sf = self.SizeX
@@ -104,6 +125,33 @@ class CziDimensions:
                 logger.warning(
                     "Scenes Dimension detected but no bounding rectangle information found."
                 )
+
+        if czi_box.has_T:
+            # check if there is a list with timepoints (is not in very CZI)
+            if dimensions.Dimensions.T.Positions is not None:
+                if dimensions.Dimensions.T.Positions.List is not None:
+                    try:
+                        self.posT = string_to_float_list(dimensions.Dimensions.T.Positions.List.Offsets)
+                    except Exception as e:
+                        logger.error(f"{e}")
+                else:
+                    logger.warning("No posT list found under 'dimensions.Dimensions.T.Positions.List'")
+            else:
+                logger.warning("No posT list found under 'dimensions.Dimensions.T.Positions'")
+
+        if czi_box.has_Z:
+            # check if there is a list with z-positions (is not in very CZI)
+            if dimensions.Dimensions.Z.Positions is not None:
+                if dimensions.Dimensions.Z.Positions.List is not None:
+                    try:
+                        self.posZ = string_to_float_list(dimensions.Dimensions.Z.Positions.List.Offsets)
+                    except Exception as e:
+                        logger.error(f"{e}")
+                else:
+                    logger.warning("No posZ list found under 'dimensions.Dimensions.Z.Positions.List'")
+            else:
+                logger.warning("No posZ list found under 'dimensions.Dimensions.Z.Positions'")
+
 
     def set_dimensions_new(self):
         """Populate the image dimensions with the detected values from the metadata_tools"""
