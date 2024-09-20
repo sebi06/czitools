@@ -60,6 +60,8 @@ def get_czimd_box(
     czimd_box.has_doc = False
     czimd_box.has_image = False
     czimd_box.has_scenes = False
+    czimd_box.has_T = False
+    czimd_box.has_Z = False
     czimd_box.has_dims = False
     czimd_box.has_layers = False
 
@@ -92,6 +94,18 @@ def get_czimd_box(
                     in czimd_box.ImageDocument.Metadata.Information.Image.Dimensions
                 ):
                     czimd_box.has_channels = True
+
+                if (
+                    "T"
+                    in czimd_box.ImageDocument.Metadata.Information.Image.Dimensions
+                ):
+                    czimd_box.has_T = True
+
+                if (
+                    "Z"
+                    in czimd_box.ImageDocument.Metadata.Information.Image.Dimensions
+                ):
+                    czimd_box.has_Z = True
 
                 if "S" in czimd_box.ImageDocument.Metadata.Information.Image.Dimensions:
                     czimd_box.has_scenes = True
