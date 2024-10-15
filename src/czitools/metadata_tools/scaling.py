@@ -12,6 +12,23 @@ logger = logging_tools.set_logging()
 
 @dataclass
 class CziScaling:
+    """
+    A class to handle scaling information from CZI image data.
+    Attributes:
+        czisource (Union[str, os.PathLike[str], Box]): The source of the CZI image data.
+        X (Optional[float]): The scaling value for the X dimension in microns.
+        Y (Optional[float]): The scaling value for the Y dimension in microns.
+        Z (Optional[float]): The scaling value for the Z dimension in microns.
+        X_sf (Optional[float]): The downscaled scaling value for the X dimension in microns.
+        Y_sf (Optional[float]): The downscaled scaling value for the Y dimension in microns.
+        ratio (Optional[Dict[str, float]]): The scaling ratios for XY, ZX, and ZX_sf.
+        unit (Optional[str]): The unit of measurement for scaling, default is "micron".
+        zoom (Annotated[float, ValueRange(0.01, 1.0)]): The zoom factor, default is 1.0.
+    Methods:
+        __post_init__(): Initializes the scaling values from the CZI image data.
+        safe_get_scale(dist: BoxList, idx: int) -> Optional[float]: Safely retrieves the scaling value for a given dimension.
+    """
+
     czisource: Union[str, os.PathLike[str], Box]
     X: Optional[float] = field(init=False, default=None)
     Y: Optional[float] = field(init=False, default=None)
