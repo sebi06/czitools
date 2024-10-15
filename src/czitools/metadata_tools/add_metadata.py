@@ -10,6 +10,19 @@ logger = logging_tools.set_logging()
 
 @dataclass
 class CziAddMetaData:
+    """
+    A class to add metadata from CZI image data.
+    Attributes:
+        czisource (Union[str, os.PathLike[str], Box]): The source of the CZI image data.
+        experiment (Optional[Box]): The experiment metadata. Initialized to None.
+        hardwaresetting (Optional[Box]): The hardware setting metadata. Initialized to None.
+        customattributes (Optional[Box]): The custom attributes metadata. Initialized to None.
+        displaysetting (Optional[Box]): The display setting metadata. Initialized to None.
+        layers (Optional[Box]): The layers metadata. Initialized to None.
+    Methods:
+        __post_init__(): Reads additional metadata from the CZI image data and initializes the attributes.
+    """
+
     czisource: Union[str, os.PathLike[str], Box]
     experiment: Optional[Box] = field(init=False, default=None)
     hardwaresetting: Optional[Box] = field(init=False, default=None)

@@ -9,7 +9,7 @@
 #
 #################################################################
 
-#from __future__ import annotations
+# from __future__ import annotations
 from typing import List, Dict, Tuple, Optional, Any, Union
 import os
 import xml.etree.ElementTree as ET
@@ -39,6 +39,55 @@ logger = logging_tools.set_logging()
 
 @dataclass
 class CziMetadata:
+    """
+    CziMetadata class for handling metadata of CZI image files.
+    Attributes:
+        filepath (Union[str, os.PathLike[str]]): Path to the CZI image file.
+        filename (Optional[str]): Name of the CZI image file.
+        dirname (Optional[str]): Directory of the CZI image file.
+        is_url (Optional[bool]): Indicates if the filepath is a URL.
+        software_name (Optional[str]): Name of the software used for acquisition.
+        software_version (Optional[str]): Version of the software used for acquisition.
+        acquisition_date (Optional[str]): Date and time of image acquisition.
+        czi_box (Optional[Box]): Metadata box of the CZI file.
+        pyczi_dims (Optional[Dict[str, tuple]]): Dimensions of the CZI file.
+        aics_dimstring (Optional[str]): Dimension string from aicspylibczi.
+        aics_dims_shape (Optional[List[Dict[str, tuple]]]): Dimension shapes from aicspylibczi.
+        aics_size (Optional[Tuple[int]]): Size of the CZI file from aicspylibczi.
+        aics_ismosaic (Optional[bool]): Indicates if the CZI file is a mosaic.
+        aics_dim_order (Optional[Dict[str, int]]): Dimension order from aicspylibczi.
+        aics_dim_index (Optional[List[int]]): Dimension indices from aicspylibczi.
+        aics_dim_valid (Optional[int]): Number of valid dimensions from aicspylibczi.
+        aics_posC (Optional[int]): Position of the 'C' dimension from aicspylibczi.
+        pixeltypes (Optional[Dict[int, str]]): Pixel types for all channels.
+        isRGB (Optional[bool]): Indicates if the image is RGB.
+        has_scenes (Optional[bool]): Indicates if the CZI file has scenes.
+        has_label (Optional[bool]): Indicates if the CZI file has a label image.
+        has_preview (Optional[bool]): Indicates if the CZI file has a preview image.
+        attachments (Optional[CziAttachments]): Attachments in the CZI file.
+        npdtype (Optional[List[Any]]): Numpy data types for pixel values.
+        maxvalue (Optional[List[int]]): Maximum values for pixel types.
+        image (Optional[CziDimensions]): Dimensions of the CZI image.
+        bbox (Optional[CziBoundingBox]): Bounding box of the CZI image.
+        channelinfo (Optional[CziChannelInfo]): Information about channels.
+        scale (Optional[CziScaling]): Scaling information.
+        objective (Optional[CziObjectives]): Objective information.
+        detector (Optional[CziDetector]): Detector information.
+        microscope (Optional[CziMicroscope]): Microscope information.
+        sample (Optional[CziSampleInfo]): Sample information.
+        add_metadata (Optional[CziAddMetaData]): Additional metadata.
+        array6d_size (Optional[Tuple[int]]): Size of the 6D array.
+        scene_size_consistent (Optional[Tuple[int]]): Consistency of scene sizes.
+    Methods:
+        __post_init__(): Initializes the CziMetadata object after dataclass initialization.
+        get_dtype_fromstring(pixeltype: str) -> Tuple[Optional[np.dtype], Optional[int]]:
+            Gets the numpy data type and maximum value from a pixel type string.
+        get_dimorder(dim_string: str) -> Tuple[Dict, List, int]:
+            Gets the order of dimensions from a dimension string.
+        check_scenes_shape(czidoc: pyczi.CziReader, size_s: Union[int, None]) -> bool:
+            Checks if all scenes have the same shape.
+        check_if_rgb(pixeltypes: Dict) -> Tuple[bool, bool]:
+            Checks if the image is RGB and if pixel types are consistent.
     filepath: Union[str, os.PathLike[str]]
     filename: Optional[str] = field(init=False, default=None)
     dirname: Optional[str] = field(init=False, default=None)
@@ -83,8 +132,6 @@ class CziMetadata:
     scene_size_consistent: Optional[Tuple[int]] = field(
         init=False, default_factory=lambda: ()
     )
-    """
-    Create a CziMetadata object from the filename of the CZI image file.
     """
 
     def __post_init__(self):
@@ -217,6 +264,16 @@ class CziMetadata:
     def get_dtype_fromstring(
         pixeltype: str,
     ) -> Tuple[Optional[np.dtype], Optional[int]]:
+        """
+        Determine the numpy data type and maximum value based on the given pixel type string.
+        Parameters:
+        pixeltype (str): The pixel type as a string. Possible values include "gray16", "Gray16",
+                         "gray8", "Gray8", "bgr48", "Bgr48", "bgr24", "Bgr24", "bgr96float", "Bgr96Float".
+        Returns:
+        Tuple[Optional[np.dtype], Optional[int]]: A tuple containing the numpy data type and the maximum value
+                                                  for the given pixel type. If the pixel type is not recognized,
+                                                  both elements of the tuple will be None.
+        """
         dtype = None
         maxvalue = None
 
@@ -240,16 +297,15 @@ class CziMetadata:
 
     @staticmethod
     def get_dimorder(dim_string: str) -> Tuple[Dict, List, int]:
-        """Get the order of dimensions from dimension string
-
-        :param dim_string: string containing the dimensions
-        :type dim_string: str
-        :return: dims_dict - dictionary with the dimensions and its positions
-        :rtype: dict
-        :return: dimindex_list - list with indices of dimensions
-        :rtype: list
-        :return: numvalid_dims - number of valid dimensions
-        :rtype: integer
+        """
+        Extracts the order and indices of dimensions from a given dimension string.
+        Args:
+            dim_string (str): A string representing the dimensions.
+        Returns:
+            Tuple[Dict, List, int]: A tuple containing:
+                - A dictionary with dimensions as keys and their indices in the string as values.
+                - A list of indices corresponding to the dimensions in the order they appear in the predefined list.
+                - An integer representing the number of valid dimensions found in the string.
         """
 
         dimindex_list = []
@@ -301,6 +357,15 @@ class CziMetadata:
 
     @staticmethod
     def check_if_rgb(pixeltypes: Dict) -> Tuple[bool, bool]:
+        """
+        Check if the given pixel types dictionary indicates RGB format and if all elements are consistent.
+        Args:
+            pixeltypes (Dict): A dictionary where keys are pixel identifiers and values are pixel type strings.
+        Returns:
+            Tuple[bool, bool]: A tuple containing:
+                - is_rgb (bool): True if any of the pixel types contain "Bgr", otherwise False.
+                - is_consistant (bool): True if all pixel types in the dictionary are the same, otherwise False.
+        """
         is_rgb = False
 
         for k, v in pixeltypes.items():
@@ -323,8 +388,14 @@ class CziMetadata:
 
 def get_metadata_as_object(filepath: Union[str, os.PathLike[str]]) -> DictObj:
     """
-    Get the complete CZI metadata_tools as an object created based on the
-    dictionary created from the XML data.
+    Get the complete CZI metadata as an object.
+    This function reads the metadata from a CZI file and converts it into a
+    dictionary, which is then used to create an object of type DictObj.
+    Args:
+        filepath (Union[str, os.PathLike[str]]): The path to the CZI file.
+            This can be a string or an os.PathLike object.
+    Returns:
+        DictObj: An object containing the metadata extracted from the CZI file.
     """
 
     if isinstance(filepath, Path):
@@ -336,9 +407,6 @@ def get_metadata_as_object(filepath: Union[str, os.PathLike[str]]) -> DictObj:
         md_dict = czidoc.metadata
 
     return DictObj(md_dict)
-
-
-
 
 
 def obj2dict(obj: Any, sort: bool = True) -> Dict[str, Any]:

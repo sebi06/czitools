@@ -206,7 +206,8 @@ def addzeros(number: int) -> str:
 
 
 def get_fname_woext(filepath: Union[str, os.PathLike[str]]) -> str:
-    """Get the complete path of a file without the extension
+    """
+    Extracts the filename without its extension from a given file path.
     It also works for extensions like myfile.abc.xyz
     The output will be: myfile
 
@@ -215,6 +216,13 @@ def get_fname_woext(filepath: Union[str, os.PathLike[str]]) -> str:
     :return: complete filepath without extension
     :rtype: str
     """
+
+    Args:
+        filepath (Union[str, os.PathLike[str]]): The path to the file.
+    Returns:
+        str: The filename without its extension.
+    """
+
     # create empty string
     real_extension = ""
 

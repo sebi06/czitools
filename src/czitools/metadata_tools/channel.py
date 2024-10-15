@@ -10,6 +10,22 @@ logger = logging_tools.set_logging()
 
 @dataclass
 class CziChannelInfo:
+    """
+    A class to handle channel information from CZI image data.
+    Attributes:
+        czisource (Union[str, os.PathLike[str], Box]): The source of the CZI image data.
+        names (List[str]): List of channel names.
+        dyes (List[str]): List of dye names.
+        colors (List[str]): List of channel colors.
+        clims (List[List[float]]): List of channel intensity limits.
+        gamma (List[float]): List of gamma values for each channel.
+    Methods:
+        __post_init__():
+            Initializes the channel information from the CZI image data.
+        get_channel_info(display: Box):
+            Extracts and appends channel display information.
+    """
+
     czisource: Union[str, os.PathLike[str], Box]
     names: List[str] = field(init=False, default_factory=lambda: [])
     dyes: List[str] = field(init=False, default_factory=lambda: [])
@@ -95,4 +111,3 @@ class CziChannelInfo:
             self.colors.append("#80808000")
             self.clims.append([0.0, 0.5])
             self.gamma.append(0.85)
-

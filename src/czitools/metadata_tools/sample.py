@@ -14,6 +14,40 @@ logger = logging_tools.set_logging()
 
 @dataclass
 class CziSampleInfo:
+    """
+    A class to represent and extract sample information from CZI image data.
+    Attributes:
+    -----------
+    czisource : Union[str, os.PathLike[str], Box]
+        The source of the CZI image data.
+    well_array_names : List[str]
+        Names of the well arrays.
+    well_indices : List[int]
+        Indices of the wells.
+    well_position_names : List[str]
+        Position names of the wells.
+    well_colID : List[int]
+        Column IDs of the wells.
+    well_rowID : List[int]
+        Row IDs of the wells.
+    well_counter : Dict
+        Counter for the well instances.
+    scene_stageX : List[float]
+        X coordinates of the scene stages.
+    scene_stageY : List[float]
+        Y coordinates of the scene stages.
+    image_stageX : float
+        X coordinate of the image stage.
+    image_stageY : float
+        Y coordinate of the image stage.
+    Methods:
+    --------
+    __post_init__():
+        Initializes the CziSampleInfo object and reads sample carrier information from CZI image data.
+    get_well_info(well: Box):
+        Extracts well information from the given well Box object.
+    """
+
     czisource: Union[str, os.PathLike[str], Box]
     well_array_names: List[str] = field(init=False, default_factory=lambda: [])
     well_indices: List[int] = field(init=False, default_factory=lambda: [])
@@ -70,6 +104,17 @@ class CziSampleInfo:
                 logger.error(e)
 
     def get_well_info(self, well: Box):
+        """
+        Extracts and processes well information from a given Box object.
+        Parameters:
+        well (Box): A Box object containing well information.
+        The method performs the following actions:
+        - Appends the well's ArrayName to self.well_array_names and updates self.well_counter.
+        - Appends the well's Index to self.well_indices. If Index is None, logs a message and appends 1.
+        - Appends the well's Name to self.well_position_names. If Name is None, logs a message and appends "P1".
+        - Appends the well's Shape ColumnIndex and RowIndex to self.well_colID and self.well_rowID respectively. If Shape is None, logs a message and appends 0 to both.
+        - Appends the well's CenterPosition coordinates to self.scene_stageX and self.scene_stageY. If CenterPosition is None, logs a message and appends 0.0 to both.
+        """
 
         # check the ArrayName
         if well.ArrayName is not None:
