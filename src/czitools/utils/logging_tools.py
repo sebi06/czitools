@@ -1,5 +1,5 @@
-#import logging
-#import datetime
+# import logging
+# import datetime
 from loguru import logger as loguru_logger
 import sys
 
@@ -98,6 +98,15 @@ import sys
 
 
 def set_logging():
+    """
+    Configures the loguru logger to output logs to the standard output (stdout) with colorized formatting.
+    The log format includes:
+    - Time in green
+    - Log level
+    - Log message
+    Returns:
+        loguru.Logger: Configured loguru logger instance.
+    """
 
     loguru_logger.remove()
     loguru_logger.add(

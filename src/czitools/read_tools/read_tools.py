@@ -581,8 +581,36 @@ def read_attachments(
 def read_tiles(
     filepath: Union[str, os.PathLike[str]], scene: int, tile: int, **kwargs
 ) -> Tuple[np.ndarray, List]:
-    # TODO: Write docstring
-    # TODO: Write tests
+    """
+    Reads a specific tile from a CZI file.
+    Parameters:
+    -----------
+    filepath : Union[str, os.PathLike[str]]
+        Path to the CZI file.
+    scene : int
+        The scene index to read from the CZI file.
+    tile : int
+        The tile index to read from the CZI file.
+    **kwargs : dict
+        Additional keyword arguments to specify substacks. Valid arguments are:
+        - 'T': Time dimension
+        - 'Z': Z-dimension (depth)
+        - 'C': Channel dimension
+    Returns:
+    --------
+    Tuple[np.ndarray, List]
+        A tuple containing:
+        - tile_stack (np.ndarray): The image data of the specified tile.
+        - size (List): A list of tuples representing the dimensions and their sizes.
+    Raises:
+    -------
+    ValueError
+        If an invalid keyword argument is provided in **kwargs.
+    Notes:
+    ------
+    This function uses the `aicspylibczi` library to read CZI files. If the CZI file
+    is a mosaic, the M-dimension is handled accordingly.
+    """
 
     if isinstance(filepath, Path):
         # convert to string

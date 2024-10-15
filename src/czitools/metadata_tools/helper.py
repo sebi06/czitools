@@ -1,6 +1,7 @@
 from dataclasses import dataclass, field
 from enum import Enum
 
+
 @dataclass
 class ValueRange:
     lo: float
@@ -12,9 +13,16 @@ class AttachmentType(Enum):
     Label = 2
     Prescan = 3
 
+
 class DictObj:
     """
-    Create an object based on a dictionary. See https://joelmccune.com/python-dictionary-as-object/
+    This class recursively converts a dictionary into an object, allowing attribute-style access to dictionary keys.
+    See https://joelmccune.com/python-dictionary-as-object/
+    Attributes:
+        in_dict (dict): The dictionary to be converted into an object.
+    Methods:
+        __init__(in_dict: dict) -> None:
+            Initializes the DictObj instance by converting the input dictionary into an object.
     """
 
     # TODO: is this class still needed because of using python-box
