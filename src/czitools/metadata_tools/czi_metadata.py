@@ -88,6 +88,8 @@ class CziMetadata:
             Checks if all scenes have the same shape.
         check_if_rgb(pixeltypes: Dict) -> Tuple[bool, bool]:
             Checks if the image is RGB and if pixel types are consistent.
+    """
+
     filepath: Union[str, os.PathLike[str]]
     filename: Optional[str] = field(init=False, default=None)
     dirname: Optional[str] = field(init=False, default=None)
@@ -133,7 +135,6 @@ class CziMetadata:
         init=False, default_factory=lambda: ()
     )
     verbose: bool = False
-    """
 
     def __post_init__(self):
         if validators.url(str(self.filepath)):
