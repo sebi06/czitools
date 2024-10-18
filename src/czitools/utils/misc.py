@@ -211,12 +211,6 @@ def get_fname_woext(filepath: Union[str, os.PathLike[str]]) -> str:
     It also works for extensions like myfile.abc.xyz
     The output will be: myfile
 
-    :param filepath: complete filepath
-    :type filepath: str
-    :return: complete filepath without extension
-    :rtype: str
-    """
-
     Args:
         filepath (Union[str, os.PathLike[str]]): The path to the file.
     Returns:
