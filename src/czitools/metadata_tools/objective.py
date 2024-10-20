@@ -19,9 +19,11 @@ class CziObjectives:
     immersion: List[Optional[str]] = field(init=False, default_factory=lambda: [])
     tubelensmag: List[Optional[float]] = field(init=False, default_factory=lambda: [])
     totalmag: List[Optional[float]] = field(init=False, default_factory=lambda: [])
-
+    verbose: bool = False
+    
     def __post_init__(self):
-        logger.info("Reading Objective Information from CZI image data.")
+        if self.verbose:
+            logger.info("Reading Objective Information from CZI image data.")  
 
         if isinstance(self.czisource, Box):
             czi_box = self.czisource
