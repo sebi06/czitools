@@ -16,7 +16,7 @@ class CziChannelInfo:
     colors: List[str] = field(init=False, default_factory=lambda: [])
     clims: List[List[float]] = field(init=False, default_factory=lambda: [])
     gamma: List[float] = field(init=False, default_factory=lambda: [])
-    verbose: bool = field(init=False, default=False)
+    verbose: bool = False
     
     def __post_init__(self):
         if self.verbose:
