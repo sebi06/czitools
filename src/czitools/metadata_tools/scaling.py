@@ -23,9 +23,11 @@ class CziScaling:
     # scalefactorXY: Optional[float] = field(init=False, default=None)
     unit: Optional[str] = field(init=True, default="micron")
     zoom: Annotated[float, ValueRange(0.01, 1.0)] = field(init=True, default=1.0)
-
+    verbose: bool = False
+    
     def __post_init__(self):
-        logger.info("Reading Scaling from CZI image data.")
+        if self.verbose:
+            logger.info("Reading Scaling from CZI image data.")   
 
         if isinstance(self.czisource, Box):
             czi_box = self.czisource
