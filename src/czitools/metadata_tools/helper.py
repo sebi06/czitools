@@ -37,3 +37,6 @@ class DictObj:
                 )
             else:
                 setattr(self, key, DictObj(val) if isinstance(val, dict) else val)
+
+
+

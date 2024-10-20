@@ -20,9 +20,10 @@ import time
 from pathlib import Path
 import dateutil.parser as dt
 from tqdm.contrib.itertools import product
-from typing import Dict, Tuple, Any, Union
+from typing import Dict, Tuple, Any, Union, Annotated
 import validators
 from aicspylibczi import CziFile
+from czitools.metadata_tools.helper import ValueRange
 from czitools.utils import logging_tools
 import requests
 
@@ -691,3 +692,20 @@ def download_zip(source_link: str) -> str:
         zip_accessor.extractall("./")
 
     return compressed_data[:-4]
+
+
+def check_zoom(zoom: Annotated[float, ValueRange(0.01, 1.0)] = 1.0) -> float:
+
+    # check zoom factor
+    if zoom > 1.0:
+        logger.warning(
+            f"Zoom factor f{zoom} is not in valid range [0.01 - 1.0]. Using 1.0 instead."
+        )
+        zoom = 1.0
+    if zoom < 0.01:
+        logger.warning(
+            f"Zoom factor f{zoom} is not in valid range [0.01 - 1.0]. Using 0.01 instead."
+        )
+        zoom = 0.01
+
+    return zoom
