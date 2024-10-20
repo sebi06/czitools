@@ -19,11 +19,13 @@ class CziBoundingBox:
     total_bounding_box: Optional[Dict[str, tuple]] = field(
         init=False, default_factory=lambda: []
     )
-
+    verbose: bool = False
+    
     # TODO Is this really needed as a separate class or better integrate directly into CziMetadata class?
 
     def __post_init__(self):
-        logger.info("Reading BoundingBoxes from CZI image data.")
+        if self.verbose:
+            logger.info("Reading BoundingBoxes from CZI image data.")
 
         pyczi_readertype = pyczi.ReaderFileInputTypes.Standard
 
