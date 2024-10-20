@@ -16,9 +16,11 @@ class CziChannelInfo:
     colors: List[str] = field(init=False, default_factory=lambda: [])
     clims: List[List[float]] = field(init=False, default_factory=lambda: [])
     gamma: List[float] = field(init=False, default_factory=lambda: [])
-
+    verbose: bool = field(init=False, default=False)
+    
     def __post_init__(self):
-        logger.info("Reading Channel Information from CZI image data.")
+        if self.verbose:
+            logger.info("Reading Channel Information from CZI image data.")
 
         if isinstance(self.czisource, Box):
             czi_box = self.czisource
