@@ -25,9 +25,11 @@ class CziSampleInfo:
     scene_stageY: List[float] = field(init=False, default_factory=lambda: [])
     image_stageX: float = field(init=False, default=None)
     image_stageY: float = field(init=False, default=None)
+    verbose: bool = False
 
     def __post_init__(self):
-        logger.info("Reading SampleCarrier Information from CZI image data.")
+        if self.verbose:
+            logger.info("Reading SampleCarrier Information from CZI image data.")
 
         if isinstance(self.czisource, Box):
             czi_box = self.czisource

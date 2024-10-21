@@ -27,6 +27,7 @@ def test_scaling1(czifile: str, results: Dict) -> None:
     out = czi_scaling.__dict__
 
     del out['czisource']
+    del out["verbose"]
 
     assert (out == results)
 

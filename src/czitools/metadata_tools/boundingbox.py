@@ -43,19 +43,16 @@ class CziBoundingBox:
                 self.scenes_bounding_rect = czidoc.scenes_bounding_rectangle
             except Exception as e:
                 self.scenes_bounding_rect = None
-                # print("Scenes Bounding rectangle not found.")
                 logger.info("Scenes Bounding rectangle not found.")
 
             try:
                 self.total_rect = czidoc.total_bounding_rectangle
             except Exception as e:
                 self.total_rect = None
-                # print("Total Bounding rectangle not found.")
                 logger.info("Total Bounding rectangle not found.")
 
             try:
                 self.total_bounding_box = czidoc.total_bounding_box
             except Exception as e:
                 self.total_bounding_box = None
-                # print("Total Bounding Box not found.")
                 logger.info("Total Bounding Box not found.")

@@ -126,5 +126,6 @@ def test_objectives(czifile: str, result: Dict) -> None:
 
     out = obj.__dict__
     del out['czisource']
+    del out["verbose"]
 
     assert (out == result)
