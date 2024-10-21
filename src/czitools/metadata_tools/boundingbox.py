@@ -11,6 +11,24 @@ logger = logging_tools.set_logging()
 
 @dataclass
 class CziBoundingBox:
+    """
+    A class to represent and handle bounding boxes from CZI image data.
+    Attributes:
+    -----------
+    czisource : Union[str, os.PathLike[str], Box]
+        The source of the CZI file, which can be a string, a path-like object, or a Box object.
+    scenes_bounding_rect : Optional[Dict[int, pyczi.Rectangle]]
+        A dictionary containing the bounding rectangles for each scene in the CZI file.
+    total_rect : Optional[pyczi.Rectangle]
+        The total bounding rectangle for the entire CZI file.
+    total_bounding_box : Optional[Dict[str, tuple]]
+        A dictionary containing the total bounding box coordinates.
+    Methods:
+    --------
+    __post_init__():
+        Initializes the bounding box attributes by reading from the CZI file.
+    """
+
     czisource: Union[str, os.PathLike[str], Box]
     scenes_bounding_rect: Optional[Dict[int, pyczi.Rectangle]] = field(
         init=False, default_factory=lambda: []
@@ -20,8 +38,9 @@ class CziBoundingBox:
         init=False, default_factory=lambda: []
     )
     verbose: bool = False
-    
+
     # TODO Is this really needed as a separate class or better integrate directly into CziMetadata class?
+
 
     def __post_init__(self):
         if self.verbose:
