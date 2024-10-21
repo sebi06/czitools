@@ -94,6 +94,7 @@ class CziDimensions:
     SizeB: Optional[int] = field(init=False, default=None)
     posZ: Optional[List[float]] = field(init=False, default=None)
     posT: Optional[List[float]] = field(init=False, default=None)
+    verbose: bool = False
 
     def __post_init__(self):
 
