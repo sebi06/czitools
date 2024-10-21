@@ -13,9 +13,11 @@ class CziMicroscope:
     Id: Optional[str] = field(init=False)
     Name: Optional[str] = field(init=False)
     System: Optional[str] = field(init=False)
-
+    verbose: bool = False
+    
     def __post_init__(self):
-        logger.info("Reading Microscope Information from CZI image data.")
+        if self.verbose:
+            logger.info("Reading Microscope Information from CZI image data.")
 
         if isinstance(self.czisource, Box):
             czi_box = self.czisource

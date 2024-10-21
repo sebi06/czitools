@@ -16,9 +16,11 @@ class CziAddMetaData:
     customattributes: Optional[Box] = field(init=False, default=None)
     displaysetting: Optional[Box] = field(init=False, default=None)
     layers: Optional[Box] = field(init=False, default=None)
+    verbose: bool = False
 
     def __post_init__(self):
-        logger.info("Reading additional Metedata from CZI image data.")
+        if self.verbose:
+            logger.info("Reading additional Metedata from CZI image data.")
 
         if isinstance(self.czisource, Box):
             czi_box = self.czisource
@@ -28,29 +30,29 @@ class CziAddMetaData:
         if czi_box.has_experiment:
             self.experiment = czi_box.ImageDocument.Metadata.Experiment
         else:
-            # print("No Experiment information found.")
-            logger.info("No Experiment information found.")
+            if self.verbose:
+                logger.info("No Experiment information found.")
 
         if czi_box.has_hardware:
             self.hardwaresetting = czi_box.ImageDocument.Metadata.HardwareSetting
         else:
-            # print("No HardwareSetting information found.")
-            logger.info("No HardwareSetting information found.")
+            if self.verbose:
+                logger.info("No HardwareSetting information found.")
 
         if czi_box.has_customattr:
             self.customattributes = czi_box.ImageDocument.Metadata.CustomAttributes
         else:
-            # print("No CustomAttributes information found.")
-            logger.info("No CustomAttributes information found.")
+            if self.verbose:
+                logger.info("No CustomAttributes information found.")
 
         if czi_box.has_disp:
             self.displaysetting = czi_box.ImageDocument.Metadata.DisplaySetting
         else:
-            # print("No DisplaySetting information found.")
-            logger.info("No DisplaySetting information found.")
+            if self.verbose:
+                logger.info("No DisplaySetting information found.")
 
         if czi_box.has_layers:
             self.layers = czi_box.ImageDocument.Metadata.Layers
         else:
-            # print("No Layers information found.")
-            logger.info("No Layers information found.")
+            if self.verbose:
+                logger.info("No Layers information found.")

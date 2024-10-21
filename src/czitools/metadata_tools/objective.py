@@ -19,9 +19,11 @@ class CziObjectives:
     immersion: List[Optional[str]] = field(init=False, default_factory=lambda: [])
     tubelensmag: List[Optional[float]] = field(init=False, default_factory=lambda: [])
     totalmag: List[Optional[float]] = field(init=False, default_factory=lambda: [])
-
+    verbose: bool = False
+    
     def __post_init__(self):
-        logger.info("Reading Objective Information from CZI image data.")
+        if self.verbose:
+            logger.info("Reading Objective Information from CZI image data.")  
 
         if isinstance(self.czisource, Box):
             czi_box = self.czisource
@@ -44,7 +46,8 @@ class CziObjectives:
                 objective = None
 
         elif not czi_box.has_objectives:
-            logger.info("No Objective Information found.")
+            if self.verbose:
+                logger.info("No Objective Information found.")
 
         # check if tubelens metadata_tools exist
         if czi_box.has_tubelenses:
@@ -57,7 +60,8 @@ class CziObjectives:
                 if tubelens.Magnification is not None:
                     self.tubelensmag.append(float(tubelens.Magnification))
                 elif tubelens.Magnification is None:
-                    logger.warning("No tubelens magnification found. Use 1.0x instead.")
+                    if self.verbose:
+                        logger.warning("No tubelens magnification found. Use 1.0x instead.")
                     self.tubelensmag.append(1.0)
 
             elif isinstance(tubelens, BoxList):
@@ -69,7 +73,8 @@ class CziObjectives:
                 self.totalmag = [i * j for i in self.objmag for j in self.tubelensmag]
 
         elif not czi_box.has_tubelens:
-            logger.info("No Tublens Information found.")
+            if self.verbose:
+                logger.info("No Tublens Information found.")
 
         if self.objmag is not None and self.tubelensmag == []:
             self.totalmag = self.objmag

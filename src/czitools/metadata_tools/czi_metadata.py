@@ -83,6 +83,7 @@ class CziMetadata:
     scene_size_consistent: Optional[Tuple[int]] = field(
         init=False, default_factory=lambda: ()
     )
+    verbose: bool = False
     """
     Create a CziMetadata object from the filename of the CZI image file.
     """
@@ -135,7 +136,7 @@ class CziMetadata:
             )
 
         # get the dimensions and order
-        self.image = CziDimensions(self.czi_box)
+        self.image = CziDimensions(self.czi_box, verbose=self.verbose)
 
         # get metadata_tools using pylibCZIrw
         with pyczi.open_czi(self.filepath, self.pyczi_readertype) as czidoc:
@@ -186,31 +187,31 @@ class CziMetadata:
             self.ismosaic = True
 
         # get the bounding boxes
-        self.bbox = CziBoundingBox(self.czi_box)
+        self.bbox = CziBoundingBox(self.czi_box, verbose=self.verbose)
 
         # get information about channels
-        self.channelinfo = CziChannelInfo(self.czi_box)
+        self.channelinfo = CziChannelInfo(self.czi_box, verbose=self.verbose)
 
         # get scaling info
-        self.scale = CziScaling(self.czi_box)
+        self.scale = CziScaling(self.czi_box, verbose=self.verbose)
 
         # get objective information
-        self.objective = CziObjectives(self.czi_box)
+        self.objective = CziObjectives(self.czi_box, verbose=self.verbose)
 
         # get detector information
-        self.detector = CziDetector(self.czi_box)
+        self.detector = CziDetector(self.czi_box, verbose=self.verbose)
 
         # get detector information
-        self.microscope = CziMicroscope(self.czi_box)
+        self.microscope = CziMicroscope(self.czi_box, verbose=self.verbose)
 
         # get information about sample carrier and wells etc.
-        self.sample = CziSampleInfo(self.czi_box)
+        self.sample = CziSampleInfo(self.czi_box, verbose=self.verbose)
 
         # get additional metainformation
-        self.add_metadata = CziAddMetaData(self.czi_box)
+        self.add_metadata = CziAddMetaData(self.czi_box, verbose=self.verbose)
 
         # check for attached label or preview image
-        self.attachments = CziAttachments(self.czi_box)
+        self.attachments = CziAttachments(self.czi_box, verbose=self.verbose)
 
     # can be also used without creating an instance of the class
     @staticmethod
