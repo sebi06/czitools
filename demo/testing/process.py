@@ -47,7 +47,42 @@ result = my_function(2, 3)
 
 def process_nd(func):
     def wrapper(*args, **kwargs):
+
         print("Before function call")
+        arg_names = inspect.getfullargspec(func).args
+
+        shape_woXY = args[0].shape[:-2]
+
+        processed_md = da.zeros_like(args[0], chunks=args[0].shape)
+
+        # create the "values" each for-loop iterates over
+        loopover = [range(s) for s in shape_woXY]
+        prod = itertools.product(*loopover)
+
+        # loop over all dimensions
+        for idx in prod:
+
+            # create list of slice objects based on the shape
+            sl = len(shape_woXY) * [np.s_[0:1]]
+
+            # insert the correct index into the respective slice objects for all dimensions
+            for nd in range(len(shape_woXY)):
+                sl[nd] = idx[nd]
+
+            # extract the 2D image from the n-dims stack using the list of slice objects
+            processed_2d = np.squeeze(args[0][tuple(sl)])
+
+            # process the whole 2d image - make sure to use the correct **kwargs
+            processed = func(*args, **kwargs)
+
+            # insert new 2D after tile-wise processing into nd array
+            label_complete[tuple(sl)] = new_label2d
+
+            print("Datatype Labels", type(label_complete))
+
+
+
+
         result = func(*args, **kwargs)
         print("After function call")
         return result
