@@ -143,3 +143,60 @@ print(result1)
 
 result2 = my_function2(4, 7)
 print(result2)
+
+
+#####
+
+
+import numpy as np
+from scipy.ndimage import gaussian_filter
+
+@process_array
+def apply_filter(array: np.ndarray, sigma: float) -> np.ndarray:
+  """Applies a 2D Gaussian filter to a 2D NumPy array.
+
+  Args:
+    array: The 2D NumPy array to filter.
+    sigma: The standard deviation of the Gaussian kernel.
+
+  Returns:
+    The filtered 2D NumPy array.
+  """
+
+  return gaussian_filter(array, sigma=sigma)
+
+def process_array(func):
+  """Processes a 3D NumPy array by applying the given function to each 2D slice.
+
+  Args:
+    func: The function to apply to each 2D slice.
+
+  Returns:
+    A function that takes a 3D NumPy array and returns the processed array.
+  """
+
+  def wrapper(array: np.ndarray, *args, **kwargs) -> np.ndarray:
+    """Applies the function to each 2D slice of the 3D array.
+
+    Args:
+      array: The 3D NumPy array to process.
+      *args: Additional arguments for the function.
+      **kwargs: Keyword arguments for the function.
+
+    Returns:
+      The processed 3D NumPy array.
+    """
+
+    processed_array = np.zeros_like(array)
+    for i in range(array.shape[0]):
+      processed_array[i] = func(array[i], *args, **kwargs)
+    return processed_array
+
+  return wrapper
+
+# Example usage:
+# Create a 3D NumPy array
+array = np.random.rand(10, 10, 10)
+
+# Apply the Gaussian filter to each 2D slice with sigma=1
+filtered_array = apply_filter(array, sigma=1)
