@@ -721,12 +721,19 @@ def measure_memory_usage(target_function):
         result = target_function(*args, **kwargs)
 
         snapshot = tracemalloc.take_snapshot()
-        top_stats = snapshot.statistics("lineno")
 
-        # Print the top memory-consuming lines
-        logger.info(f"Memory usage of {target_function.__name__}:")
-        for stat in top_stats[:5]:
-            logger.info(stat)
+        # top_stats = snapshot.statistics("lineno")
+        # # Print the top memory-consuming lines
+        # logger.info(f"Memory usage of {target_function.__name__}:")
+        # for stat in top_stats[:3]:
+        #     logger.info(stat)
+
+        top_stats = snapshot.statistics("traceback")
+        # pick the biggest memory block
+        stat = top_stats[0]
+        print("%s memory blocks: %.1f KiB" % (stat.count, stat.size / 1024))
+        for line in stat.traceback.format():
+            logger.info(line)
 
         # Return the result
         return result
