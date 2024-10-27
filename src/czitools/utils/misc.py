@@ -26,6 +26,8 @@ from aicspylibczi import CziFile
 from czitools.metadata_tools.helper import ValueRange
 from czitools.utils import logging_tools
 import requests
+import time
+import tracemalloc
 
 logger = logging_tools.set_logging()
 
@@ -709,3 +711,38 @@ def check_zoom(zoom: Annotated[float, ValueRange(0.01, 1.0)] = 1.0) -> float:
         zoom = 0.01
 
     return zoom
+
+
+def measure_memory_usage(target_function):
+    def wrapper(*args, **kwargs):
+        tracemalloc.start()
+
+        # Call the original function
+        result = target_function(*args, **kwargs)
+
+        snapshot = tracemalloc.take_snapshot()
+        top_stats = snapshot.statistics("lineno")
+
+        # Print the top memory-consuming lines
+        logger.info(f"Memory usage of {target_function.__name__}:")
+        for stat in top_stats[:5]:
+            logger.info(stat)
+
+        # Return the result
+        return result
+
+    return wrapper
+
+
+def measure_execution_time(func):
+    def timed_execution(*args, **kwargs):
+        start_timestamp = time.time()
+        result = func(*args, **kwargs)
+        end_timestamp = time.time()
+        execution_duration = end_timestamp - start_timestamp
+        logger.info(
+            f"Function {func.__name__} took {execution_duration:.2f} seconds to execute"
+        )
+        return result
+
+    return timed_execution
