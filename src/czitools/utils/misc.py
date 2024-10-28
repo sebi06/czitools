@@ -714,6 +714,21 @@ def check_zoom(zoom: Annotated[float, ValueRange(0.01, 1.0)] = 1.0) -> float:
 
 
 def measure_memory_usage(target_function):
+    """
+    A decorator that measures and logs the memory usage of the decorated function.
+    This decorator uses the `tracemalloc` module to track memory allocations and logs
+    the top memory-consuming lines after the function execution.
+    Args:
+        target_function (function): The function to be decorated.
+    Returns:
+        function: The wrapped function with memory usage measurement.
+    Example:
+        @measure_memory_usage
+        def my_function():
+            # Function implementation
+            pass
+    """
+
     def wrapper(*args, **kwargs):
         tracemalloc.start()
 
@@ -742,14 +757,26 @@ def measure_memory_usage(target_function):
 
 
 def measure_execution_time(func):
+    """
+    Decorator that measures the execution time of a function and logs it.
+    Args:
+        func (callable): The function to be decorated.
+    Returns:
+        callable: The wrapped function with execution time measurement.
+    Example:
+        @measure_execution_time
+        def my_function():
+            # Function implementation
+            pass
+    The execution time will be logged using the logger with an info level.
+    """
+
     def timed_execution(*args, **kwargs):
         start_timestamp = time.time()
         result = func(*args, **kwargs)
         end_timestamp = time.time()
         execution_duration = end_timestamp - start_timestamp
-        logger.info(
-            f"Function {func.__name__} took {execution_duration:.2f} seconds to execute"
-        )
+        logger.info(f"Function: {func.__name__} --> {execution_duration:.2f} [s]")
         return result
 
     return timed_execution
