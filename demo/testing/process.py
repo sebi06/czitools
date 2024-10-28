@@ -30,8 +30,8 @@ def process_nd(func):
 
         shape_woXY = md_array.shape[:-2]
 
-        processed_md = da.zeros_like(md_array, chunks=md_array.shape)
-        # processed_md = np.zeros_like(md_array)
+        # processed_md = da.zeros_like(md_array, chunks=md_array.shape)
+        processed_md = np.zeros_like(md_array)
 
         # create the "values" each for-loop iterates over
         loopover = [range(s) for s in shape_woXY]
@@ -97,7 +97,7 @@ def process_array_nd(func):
     return wrapper
 
 
-@measure_memory_usage
+# @measure_memory_usage
 @measure_execution_time
 @process_nd
 def apply_filter(array: np.ndarray, sigma: float) -> np.ndarray:
@@ -115,7 +115,7 @@ def apply_filter(array: np.ndarray, sigma: float) -> np.ndarray:
     return array**2
 
 
-@measure_memory_usage
+# @measure_memory_usage
 @measure_execution_time
 @process_array_nd
 def apply_gauss(array: np.ndarray, sigma: float) -> np.ndarray:
