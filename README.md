@@ -64,9 +64,6 @@ czi_channels = CziChannelInfo(filepath)
 czimd_complete = get_metadata_as_object(filepath)
 
 # get an object containing only the dimension information
-czi_dimensions = CziDimensions(filepath)
-
-# get an object containing only the dimension information
 czi_scale = CziScaling(filepath)
 
 # get an object containing information about the sample
