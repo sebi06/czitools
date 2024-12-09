@@ -53,8 +53,9 @@ else:
     from napari.utils.colormaps import Colormap
     from napari.utils import resize_dask_cache
     import dask.array as da
+    import warnings
 
-    # from dataclasses import dataclass
+    warnings.filterwarnings("ignore", category=DeprecationWarning)
 
 
 class MdTableWidget(QWidget):
@@ -202,7 +203,7 @@ def show(
     # set napari dask cache size
     cache = resize_dask_cache(dask_cache_size)
 
-    dim_order, dim_index, dim_valid = czimd.CziMetadata.get_dimorder(dim_string)
+    dim_order, dim_index, dim_valid = czimd.pixels.get_dimorder(dim_string)
 
     # check if contrast mode
     if contrast not in ["calc", "napari_auto", "from_czi"]:
@@ -305,10 +306,10 @@ def show(
             # guess an appropriate scaling from the display setting embedded in the CZI
             try:
                 lower = np.round(
-                    metadata.channelinfo.clims[ch][0] * metadata.maxvalue[ch], 0
+                    metadata.channelinfo.clims[ch][0] * metadata.maxvalue_list[ch], 0
                 )
                 higher = np.round(
-                    metadata.channelinfo.clims[ch][1] * metadata.maxvalue[ch], 0
+                    metadata.channelinfo.clims[ch][1] * metadata.maxvalue_list[ch], 0
                 )
             except IndexError as e:
                 logger.warning(

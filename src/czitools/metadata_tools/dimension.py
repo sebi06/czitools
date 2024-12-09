@@ -264,6 +264,7 @@ class CziDimensions:
             "SizeB": "B",
         }
 
+        # TODO This does not make sense anymore
         with pyczi.open_czi(czi_box.filepath, czi_box.czi_open_arg) as czidoc:
 
             total_bounding_box = czidoc.total_bounding_box

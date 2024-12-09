@@ -22,7 +22,11 @@ class CziBoundingBox:
     total_rect : Optional[pyczi.Rectangle]
         The total bounding rectangle for the entire CZI file.
     total_bounding_box : Optional[Dict[str, tuple]]
-        A dictionary containing the total bounding box coordinates.
+        A dictionary containing the total bounding box.
+    scenes_bounding_rect_no_pyramid : Optional[Dict[int, pyczi.Rectangle]]
+        A dictionary containing the bounding rectangles for each scene in the CZI file without pyramid.
+    total_bounding_box_no_pyramid : Optional[Dict[str, tuple]]
+        A dictionary containing the total bounding box coordinates without pyramid.
     Methods:
     --------
     __post_init__():
@@ -31,16 +35,21 @@ class CziBoundingBox:
 
     czisource: Union[str, os.PathLike[str], Box]
     scenes_bounding_rect: Optional[Dict[int, pyczi.Rectangle]] = field(
-        init=False, default_factory=lambda: []
+        init=False, default_factory=lambda: {}
+    )
+    scenes_bounding_rect_no_pyramid: Optional[Dict[int, pyczi.Rectangle]] = field(
+        init=False, default_factory=lambda: {}
     )
     total_rect: Optional[pyczi.Rectangle] = field(init=False, default=None)
     total_bounding_box: Optional[Dict[str, tuple]] = field(
-        init=False, default_factory=lambda: []
+        init=False, default_factory=lambda: {}
+    )
+    total_bounding_box_no_pyramid: Optional[Dict[str, tuple]] = field(
+        init=False, default_factory=lambda: {}
     )
     verbose: bool = False
 
     # TODO Is this really needed as a separate class or better integrate directly into CziMetadata class?
-
 
     def __post_init__(self):
         if self.verbose:
@@ -58,20 +67,46 @@ class CziBoundingBox:
             )
 
         with pyczi.open_czi(str(self.czisource), pyczi_readertype) as czidoc:
+
+            # get scenes bounding rectangles
             try:
                 self.scenes_bounding_rect = czidoc.scenes_bounding_rectangle
             except Exception as e:
                 self.scenes_bounding_rect = None
-                logger.info("Scenes Bounding rectangle not found.")
+                logger.info("Scenes Bounding Rectangle not found.")
 
+            try:
+                self.scenes_bounding_rect_no_pyramid = (
+                    czidoc.scenes_bounding_rectangle_no_pyramid
+                )
+            except Exception as e:
+                self.scenes_bounding_rect_no_pyramid = None
+                logger.info("Scenes Bounding Rectangle no Pyramid not found.")
+
+            # get total bounding rectangles
             try:
                 self.total_rect = czidoc.total_bounding_rectangle
             except Exception as e:
                 self.total_rect = None
-                logger.info("Total Bounding rectangle not found.")
+                logger.info("Total Bounding Rectangle not found.")
 
+            # try:
+            #     self.total_rect_no_pyramid = czidoc.total_bounding_rectangle_wo_pyramid
+            # except Exception as e:
+            #     self.total_rect_wo_pyramid = None
+            #     logger.info("Total Bounding Rectangle no Pyramid not found.")
+
+            # get total bounding boxes
             try:
                 self.total_bounding_box = czidoc.total_bounding_box
             except Exception as e:
                 self.total_bounding_box = None
                 logger.info("Total Bounding Box not found.")
+
+            try:
+                self.total_bounding_box_no_pyramid = (
+                    czidoc.total_bounding_box_no_pyramid
+                )
+            except Exception as e:
+                self.total_bounding_box_no_pyramid = None
+                logger.info("Total Bounding Box no Pyramid not found.")

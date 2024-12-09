@@ -92,7 +92,7 @@ def read_6darray(
 
     if mdata.consistent_pixeltypes:
         # use pixel type from first channel
-        use_pixeltype = mdata.npdtype[0]
+        use_pixeltype = mdata.npdtype_list[0]
 
     if not mdata.scene_shape_is_consistent and "S" not in planes.keys():
         logger.info("Scenes have inconsistent shape. Cannot read 6D array")

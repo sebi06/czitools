@@ -45,11 +45,11 @@ class CziDetector:
     zoom: List[float] = field(init=False, default_factory=lambda: [])
     amplificationgain: List[float] = field(init=False, default_factory=lambda: [])
     verbose: bool = False
-    
+
     def __post_init__(self):
         if self.verbose:
-            logger.info("Reading Detector Information from CZI image data.")    
-            
+            logger.info("Reading Detector Information from CZI image data.")
+
         if isinstance(self.czisource, Box):
             czi_box = self.czisource
         else:
@@ -84,7 +84,7 @@ class CziDetector:
                     self.amplificationgain.append(detectors[d].AmplificationGain)
 
         elif czi_box.ImageDocument.Metadata.Information.Instrument is None:
-            logger.info("No Detetctor(s) information found.")
+            logger.info("No Detector(s) information found.")
             self.model = [None]
             self.name = [None]
             self.Id = [None]
