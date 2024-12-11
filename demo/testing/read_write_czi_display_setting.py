@@ -10,7 +10,7 @@
 #################################################################
 
 from pylibCZIrw import czi as pyczi
-from czitools.metadata_tools.czi_metadata import CziMetadata, CziChannelInfo
+from czitools.metadata_tools.czi_metadata import CziChannelInfo
 import numpy as np
 
 
