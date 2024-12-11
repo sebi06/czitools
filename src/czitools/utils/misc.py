@@ -20,7 +20,7 @@ import time
 from pathlib import Path
 import dateutil.parser as dt
 from tqdm.contrib.itertools import product
-from typing import Dict, Tuple, Any, Union, Annotated
+from typing import Dict, Tuple, Any, Union, Annotated, List
 import validators
 from aicspylibczi import CziFile
 from czitools.metadata_tools.helper import ValueRange
@@ -628,26 +628,6 @@ def expand5d(array: np.ndarray) -> np.ndarray:
     array5d = np.expand_dims(array, axis=-5)
 
     return array5d
-
-
-# def dc_factory(
-#     base: dataclass, name: str, exclusions: tuple = ("field1", "fields")
-# ) -> dataclass:
-#     """
-#     Adapted from: https://stackoverflow.com/questions/69289547/how-to-remove-dynamically-fields-from-a-dataclass
-
-#     Args:
-#         base (dataclass): Base Dataclass
-#         name (str): name for new dataclass
-#         exclusions (tuple, optional): Fields to be removed. Defaults to ("field1", "field2").
-
-#     Returns:
-#         dataclass: New dataclass with the fields that were removed
-#     """
-
-#     new_fields = [(i.name, i.type, i) for i in fields(base) if i.name not in exclusions]
-
-#     return make_dataclass(name, new_fields)
 
 
 def remove_none_from_dict(dictionary: Dict) -> Dict:

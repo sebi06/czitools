@@ -14,34 +14,34 @@ import numpy as np
 from typing import List, Dict, Tuple, Optional, Union
 
 
-def check_if_rgb(pixeltypes: Dict) -> Tuple[bool, bool]:
+def check_if_rgb(pixeltypes: Dict) -> Tuple[Dict[int, bool], bool]:
     """
-    Check if the given pixel types dictionary indicates RGB format and if all elements are consistent.
+    Check if the pixel types are RGB and if they are consistent.
     Args:
         pixeltypes (Dict): A dictionary where keys are pixel identifiers and values are pixel type strings.
     Returns:
-        Tuple[bool, bool]: A tuple containing:
-            - is_rgb (bool): True if any of the pixel types contain "Bgr", otherwise False.
-            - is_consistant (bool): True if all pixel types in the dictionary are the same, otherwise False.
+        Tuple[Dict, bool]: A tuple containing:
+            - A dictionary where keys are pixel identifiers and values are booleans indicating if the pixel type is RGB.
+            - A boolean flag indicating if all pixel types in the input dictionary are the same.
     """
-    is_rgb = False
+
+    is_rgb = {}
 
     for k, v in pixeltypes.items():
         if "Bgr" in v:
-            is_rgb = True
+            is_rgb[k] = True
+        else:
+            is_rgb[k] = False
 
     # flag to check if all elements are same
-    is_consistant = True
+    is_consistent = True
 
     # extracting value to compare
     test_val = list(pixeltypes.values())[0]
 
-    for ele in pixeltypes:
-        if pixeltypes[ele] != test_val:
-            is_consistant = False
-            break
+    is_consistent = all(value == test_val for value in pixeltypes.values())
 
-    return is_rgb, is_consistant
+    return is_rgb, is_consistent
 
 
 def get_dtype_fromstring(

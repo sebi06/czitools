@@ -158,7 +158,9 @@ def read_6darray(
             c_end = planes["C"][1] + 1
 
         # check if ADim can be removed because image is grayscale
-        remove_adim = False if mdata.isRGB else True
+        # Check if any value in the dictionary is True
+        contains_rgb = any(mdata.isRGB.values())
+        remove_adim = False if contains_rgb else True
 
         if mdata.is_url:
             logger.info("Reading pixel data via network from link location.")
@@ -196,7 +198,7 @@ def read_6darray(
                     size_z,
                     image2d.shape[0],
                     image2d.shape[1],
-                    3 if mdata.isRGB else 1,
+                    3 if contains_rgb else 1,
                 )
 
                 # in case of numpy array
@@ -351,13 +353,15 @@ def read_6darray_lazy(
             c_start = planes["C"][0]
             c_end = planes["C"][1] + 1
 
+        # check if ADim can be removed because image is grayscale
+        # Check if any value in the dictionary is True
+        contains_rgb = any(mdata.isRGB.values())
+        remove_adim = False if contains_rgb else True
+
         if mdata.isRGB:
             shape2d = (size_y, size_x, 3)
         elif not mdata.isRGB:
             shape2d = (size_y, size_x)
-
-        # check if ADim can be removed because image is grayscale
-        remove_adim = False if mdata.isRGB else True
 
         # initialise empty list to hold the dask arrays
         img = []

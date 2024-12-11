@@ -22,9 +22,7 @@ def test_write_1(tiff_file: str, sp: int) -> None:
     # get the TIFF filepath
     filepath = basedir / tiff_file
 
-    czi_path = filepath.parent / Path(
-        misc.get_fname_woext(str(filepath)) + ".czi"
-    )
+    czi_path = filepath.parent / Path(misc.get_fname_woext(str(filepath)) + ".czi")
 
     # remove the CZI if it already exits
     if czi_path.exists():
@@ -70,7 +68,7 @@ def test_write_1(tiff_file: str, sp: int) -> None:
             "z16_ch3.czi",
             {"T": (0, 1), "Z": (0, 16), "C": (0, 3), "X": (0, 512), "Y": (0, 512)},
             {0: "Gray16", 1: "Gray16", 2: "Gray16"},
-            False,
+            {0: False, 1: False, 2: False},
             False,
         )
     ],
@@ -103,7 +101,7 @@ def test_write_2(
 
     assert mdata.pyczi_dims == pyczi_dims
     assert mdata.pixeltypes == pix_types
-    assert mdata.isRGB is is_rgb
+    assert mdata.isRGB == is_rgb
     assert mdata.ismosaic is is_mosaic
 
     # remove file
@@ -119,7 +117,7 @@ def test_write_2(
             0,
             {"T": (0, 1), "Z": (0, 1), "C": (0, 1), "X": (0, 8192), "Y": (0, 512)},
             {0: "Gray16"},
-            False,
+            {0: False},
             True,
             {"T": (0, 1), "Z": (0, 1), "C": (0, 1), "X": (0, 8192), "Y": (0, 512)},
         )
@@ -159,7 +157,7 @@ def test_write_3(
 
     assert mdata.pyczi_dims == pyczi_dims
     assert mdata.pixeltypes == pix_types
-    assert mdata.isRGB is is_rgb
+    assert mdata.isRGB == is_rgb
     assert mdata.ismosaic is is_mosaic
     assert mdata.bbox.total_bounding_box == tbox
 
@@ -179,7 +177,7 @@ def test_write_3(
             700,
             {"T": (0, 1), "Z": (0, 1), "C": (0, 1), "X": (0, 2612), "Y": (0, 2612)},
             {0: "Gray16"},
-            False,
+            {0: False},
             False,
             {"T": (0, 1), "Z": (0, 1), "C": (0, 1), "X": (0, 2612), "Y": (0, 2612)},
         )
@@ -231,7 +229,7 @@ def test_write_4(
 
     assert mdata.pyczi_dims == pyczi_dims
     assert mdata.pixeltypes == pix_types
-    assert mdata.isRGB is is_rgb
+    assert mdata.isRGB == is_rgb
     assert mdata.ismosaic is is_mosaic
     assert mdata.bbox.total_bounding_box == tbox
 
