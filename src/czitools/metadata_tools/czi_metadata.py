@@ -107,7 +107,8 @@ class CziMetadata:
     aics_dim_valid: Optional[int] = field(init=False, default=None)
     aics_posC: Optional[int] = field(init=False, default=None)
     pixeltypes: Optional[Dict[int, str]] = field(init=False, default_factory=lambda: {})
-    isRGB: Optional[bool] = field(init=False, default=False)
+    consistent_pixeltypes: Optional[bool] = field(init=False, default=None)
+    isRGB: Optional[Dict[int, bool]] = field(init=False, default_factory=lambda: {})
     has_scenes: Optional[bool] = field(init=False, default=False)
     has_label: Optional[bool] = field(init=False, default=False)
     has_preview: Optional[bool] = field(init=False, default=False)
@@ -133,9 +134,10 @@ class CziMetadata:
         if validators.url(str(self.filepath)):
             self.pyczi_readertype = pyczi.ReaderFileInputTypes.Curl
             self.is_url = True
-            logger.info(
-                "FilePath is a valid link. Only pylibCZIrw functionality is available."
-            )
+            if self.verbose:
+                logger.info(
+                    "FilePath is a valid link. Only pylibCZIrw functionality is available."
+                )
         else:
             self.pyczi_readertype = pyczi.ReaderFileInputTypes.Standard
             self.is_url = False

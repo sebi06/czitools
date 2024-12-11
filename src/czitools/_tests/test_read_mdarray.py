@@ -46,6 +46,19 @@ basedir = Path(__file__).resolve().parents[3]
 def test_read_mdarray(
     czifile: str, shape: Optional[Tuple[int]], use_dask: bool, chunk_zyx: bool
 ) -> None:
+    """
+    Test the reading of a multidimensional array from a CZI file.
+    Parameters:
+    czifile (str): The name of the CZI file to read.
+    shape (Optional[Tuple[int]]): The expected shape of the multidimensional array.
+                                  If an exception type is provided, the test will check
+                                  if the exception is raised.
+    use_dask (bool): Whether to use Dask for reading the array.
+    chunk_zyx (bool): Whether to chunk the array along the Z, Y, and X dimensions.
+    Returns:
+    None
+    """
+
     # get the CZI filepath
     filepath = basedir / "data" / czifile
 

@@ -46,13 +46,18 @@ def test_read_metadata_links(link: str) -> None:
 
 
 @pytest.mark.parametrize(
-    "czifile, px, rgb, maxvalue",
+    "czifile, px, is_rgb, maxvalue",
     [
-        ("LLS7_small.czi", {0: "Gray16", 1: "Gray16"}, False, [65535, 65535]),
-        ("Tumor_HE_RGB.czi", {0: "Bgr24"}, True, [255]),
+        (
+            "LLS7_small.czi",
+            {0: "Gray16", 1: "Gray16"},
+            {0: False, 1: False},
+            [65535, 65535],
+        ),
+        ("Tumor_HE_RGB.czi", {0: "Bgr24"}, {0: True}, [255]),
     ],
 )
-def test_pixeltypes_1(czifile: str, px: Dict, rgb: bool, maxvalue: int) -> None:
+def test_pixeltypes_1(czifile: str, px: Dict, is_rgb: bool, maxvalue: int) -> None:
 
     # get the CZI filepath
     filepath = basedir / "data" / czifile
@@ -60,7 +65,7 @@ def test_pixeltypes_1(czifile: str, px: Dict, rgb: bool, maxvalue: int) -> None:
 
     assert md.pixeltypes == px
     assert md.maxvalue_list == maxvalue
-    assert md.isRGB is rgb
+    assert md.isRGB == is_rgb
 
 
 @pytest.mark.parametrize(

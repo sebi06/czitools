@@ -12,7 +12,6 @@ defaultdir = Path(__file__).resolve().parents[3] / "data"
     [
         "has_customattr",
         "has_exp",
-        "has_disp",
         "has_hardware",
         "has_scale",
         "has_instrument",
@@ -27,8 +26,8 @@ defaultdir = Path(__file__).resolve().parents[3] / "data"
         "has_doc",
         "has_image",
         "has_scenes",
-        "has_dims"
-    ]
+        "has_dims",
+    ],
 )
 def test_general_attr(attribute: str) -> None:
 
@@ -36,7 +35,7 @@ def test_general_attr(attribute: str) -> None:
 
     czibox = czimd.get_czimd_box(filepath)
 
-    assert (hasattr(czibox, attribute))
+    assert hasattr(czibox, attribute)
 
 
 @pytest.mark.parametrize(
@@ -51,11 +50,11 @@ def test_general_attr(attribute: str) -> None:
         ("FOV7_HV110_P0500510000.czi", True),
         ("Tumor_HE_RGB.czi", True),
         ("WP96_4Pos_B4-10_DAPI.czi", True),
-        ("S3_1Pos_2Mosaic_T2_Z3_CH2_sm.czi", True)
-    ]
+        ("S3_1Pos_2Mosaic_T2_Z3_CH2_sm.czi", True),
+    ],
 )
-def test_box(czifile: List[str], expected: bool) -> None:
-
+# def test_box(czifile: List[str], expected: bool) -> None:
+def test_box(czifile: str, expected: bool) -> None:
     filepath = defaultdir / czifile
 
     try:
@@ -64,4 +63,4 @@ def test_box(czifile: List[str], expected: bool) -> None:
     except Exception:
         ok = False
 
-    assert (ok == expected)
+    assert ok == expected
