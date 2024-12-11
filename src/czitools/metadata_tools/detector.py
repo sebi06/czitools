@@ -10,6 +10,32 @@ logger = logging_tools.set_logging()
 
 @dataclass
 class CziDetector:
+    """
+    A class to represent and extract detector information from CZI image data.
+    Attributes
+    ----------
+    czisource : Union[str, os.PathLike[str], Box]
+        The source of the CZI image data, which can be a file path or a Box object.
+    model : List[str]
+        A list to store the model names of the detectors.
+    name : List[str]
+        A list to store the names of the detectors.
+    Id : List[str]
+        A list to store the IDs of the detectors.
+    modeltype : List[str]
+        A list to store the types of the detectors.
+    gain : List[float]
+        A list to store the gain values of the detectors.
+    zoom : List[float]
+        A list to store the zoom values of the detectors.
+    amplificationgain : List[float]
+        A list to store the amplification gain values of the detectors.
+    Methods
+    -------
+    __post_init__():
+        Initializes the detector information by reading from the CZI image data.
+    """
+
     czisource: Union[str, os.PathLike[str], Box]
     model: List[str] = field(init=False, default_factory=lambda: [])
     name: List[str] = field(init=False, default_factory=lambda: [])
@@ -19,11 +45,11 @@ class CziDetector:
     zoom: List[float] = field(init=False, default_factory=lambda: [])
     amplificationgain: List[float] = field(init=False, default_factory=lambda: [])
     verbose: bool = False
-    
+
     def __post_init__(self):
         if self.verbose:
-            logger.info("Reading Detector Information from CZI image data.")    
-            
+            logger.info("Reading Detector Information from CZI image data.")
+
         if isinstance(self.czisource, Box):
             czi_box = self.czisource
         else:
@@ -58,7 +84,7 @@ class CziDetector:
                     self.amplificationgain.append(detectors[d].AmplificationGain)
 
         elif czi_box.ImageDocument.Metadata.Information.Instrument is None:
-            logger.info("No Detetctor(s) information found.")
+            logger.info("No Detector(s) information found.")
             self.model = [None]
             self.name = [None]
             self.Id = [None]
@@ -66,4 +92,3 @@ class CziDetector:
             self.gain = [None]
             self.zoom = [None]
             self.amplificationgain = [None]
-

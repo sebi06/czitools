@@ -13,7 +13,7 @@ from czitools.metadata_tools.czi_metadata import (
     CziMetadata,
     writexml,
     get_metadata_as_object,
-    obj2dict
+    obj2dict,
 )
 from czitools.metadata_tools.dimension import CziDimensions
 from czitools.metadata_tools.boundingbox import CziBoundingBox
@@ -31,10 +31,12 @@ from pathlib import Path
 defaultdir = Path(Path(__file__).resolve().parents[2]) / "data"
 
 # open s simple dialog to select a CZI file
-filepath = misc.openfile(directory=str(defaultdir),
-                         title="Open CZI Image File",
-                         ftypename="CZI Files",
-                         extension="*.czi")
+filepath = misc.openfile(
+    directory=str(defaultdir),
+    title="Open CZI Image File",
+    ftypename="CZI Files",
+    extension="*.czi",
+)
 print(filepath)
 
 # get the metadata_tools at once as one big class
@@ -57,10 +59,6 @@ czi_channels = CziChannelInfo(filepath)
 
 # get the complete metadata_tools from the CZI as one big object
 czimd_complete = get_metadata_as_object(filepath)
-
-# get an object containing only the dimension information
-czi_dimensions = CziDimensions(filepath)
-print("Number of Channels:", czi_dimensions.SizeC)
 
 # get an object containing only the dimension information
 czi_scale = CziScaling(filepath)

@@ -17,6 +17,8 @@ dependencies:
   - autopep8
   - nb_conda_kernels
   - pytest
+  - pytest-cov
+  - coverage
 
   - pip:
       - czitools

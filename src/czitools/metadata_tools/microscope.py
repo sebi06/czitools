@@ -7,8 +7,27 @@ from czitools.utils.box import get_czimd_box
 
 logger = logging_tools.set_logging()
 
+
 @dataclass
 class CziMicroscope:
+    """
+    A class to represent a microscope from CZI image data.
+    Attributes:
+    ----------
+    czisource : Union[str, os.PathLike[str], Box]
+        The source of the CZI image data, which can be a file path or a Box object.
+    Id : Optional[str]
+        The identifier of the microscope. Initialized in __post_init__.
+    Name : Optional[str]
+        The name of the microscope. Initialized in __post_init__.
+    System : Optional[str]
+        The system of the microscope. Initialized in __post_init__.
+    Methods:
+    -------
+    __post_init__():
+        Initializes the microscope information from the CZI image data.
+    """
+
     czisource: Union[str, os.PathLike[str], Box]
     Id: Optional[str] = field(init=False)
     Name: Optional[str] = field(init=False)

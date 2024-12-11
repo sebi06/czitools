@@ -10,6 +10,23 @@ logger = logging_tools.set_logging()
 
 @dataclass
 class CziObjectives:
+    """
+    CziObjectives is a class that extracts and stores objective and tubelens metadata from CZI image data.
+    Attributes:
+        czisource (Union[str, os.PathLike[str], Box]): The source of the CZI image data.
+        NA (List[Optional[float]]): Numerical aperture values of the objectives.
+        objmag (List[Optional[float]]): Nominal magnification values of the objectives.
+        Id (List[Optional[str]]): IDs of the objectives.
+        name (List[Optional[str]]): Names of the objectives.
+        model (List[Optional[str]]): Models of the objectives.
+        immersion (List[Optional[str]]): Immersion types of the objectives.
+        tubelensmag (List[Optional[float]]): Magnification values of the tubelenses.
+        totalmag (List[Optional[float]]): Total magnification values calculated from objectives and tubelenses.
+    Methods:
+        __post_init__(): Initializes the CziObjectives instance by reading objective and tubelens information from the CZI image data.
+        get_objective_info(objective: Box): Extracts and stores information from a given objective.
+    """
+
     czisource: Union[str, os.PathLike[str], Box]
     NA: List[Optional[float]] = field(init=False, default_factory=lambda: [])
     objmag: List[Optional[float]] = field(init=False, default_factory=lambda: [])
@@ -95,5 +112,3 @@ class CziObjectives:
         if None in self.name and self.name.count(None) == 1:
             self.name.remove(None)
             self.name.append(objective.Manufacturer.Model)
-
-

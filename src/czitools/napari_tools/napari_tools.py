@@ -53,11 +53,24 @@ else:
     from napari.utils.colormaps import Colormap
     from napari.utils import resize_dask_cache
     import dask.array as da
+    import warnings
 
-    # from dataclasses import dataclass
+    warnings.filterwarnings("ignore", category=DeprecationWarning)
 
 
 class MdTableWidget(QWidget):
+    """
+    MdTableWidget is a custom QWidget that displays metadata in a table format using QTableWidget.
+    Methods:
+        __init__() -> None:
+            Initializes the MdTableWidget with a vertical layout and a QTableWidget.
+        update_metadata(md_dict: Dict) -> None:
+            Updates the table with metadata from the provided dictionary.
+                md_dict (Dict): Metadata dictionary where keys are parameters and values are their corresponding values.
+        update_style() -> None:
+            Updates the style of the table, including font size, type, and header items.
+    """
+
     def __init__(self) -> None:
         super(QWidget, self).__init__()
 
@@ -70,10 +83,15 @@ class MdTableWidget(QWidget):
         header.setDefaultAlignment(Qt.AlignLeft)
 
     def update_metadata(self, md_dict: Dict) -> None:
-        """Update the table with the metadata_tools from the dictionary
-
-        Args:
-            md_dict (Dict): Metadata dictionary
+        """
+        Update the table with the metadata from the dictionary.
+        This method updates the table widget (`self.mdtable`) with the metadata
+        provided in the `md_dict` dictionary. Each key-value pair in the dictionary
+        is added as a row in the table, with the key in the first column and the
+        value in the second column. The table is resized to fit the content after
+        updating.
+            md_dict (Dict): Metadata dictionary where keys are the metadata fields
+                            and values are the corresponding metadata values.
         """
 
         # number of rows is set to number of metadata_tools entries
@@ -96,7 +114,15 @@ class MdTableWidget(QWidget):
         self.mdtable.resizeColumnsToContents()
 
     def update_style(self) -> None:
-        """Update the style for the table"""
+        """
+        Updates the style of the table headers in the `mdtable` widget.
+        This method sets the font size, type, and boldness for the table headers.
+        It also sets the text for the headers to "Parameter" and "Value".
+        Parameters:
+        None
+        Returns:
+        None
+        """
 
         # define font size and type
         fnt = QFont()
@@ -105,7 +131,7 @@ class MdTableWidget(QWidget):
         fnt.setFamily("Arial")
 
         # update both header items
-        fc = (25, 25, 25)
+        # fc = (25, 25, 25)
         item1 = QtWidgets.QTableWidgetItem("Parameter")
         # item1.setForeground(QtGui.QColor(25, 25, 25))
         item1.setFont(fnt)
@@ -118,6 +144,16 @@ class MdTableWidget(QWidget):
 
 
 class MdTreeWidget(QWidget):
+    """
+    A custom QWidget that contains a DataTreeWidget for displaying hierarchical data.
+    Attributes:
+        layout (QVBoxLayout): The main layout of the widget.
+        mdtree (DataTreeWidget): The tree widget used to display the data.
+    Args:
+        data (optional): The data to be displayed in the tree widget. Defaults to None.
+        expandlevel (int, optional): The level to which the tree should be expanded initially. Defaults to 0.
+    """
+
     def __init__(self, data=None, expandlevel=0) -> None:
         super(QWidget, self).__init__()
 
@@ -167,7 +203,7 @@ def show(
     # set napari dask cache size
     cache = resize_dask_cache(dask_cache_size)
 
-    dim_order, dim_index, dim_valid = czimd.CziMetadata.get_dimorder(dim_string)
+    dim_order, dim_index, dim_valid = czimd.pixels.get_dimorder(dim_string)
 
     # check if contrast mode
     if contrast not in ["calc", "napari_auto", "from_czi"]:
@@ -270,10 +306,10 @@ def show(
             # guess an appropriate scaling from the display setting embedded in the CZI
             try:
                 lower = np.round(
-                    metadata.channelinfo.clims[ch][0] * metadata.maxvalue[ch], 0
+                    metadata.channelinfo.clims[ch][0] * metadata.maxvalue_list[ch], 0
                 )
                 higher = np.round(
-                    metadata.channelinfo.clims[ch][1] * metadata.maxvalue[ch], 0
+                    metadata.channelinfo.clims[ch][1] * metadata.maxvalue_list[ch], 0
                 )
             except IndexError as e:
                 logger.warning(
@@ -284,7 +320,7 @@ def show(
 
             # simple validity check
             if lower >= higher:
-                logger.info(f"Fancy Display Scaling detected. Use Defaults")
+                logger.info("Fancy Display Scaling detected. Use Defaults")
                 lower = 0
                 higher = np.round(metadata.maxvalue[ch] * 0.25, 0)
 

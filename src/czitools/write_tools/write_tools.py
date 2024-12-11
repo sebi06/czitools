@@ -33,16 +33,28 @@ def write_omezarr(
     overwrite: bool = False,
 ) -> str:
     """
-    Simple function to write OME-ZARR from an 5D numpy yor dask array
-
-    Args:
-        array5d (Union[np.ndarary, da.Array]): Up-to 5 dimensional array to be written as OME-ZARR
-        zarr_path (str): Path for the OME-ZARR folder to be created
-        axes (str): Defines the dimension order (lower case string). Defaults to "STCZYX"
-        overwrite (False): If True, then an existing folder will be overwritten. Defaults to False
-
+     Writes a 5D array to an OME-ZARR file.
+    Parameters:
+    -----------
+    array5d : Union[np.ndarray, da.Array]
+        The 5D array to be written. The dimensions should not exceed 5.
+    zarr_path : str
+        The path where the OME-ZARR file will be saved.
+    axes : str, optional
+        The order of axes in the array. Default is "tczyx".
+    overwrite : bool, optional
+        If True, the existing file at zarr_path will be overwritten. Default is False.
     Returns:
-        str: Path for location of OME-ZARR folder
+    --------
+    str
+        The path to the written OME-ZARR folder if successful, otherwise None.
+    Notes:
+    ------
+    - The function ensures the axes are in lowercase and removes any invalid dimensions.
+    - If the zarr_path already exists and overwrite is True, the existing directory will be removed.
+    - The function logs the NGFF format version being used.
+    - The function writes the image data to the specified zarr_path.
+    - If the writing process is successful, the function returns the zarr_path; otherwise, it returns None.
     """
 
     # check number of dimension of input array

@@ -20,11 +20,14 @@ import time
 from pathlib import Path
 import dateutil.parser as dt
 from tqdm.contrib.itertools import product
-from typing import Dict, Tuple, Any, Union
+from typing import Dict, Tuple, Any, Union, Annotated
 import validators
 from aicspylibczi import CziFile
+from czitools.metadata_tools.helper import ValueRange
 from czitools.utils import logging_tools
 import requests
+import time
+import tracemalloc
 
 logger = logging_tools.set_logging()
 
@@ -206,15 +209,17 @@ def addzeros(number: int) -> str:
 
 
 def get_fname_woext(filepath: Union[str, os.PathLike[str]]) -> str:
-    """Get the complete path of a file without the extension
+    """
+    Extracts the filename without its extension from a given file path.
     It also works for extensions like myfile.abc.xyz
     The output will be: myfile
 
-    :param filepath: complete filepath
-    :type filepath: str
-    :return: complete filepath without extension
-    :rtype: str
+    Args:
+        filepath (Union[str, os.PathLike[str]]): The path to the file.
+    Returns:
+        str: The filename without its extension.
     """
+
     # create empty string
     real_extension = ""
 
@@ -689,3 +694,89 @@ def download_zip(source_link: str) -> str:
         zip_accessor.extractall("./")
 
     return compressed_data[:-4]
+
+
+def check_zoom(zoom: Annotated[float, ValueRange(0.01, 1.0)] = 1.0) -> float:
+
+    # check zoom factor
+    if zoom > 1.0:
+        logger.warning(
+            f"Zoom factor f{zoom} is not in valid range [0.01 - 1.0]. Using 1.0 instead."
+        )
+        zoom = 1.0
+    if zoom < 0.01:
+        logger.warning(
+            f"Zoom factor f{zoom} is not in valid range [0.01 - 1.0]. Using 0.01 instead."
+        )
+        zoom = 0.01
+
+    return zoom
+
+
+def measure_memory_usage(target_function):
+    """
+    A decorator that measures and logs the memory usage of the decorated function.
+    This decorator uses the `tracemalloc` module to track memory allocations and logs
+    the top memory-consuming lines after the function execution.
+    Args:
+        target_function (function): The function to be decorated.
+    Returns:
+        function: The wrapped function with memory usage measurement.
+    Example:
+        @measure_memory_usage
+        def my_function():
+            # Function implementation
+            pass
+    """
+
+    def wrapper(*args, **kwargs):
+        tracemalloc.start()
+
+        # Call the original function
+        result = target_function(*args, **kwargs)
+
+        snapshot = tracemalloc.take_snapshot()
+
+        top_stats = snapshot.statistics("lineno")
+        # # Print the top memory-consuming lines
+        logger.info(f"Memory usage of {target_function.__name__}:")
+        for stat in top_stats[:3]:
+            logger.info(stat)
+
+        # top_stats = snapshot.statistics("traceback")
+        ## pick the biggest memory block
+        # stat = top_stats[0]
+        # print("%s memory blocks: %.1f KiB" % (stat.count, stat.size / 1024))
+        # for line in stat.traceback.format():
+        #    logger.info(line)
+
+        # Return the result
+        return result
+
+    return wrapper
+
+
+def measure_execution_time(func):
+    """
+    Decorator that measures the execution time of a function and logs it.
+    Args:
+        func (callable): The function to be decorated.
+    Returns:
+        callable: The wrapped function with execution time measurement.
+    Example:
+        @measure_execution_time
+        def my_function():
+            # Function implementation
+            pass
+    The execution time will be logged using the logger with an info level.
+    """
+
+    def timed_execution(*args, **kwargs):
+        start_timestamp = time.time()
+        result = func(*args, **kwargs)
+        end_timestamp = time.time()
+        execution_duration = end_timestamp - start_timestamp
+        logger.info(f"Function: {func.__name__} --> {execution_duration:.2f} [s]")
+        return result
+
+    return timed_execution
