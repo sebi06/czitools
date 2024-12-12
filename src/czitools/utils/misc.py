@@ -416,13 +416,6 @@ def get_planetable(
 
     # do if the data is not a mosaic
     if size_m > 1:
-        # for s, m, t, z, c in product(
-        #    range(size_s),
-        #    range(size_m),
-        #    range(size_t),
-        #    range(size_z),
-        #    range(size_c),
-        # ):
         for s, m, t, c, z in product(
             range(size_s),
             range(size_m),
@@ -479,29 +472,6 @@ def get_planetable(
                     "height": tilebbox.h,
                 }
             ]
-
-            # df_czi = pd.concat([df_czi, pd.DataFrame(plane)], ignore_index=True)
-
-            # plane = pd.DataFrame(
-            #     {
-            #         "Subblock": sbcount,
-            #         "Scene": s,
-            #         "Tile": m,
-            #         "T": t[1],
-            #         "Z": z[1],
-            #         "C": c[1],
-            #         "X[micron]": xpos,
-            #         "Y[micron]": ypos,
-            #         "Z[micron]": zpos,
-            #         "Time[s]": timestamp,
-            #         "xstart": tilebbox.x,
-            #         "ystart": tilebbox.y,
-            #         "width": tilebbox.w,
-            #         "height": tilebbox.h,
-            #     },
-            #     # index=[0],
-            #     # index=range(0, sbcount + 1),
-            # )
 
             df_czi = pd.concat(
                 [df_czi if not df_czi.empty else None, pd.DataFrame(plane)],
@@ -561,54 +531,12 @@ def get_planetable(
                 }
             ]
 
-            # plane = pd.DataFrame(
-            #     {
-            #         "Subblock": sbcount,
-            #         "Scene": s,
-            #         "Tile": 0,
-            #         "T": t[1],
-            #         "Z": z[1],
-            #         "C": c[1],
-            #         "X[micron]": xpos,
-            #         "Y[micron]": ypos,
-            #         "Z[micron]": zpos,
-            #         "Time[s]": timestamp,
-            #         "xstart": tilebbox.x,
-            #         "ystart": tilebbox.y,
-            #         "width": tilebbox.w,
-            #         "height": tilebbox.h,
-            #     },
-            #     # index=[0],
-            #     index=sbcount,
-            # )
-
-            # # df_czi = pd.concat([df_czi if not df_czi.empty else None, plane])
             # df_czi = pd.concat(
             #     [df_czi if not df_czi.empty else None, pd.DataFrame(plane)],
             #     ignore_index=True,
             # )
-            df_czi = pd.concat([df_czi, pd.DataFrame(plane)], ignore_index=True)
 
-    # # cast data types
-    # df_czi = df_czi.astype(
-    #     {
-    #         "Subblock": "int32",
-    #         "Scene": "int32",
-    #         "Tile": "int32",
-    #         "T": "int32",
-    #         "Z": "int32",
-    #         "C": "int16",
-    #         "X[micron]": "float",
-    #         "Y[micron]": "float",
-    #         "Z[micron]": "float",
-    #         "xstart": "int32",
-    #         "ystart": "int32",
-    #         "width": "int32",
-    #         "height": "int32",
-    #     },
-    #     copy=False,
-    #     errors="ignore",
-    # )
+            df_czi = pd.concat([df_czi, pd.DataFrame(plane)], ignore_index=True)
 
     # normalize time stamps
     if norm_time:
