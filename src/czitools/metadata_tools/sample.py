@@ -8,6 +8,7 @@ from czitools.utils import logging_tools
 from czitools.utils.box import get_czimd_box
 from czitools.utils.misc import get_planetable
 from czitools.metadata_tools.dimension import CziDimensions
+import traceback
 
 logger = logging_tools.set_logging()
 
@@ -103,6 +104,7 @@ class CziSampleInfo:
                 self.image_stageY = float(planetable["Y[micron]"][0])
 
             except Exception as e:
+                traceback.print_exc()
                 logger.error(e)
 
     def get_well_info(self, well: Box):
