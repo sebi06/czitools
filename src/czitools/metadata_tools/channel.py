@@ -27,7 +27,7 @@ class CziChannelInfo:
         isRGB (Dict[int, bool]): Dictionary indicating if each channel is RGB.
         consistent_pixeltypes (bool): Indicates if pixel types are consistent across channels.
         czi_disp_settings (Dict[int, pyczi.ChannelDisplaySettingsDataClass]): Dictionary containing the display settings for each channel.
-        verbose (bool): Flag to enable verbose logging.
+        verbose (bool): Flag to enable verbose logging. Initialized to False.
 
     Methods:
         __post_init__():

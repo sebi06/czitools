@@ -164,7 +164,7 @@ def test_scaling1(czifile: str, results: Dict) -> None:
 def test_safe_get_scale(dist: BoxList, expected: List[float]) -> None:
 
     for i in range(3):
-        assert czimd.CziScaling.safe_get_scale(dist, i) == expected[i]
+        assert czimd.CziScaling._safe_get_scale(dist, i) == expected[i]
 
 
 @pytest.mark.parametrize(

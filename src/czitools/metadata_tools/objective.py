@@ -22,6 +22,7 @@ class CziObjectives:
         immersion (List[Optional[str]]): Immersion types of the objectives.
         tubelensmag (List[Optional[float]]): Magnification values of the tubelenses.
         totalmag (List[Optional[float]]): Total magnification values calculated from objectives and tubelenses.
+        verbose (bool): Flag to enable verbose logging. Initialized to False.
     Methods:
         __post_init__(): Initializes the CziObjectives instance by reading objective and tubelens information from the CZI image data.
         get_objective_info(objective: Box): Extracts and stores information from a given objective.
@@ -37,10 +38,10 @@ class CziObjectives:
     tubelensmag: List[Optional[float]] = field(init=False, default_factory=lambda: [])
     totalmag: List[Optional[float]] = field(init=False, default_factory=lambda: [])
     verbose: bool = False
-    
+
     def __post_init__(self):
         if self.verbose:
-            logger.info("Reading Objective Information from CZI image data.")  
+            logger.info("Reading Objective Information from CZI image data.")
 
         if isinstance(self.czisource, Box):
             czi_box = self.czisource
@@ -78,7 +79,9 @@ class CziObjectives:
                     self.tubelensmag.append(float(tubelens.Magnification))
                 elif tubelens.Magnification is None:
                     if self.verbose:
-                        logger.warning("No tubelens magnification found. Use 1.0x instead.")
+                        logger.warning(
+                            "No tubelens magnification found. Use 1.0x instead."
+                        )
                     self.tubelensmag.append(1.0)
 
             elif isinstance(tubelens, BoxList):

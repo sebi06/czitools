@@ -30,6 +30,7 @@ class CziDetector:
         A list to store the zoom values of the detectors.
     amplificationgain : List[float]
         A list to store the amplification gain values of the detectors.
+    verbose (bool): Flag to enable verbose logging. Initialized to False.
     Methods
     -------
     __post_init__():
@@ -84,7 +85,8 @@ class CziDetector:
                     self.amplificationgain.append(detectors[d].AmplificationGain)
 
         elif czi_box.ImageDocument.Metadata.Information.Instrument is None:
-            logger.info("No Detector(s) information found.")
+            if self.verbose:
+                logger.info("No Detector(s) information found.")
             self.model = [None]
             self.name = [None]
             self.Id = [None]

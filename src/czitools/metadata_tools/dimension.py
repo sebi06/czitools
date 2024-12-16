@@ -194,7 +194,8 @@ class CziDimensions:
                             dimensions.Dimensions.T.Positions.List.Offsets
                         )
                     except Exception as e:
-                        logger.error(f"{e}")
+                        if self.verbose:
+                            logger.error(f"{e}")
                 else:
                     if self.verbose:
                         logger.warning(
@@ -215,7 +216,8 @@ class CziDimensions:
                             dimensions.Dimensions.Z.Positions.List.Offsets
                         )
                     except Exception as e:
-                        logger.error(f"{e}")
+                        if self.verbose:
+                            logger.error(f"{e}")
                 else:
                     if self.verbose:
                         logger.warning(

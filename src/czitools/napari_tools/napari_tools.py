@@ -176,6 +176,7 @@ def show(
     show_metadata: Literal["none", "tree", "table"] = "tree",
     name_sliders: bool = False,
     dask_cache_size: Annotated[float, ValueRange(0.5, 0.9)] = 0.5,
+    verbose: bool = True,
 ) -> List:
     """Display the multidimensional array inside the Napari viewer.
     Optionally the CziMetadata class will be used show a table with the metadata_tools.
@@ -195,6 +196,8 @@ def show(
         show_metadata (mdviewoption, optional): Option to show metadata_tools as tree or table. Defaults to "tree".
         name_sliders (bool, optional): option to use the dimension letters as slider labels for the viewer. Defaults to False.
         dask_cache_size(float, optional): option to resize the dask cache used for opportunistic caching. Range [0 - 1]
+        verbose (bool): Flag to enable verbose logging. Initialized to True.
+
 
     Returns:
         List: List of napari layers
@@ -207,19 +210,17 @@ def show(
 
     # check if contrast mode
     if contrast not in ["calc", "napari_auto", "from_czi"]:
-        logger.info(contrast, "is not valid contrast method. Use napari_auto instead.")
-        contrast = "from_czi"
+        if verbose:
+            logger.info(
+                contrast, "is not valid contrast method. Use napari_auto instead."
+            )
+            contrast = "napari_auto"
 
     # create empty list for the napari layers
     napari_layers = []
 
     # create scale factor with all ones
     scalefactors = [1.0] * len(array.shape)
-
-    # testing
-    # scalefactors = [1.0] * 6
-
-    # modify the tuple for the scales for napari
 
     # the "strange factor" is added due to an open (rounding) bug on the Napari side:
     # https://github.com/napari/napari/issues/4861
@@ -269,14 +270,16 @@ def show(
             channel = array
 
         # actually show the image array
-        logger.info(f"Adding Channel: {chname}")
-        logger.info(f"Shape Channel: {ch} , {channel.shape}")
-        logger.info(f"Scaling Factors: {scalefactors}")
+        if verbose:
+            logger.info(f"Adding Channel: {chname}")
+            logger.info(f"Shape Channel: {ch} , {channel.shape}")
+            logger.info(f"Scaling Factors: {scalefactors}")
 
         if contrast == "calc":
             # really calculate the min and max values - might be slow
             sc = misc.calc_scaling(channel, corr_min=1.1, corr_max=0.9)
-            logger.info(f"Calculated Display Scaling (min & max): {sc}")
+            if verbose:
+                logger.info(f"Calculated Display Scaling (min & max): {sc}")
 
             # add channel to napari viewer
             new_layer = viewer.add_image(
@@ -324,9 +327,10 @@ def show(
                 lower = 0
                 higher = np.round(metadata.maxvalue[ch] * 0.25, 0)
 
-            logger.info(
-                f"Display Scaling from CZI for CH: {ch} Min-Max: {lower}-{higher}"
-            )
+            if verbose:
+                logger.info(
+                    f"Display Scaling from CZI for CH: {ch} Min-Max: {lower}-{higher}"
+                )
 
             # add channel to Napari viewer
             new_layer = viewer.add_image(
@@ -346,13 +350,6 @@ def show(
         # get the label of the sliders (as a tuple) ad rename it
         sliderlabels = rename_sliders(viewer.dims.axis_labels, dim_order)
         viewer.dims.axis_labels = sliderlabels
-
-    # # workaround because of: https://forum.image.sc/t/napari-3d-view-shows-flat-z-stack/62744/9?u=sebi06
-    # not needed anymore since output is always STCZYX now.
-    # if dim_string == "STCZYX" or dim_string == "TZCYX":
-    #     od = list(viewer.dims.order)
-    #     od[dim_order["C"]], od[dim_order["Z"]] = od[dim_order["Z"]], od[dim_order["C"]]
-    #     viewer.dims.order = tuple(od)
 
     return napari_layers
 
@@ -381,8 +378,8 @@ def rename_sliders(sliders: Tuple, dim_order: Dict) -> Tuple:
                 # assign the dimension labels
                 tmp_sliders[dim_order[s]] = s
 
-        except KeyError:
-            logger.info(f"No {s} Dimension found")
+        except KeyError as e:
+            logger.info(f"{e}: No {s} Dimension found")
 
     # convert back to tuple
     sliders = tuple(tmp_sliders)

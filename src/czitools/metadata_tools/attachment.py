@@ -19,6 +19,7 @@ class CziAttachments:
         has_preview (Optional[bool]): Indicates if the CZI image has a preview attachment.
         has_prescan (Optional[bool]): Indicates if the CZI image has a prescan attachment.
         names (Optional[List[str]]): List of attachment names found in the CZI image.
+        verbose (bool): Flag to enable verbose logging. Initialized to False.
     Methods:
         __post_init__(): Initializes the CziAttachments object, reads attachment images from the CZI image data, and sets the appropriate flags for label, preview, and prescan attachments.
     """
@@ -69,6 +70,7 @@ class CziAttachments:
                             logger.info("Attachment Prescan found.")
 
         except ImportError as e:
-            logger.warning(
-                "Package czifile not found. Cannot extract information about attached images."
-            )
+            if self.verbose:
+                logger.warning(
+                    f"{e}: Package czifile not found. Cannot extract information about attached images."
+                )

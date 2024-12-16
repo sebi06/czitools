@@ -20,6 +20,7 @@ class CziScene:
         ystart (Optional[int]): The starting y-coordinate of the scene. Initialized to None.
         width (Optional[int]): The width of the scene. Initialized to None.
         height (Optional[int]): The height of the scene. Initialized to None.
+        verbose (bool): Flag to enable verbose logging.
     Methods:
         __post_init__(): Initializes the scene information by reading from the CZI file.
     """
@@ -31,6 +32,7 @@ class CziScene:
     ystart: Optional[int] = field(init=False, default=None)
     width: Optional[int] = field(init=False, default=None)
     height: Optional[int] = field(init=False, default=None)
+    verbose: bool = False
 
     def __post_init__(self):
         logger.info("Reading Scene Information from CZI image data.")
@@ -47,6 +49,7 @@ class CziScene:
                 self.ystart = self.bbox.y
                 self.width = self.bbox.w
                 self.height = self.bbox.h
-            except KeyError:
-                # in case an invalid index was used
-                logger.info("No Scenes detected.")
+            except KeyError as e:
+                if self.verbose:
+                    # in case an invalid index was used
+                    logger.info(f"{e}: No Scenes detected.")

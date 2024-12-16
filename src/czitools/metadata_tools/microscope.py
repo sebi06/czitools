@@ -22,6 +22,7 @@ class CziMicroscope:
         The name of the microscope. Initialized in __post_init__.
     System : Optional[str]
         The system of the microscope. Initialized in __post_init__.
+    verbose (bool): Flag to enable verbose logging. Initialized to False.
     Methods:
     -------
     __post_init__():
@@ -33,7 +34,7 @@ class CziMicroscope:
     Name: Optional[str] = field(init=False)
     System: Optional[str] = field(init=False)
     verbose: bool = False
-    
+
     def __post_init__(self):
         if self.verbose:
             logger.info("Reading Microscope Information from CZI image data.")

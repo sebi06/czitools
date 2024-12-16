@@ -19,6 +19,7 @@ class CziAddMetaData:
         customattributes (Optional[Box]): The custom attributes metadata. Initialized to None.
         displaysetting (Optional[Box]): The display setting metadata. Initialized to None.
         layers (Optional[Box]): The layers metadata. Initialized to None.
+        verbose (bool): Flag to enable verbose logging. Initialized to False.
     Methods:
         __post_init__(): Reads additional metadata from the CZI image data and initializes the attributes.
     """
