@@ -42,6 +42,7 @@ logger = logging_tools.set_logging()
 class CziMetadata:
     """
     CziMetadata class for handling metadata of CZI image files.
+
     Attributes:
         filepath (Union[str, os.PathLike[str]]): Path to the CZI image file.
         filename (Optional[str]): Name of the CZI image file.
@@ -50,6 +51,8 @@ class CziMetadata:
         software_name (Optional[str]): Name of the software used for acquisition.
         software_version (Optional[str]): Version of the software used for acquisition.
         acquisition_date (Optional[str]): Date and time of image acquisition.
+        creation_date (Optional[str]): Date and time of image creation.
+        user_name (Optional[str]): Name of the user who created the image.
         czi_box (Optional[Box]): Metadata box of the CZI file.
         pyczi_dims (Optional[Dict[str, tuple]]): Dimensions of the CZI file.
         aics_dimstring (Optional[str]): Dimension string from aicspylibczi.
@@ -61,13 +64,14 @@ class CziMetadata:
         aics_dim_valid (Optional[int]): Number of valid dimensions from aicspylibczi.
         aics_posC (Optional[int]): Position of the 'C' dimension from aicspylibczi.
         pixeltypes (Optional[Dict[int, str]]): Pixel types for all channels.
-        isRGB (Optional[bool]): Indicates if the image is RGB.
+        consistent_pixeltypes (Optional[bool]): Indicates if pixel types are consistent across channels.
+        isRGB (Optional[Dict[int, bool]]): Indicates if the image is RGB.
         has_scenes (Optional[bool]): Indicates if the CZI file has scenes.
         has_label (Optional[bool]): Indicates if the CZI file has a label image.
         has_preview (Optional[bool]): Indicates if the CZI file has a preview image.
         attachments (Optional[CziAttachments]): Attachments in the CZI file.
-        npdtype (Optional[List[Any]]): Numpy data types for pixel values.
-        maxvalue (Optional[List[int]]): Maximum values for pixel types.
+        npdtype_list (Optional[List[Any]]): Numpy data types for pixel values.
+        maxvalue_list (Optional[List[int]]): Maximum values for pixel types.
         image (Optional[CziDimensions]): Dimensions of the CZI image.
         bbox (Optional[CziBoundingBox]): Bounding box of the CZI image.
         channelinfo (Optional[CziChannelInfo]): Information about channels.
@@ -79,6 +83,8 @@ class CziMetadata:
         add_metadata (Optional[CziAddMetaData]): Additional metadata.
         array6d_size (Optional[Tuple[int]]): Size of the 6D array.
         scene_size_consistent (Optional[Tuple[int]]): Consistency of scene sizes.
+        verbose (bool): Verbose output for logging.
+
     Methods:
         __post_init__(): Initializes the CziMetadata object after dataclass initialization.
     """
@@ -90,6 +96,8 @@ class CziMetadata:
     software_name: Optional[str] = field(init=False, default=None)
     software_version: Optional[str] = field(init=False, default=None)
     acquisition_date: Optional[str] = field(init=False, default=None)
+    creation_date: Optional[str] = field(init=False, default=None)
+    user_name: Optional[str] = field(init=False, default=None)
     czi_box: Optional[Box] = field(init=False, default=None)
     pyczi_dims: Optional[Dict[str, tuple]] = field(
         init=False, default_factory=lambda: {}

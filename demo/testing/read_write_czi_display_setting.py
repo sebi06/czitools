@@ -33,8 +33,8 @@ import numpy as np
 #     return r, g, b
 
 # filepath = r"F:\Github\czitools\data\Tumor_HE_Orig_small.czi"
-# filepath = r"F:\Github\czitools\data\CellDivision_T3_Z5_CH2_X240_Y170.czi"
-filepath = r"F:\Github\czitools\data\Al2O3_SE_020_sp.czi"
+filepath = r"F:\Github\czitools\data\CellDivision_T3_Z5_CH2_X240_Y170.czi"
+# filepath = r"F:\Github\czitools\data\Al2O3_SE_020_sp.czi"
 # filepath = r"F:\Github\czitools\data\w96_A1+A2.czi"
 filepath_new = filepath[:-4] + "_disp.czi"
 
