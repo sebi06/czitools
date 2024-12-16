@@ -54,6 +54,7 @@ class CziDimensions:
         SizeB (Optional[int]): Size in the B dimension.
         posZ (Optional[List[float]]): List of Z positions in microns, if they exist.
         posT (Optional[List[float]]): List of T positions in seconds, if they exist.
+        verbose (bool): Flag to enable verbose logging.
     Methods:
         __post_init__(): Initializes the dimensions by reading from the CZI image data.
         set_dimensions(): Populates the image dimensions with the detected values from the metadata.
@@ -105,7 +106,8 @@ class CziDimensions:
 
     def __post_init__(self):
 
-        logger.info("Reading Dimensions from CZI image data.")
+        if self.verbose:
+            logger.info("Reading Dimensions from CZI image data.")
         self.set_dimensions()
 
         # set dimensions in XY with respect to possible down scaling
@@ -178,9 +180,10 @@ class CziDimensions:
             except KeyError as e:
                 self.SizeX_scene = None
                 self.SizeY_scene = None
-                logger.warning(
-                    "Scenes Dimension detected but no bounding rectangle information found."
-                )
+                if self.verbose:
+                    logger.warning(
+                        "Scenes Dimension detected but no bounding rectangle information found."
+                    )
 
         if czi_box.has_T:
             # check if there is a list with timepoints (is not in very CZI)
@@ -191,15 +194,18 @@ class CziDimensions:
                             dimensions.Dimensions.T.Positions.List.Offsets
                         )
                     except Exception as e:
-                        logger.error(f"{e}")
+                        if self.verbose:
+                            logger.error(f"{e}")
                 else:
-                    logger.warning(
-                        "No posT list found under 'dimensions.Dimensions.T.Positions.List'"
-                    )
+                    if self.verbose:
+                        logger.warning(
+                            "No posT list found under 'dimensions.Dimensions.T.Positions.List'"
+                        )
             else:
-                logger.warning(
-                    "No posT list found under 'dimensions.Dimensions.T.Positions'"
-                )
+                if self.verbose:
+                    logger.warning(
+                        "No posT list found under 'dimensions.Dimensions.T.Positions'"
+                    )
 
         if czi_box.has_Z:
             # check if there is a list with z-positions (is not in very CZI)
@@ -210,12 +216,15 @@ class CziDimensions:
                             dimensions.Dimensions.Z.Positions.List.Offsets
                         )
                     except Exception as e:
-                        logger.error(f"{e}")
+                        if self.verbose:
+                            logger.error(f"{e}")
                 else:
-                    logger.warning(
-                        "No posZ list found under 'dimensions.Dimensions.Z.Positions.List'"
-                    )
+                    if self.verbose:
+                        logger.warning(
+                            "No posZ list found under 'dimensions.Dimensions.Z.Positions.List'"
+                        )
             else:
-                logger.warning(
-                    "No posZ list found under 'dimensions.Dimensions.Z.Positions'"
-                )
+                if self.verbose:
+                    logger.warning(
+                        "No posZ list found under 'dimensions.Dimensions.Z.Positions'"
+                    )

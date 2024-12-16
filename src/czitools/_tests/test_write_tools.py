@@ -1,3 +1,7 @@
+import pytest
+import numpy as np
+from pathlib import Path
+import shutil
 from czitools.read_tools import read_tools
 from czitools.write_tools import write_tools
 from czitools.metadata_tools import czi_metadata as czimd
@@ -11,6 +15,9 @@ from tqdm.contrib import itertools as it
 from tqdm import tqdm
 import pytest
 from typing import Dict, Tuple
+
+import dask.array as da
+
 
 basedir = Path(__file__).resolve().parents[3] / "data"
 
@@ -275,7 +282,76 @@ def test_write_omezarr(
 
     print(zp, type(zp))
 
-    assert zp.exists() == True
+    assert zp.exists()
 
     # remove files
     shutil.rmtree(zarr_path, ignore_errors=False, onerror=None)
+
+
+@pytest.fixture
+def temp_zarr_path(tmp_path):
+    return str(tmp_path / "test.zarr")
+
+
+def test_write_omezarr_numpy_array(temp_zarr_path):
+    array5d = np.random.randint(1, 1000, (1, 1, 10, 300, 500))
+    result = write_tools.write_omezarr(
+        array5d, temp_zarr_path, axes="tczyx", overwrite=True
+    )
+    assert result == temp_zarr_path
+    assert Path(temp_zarr_path).exists()
+    # remove files
+    shutil.rmtree(temp_zarr_path, ignore_errors=False, onerror=None)
+
+
+def test_write_omezarr_dask_array(temp_zarr_path):
+    array5d = da.random.randint(1, 1000, (1, 1, 20, 200, 300), chunks=(1, 1, 5, 5, 5))
+    result = write_tools.write_omezarr(
+        array5d, temp_zarr_path, axes="tczyx", overwrite=True
+    )
+    assert result == temp_zarr_path
+    assert Path(temp_zarr_path).exists()
+    # remove files
+    shutil.rmtree(temp_zarr_path, ignore_errors=False, onerror=None)
+
+
+def test_write_omezarr_invalid_dimensions(temp_zarr_path):
+    array6d = np.random.randint(1, 1000, (1, 1, 10, 20, 300, 500))
+    result = write_tools.write_omezarr(
+        array6d, temp_zarr_path, axes="tczzyx", overwrite=True
+    )
+    assert result is None
+    assert not Path(temp_zarr_path).exists()
+
+
+def test_write_omezarr_invalid_axes(temp_zarr_path):
+    array5d = np.random.randint(1, 1000, (1, 1, 10, 300, 500))
+    result = write_tools.write_omezarr(
+        array5d, temp_zarr_path, axes="tcbzyx", overwrite=True
+    )
+    assert result == temp_zarr_path
+    assert Path(temp_zarr_path).exists()
+
+
+def test_write_omezarr_overwrite(temp_zarr_path):
+    array5d = np.random.randint(1, 1000, (1, 1, 10, 300, 500))
+    Path(temp_zarr_path).mkdir(parents=True, exist_ok=True)
+    result = write_tools.write_omezarr(
+        array5d, temp_zarr_path, axes="tczyx", overwrite=True
+    )
+    assert result == temp_zarr_path
+    assert Path(temp_zarr_path).exists()
+    # remove files
+    shutil.rmtree(temp_zarr_path, ignore_errors=False, onerror=None)
+
+
+def test_write_omezarr_no_overwrite(temp_zarr_path):
+    array5d = np.random.randint(1, 1000, (1, 1, 10, 300, 500))
+    Path(temp_zarr_path).mkdir(parents=True, exist_ok=True)
+    result = write_tools.write_omezarr(
+        array5d, temp_zarr_path, axes="tczyx", overwrite=False
+    )
+    assert result is None
+    assert Path(temp_zarr_path).exists()
+    # remove files
+    shutil.rmtree(temp_zarr_path, ignore_errors=False, onerror=None)

@@ -8,6 +8,7 @@ from czitools.utils import logging_tools
 from czitools.utils.box import get_czimd_box
 from czitools.utils.misc import get_planetable
 from czitools.metadata_tools.dimension import CziDimensions
+import traceback
 
 logger = logging_tools.set_logging()
 
@@ -40,6 +41,8 @@ class CziSampleInfo:
         X coordinate of the image stage.
     image_stageY : float
         Y coordinate of the image stage.
+    verbose (bool):
+        Flag to enable verbose logging.
     Methods:
     --------
     __post_init__():
@@ -86,12 +89,14 @@ class CziSampleInfo:
                         self.get_well_info(allscenes[well])
 
             except AttributeError:
-                logger.info("CZI contains no scene metadata_tools.")
+                if self.verbose:
+                    logger.info("CZI contains no scene metadata_tools.")
 
         elif size_s is None:
-            logger.info(
-                "No Scene or Well information found. Try to read XY Stage Coordinates from subblocks."
-            )
+            if self.verbose:
+                logger.info(
+                    "No Scene or Well information found. Try to read XY Stage Coordinates from subblocks."
+                )
 
             try:
                 # read the data from CSV file
@@ -103,7 +108,9 @@ class CziSampleInfo:
                 self.image_stageY = float(planetable["Y[micron]"][0])
 
             except Exception as e:
-                logger.error(e)
+                if self.verbose:
+                    traceback.print_exc()
+                    logger.error(e)
 
     def get_well_info(self, well: Box):
         """
@@ -127,22 +134,25 @@ class CziSampleInfo:
         if well.Index is not None:
             self.well_indices.append(int(well.Index))
         elif well.Index is None:
-            logger.info("Well Index not found.")
-            self.well_indices.append(1)
+            if self.verbose:
+                logger.info("Well Index not found.")
+                self.well_indices.append(1)
 
         if well.Name is not None:
             self.well_position_names.append(well.Name)
         elif well.Name is None:
-            logger.info("Well Position Names not found.")
-            self.well_position_names.append("P1")
+            if self.verbose:
+                logger.info("Well Position Names not found.")
+                self.well_position_names.append("P1")
 
         if well.Shape is not None:
             self.well_colID.append(int(well.Shape.ColumnIndex))
             self.well_rowID.append(int(well.Shape.RowIndex))
         elif well.Shape is None:
-            logger.info("Well Column or Row IDs not found.")
-            self.well_colID.append(0)
-            self.well_rowID.append(0)
+            if self.verbose:
+                logger.info("Well Column or Row IDs not found.")
+                self.well_colID.append(0)
+                self.well_rowID.append(0)
 
         if well.CenterPosition is not None:
             # get the SceneCenter Position
@@ -151,9 +161,10 @@ class CziSampleInfo:
             self.scene_stageX.append(np.double(sx))
             self.scene_stageY.append(np.double(sy))
         elif well.CenterPosition is None:
-            logger.info("Stage Positions XY not found.")
-            self.scene_stageX.append(0.0)
-            self.scene_stageY.append(0.0)
+            if self.verbose:
+                logger.info("Stage Positions XY not found.")
+                self.scene_stageX.append(0.0)
+                self.scene_stageY.append(0.0)
 
 
 def get_scenes_for_well(sample: CziSampleInfo, wellID: str) -> Tuple[int]:

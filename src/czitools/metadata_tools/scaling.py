@@ -24,9 +24,10 @@ class CziScaling:
         ratio (Optional[Dict[str, float]]): The scaling ratios for XY, ZX, and ZX_sf.
         unit (Optional[str]): The unit of measurement for scaling, default is "micron".
         zoom (Annotated[float, ValueRange(0.01, 1.0)]): The zoom factor, default is 1.0.
+        verbose (bool): Flag to enable verbose logging.
     Methods:
         __post_init__(): Initializes the scaling values from the CZI image data.
-        safe_get_scale(dist: BoxList, idx: int) -> Optional[float]: Safely retrieves the scaling value for a given dimension.
+        _safe_get_scale(dist: BoxList, idx: int) -> Optional[float]: Safely retrieves the scaling value for a given dimension.
     """
 
     czisource: Union[str, os.PathLike[str], Box]
@@ -41,10 +42,10 @@ class CziScaling:
     unit: Optional[str] = field(init=True, default="micron")
     zoom: Annotated[float, ValueRange(0.01, 1.0)] = field(init=True, default=1.0)
     verbose: bool = False
-    
+
     def __post_init__(self):
         if self.verbose:
-            logger.info("Reading Scaling from CZI image data.")   
+            logger.info("Reading Scaling from CZI image data.")
 
         if isinstance(self.czisource, Box):
             czi_box = self.czisource
@@ -55,9 +56,15 @@ class CziScaling:
             distances = czi_box.ImageDocument.Metadata.Scaling.Items.Distance
 
             # get the scaling values for X,Y and Z
-            self.X = np.round(self.safe_get_scale(distances, 0), 3)
-            self.Y = np.round(self.safe_get_scale(distances, 1), 3)
-            self.Z = np.round(self.safe_get_scale(distances, 2), 3)
+            self.X = np.round(
+                self._safe_get_scale(distances, 0, verbose=self.verbose), 3
+            )
+            self.Y = np.round(
+                self._safe_get_scale(distances, 1, verbose=self.verbose), 3
+            )
+            self.Z = np.round(
+                self._safe_get_scale(distances, 2, verbose=self.verbose), 3
+            )
 
             # calc the scaling values for X,Y when applying downscaling
             self.X_sf = np.round(self.X * (1 / self.zoom), 3)
@@ -71,10 +78,13 @@ class CziScaling:
             }
 
         elif not czi_box.has_scale:
-            logger.info("No scaling information found.")
+            if self.verbose:
+                logger.warning("No scaling information found.")
 
     @staticmethod
-    def safe_get_scale(dist: BoxList, idx: int) -> Optional[float]:
+    def _safe_get_scale(
+        dist: BoxList, idx: int, verbose: bool = False
+    ) -> Optional[float]:
         scales = ["X", "Y", "Z"]
 
         try:
@@ -84,15 +94,19 @@ class CziScaling:
             # check for the value = 0.0
             if sc == 0.0:
                 sc = 1.0
-                logger.info(
-                    "Detected Scaling = 0.0 for "
-                    + scales[idx]
-                    + " Using default = 1.0 [micron]."
-                )
+                if verbose:
+                    logger.info(
+                        "Detected Scaling = 0.0 for "
+                        + scales[idx]
+                        + " Using default = 1.0 [micron]."
+                    )
             return sc
 
         except (IndexError, TypeError, AttributeError):
-            logger.info(
-                "No " + scales[idx] + "-Scaling found. Using default = 1.0 [micron]."
-            )
+            if verbose:
+                logger.info(
+                    "No "
+                    + scales[idx]
+                    + "-Scaling found. Using default = 1.0 [micron]."
+                )
             return 1.0

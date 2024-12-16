@@ -72,6 +72,11 @@ def write_omezarr(
     # check if zarr_path already exits
     if Path(zarr_path).exists() and overwrite:
         shutil.rmtree(zarr_path, ignore_errors=False, onerror=None)
+    elif Path(zarr_path).exists() and not overwrite:
+        logger.warning(
+            f"File already exists at {zarr_path}. Set overwrite=True to remove."
+        )
+        return None
 
     # show currently used version of NGFF specification
     ngff_version = ome_zarr.format.CurrentFormat().version
@@ -106,7 +111,4 @@ def write_omezarr(
 
     logger.info(f"Finished writing OME-ZARR to: {zarr_path}")
 
-    if Path(zarr_path).exists():
-        return zarr_path
-    if not Path(zarr_path).exists():
-        return None
+    return zarr_path

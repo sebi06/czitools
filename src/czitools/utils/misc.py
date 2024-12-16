@@ -305,30 +305,74 @@ def get_planetable(
     aicsczi = CziFile(czifile)
     dims = aicsczi.get_dims_shape()
 
+    has_s = False
+    has_m = False
+    has_t = False
+    has_c = False
+    has_z = False
+
     if "S" in dims[0].keys():
         size_s = dims[0]["S"][1]
+        has_s = True
     else:
         size_s = 1
 
     if "M" in dims[0].keys():
         size_m = dims[0]["M"][1]
+        has_m = True
     else:
         size_m = 1
 
     if "T" in dims[0].keys():
         size_t = dims[0]["T"][1]
+        has_t = True
     else:
         size_t = 1
 
     if "C" in dims[0].keys():
         size_c = dims[0]["C"][1]
+        has_c = True
     else:
         size_c = 1
 
     if "Z" in dims[0].keys():
         size_z = dims[0]["Z"][1]
+        has_z = True
     else:
         size_z = 1
+
+        # cast data types
+    df_czi = df_czi.astype(
+        {
+            "Subblock": "int32",
+            "Scene": "int32",
+            "Tile": "int32",
+            "T": "int32",
+            "Z": "int32",
+            "C": "int16",
+            "X[micron]": "float",
+            "Y[micron]": "float",
+            "Z[micron]": "float",
+            "Time[s]": "float",
+            "xstart": "int32",
+            "ystart": "int32",
+            "width": "int32",
+            "height": "int32",
+        },
+        copy=False,
+        errors="ignore",
+    )
+
+    if not has_m:
+        df_czi.drop(columns=["Tile"], inplace=True)
+    if not has_s:
+        df_czi.drop(columns=["Scene"], inplace=True)
+    if not has_t:
+        df_czi.drop(columns=["T"], inplace=True)
+    if not has_z:
+        df_czi.drop(columns=["Z"], inplace=True)
+
+    a = 1
 
     def getsbinfo(subblock: Any) -> Tuple[float, float, float, float]:
         try:
@@ -372,13 +416,6 @@ def get_planetable(
 
     # do if the data is not a mosaic
     if size_m > 1:
-        # for s, m, t, z, c in product(
-        #    range(size_s),
-        #    range(size_m),
-        #    range(size_t),
-        #    range(size_z),
-        #    range(size_c),
-        # ):
         for s, m, t, c, z in product(
             range(size_s),
             range(size_m),
@@ -390,10 +427,24 @@ def get_planetable(
         ):
             sbcount += 1
 
+            args = {"S": s, "M": m, "T": t[1], "Z": z[1], "C": c[1]}
+
+            if not has_t:
+                args.pop("T")
+            if not has_z:
+                args.pop("Z")
+            if not has_s:
+                args.pop("S")
+            if not has_m:
+                args.pop("M")
+
             # get x, y, width and height for a specific tile
-            tilebbox = aicsczi.get_mosaic_tile_bounding_box(
-                S=s, M=m, T=t[1], Z=z[1], C=c[1]
-            )
+            tilebbox = aicsczi.get_mosaic_tile_bounding_box(**args)
+
+            # # get x, y, width and height for a specific tile
+            # tilebbox = aicsczi.get_mosaic_tile_bounding_box(
+            #     S=s, M=m, T=t[1], Z=z[1], C=c[1]
+            # )
 
             # read information from subblock
             sb = aicsczi.read_subblock_metadata(
@@ -403,7 +454,7 @@ def get_planetable(
             # get information from subblock
             timestamp, xpos, ypos, zpos = getsbinfo(sb)
 
-            plane = pd.DataFrame(
+            plane = [
                 {
                     "Subblock": sbcount,
                     "Scene": s,
@@ -419,11 +470,13 @@ def get_planetable(
                     "ystart": tilebbox.y,
                     "width": tilebbox.w,
                     "height": tilebbox.h,
-                },
-                index=[0],
-            )
+                }
+            ]
 
-            df_czi = pd.concat([df_czi if not df_czi.empty else None, plane])
+            df_czi = pd.concat(
+                [df_czi if not df_czi.empty else None, pd.DataFrame(plane)],
+                ignore_index=True,
+            )
 
     # do if the data is not a mosaic
     if size_m == 1:
@@ -440,6 +493,15 @@ def get_planetable(
         ):
             sbcount += 1
 
+            args = {"S": s, "T": t[1], "Z": z[1], "C": c[1]}
+
+            if not has_t:
+                args.pop("T")
+            if not has_z:
+                args.pop("Z")
+            if not has_s:
+                args.pop("S")
+
             # get x, y, width and height for a specific tile
             tilebbox = aicsczi.get_tile_bounding_box(S=s, T=t[1], Z=z[1], C=c[1])
 
@@ -451,11 +513,10 @@ def get_planetable(
             # get information from subblock
             timestamp, xpos, ypos, zpos = getsbinfo(sb)
 
-            plane = pd.DataFrame(
+            plane = [
                 {
                     "Subblock": sbcount,
                     "Scene": s,
-                    "Tile": 0,
                     "T": t[1],
                     "Z": z[1],
                     "C": c[1],
@@ -467,32 +528,15 @@ def get_planetable(
                     "ystart": tilebbox.y,
                     "width": tilebbox.w,
                     "height": tilebbox.h,
-                },
-                index=[0],
-            )
+                }
+            ]
 
-            df_czi = pd.concat([df_czi if not df_czi.empty else None, plane])
+            # df_czi = pd.concat(
+            #     [df_czi if not df_czi.empty else None, pd.DataFrame(plane)],
+            #     ignore_index=True,
+            # )
 
-    # cast data  types
-    df_czi = df_czi.astype(
-        {
-            "Subblock": "int32",
-            "Scene": "int32",
-            "Tile": "int32",
-            "T": "int32",
-            "Z": "int32",
-            "C": "int16",
-            "X[micron]": "float",
-            "Y[micron]": "float",
-            "Z[micron]": "float",
-            "xstart": "int32",
-            "ystart": "int32",
-            "width": "int32",
-            "height": "int32",
-        },
-        copy=False,
-        errors="ignore",
-    )
+            df_czi = pd.concat([df_czi, pd.DataFrame(plane)], ignore_index=True)
 
     # normalize time stamps
     if norm_time:
@@ -517,11 +561,11 @@ def norm_columns(
     # normalize columns according to min or max value
     if mode == "min":
         min_value = df[colname].min()
-        df[colname] = df[colname] - min_value
+        df[colname] = np.round((df[colname] - min_value), 3)
 
     if mode == "max":
         max_value = df[colname].max()
-        df[colname] = df[colname] - max_value
+        df[colname] = np.round((df[colname] - max_value), 3)
 
     return df
 

@@ -27,6 +27,7 @@ class CziBoundingBox:
         A dictionary containing the bounding rectangles for each scene in the CZI file without pyramid.
     total_bounding_box_no_pyramid : Optional[Dict[str, tuple]]
         A dictionary containing the total bounding box coordinates without pyramid.
+    verbose (bool): Flag to enable verbose logging. Initialized to False.
     Methods:
     --------
     __post_init__():
@@ -72,36 +73,34 @@ class CziBoundingBox:
             try:
                 self.scenes_bounding_rect = czidoc.scenes_bounding_rectangle
             except Exception as e:
-                self.scenes_bounding_rect = None
-                logger.info("Scenes Bounding Rectangle not found.")
+                if self.verbose:
+                    self.scenes_bounding_rect = None
+                    logger.info("Scenes Bounding Rectangle not found.")
 
             try:
                 self.scenes_bounding_rect_no_pyramid = (
                     czidoc.scenes_bounding_rectangle_no_pyramid
                 )
             except Exception as e:
-                self.scenes_bounding_rect_no_pyramid = None
-                logger.info("Scenes Bounding Rectangle no Pyramid not found.")
+                if self.verbose:
+                    self.scenes_bounding_rect_no_pyramid = None
+                    logger.info("Scenes Bounding Rectangle no Pyramid not found.")
 
             # get total bounding rectangles
             try:
                 self.total_rect = czidoc.total_bounding_rectangle
             except Exception as e:
                 self.total_rect = None
-                logger.info("Total Bounding Rectangle not found.")
-
-            # try:
-            #     self.total_rect_no_pyramid = czidoc.total_bounding_rectangle_wo_pyramid
-            # except Exception as e:
-            #     self.total_rect_wo_pyramid = None
-            #     logger.info("Total Bounding Rectangle no Pyramid not found.")
+                if self.verbose:
+                    logger.info("Total Bounding Rectangle not found.")
 
             # get total bounding boxes
             try:
                 self.total_bounding_box = czidoc.total_bounding_box
             except Exception as e:
                 self.total_bounding_box = None
-                logger.info("Total Bounding Box not found.")
+                if self.verbose:
+                    logger.info("Total Bounding Box not found.")
 
             try:
                 self.total_bounding_box_no_pyramid = (
@@ -109,4 +108,5 @@ class CziBoundingBox:
                 )
             except Exception as e:
                 self.total_bounding_box_no_pyramid = None
-                logger.info("Total Bounding Box no Pyramid not found.")
+                if self.verbose:
+                    logger.info("Total Bounding Box no Pyramid not found.")

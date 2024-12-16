@@ -15,6 +15,7 @@ logger = logging_tools.set_logging()
 class CziChannelInfo:
     """
     A class to handle channel information from CZI image data.
+
     Attributes:
         czisource (Union[str, os.PathLike[str], Box]): The source of the CZI image data.
         names (List[str]): List of channel names.
@@ -22,12 +23,21 @@ class CziChannelInfo:
         colors (List[str]): List of channel colors.
         clims (List[List[float]]): List of channel intensity limits.
         gamma (List[float]): List of gamma values for each channel.
-        czi_disp_settings (Dict[]): Dictionary containing the display settings for each channel.
+        pixeltypes (Dict[int, str]): Dictionary of pixel types for each channel.
+        isRGB (Dict[int, bool]): Dictionary indicating if each channel is RGB.
+        consistent_pixeltypes (bool): Indicates if pixel types are consistent across channels.
+        czi_disp_settings (Dict[int, pyczi.ChannelDisplaySettingsDataClass]): Dictionary containing the display settings for each channel.
+        verbose (bool): Flag to enable verbose logging. Initialized to False.
+
     Methods:
         __post_init__():
             Initializes the channel information from the CZI image data.
         _get_channel_info(display: Box):
             Extracts and appends channel display information.
+        _calculate_display_settings() -> Dict:
+            Calculates and returns the display settings for each channel.
+        _hex_to_rgb(hex_string: str) -> tuple[int, int, int]:
+            Converts a hexadecimal color string to an RGB tuple.
     """
 
     czisource: Union[str, os.PathLike[str], Box]
@@ -90,7 +100,8 @@ class CziChannelInfo:
             except AttributeError:
                 channels = None
         elif not czi_box.has_channels:
-            logger.info("Channel(s) information not found.")
+            if self.verbose:
+                logger.info("Channel(s) information not found.")
 
         if czi_box.has_disp:
             try:
