@@ -154,7 +154,6 @@ data/*.zarr
 data/*.xml
 **/data/*.zarr
 data/*.xml
-data/*.csv
 data/*.html
 notebooks/*.html
 notebooks/*.csv
