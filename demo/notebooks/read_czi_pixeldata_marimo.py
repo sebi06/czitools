@@ -18,6 +18,7 @@ def _():
     import stackview
     from matplotlib import pyplot as plt
     import matplotlib.cm as cm
+
     return (
         Path,
         cm,
@@ -69,33 +70,37 @@ def _(czird, da, filepath):
 
 @app.cell
 def _(dims, mo):
-    scene = mo.ui.slider(start=0, 
-            stop=dims[0] - 1, 
-            step=1, 
-            label=f"scene [0 - {dims[0]-1}]",
-            show_value=True
-        )
+    scene = mo.ui.slider(
+        start=0,
+        stop=dims[0] - 1,
+        step=1,
+        label=f"scene [0 - {dims[0]-1}]",
+        show_value=True,
+    )
 
-    time = mo.ui.slider(start=0, 
-            stop=dims[1] - 1, 
-            step=1,  
-            label=f"time [0 - {dims[1]-1}]",
-            show_value=True
-        )
+    time = mo.ui.slider(
+        start=0,
+        stop=dims[1] - 1,
+        step=1,
+        label=f"time [0 - {dims[1]-1}]",
+        show_value=True,
+    )
 
-    channel = mo.ui.slider(start=0, 
-            stop=dims[2] - 1, 
-            step=1, 
-            label=f"channel [0 - {dims[2]-1}]",
-            show_value=True
-        )
+    channel = mo.ui.slider(
+        start=0,
+        stop=dims[2] - 1,
+        step=1,
+        label=f"channel [0 - {dims[2]-1}]",
+        show_value=True,
+    )
 
-    zplane = mo.ui.slider(start=0, 
-            stop=dims[3] - 1, 
-            step=1, 
-            label=f"zplane [0 - {dims[3]-1}]",
-            show_value=True
-        )
+    zplane = mo.ui.slider(
+        start=0,
+        stop=dims[3] - 1,
+        step=1,
+        label=f"zplane [0 - {dims[3]-1}]",
+        show_value=True,
+    )
 
     mo.vstack([scene, time, channel, zplane])
     return channel, scene, time, zplane
@@ -114,6 +119,7 @@ def _(array6d, cm, plt):
         plt.imshow(array6d[s, t, c, z, ...], cmap=cm.gray)
         plt.tight_layout()
         return plt.gca()
+
     return (show_2dplane,)
 
 
