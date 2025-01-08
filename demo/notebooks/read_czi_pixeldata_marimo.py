@@ -15,11 +15,11 @@ def _():
     from pathlib import Path
     import os
     import glob
-    import stackview
     from matplotlib import pyplot as plt
     import matplotlib.cm as cm
-
+    from matplotlib.colors import LinearSegmentedColormap
     return (
+        LinearSegmentedColormap,
         Path,
         cm,
         czimd,
@@ -31,7 +31,6 @@ def _():
         os,
         pd,
         plt,
-        stackview,
     )
 
 
@@ -52,7 +51,21 @@ def _(file_browser):
 
 
 @app.cell
-def _(czird, da, filepath):
+def _(LinearSegmentedColormap, czird, da, filepath):
+    def hex_to_rgb(hex_color: str) -> tuple[int, int, int]:
+        """
+        Convert a hexadecimal color string to an RGB tuple.
+        Args:
+            hex_color (str): A string representing a color in hexadecimal format (e.g., "#RRGGBB").
+        Returns:
+            tuple[int, int, int]: A tuple containing the RGB values as floats in the range [0, 1].
+        """
+
+        hex_color = hex_color.lstrip("#")
+        rgb = tuple(int(hex_color[i : i + 2], 16) / 255.0 for i in (0, 2, 4))
+
+        return rgb
+
     # return array with dimension order STCZYX(A)
     array6d, mdata = czird.read_6darray(filepath, use_dask=False, chunk_zyx=True)
 
@@ -65,7 +78,24 @@ def _(czird, da, filepath):
     # Get array dimensions
     dims = array6d.shape[:-2]
     dims_names = ["S", "T", "C", "Z"]
-    return array6d, dims, dims_names, mdata
+
+    cmaps = []
+
+    for ch in range(mdata.image.SizeC):
+        chname = mdata.channelinfo.names[ch]
+        rgb = hex_to_rgb(mdata.channelinfo.colors[ch][3:])
+        cmaps.append(LinearSegmentedColormap.from_list(chname, [(0, 0, 0), rgb]))
+    return (
+        array6d,
+        ch,
+        chname,
+        cmaps,
+        dims,
+        dims_names,
+        hex_to_rgb,
+        mdata,
+        rgb,
+    )
 
 
 @app.cell
@@ -113,13 +143,12 @@ def _(channel, scene, show_2dplane, time, zplane):
 
 
 @app.cell
-def _(array6d, cm, plt):
+def _(array6d, cmaps, plt):
     def show_2dplane(s, t, c, z):
         plt.figure(figsize=(8, 8))
-        plt.imshow(array6d[s, t, c, z, ...], cmap=cm.gray)
+        plt.imshow(array6d[s, t, c, z, ...], cmap=cmaps[c], vmin=None, vmax=None)
         plt.tight_layout()
         return plt.gca()
-
     return (show_2dplane,)
 
 
