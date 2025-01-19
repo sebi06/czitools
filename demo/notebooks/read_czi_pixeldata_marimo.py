@@ -1,6 +1,6 @@
 import marimo
 
-__generated_with = "0.10.9"
+__generated_with = "0.10.14"
 app = marimo.App(auto_download=["ipynb"])
 
 
@@ -66,7 +66,7 @@ def _(LinearSegmentedColormap, czird, da, filepath):
 
         return rgb
 
-    # return array with dimension order STCZYX(A)
+    # get 6d array with dimension order STCZYX(A)
     array6d, mdata = czird.read_6darray(filepath, use_dask=False, chunk_zyx=True)
 
     # show dask array structure
@@ -75,7 +75,7 @@ def _(LinearSegmentedColormap, czird, da, filepath):
     else:
         print("Shape:", array6d.shape, "dtype:", array6d.dtype)
 
-    # Get array dimensions
+    # get array dimensions
     dims = array6d.shape[:-2]
     dims_names = ["S", "T", "C", "Z"]
 
@@ -96,6 +96,18 @@ def _(LinearSegmentedColormap, czird, da, filepath):
         mdata,
         rgb,
     )
+
+
+@app.cell
+def _(czimd, mdata, misc, mo):
+    # get the CZI metadata dictionary directly from filename
+    mdict = czimd.create_md_dict_red(mdata, sort=False, remove_none=True)
+
+    # convert metadata dictionary to a pandas dataframe
+    mdframe = misc.md2dataframe(mdict)
+
+    mo.vstack([mo.ui.table(mdframe)])
+    return mdframe, mdict
 
 
 @app.cell
