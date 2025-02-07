@@ -1,4 +1,12 @@
-from typing import Union, List, Dict, Optional
+# -*- coding: utf-8 -*-
+
+#################################################################
+# File        : channel.py
+# Author      : sebi06
+#
+#################################################################
+
+from typing import Union, List, Dict
 from dataclasses import dataclass, field
 from box import Box, BoxList
 import os
@@ -6,7 +14,6 @@ from czitools.utils import logging_tools, pixels
 from czitools.utils.box import get_czimd_box
 from pylibCZIrw import czi as pyczi
 import numpy as np
-from pathlib import Path
 
 logger = logging_tools.set_logging()
 
@@ -36,8 +43,6 @@ class CziChannelInfo:
             Extracts and appends channel display information.
         _calculate_display_settings() -> Dict:
             Calculates and returns the display settings for each channel.
-        _hex_to_rgb(hex_string: str) -> tuple[int, int, int]:
-            Converts a hexadecimal color string to an RGB tuple.
     """
 
     czisource: Union[str, os.PathLike[str], Box]
@@ -115,7 +120,7 @@ class CziChannelInfo:
             except AttributeError:
                 disp = None
 
-            # calulate the ChannelDisplaySetting
+            # calculate the ChannelDisplaySetting
             self.czi_disp_settings = self._calculate_display_settings()
 
         elif not czi_box.has_disp:
@@ -161,7 +166,7 @@ class CziChannelInfo:
         for channel_index in range(num_channels):
 
             # Get RGB values based on a RGB hexstring. Inside a CZI per channel one gets #AARRGGBB.
-            r, g, b = self._hex_to_rgb(self.colors[channel_index][3:])
+            r, g, b = hex_to_rgb(self.colors[channel_index][3:])
 
             if self.isRGB[channel_index]:
                 tinting_mode = pyczi.TintingMode.none
@@ -187,20 +192,39 @@ class CziChannelInfo:
 
         return display_settings_dict
 
-    def _hex_to_rgb(self, hex_string: str) -> tuple[int, int, int]:
-        """
-        Convert a hexadecimal color string to an RGB tuple.
-        Args:
-            hex_string (str): A string representing a color in hexadecimal format (e.g., '#RRGGBB').
-        Returns:
-            tuple: A tuple containing the RGB values (r, g, b) as integers.
-        """
-        # Remove the '#' character
-        hex_string = hex_string.lstrip("#")
 
+def hex_to_rgb(hex_string: str) -> tuple[int, int, int]:
+    """
+    Convert a hexadecimal color string to an RGB tuple.
+    Args:
+        hex_string (str): A string representing a color in hexadecimal format (e.g., '#RRGGBB').
+    Returns:
+        tuple: A tuple containing the RGB values (r, g, b) as integers.
+    """
+
+    # Remove the '#' characters
+    hex_string = hex_string.replace("#", "")
+
+    # check the length of the string
+    if len(hex_string) != 6:
+        # remove alpha values
+        hex_string = hex_string[2:]
+
+    try:
         # Convert hex string to integer values
         r = int(hex_string[0:2], 16)
         g = int(hex_string[2:4], 16)
         b = int(hex_string[4:6], 16)
 
-        return r, g, b
+    except ValueError:
+
+        # Set RGB values to 128 if conversion fails
+        r = 128
+        g = 128
+        b = 128
+
+        logger.error(
+            f"Invalid RGB values detected. Conversion of hex string {hex_string} to RGB failed. Setting RGB values to 128."
+        )
+
+    return r, g, b

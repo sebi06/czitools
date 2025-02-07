@@ -1,5 +1,6 @@
 from pathlib import Path
 from czitools.metadata_tools import czi_metadata as czimd
+from czitools.metadata_tools.channel import hex_to_rgb
 import pytest
 from typing import List, Dict
 from pylibCZIrw import czi as pyczi
@@ -135,3 +136,21 @@ def test_channelinfo(
     assert czi_channels.isRGB == is_rgb
     assert czi_channels.consistent_pixeltypes == is_consistent
     assert czi_channels.pixeltypes == pxtypes
+
+
+@pytest.mark.parametrize(
+    "hex_string, results",
+    [
+        ("#80808000", (128, 128, 0)),
+        ("#FFFF7E000", (255, 126, 0)),
+        ("00FF3", (128, 128, 128)),
+        ("FF00FF", (255, 0, 255)),
+        ("##FF00FF", (255, 0, 255)),
+        ("#FF00FF33", (0, 255, 51)),
+        ("#", (128, 128, 128)),
+        ("", (128, 128, 128)),
+    ],
+)
+def test_channelinfo_hexstring(hex_string: str, results: tuple[int, int, int]) -> None:
+
+    assert hex_to_rgb(hex_string) == results
