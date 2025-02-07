@@ -1,14 +1,12 @@
 import pytest
 import numpy as np
 from pathlib import Path
-import shutil
 from czitools.read_tools import read_tools
 from czitools.write_tools import write_tools
 from czitools.metadata_tools import czi_metadata as czimd
 from czitools.utils import misc
 from pylibCZIrw import czi as pyczi
 import shutil
-from pathlib import Path
 from tifffile import imread, TiffFile
 import numpy as np
 from tqdm.contrib import itertools as it
