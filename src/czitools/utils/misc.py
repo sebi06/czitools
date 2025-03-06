@@ -11,7 +11,7 @@
 
 import os
 from tkinter import filedialog
-from tkinter import *
+from tkinter import Tk
 import zarr
 import pandas as pd
 import dask.array as da
@@ -20,7 +20,7 @@ import time
 from pathlib import Path
 import dateutil.parser as dt
 from tqdm.contrib.itertools import product
-from typing import Dict, Tuple, Any, Union, Annotated, List
+from typing import Dict, Tuple, Any, Union, Annotated
 import validators
 from aicspylibczi import CziFile
 from czitools.metadata_tools.helper import ValueRange
@@ -372,8 +372,6 @@ def get_planetable(
     if not has_z:
         df_czi.drop(columns=["Z"], inplace=True)
 
-    a = 1
-
     def getsbinfo(subblock: Any) -> Tuple[float, float, float, float]:
         try:
             time = subblock.findall(".//AcquisitionTime")[0].text
@@ -441,11 +439,6 @@ def get_planetable(
             # get x, y, width and height for a specific tile
             tilebbox = aicsczi.get_mosaic_tile_bounding_box(**args)
 
-            # # get x, y, width and height for a specific tile
-            # tilebbox = aicsczi.get_mosaic_tile_bounding_box(
-            #     S=s, M=m, T=t[1], Z=z[1], C=c[1]
-            # )
-
             # read information from subblock
             sb = aicsczi.read_subblock_metadata(
                 unified_xml=True, B=0, S=s, M=m, T=t[1], Z=z[1], C=c[1]
@@ -480,9 +473,6 @@ def get_planetable(
 
     # do if the data is not a mosaic
     if size_m == 1:
-        # for s, t, z, c in product(
-        #    range(size_s), range(size_t), range(size_z), range(size_c)
-        # ):
         for s, t, c, z in product(
             range(size_s),
             enumerate(range(t_start, t_end)),
@@ -530,11 +520,6 @@ def get_planetable(
                     "height": tilebbox.h,
                 }
             ]
-
-            # df_czi = pd.concat(
-            #     [df_czi if not df_czi.empty else None, pd.DataFrame(plane)],
-            #     ignore_index=True,
-            # )
 
             df_czi = pd.concat([df_czi, pd.DataFrame(plane)], ignore_index=True)
 
@@ -674,32 +659,70 @@ def expand5d(array: np.ndarray) -> np.ndarray:
     return array5d
 
 
-def remove_none_from_dict(dictionary: Dict) -> Dict:
-    """
-    Remove values equal to: None, [] or {} from dictionary
+# def remove_none_from_dict(dictionary: Dict) -> Dict:
+#     """
+#     Remove values equal to: None, [] or {} from dictionary
 
+#     Args:
+#         dictionary (Dict): Dictionary to be checked
+
+#     Returns:
+#         Dict: Cleaned up dictionary
+#     """
+#     for key, value in list(dictionary.items()):
+#         # if value is None or value == [] or value == {}:
+#         if (
+#             value is None
+#             or (isinstance(value, list) and not bool(value))
+#             or value == {}
+#         ):
+#             del dictionary[key]
+#         elif isinstance(value, dict):
+#             remove_none_from_dict(value)
+#         elif isinstance(value, list):
+#             for item in value:
+#                 if isinstance(item, dict):
+#                     remove_none_from_dict(item)
+
+#     return dictionary
+
+
+def clean_dict(d: Dict) -> Dict:
+    """
+    Recursively cleans a dictionary by removing keys with values that are None, empty lists, or empty dictionaries.
     Args:
-        dictionary (Dict): Dictionary to be checked
-
+        d (Dict): The dictionary to be cleaned.
     Returns:
-        Dict: Cleaned up dictionary
+        Dict: A new dictionary with the same structure as the input, but without keys that have None, empty lists, or empty dictionaries as values.
     """
-    for key, value in list(dictionary.items()):
-        # if value is None or value == [] or value == {}:
-        if (
-            value is None
-            or (isinstance(value, list) and not bool(value))
-            or value == {}
-        ):
-            del dictionary[key]
-        elif isinstance(value, dict):
-            remove_none_from_dict(value)
-        elif isinstance(value, list):
-            for item in value:
-                if isinstance(item, dict):
-                    remove_none_from_dict(item)
 
-    return dictionary
+    def _clean_dict(d: Dict) -> Dict:
+        # Initialize an empty dictionary to store cleaned key-value pairs
+        cleaned = {}
+
+        # Iterate over each key-value pair in the dictionary
+        for k, v in d.items():
+
+            # Check if the value is a dictionary
+            if isinstance(v, dict):
+
+                # Recursively clean the nested dictionary
+                nested = _clean_dict(v)
+
+                # If the nested dictionary is not empty
+                if nested:
+                    # Add the cleaned nested dictionary to the cleaned dictionary
+                    cleaned[k] = nested
+
+            # Check if the value is not None, an empty list, or an empty dictionary
+            elif v not in [None, [], {}]:
+
+                # Add the key-value pair to the cleaned dictionary
+                cleaned[k] = v
+
+        return cleaned
+
+    return _clean_dict(d)  # Call the inner function and return its result
 
 
 def download_zip(source_link: str) -> str:

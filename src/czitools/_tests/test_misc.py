@@ -6,7 +6,7 @@ import zarr
 import pandas as pd
 import pytest
 import numpy as np
-from typing import List, Tuple, Optional, Union
+from typing import List, Tuple, Optional, Union, Dict
 
 basedir = Path(__file__).resolve().parents[3]
 
@@ -68,9 +68,7 @@ def test_get_planetable(
         planetable = pd.read_csv(filepath, sep=separator)
     if isczi:
         # read the data from CZI file
-        planetable = misc.get_planetable(
-            filepath, norm_time=True, pt_complete=True
-        )
+        planetable = misc.get_planetable(filepath, norm_time=True, pt_complete=True)
 
     planetable_filtered = misc.filter_planetable(planetable, S=0, T=0, Z=0, C=0)
 
@@ -164,3 +162,18 @@ def test_filter_planetable(planetable):
     # Test for invalid indices
     result = misc.filter_planetable(planetable, S=2, T=2, Z=2, C=2)
     assert result.empty, "Invalid index filter failed"
+
+
+@pytest.mark.parametrize(
+    "input_dict, expected_dict",
+    [
+        ({"a": None, "b": 1, "c": [], "d": {}, "e": "test"}, {"b": 1, "e": "test"}),
+        ({"a": [1, 2, 3], "b": {"c": [], "d": {}}}, {"a": [1, 2, 3]}),
+        ({"a": None, "b": None}, {}),
+        ({"a": [None, {}], "b": {"c": None}}, {"a": [None, {}]}),
+        ({"a": [], "b": {}, "c": 0}, {"c": 0}),
+    ],
+)
+def test_clean_dict(input_dict: Dict, expected_dict: Dict) -> None:
+    result = misc.clean_dict(input_dict)
+    assert result == expected_dict

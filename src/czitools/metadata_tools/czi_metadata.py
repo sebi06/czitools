@@ -449,7 +449,8 @@ def create_md_dict_red(
         md_dict["SizeY_scene"] = metadata.image.SizeY_scene
 
     if remove_none:
-        md_dict = misc.remove_none_from_dict(md_dict)
+        # md_dict = misc.remove_none_from_dict(md_dict)
+        md_dict = misc.clean_dict(md_dict)
 
     if sort:
         return misc.sort_dict_by_key(md_dict)
@@ -539,7 +540,8 @@ def create_md_dict_nested(
     md_dict = dict(zip(IDs, mds))
 
     if remove_none:
-        md_dict = misc.remove_none_from_dict(md_dict)
+        # md_dict = misc.remove_none_from_dict(md_dict)
+        md_dict = misc.clean_dict(md_dict)
 
     if sort:
         return misc.sort_dict_by_key(md_dict)
