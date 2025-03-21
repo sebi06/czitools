@@ -27,6 +27,8 @@ class CziChannelInfo:
         czisource (Union[str, os.PathLike[str], Box]): The source of the CZI image data.
         names (List[str]): List of channel names.
         dyes (List[str]): List of dye names.
+        dyes_short (List[str]): List of short dye names.
+        channel_descriptions (List[str]): List of channel descriptions.
         colors (List[str]): List of channel colors.
         clims (List[List[float]]): List of channel intensity limits.
         gamma (List[float]): List of gamma values for each channel.
@@ -48,6 +50,8 @@ class CziChannelInfo:
     czisource: Union[str, os.PathLike[str], Box]
     names: List[str] = field(init=False, default_factory=lambda: [])
     dyes: List[str] = field(init=False, default_factory=lambda: [])
+    dyes_short: List[str] = field(init=False, default_factory=lambda: [])
+    channel_descriptions: List[str] = field(init=False, default_factory=lambda: [])
     colors: List[str] = field(init=False, default_factory=lambda: [])
     clims: List[List[float]] = field(init=False, default_factory=lambda: [])
     gamma: List[float] = field(init=False, default_factory=lambda: [])
@@ -131,8 +135,18 @@ class CziChannelInfo:
         if display is not None:
             (
                 self.dyes.append("Dye-CH1")
+                if display.Name is None
+                else self.dyes.append(display.Name)
+            )
+            (
+                self.dyes_short.append("Dye-CH1")
                 if display.ShortName is None
-                else self.dyes.append(display.ShortName)
+                else self.dyes_short.append(display.ShortName)
+            )
+            (
+                self.channel_descriptions.append("")
+                if display.ShortName is None
+                else self.channel_descriptions.append(display.Description)
             )
             (
                 self.colors.append("#80808000")
