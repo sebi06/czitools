@@ -10,7 +10,7 @@ basedir = Path(__file__).resolve().parents[3]
 
 
 @pytest.mark.parametrize(
-    "czifile, clims, colors, gamma, names, dyes, ch_disp, is_rgb, is_consistent, pxtypes",
+    "czifile, clims, colors, gamma, names, dyes, dyes_short, ch_disp, is_rgb, is_consistent, pxtypes",
     [
         (
             "Tumor_HE_Orig_small.czi",
@@ -18,6 +18,7 @@ basedir = Path(__file__).resolve().parents[3]
             ["#80808000"],
             [0.85],
             ["CH1"],
+            ["TL Brightfield"],
             ["Brigh"],
             {
                 0: pyczi.ChannelDisplaySettingsDataClass(
@@ -37,6 +38,7 @@ basedir = Path(__file__).resolve().parents[3]
             [[0.0, 0.05983062485694667], [0.0, 0.24975967040512703]],
             ["#FFFF7E00", "#FF00FF33"],
             [0.7999999999999998, 0.7999999999999998],
+            ["LED555", "LED470"],
             ["LED555", "LED470"],
             ["AF555", "AF488"],
             {
@@ -65,6 +67,7 @@ basedir = Path(__file__).resolve().parents[3]
             ["#80808000"],
             [0.85],
             ["CH1"],
+            ["C1"],
             ["Dye-CH1"],
             {
                 0: pyczi.ChannelDisplaySettingsDataClass(
@@ -87,6 +90,7 @@ basedir = Path(__file__).resolve().parents[3]
             ],
             ["#FFFF1800", "#FF00FF33"],
             [0.7999999999999998, 0.7999999999999998],
+            ["AF568", "AF488"],
             ["AF568", "AF488"],
             ["AF568", "AF488"],
             {
@@ -118,6 +122,7 @@ def test_channelinfo(
     gamma: List[float],
     names: List[str],
     dyes: List[str],
+    dyes_short: List[str],
     ch_disp: Dict[int, pyczi.ChannelDisplaySettingsDataClass],
     is_rgb: Dict[int, bool],
     is_consistent: bool,
@@ -132,6 +137,7 @@ def test_channelinfo(
     assert czi_channels.gamma == gamma
     assert czi_channels.names == names
     assert czi_channels.dyes == dyes
+    assert czi_channels.dyes_short == dyes_short
     assert czi_channels.czi_disp_settings == ch_disp
     assert czi_channels.isRGB == is_rgb
     assert czi_channels.consistent_pixeltypes == is_consistent
