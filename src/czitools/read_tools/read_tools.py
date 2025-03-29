@@ -41,7 +41,6 @@ def read_6darray(
     chunk_zyx: bool = False,
     planes: Dict[str, tuple[int, int]] = {},
     zoom: Annotated[float, ValueRange(0.01, 1.0)] = 1.0,
-    verbose: bool = False,
 ) -> Tuple[Optional[Union[np.ndarray, da.Array]], czimd.CziMetadata]:
     """Read a CZI image file as 6D dask array.
     Important: Currently supported are only scenes with equal size and CZIs with consistent pixel types.
@@ -56,7 +55,6 @@ def read_6darray(
                                  planes = {"Z":(0, 2)} will return 3 z-plane with indices (0, 1, 2).
                                  Respectively {"Z":(5, 5)} will return a single z-plane with index 5.
         zoom (float, options): Downsample CZI image by a factor [0.01 - 1.0]. Defaults to 1.0.
-        verbose (bool): Flag to enable verbose logging. Defaults to False.
 
     Returns:
         Tuple[array6d, mdata]: output as 6D dask array and metadata_tools
