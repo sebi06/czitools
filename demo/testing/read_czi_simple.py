@@ -22,6 +22,7 @@ import matplotlib.cm as cm
 # filepath = r"F:\Testdata_Zeiss\CZI_Testfiles\W96_A1+A2_S=2_4x2_Z=5_CH=2.czi"
 filepath = r"F:\Testdata_Zeiss\CZI_Testfiles\W96_A1+A2_S=2_Pos=8_Z=5_CH=2.czi"
 
+
 # determine shape of combines stack
 mdata = CziMetadata(filepath)
 
