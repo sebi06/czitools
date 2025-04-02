@@ -7,9 +7,12 @@ from napari.utils.colormaps import Colormap
 filepath = r"/datadisk1/testpictures/Testdata_Zeiss/CZI_Testfiles/CellDivision_T=10_Z=15_CH=2_DCV_small.czi"
 
 # return an array with dimension order STCZYX(A)
-array6d, mdata = read_tools.read_6darray(filepath)
+array6d, mdata = read_tools.read_6darray(filepath, use_dask=True)
 
-use_channel_axis = True
+use_channel_axis = False
+if array6d is None:
+    print("Empty array6d. Nothing to display in Napari")
+    exit()
 
 # Define the dimension names and coordinates
 dims = ("S", "T", "C", "Z", "Y", "X")
@@ -55,7 +58,7 @@ if not use_channel_axis:
         rgb = "#" + mdata.channelinfo.colors[ch][3:]
         ncmap = Colormap(["#000000", rgb], name="cm_" + chname)
 
-        # Show the raw (not resampled) model data
+        # add the channel to the viewer
         viewer.add_image(
             sub_array,
             name=chname,
