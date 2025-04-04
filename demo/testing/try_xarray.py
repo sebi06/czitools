@@ -1,6 +1,5 @@
 from czitools.read_tools import read_tools
 import napari
-import xarray as xr
 from napari.utils.colormaps import Colormap
 
 # filepath = r"/datadisk1/testpictures/Testdata_Zeiss/CZI_Testfiles/WP96_2Pos_B2+B4_S=2_T=2_Z=4_C=3_X=512_Y=256.czi"
