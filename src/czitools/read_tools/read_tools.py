@@ -26,6 +26,7 @@ import shutil
 from czitools.utils import logging_tools
 from czitools.metadata_tools.helper import ValueRange
 from czitools.metadata_tools.helper import AttachmentType
+import xarray as xr
 
 # from memory_profiler import profile
 
@@ -41,6 +42,7 @@ def read_6darray(
     chunk_zyx: bool = False,
     planes: Dict[str, tuple[int, int]] = {},
     zoom: Annotated[float, ValueRange(0.01, 1.0)] = 1.0,
+    use_xarray: bool = True,
 ) -> Tuple[Optional[Union[np.ndarray, da.Array]], czimd.CziMetadata]:
     """Read a CZI image file as 6D dask array.
     Important: Currently supported are only scenes with equal size and CZIs with consistent pixel types.
@@ -55,6 +57,7 @@ def read_6darray(
                                  planes = {"Z":(0, 2)} will return 3 z-plane with indices (0, 1, 2).
                                  Respectively {"Z":(5, 5)} will return a single z-plane with index 5.
         zoom (float, options): Downsample CZI image by a factor [0.01 - 1.0]. Defaults to 1.0.
+        use_xarray (bool, optional): Option to use xarray for the output array. Defaults to True.
 
     Returns:
         Tuple[array6d, mdata]: output as 6D dask array and metadata_tools
@@ -67,7 +70,7 @@ def read_6darray(
     # check zoom factor for valid range
     zoom = misc.check_zoom(zoom=zoom)
 
-    # define dimensions
+    # define used dimensions
     dims = ("S", "T", "C", "Z", "Y", "X", "A")
 
     # get the complete metadata_tools at once as one big class
@@ -224,8 +227,24 @@ def read_6darray(
     # update metadata_tools
     mdata.array6d_size = array6d.shape
 
-    # create xarray from array6d
+    if use_xarray:
 
+        # create xarray from array6d
+        coords = {}
+        for index, dim in enumerate(dims):
+            # Create a range for each dimension
+            coords[dim] = range(array6d.shape[index])
+
+        # Create the xarray.DataArray
+        array6d = xr.DataArray(array6d, dims=dims, coords=coords)
+
+        # Set attributes for the DataArray
+        array6d.attrs = {
+            "description": "6D image data from CZI file",
+            "source": mdata.filepath,
+            "axes": "".join(dims),
+            # "metadata": mdata,  # Include metadata if it's a dictionary or serializable
+        }
 
     return array6d, mdata
 
