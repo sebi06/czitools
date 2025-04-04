@@ -267,7 +267,9 @@ def test_write_omezarr(
     filepath = basedir / czifilepath
 
     # return a array with dimension order STCZYX(A)
-    array, mdata = read_tools.read_6darray(filepath, use_dask=use_dask)
+    array, mdata = read_tools.read_6darray(
+        filepath, use_dask=use_dask, use_xarray=False
+    )
 
     array = array[sceneid, ...]
 

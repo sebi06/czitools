@@ -20,7 +20,8 @@ import matplotlib.cm as cm
 # filepath = r"F:\Testdata_Zeiss\Mindpeak\28448e7c-3dbb-486e-ab57-c4fb3ade3f1d.czi"
 # filepath = r"F:\Testdata_Zeiss\Mindpeak\sample.czi"
 # filepath = r"F:\Testdata_Zeiss\CZI_Testfiles\W96_A1+A2_S=2_4x2_Z=5_CH=2.czi"
-filepath = r"F:\Testdata_Zeiss\CZI_Testfiles\W96_A1+A2_S=2_Pos=8_Z=5_CH=2.czi"
+# filepath = r"F:\Testdata_Zeiss\CZI_Testfiles\W96_A1+A2_S=2_Pos=8_Z=5_CH=2.czi"
+filepath = r"F:\Github\czitools\data\WellD6_S1.czi"
 
 
 # determine shape of combines stack

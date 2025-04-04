@@ -85,12 +85,16 @@ class CziSampleInfo:
                 )
 
                 # check if there are multiple positions per well
-                self.multipos_per_well = check_multipos_well(allscenes[0])
+                # self.multipos_per_well = check_multipos_well(allscenes[0])
 
                 if isinstance(allscenes, Box):
+                    # check if there are multiple positions per well
+                    self.multipos_per_well = check_multipos_well(allscenes)
                     self.get_well_info(allscenes)
 
                 if isinstance(allscenes, BoxList):
+                    # check if there are multiple positions per well
+                    self.multipos_per_well = check_multipos_well(allscenes[0])
                     for well in range(len(allscenes)):
                         self.get_well_info(allscenes[well])
 
