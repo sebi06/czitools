@@ -67,6 +67,9 @@ def read_6darray(
     # check zoom factor for valid range
     zoom = misc.check_zoom(zoom=zoom)
 
+    # define dimensions
+    dims = ("S", "T", "C", "Z", "Y", "X", "A")
+
     # get the complete metadata_tools at once as one big class
     mdata = czimd.CziMetadata(filepath)
 
@@ -203,23 +206,26 @@ def read_6darray(
         # remove the A dimension
         if remove_adim:
             array6d = np.squeeze(array6d, axis=-1)
-            # dim_string = dim_string.replace("A", "")
+            dims = ("S", "T", "C", "Z", "Y", "X")
 
             if use_dask and chunk_zyx:
-                # for testing
+                # re-chunk array based on shape
                 array6d = array6d.rechunk(
                     chunks=(1, 1, 1, size_z, image2d.shape[0], image2d.shape[1])
                 )
 
         if not remove_adim:
             if use_dask and chunk_zyx:
-                # for testing
+                # re-chunk array based on shape
                 array6d = array6d.rechunk(
                     chunks=(1, 1, 1, size_z, image2d.shape[0], image2d.shape[1], 3)
                 )
 
     # update metadata_tools
     mdata.array6d_size = array6d.shape
+
+    # create xarray from array6d
+
 
     return array6d, mdata
 
