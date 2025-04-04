@@ -36,7 +36,7 @@ def _():
 
 @app.cell
 def _(mo):
-    file_browser = mo.ui.file_browser(multiple=False)
+    file_browser = mo.ui.file_browser(multiple=False, filetypes=[".czi"], restrict_navigation=False, initial_path="F:\\Testdata_Zeiss\\")
 
     # Display the file browser
     mo.vstack([file_browser])

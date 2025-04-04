@@ -9,30 +9,19 @@ filepath = r"f:/Testdata_Zeiss/CZI_Testfiles/CellDivision_T=10_Z=15_CH=2_DCV_sma
 # ilepath = r"F:\Testdata_Zeiss\CZI_Testfiles\Tumor_H+E_small2.czi"
 
 # return an array with dimension order STCZYX(A)
-array6d, mdata = read_tools.read_6darray(filepath, use_dask=False, chunk_zyx=True)
+array6d, mdata = read_tools.read_6darray(
+    filepath,
+    use_dask=False,
+    chunk_zyx=True,
+    planes={"S": (0, 0), "T": (1, 2), "C": (0, 0), "Z": (0, 2)},
+    # planes={"Z": (2, 2)},
+    # planes={"S": (4, 6)},
+    zoom=0.5,
+)
 
 use_channel_axis = False
 show_napari = True
 
-
-# # Define the dimension names and coordinates
-# dims = ("S", "T", "C", "Z", "Y", "X", "A")
-
-# coords = {}
-# for index, dim in enumerate(dims):
-#     # Create a range for each dimension
-#     coords[dim] = range(array6d.shape[index])
-
-# # Create the xarray.DataArray
-# data_array = xr.DataArray(array6d, dims=dims, coords=coords)
-
-# # Set attributes for the DataArray
-# data_array.attrs = {
-#     "description": "6D image data from CZI file",
-#     "source": filepath,
-#     "axes": "".join(dims),
-#     # "metadata": mdata,  # Include metadata if it's a dictionary or serializable
-# }
 
 print(array6d.shape)
 print(array6d.dims)

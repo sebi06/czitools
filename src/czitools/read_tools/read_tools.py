@@ -43,7 +43,7 @@ def read_6darray(
     planes: Dict[str, tuple[int, int]] = {},
     zoom: Annotated[float, ValueRange(0.01, 1.0)] = 1.0,
     use_xarray: bool = True,
-) -> Tuple[Optional[Union[np.ndarray, da.Array]], czimd.CziMetadata]:
+) -> Tuple[Optional[Union[np.ndarray, da.Array, xr.DataArray]], czimd.CziMetadata]:
     """Read a CZI image file as 6D dask array.
     Important: Currently supported are only scenes with equal size and CZIs with consistent pixel types.
     The output array has always the dimension order: STCZYX(A)
@@ -60,7 +60,7 @@ def read_6darray(
         use_xarray (bool, optional): Option to use xarray for the output array. Defaults to True.
 
     Returns:
-        Tuple[array6d, mdata]: output as 6D dask array and metadata_tools
+        Tuple[array6d, mdata]: output as 6D numpy, dask or xarray and metadata_tools
     """
 
     if isinstance(filepath, Path):
