@@ -143,7 +143,8 @@ if show_napari:
 
 ```
 
-![5D CZI inside Napari](https://github.com/sebi06/czitools/raw/main/images/czi_napari1.png)
+
+![5D CZI inside Napari](https://github.com/sebi06/czitools/raw/main/images/czi_napari2.png)
 
 ## Colab Notebooks
 
