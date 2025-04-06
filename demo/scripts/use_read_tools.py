@@ -13,10 +13,10 @@
 
 from czitools.read_tools import read_tools
 from czitools.utils import misc
-import napari
 from pathlib import Path
 
 try:
+    import napari
     from napari.utils.colormaps import Colormap
 
     show_napari = True
@@ -40,8 +40,8 @@ print(filepath)
 # return an array with dimension order STCZYX(A)
 array6d, mdata = read_tools.read_6darray(
     filepath,
-    use_dask=True,
-    chunk_zyx=True,
+    use_dask=False,
+    chunk_zyx=False,
     zoom=1.0,
     # planes={"S": (0, 0), "T": (1, 2), "C": (0, 0), "Z": (0, 2)},
     use_xarray=True,
@@ -67,7 +67,9 @@ if show_napari:
 
         # get the scaling factors for that channel and adapt Z-axis scaling
         scalefactors = [1.0] * len(sub_array.shape)
-        scalefactors[sub_array.get_axis_num("Z")] = mdata.scale.ratio["zx_sf"] * 1.00001
+        scalefactors[sub_array.get_axis_num("Z")] = mdata.scale.ratio[
+            "zx_sf"
+        ]  # * 1.00001
 
         # remove the last scaling factor in case of an RGB image
         if "A" in sub_array.dims:
@@ -94,4 +96,4 @@ if show_napari:
         # set the axis labels based on the dimensions
         viewer.dims.axis_labels = sub_array.dims
 
-        napari.run()
+    napari.run()
