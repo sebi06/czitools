@@ -26,6 +26,7 @@ import shutil
 from czitools.utils import logging_tools
 from czitools.metadata_tools.helper import ValueRange
 from czitools.metadata_tools.helper import AttachmentType
+import xarray as xr
 
 # from memory_profiler import profile
 
@@ -41,8 +42,8 @@ def read_6darray(
     chunk_zyx: bool = False,
     planes: Dict[str, tuple[int, int]] = {},
     zoom: Annotated[float, ValueRange(0.01, 1.0)] = 1.0,
-    verbose: bool = False,
-) -> Tuple[Optional[Union[np.ndarray, da.Array]], czimd.CziMetadata]:
+    use_xarray: bool = True,
+) -> Tuple[Optional[Union[np.ndarray, da.Array, xr.DataArray]], czimd.CziMetadata]:
     """Read a CZI image file as 6D dask array.
     Important: Currently supported are only scenes with equal size and CZIs with consistent pixel types.
     The output array has always the dimension order: STCZYX(A)
@@ -56,10 +57,10 @@ def read_6darray(
                                  planes = {"Z":(0, 2)} will return 3 z-plane with indices (0, 1, 2).
                                  Respectively {"Z":(5, 5)} will return a single z-plane with index 5.
         zoom (float, options): Downsample CZI image by a factor [0.01 - 1.0]. Defaults to 1.0.
-        verbose (bool): Flag to enable verbose logging. Defaults to False.
+        use_xarray (bool, optional): Option to use xarray for the output array. Defaults to True.
 
     Returns:
-        Tuple[array6d, mdata]: output as 6D dask array and metadata_tools
+        Tuple[array6d, mdata]: output as 6D numpy, dask or xarray and metadata_tools
     """
 
     if isinstance(filepath, Path):
@@ -68,6 +69,9 @@ def read_6darray(
 
     # check zoom factor for valid range
     zoom = misc.check_zoom(zoom=zoom)
+
+    # define used dimensions
+    dims = ("S", "T", "C", "Z", "Y", "X", "A")
 
     # get the complete metadata_tools at once as one big class
     mdata = czimd.CziMetadata(filepath)
@@ -205,23 +209,42 @@ def read_6darray(
         # remove the A dimension
         if remove_adim:
             array6d = np.squeeze(array6d, axis=-1)
-            # dim_string = dim_string.replace("A", "")
+            dims = ("S", "T", "C", "Z", "Y", "X")
 
             if use_dask and chunk_zyx:
-                # for testing
+                # re-chunk array based on shape
                 array6d = array6d.rechunk(
                     chunks=(1, 1, 1, size_z, image2d.shape[0], image2d.shape[1])
                 )
 
         if not remove_adim:
             if use_dask and chunk_zyx:
-                # for testing
+                # re-chunk array based on shape
                 array6d = array6d.rechunk(
                     chunks=(1, 1, 1, size_z, image2d.shape[0], image2d.shape[1], 3)
                 )
 
     # update metadata_tools
     mdata.array6d_size = array6d.shape
+
+    if use_xarray:
+
+        # create xarray from array6d
+        coords = {}
+        for index, dim in enumerate(dims):
+            # Create a range for each dimension
+            coords[dim] = range(array6d.shape[index])
+
+        # Create the xarray.DataArray
+        array6d = xr.DataArray(array6d, dims=dims, coords=coords)
+
+        # Set attributes for the DataArray
+        array6d.attrs = {
+            "description": "6D image data from CZI file",
+            "source": mdata.filepath,
+            "axes": "".join(dims),
+            # "metadata": mdata,  # Include metadata if it's a dictionary or serializable
+        }
 
     return array6d, mdata
 

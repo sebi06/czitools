@@ -41,6 +41,8 @@ class CziSampleInfo:
         X coordinate of the image stage.
     image_stageY : float
         Y coordinate of the image stage.
+    multipos_per_well : bool
+        Flag to indicate multiple positions per well.
     verbose (bool):
         Flag to enable verbose logging.
     Methods:
@@ -62,6 +64,7 @@ class CziSampleInfo:
     scene_stageY: List[float] = field(init=False, default_factory=lambda: [])
     image_stageX: float = field(init=False, default=None)
     image_stageY: float = field(init=False, default=None)
+    multipos_per_well: bool = False
     verbose: bool = False
 
     def __post_init__(self):
@@ -81,10 +84,17 @@ class CziSampleInfo:
                     czi_box.ImageDocument.Metadata.Information.Image.Dimensions.S.Scenes.Scene
                 )
 
+                # check if there are multiple positions per well
+                # self.multipos_per_well = check_multipos_well(allscenes[0])
+
                 if isinstance(allscenes, Box):
+                    # check if there are multiple positions per well
+                    self.multipos_per_well = check_multipos_well(allscenes)
                     self.get_well_info(allscenes)
 
                 if isinstance(allscenes, BoxList):
+                    # check if there are multiple positions per well
+                    self.multipos_per_well = check_multipos_well(allscenes[0])
                     for well in range(len(allscenes)):
                         self.get_well_info(allscenes[well])
 
@@ -180,6 +190,21 @@ def get_scenes_for_well(sample: CziSampleInfo, wellID: str) -> Tuple[int]:
         Tuple[int]: A list of scene indices corresponding to the given well ID.
     """
 
-    scene_indices = [i for i, x in enumerate(sample.well_array_names) if x == wellID]
+    if sample.multipos_per_well:
+        scene_indices = [
+            i for i, x in enumerate(sample.well_array_names) if x == wellID
+        ]
+    if not sample.multipos_per_well:
+        scene_indices = [
+            i for i, x in enumerate(sample.well_position_names) if x == wellID
+        ]
 
     return tuple(scene_indices)
+
+
+def check_multipos_well(scene: Box):
+
+    if scene.ArrayName is None and scene.Name is not None:
+        return False
+    else:
+        return True

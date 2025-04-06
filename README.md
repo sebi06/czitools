@@ -7,17 +7,17 @@
 [![Python Version](https://img.shields.io/pypi/pyversions/czitools.svg?color=green)](https://python.org)
 [![Development Status](https://img.shields.io/pypi/status/czitools.svg)](https://en.wikipedia.org/wiki/Software_release_life_cycle#Alpha)
 
-This repository provides a collection of tools to simplify reading CZI (Carl Zeiss Image) pixel and metadata in Python. In addition, it also contains other useful utilities to visualize CZI images inside Napari (needs to be installed). It is also available as a [Python Package on PyPi](https://pypi.org/project/czitools/)
+This repository provides a collection of tools to simplify reading CZI (Carl Zeiss Image) pixel and metadata in Python. It is available as a [Python Package on PyPi](https://pypi.org/project/czitools/)
 
 ## Installation
 
-To install the basic functionality (will not install Napari und plotting functionality) use:
+To install czitools use (will not install Napari or plotting functionality):
 
 ```text
 pip install czitools
 ```
 
-To install the package with all optional dependencies use:
+To install the package with all optional dependencies use (will not install Napari):
 
 ```text
 pip install czitools[all]
@@ -39,8 +39,15 @@ from czitools.metadata_tools.microscope import CziMicroscope
 from czitools.metadata_tools.add_metadata import CziAddMetaData
 from czitools.metadata_tools.detector import CziDetector
 from czitools.read_tools import read_tools
-from czitools.napari_tools import napari_tools
-import napari
+
+try:
+    import napari
+    from napari.utils.colormaps import Colormap
+
+    show_napari = True
+except ImportError:
+    print("Napari not installed, skipping napari import")
+    show_napari = False
 
 # get the metadata_tools at once as one big class
 mdata = CziMetadata(filepath)
@@ -90,29 +97,50 @@ While the [pylibCZIrw](https://pypi.org/project/pylibCZIrw/) is focussing on rea
 
 ```python
 # return a dask or numpy array with dimension order STCZYX(A)
-array6d, mdata = read_tools.read_6darray(filepath,
-                                         use_dask=True,
-                                         chunk_zyx=False,
-                                         # T=0,
-                                         # Z=0
-                                         # S=0
-                                         # C=0
-                                        )
+array6d, mdata = read_tools.read_6darray(filepath, use_xarray=True)
 
-if array6d is None:
-    print("Empty array6d. Nothing to display in Napari")
-else:
+if show_napari:
 
-    # show array inside napari viewer
+    # show in napari (requires napari to be installed!)
     viewer = napari.Viewer()
-    layers = napari_tools.show(viewer, array6d, mdata,
-                               blending="additive",
-                               contrast='from_czi',
-                               gamma=0.85,
-                               show_metadata="tree",
-                               name_sliders=True)
+
+    # loop over all channels
+    for ch in range(0, array6d.sizes["C"]):
+
+        # extract channel subarray
+        sub_array = array6d.sel(C=ch)
+
+        # get the scaling factors for that channel and adapt Z-axis scaling
+        scalefactors = [1.0] * len(sub_array.shape)
+        scalefactors[sub_array.get_axis_num("Z")] = mdata.scale.ratio["zx_sf"]
+
+        # remove the last scaling factor in case of an RGB image
+        if "A" in sub_array.dims:
+            # remove the A axis from the scaling factors
+            scalefactors.pop(sub_array.get_axis_num("A"))
+
+        # get colors and channel name
+        chname = mdata.channelinfo.names[ch]
+
+        # inside the CZI metadata_tools colors are defined as ARGB hexstring
+        rgb = "#" + mdata.channelinfo.colors[ch][3:]
+        ncmap = Colormap(["#000000", rgb], name="cm_" + chname)
+
+        # add the channel to the viewer
+        viewer.add_image(
+            sub_array,
+            name=chname,
+            colormap=ncmap,
+            blending="additive",
+            scale=scalefactors,
+            gamma=0.85,
+        )
+
+        # set the axis labels based on the dimensions
+        viewer.dims.axis_labels = sub_array.dims
 
     napari.run()
+
 ```
 
 ![5D CZI inside Napari](https://github.com/sebi06/czitools/raw/main/images/czi_napari1.png)
@@ -134,7 +162,6 @@ The basic usage can be inferred from this sample notebook:&nbsp;
 The basic usage can be inferred from this sample notebook:&nbsp;
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/sebi06/czitools/blob/main/demo/notebooks/omezarr_from_czi_5d.ipynb)
 
-
 ### Write CZI using ZSTD compression
 
 The basic usage can be inferred from this sample notebook:&nbsp;
@@ -154,13 +181,13 @@ The basic usage can be inferred from this sample notebook:&nbsp;
 
 The code to read multi-dimensional with delayed reading using Dask array was heavily inspired by input from: [Pradeep Rajasekhar](https://github.com/pr4deepr).
 
-Local installation (base functionality only):
+### Local Installation
+
+Local installation:
 
 ```text
 pip install -e .
 ```
-
-### Local Installation
 
 Local installation (full functionality):
 

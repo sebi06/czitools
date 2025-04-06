@@ -183,3 +183,5 @@ data/nuc_small.czi
 data/Tumor_HE_Orig_small_disp.czi
 data/Tumor_HE_RGB_disp.czi
 .pylintrc
+/old
+/demo/notebooks/__marimo__
