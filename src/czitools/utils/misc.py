@@ -659,34 +659,6 @@ def expand5d(array: np.ndarray) -> np.ndarray:
     return array5d
 
 
-# def remove_none_from_dict(dictionary: Dict) -> Dict:
-#     """
-#     Remove values equal to: None, [] or {} from dictionary
-
-#     Args:
-#         dictionary (Dict): Dictionary to be checked
-
-#     Returns:
-#         Dict: Cleaned up dictionary
-#     """
-#     for key, value in list(dictionary.items()):
-#         # if value is None or value == [] or value == {}:
-#         if (
-#             value is None
-#             or (isinstance(value, list) and not bool(value))
-#             or value == {}
-#         ):
-#             del dictionary[key]
-#         elif isinstance(value, dict):
-#             remove_none_from_dict(value)
-#         elif isinstance(value, list):
-#             for item in value:
-#                 if isinstance(item, dict):
-#                     remove_none_from_dict(item)
-
-#     return dictionary
-
-
 def clean_dict(d: Dict) -> Dict:
     """
     Recursively cleans a dictionary by removing keys with values that are None, empty lists, or empty dictionaries.

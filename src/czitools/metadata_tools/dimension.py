@@ -114,32 +114,144 @@ class CziDimensions:
         self.SizeX_sf = self.SizeX
         self.SizeY_sf = self.SizeY
 
+    # def set_dimensions(self):
+    #     """
+    #     Populate the image dimensions with the detected values from the metadata.
+    #     This method sets the dimensions of the image based on the metadata extracted from the CZI file.
+    #     It handles various dimensions such as SizeX, SizeY, SizeS, SizeT, SizeZ, SizeC, SizeM, SizeR, SizeH, SizeI, SizeV, and SizeB.
+    #     Additionally, it processes scene dimensions and time (T) and z-position (Z) lists if available.
+    #     Attributes:
+    #         SizeX (int): Width of the image.
+    #         SizeY (int): Height of the image.
+    #         SizeS (int): Size of the S dimension.
+    #         SizeT (int): Size of the T dimension.
+    #         SizeZ (int): Size of the Z dimension.
+    #         SizeC (int): Size of the C dimension.
+    #         SizeM (int): Size of the M dimension.
+    #         SizeR (int): Size of the R dimension.
+    #         SizeH (int): Size of the H dimension.
+    #         SizeI (int): Size of the I dimension.
+    #         SizeV (int): Size of the V dimension.
+    #         SizeB (int): Size of the B dimension.
+    #         SizeX_scene (int): Width of the scene bounding rectangle.
+    #         SizeY_scene (int): Height of the scene bounding rectangle.
+    #         posT (list of float): List of time positions.
+    #         posZ (list of float): List of z positions.
+    #     Raises:
+    #         KeyError: If scene bounding rectangle information is not found.
+    #         Exception: If there is an error converting string to a float list for posT or posZ.
+    #     """
+
+    #     # get the Box and extract the relevant dimension metadata_tools
+    #     if isinstance(self.czisource, Box):
+    #         czi_box = self.czisource
+    #     else:
+    #         czi_box = get_czimd_box(self.czisource)
+
+    #     dimensions = czi_box.ImageDocument.Metadata.Information.Image
+
+    #     # define the image dimensions to check for
+    #     dims = [
+    #         "SizeX",
+    #         "SizeY",
+    #         "SizeS",
+    #         "SizeT",
+    #         "SizeZ",
+    #         "SizeC",
+    #         "SizeM",
+    #         "SizeR",
+    #         "SizeH",
+    #         "SizeI",
+    #         "SizeV",
+    #         "SizeB",
+    #     ]
+
+    #     cls_fields: Tuple[Field, ...] = fields(self.__class__)
+    #     for fd in cls_fields:
+    #         if fd.name in dims:
+    #             if dimensions[fd.name] is not None:
+    #                 setattr(self, fd.name, int(dimensions[fd.name]))
+
+    #     if czi_box.has_scenes:
+    #         try:
+    #             with pyczi.open_czi(czi_box.filepath, czi_box.czi_open_arg) as czidoc:
+    #                 self.SizeX_scene = czidoc.scenes_bounding_rectangle_no_pyramdid[0].w
+    #                 self.SizeY_scene = czidoc.scenes_bounding_rectangle_no_pyramid[0].h
+    #         except KeyError as e:
+    #             self.SizeX_scene = None
+    #             self.SizeY_scene = None
+    #             if self.verbose:
+    #                 logger.warning(
+    #                     "Scenes Dimension detected but no bounding rectangle information found."
+    #                 )
+
+    #     if czi_box.has_T:
+    #         # check if there is a list with timepoints (is not in very CZI)
+    #         if dimensions.Dimensions.T.Positions is not None:
+    #             if dimensions.Dimensions.T.Positions.List is not None:
+    #                 try:
+    #                     self.posT = string_to_float_list(
+    #                         dimensions.Dimensions.T.Positions.List.Offsets
+    #                     )
+    #                 except Exception as e:
+    #                     if self.verbose:
+    #                         logger.error(f"{e}")
+    #             else:
+    #                 if self.verbose:
+    #                     logger.warning(
+    #                         "No posT list found under 'dimensions.Dimensions.T.Positions.List'"
+    #                     )
+    #         else:
+    #             if self.verbose:
+    #                 logger.warning(
+    #                     "No posT list found under 'dimensions.Dimensions.T.Positions'"
+    #                 )
+
+    #     if czi_box.has_Z:
+    #         # check if there is a list with z-positions (is not in very CZI)
+    #         if dimensions.Dimensions.Z.Positions is not None:
+    #             if dimensions.Dimensions.Z.Positions.List is not None:
+    #                 try:
+    #                     self.posZ = string_to_float_list(
+    #                         dimensions.Dimensions.Z.Positions.List.Offsets
+    #                     )
+    #                 except Exception as e:
+    #                     if self.verbose:
+    #                         logger.error(f"{e}")
+    #             else:
+    #                 if self.verbose:
+    #                     logger.warning(
+    #                         "No posZ list found under 'dimensions.Dimensions.Z.Positions.List'"
+    #                     )
+    #         else:
+    #             if self.verbose:
+    #                 logger.warning(
+    #                     "No posZ list found under 'dimensions.Dimensions.Z.Positions'"
+    #                 )
+
     def set_dimensions(self):
         """
-        Populate the image dimensions with the detected values from the metadata.
-        This method sets the dimensions of the image based on the metadata extracted from the CZI file.
-        It handles various dimensions such as SizeX, SizeY, SizeS, SizeT, SizeZ, SizeC, SizeM, SizeR, SizeH, SizeI, SizeV, and SizeB.
-        Additionally, it processes scene dimensions and time (T) and z-position (Z) lists if available.
-        Attributes:
-            SizeX (int): Width of the image.
-            SizeY (int): Height of the image.
-            SizeS (int): Size of the S dimension.
-            SizeT (int): Size of the T dimension.
-            SizeZ (int): Size of the Z dimension.
-            SizeC (int): Size of the C dimension.
-            SizeM (int): Size of the M dimension.
-            SizeR (int): Size of the R dimension.
-            SizeH (int): Size of the H dimension.
-            SizeI (int): Size of the I dimension.
-            SizeV (int): Size of the V dimension.
-            SizeB (int): Size of the B dimension.
-            SizeX_scene (int): Width of the scene bounding rectangle.
-            SizeY_scene (int): Height of the scene bounding rectangle.
-            posT (list of float): List of time positions.
-            posZ (list of float): List of z positions.
+        Set the dimensions of the CZI file based on metadata and subblock information.
+        This method extracts dimension metadata from the provided CZI source and calculates
+        the sizes of various dimensions (e.g., X, Y, Z, T, etc.) using the total bounding box
+        of the CZI file. It also attempts to retrieve positional information for time (T) and
+        Z-dimensions if available.
+        Attributes Set:
+            - SizeX, SizeY, SizeS, SizeT, SizeZ, SizeC, SizeM, SizeR, SizeH, SizeI, SizeV, SizeB:
+              Sizes of respective dimensions if present in the total bounding box.
+            - SizeX_scene, SizeY_scene: Scene dimensions if bounding rectangle information is available.
+            - posT: List of time positions if available in the metadata.
+            - posZ: List of Z positions if available in the metadata.
+        Exceptions Handled:
+            - Logs warnings if positional information for T or Z dimensions is missing or incomplete.
+            - Logs errors if an exception occurs while parsing positional information.
+        Notes:
+            - The method uses `pyczi.open_czi` to open the CZI file and extract subblock information.
+            - Positional information for T and Z dimensions is optional and may not be present in all CZI files.
+            - Verbose logging is used to provide detailed warnings or errors during execution.
         Raises:
-            KeyError: If scene bounding rectangle information is not found.
-            Exception: If there is an error converting string to float list for posT or posZ.
+            - KeyError: If scene bounding rectangle information is missing and verbose logging is enabled.
+            - Exception: If an error occurs while parsing positional information for T or Z dimensions.
         """
 
         # get the Box and extract the relevant dimension metadata_tools
@@ -150,33 +262,18 @@ class CziDimensions:
 
         dimensions = czi_box.ImageDocument.Metadata.Information.Image
 
-        # define the image dimensions to check for
-        dims = [
-            "SizeX",
-            "SizeY",
-            "SizeS",
-            "SizeT",
-            "SizeZ",
-            "SizeC",
-            "SizeM",
-            "SizeR",
-            "SizeH",
-            "SizeI",
-            "SizeV",
-            "SizeB",
-        ]
+        with pyczi.open_czi(self.czisource, czi_box.czi_open_arg) as czidoc:
 
-        cls_fields: Tuple[Field, ...] = fields(self.__class__)
-        for fd in cls_fields:
-            if fd.name in dims:
-                if dimensions[fd.name] is not None:
-                    setattr(self, fd.name, int(dimensions[fd.name]))
+            # get the sizes from the subblocks and not from the metadata
+            tb = czidoc.total_bounding_box_no_pyramid
 
-        if czi_box.has_scenes:
+            for dim in ["X", "Y", "S", "T", "Z", "C", "M", "R", "H", "I", "V", "B"]:
+                if dim in tb.keys():
+                    setattr(self, f"Size{dim}", tb[dim][1])
+
             try:
-                with pyczi.open_czi(czi_box.filepath, czi_box.czi_open_arg) as czidoc:
-                    self.SizeX_scene = czidoc.scenes_bounding_rectangle[0].w
-                    self.SizeY_scene = czidoc.scenes_bounding_rectangle[0].h
+                self.SizeX_scene = czidoc.scenes_bounding_rectangle_no_pyramid[0].w
+                self.SizeY_scene = czidoc.scenes_bounding_rectangle_no_pyramid[0].h
             except KeyError as e:
                 self.SizeX_scene = None
                 self.SizeY_scene = None
