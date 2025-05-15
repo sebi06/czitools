@@ -8,6 +8,7 @@ from pylibCZIrw import czi as pyczi
 
 from pydantic.dataclasses import dataclass
 from pydantic import BaseModel, ConfigDict
+from bioio import BioImage
 
 logger = logging_tools.set_logging()
 
@@ -84,11 +85,11 @@ class CziDimensions:
     SizeY: Optional[int] = field(
         init=False, default=None
     )  # total size Y including scenes
-    SizeX_scene: Optional[int] = field(
-        init=False, default=None
+    SizeX_scene: Optional[List[int]] = field(
+        init=False, default_factory=lambda: []
     )  # size X per scene (if equal scene sizes)
-    SizeY_scene: Optional[int] = field(
-        init=False, default=None
+    SizeY_scene: Optional[List[int]] = field(
+        init=False, default_factory=lambda: []
     )  # size Y per scene (if equal scene sizes)
     SizeS: Optional[int] = field(init=False, default=None)
     SizeT: Optional[int] = field(init=False, default=None)
@@ -233,24 +234,25 @@ class CziDimensions:
         """
         Set the dimensions of the CZI file based on metadata and subblock information.
         This method extracts dimension metadata from the provided CZI source and calculates
-        the sizes of various dimensions (e.g., X, Y, Z, T, etc.) using the total bounding box
+        the sizes of various dimensions (e.g., X, Y, T, Z, etc.) using the total bounding box
         of the CZI file. It also attempts to retrieve positional information for time (T) and
         Z-dimensions if available.
+
         Attributes Set:
-            - SizeX, SizeY, SizeS, SizeT, SizeZ, SizeC, SizeM, SizeR, SizeH, SizeI, SizeV, SizeB:
+            - SizeX, SizeY, SizeT, SizeZ, SizeC, SizeR, SizeH, SizeI, SizeV, SizeB:
               Sizes of respective dimensions if present in the total bounding box.
+            - SizeS: Number of scenes in the CZI file.
+            - SizeM: Number of mosaic tiles, determined using BioImage or metadata.
             - SizeX_scene, SizeY_scene: Scene dimensions if bounding rectangle information is available.
             - posT: List of time positions if available in the metadata.
             - posZ: List of Z positions if available in the metadata.
-        Exceptions Handled:
-            - Logs warnings if positional information for T or Z dimensions is missing or incomplete.
-            - Logs errors if an exception occurs while parsing positional information.
+
         Notes:
             - The method uses `pyczi.open_czi` to open the CZI file and extract subblock information.
             - Positional information for T and Z dimensions is optional and may not be present in all CZI files.
             - Verbose logging is used to provide detailed warnings or errors during execution.
+
         Raises:
-            - KeyError: If scene bounding rectangle information is missing and verbose logging is enabled.
             - Exception: If an error occurs while parsing positional information for T or Z dimensions.
         """
 
@@ -267,20 +269,42 @@ class CziDimensions:
             # get the sizes from the subblocks and not from the metadata
             tb = czidoc.total_bounding_box_no_pyramid
 
-            for dim in ["X", "Y", "S", "T", "Z", "C", "M", "R", "H", "I", "V", "B"]:
+            for dim in ["X", "Y", "T", "Z", "C", "R", "H", "I", "V", "B"]:
                 if dim in tb.keys():
                     setattr(self, f"Size{dim}", tb[dim][1])
 
-            try:
-                self.SizeX_scene = czidoc.scenes_bounding_rectangle_no_pyramid[0].w
-                self.SizeY_scene = czidoc.scenes_bounding_rectangle_no_pyramid[0].h
-            except KeyError as e:
-                self.SizeX_scene = None
-                self.SizeY_scene = None
-                if self.verbose:
-                    logger.warning(
-                        "Scenes Dimension detected but no bounding rectangle information found."
-                    )
+            self.SizeS = len(czidoc.scenes_bounding_rectangle_no_pyramid)
+
+            if czi_box.czi_open_arg == pyczi.ReaderFileInputTypes.Standard:
+
+                # try to read the number of Mosaic tiles in using bioio-czi and aicspylibczi
+                img = BioImage(
+                    self.czisource,
+                    reconstruct_mosaic=False,
+                    include_subblock_metadata=True,
+                    use_aicspylibczi=True,
+                )
+
+                if hasattr(img.dims, "M"):
+                    self.SizeM = img.dims.M
+
+            elif czi_box.czi_open_arg == pyczi.ReaderFileInputTypes.Curl:
+
+                if dimensions.SizeM is not None:
+                    # try to read the number of Mosaic tiles from the metadata XML
+                    self.SizeM = dimensions.SizeM
+
+            if self.SizeS is not None:
+
+                for s in range(len(czidoc.scenes_bounding_rectangle_no_pyramid)):
+                    if czidoc.scenes_bounding_rectangle_no_pyramid[s].w is not None:
+                        self.SizeX_scene.append(
+                            czidoc.scenes_bounding_rectangle_no_pyramid[s].w
+                        )
+                    if czidoc.scenes_bounding_rectangle_no_pyramid[s].h is not None:
+                        self.SizeY_scene.append(
+                            czidoc.scenes_bounding_rectangle_no_pyramid[s].h
+                        )
 
         if czi_box.has_T:
             # check if there is a list with timepoints (is not in very CZI)

@@ -25,8 +25,8 @@ def get_czimd_box(filepath: Union[str, os.PathLike[str]]) -> Box:
     # get metadata_tools dictionary using pylibCZIrw
     with pyczi.open_czi(str(filepath), readertype) as czi_document:
         metadata_dict = czi_document.metadata
-
-        total_bounding_box_no_pyramid = czi_document.total_bounding_box_no_pyramid
+        # total_bounding_box_no_pyramid = czi_document.total_bounding_box_no_pyramid
+        scenes_bounding_rectangle = czi_document.scenes_bounding_rectangle
 
     czimd_box = Box(
         metadata_dict,
@@ -89,29 +89,23 @@ def get_czimd_box(filepath: Union[str, os.PathLike[str]]) -> Box:
             if "Dimensions" in czimd_box.ImageDocument.Metadata.Information.Image:
                 czimd_box.has_dims = True
 
-                # if (
-                #     "Channels"
-                #     in czimd_box.ImageDocument.Metadata.Information.Image.Dimensions
-                # ):
-                if "C" in total_bounding_box_no_pyramid.keys():
+                if (
+                    "Channels"
+                    in czimd_box.ImageDocument.Metadata.Information.Image.Dimensions
+                ):
+                    # if "C" in total_bounding_box_no_pyramid.keys():
                     czimd_box.has_channels = True
 
-                # if (
-                #     "T"
-                #     in czimd_box.ImageDocument.Metadata.Information.Image.Dimensions
-                # ):
-                if "T" in total_bounding_box_no_pyramid.keys():
+                if "T" in czimd_box.ImageDocument.Metadata.Information.Image.Dimensions:
+                    # if "T" in total_bounding_box_no_pyramid.keys():
                     czimd_box.has_T = True
 
-                # if (
-                #     "Z"
-                #     in czimd_box.ImageDocument.Metadata.Information.Image.Dimensions
-                # ):
-                if "Z" in total_bounding_box_no_pyramid.keys():
+                if "Z" in czimd_box.ImageDocument.Metadata.Information.Image.Dimensions:
+                    # if "Z" in total_bounding_box_no_pyramid.keys():
                     czimd_box.has_Z = True
 
                 # if "S" in czimd_box.ImageDocument.Metadata.Information.Image.Dimensions:
-                if "S" in total_bounding_box_no_pyramid.keys():
+                if len(scenes_bounding_rectangle) > 0:
                     czimd_box.has_scenes = True
 
         if "Instrument" in czimd_box.ImageDocument.Metadata.Information:
