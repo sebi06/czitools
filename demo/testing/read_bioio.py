@@ -3,7 +3,7 @@ import bioio_czi
 
 filename = r"/home/sebi06/github/czitools/data/w96_A1+A2.czi"
 
-img = BioImage(filename, reader=bioio_czi.Reader)
+img = BioImage(filename, reader=bioio_czi.Reader, reconstruct_mosaic=False, use_aicspylibczi=True)
 array5d = img.xarray_data
 print(f"Shape: {img.shape}")
 print(f"Scenes: {img.scenes}")
