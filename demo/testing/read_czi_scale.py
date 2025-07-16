@@ -1,8 +1,7 @@
 # -*- coding: utf-8 -*-
 
 #################################################################
-# File        : read_czi_scale
-# .py
+# File        : read_czi_scale.py
 # Author      : sebi06
 #
 # Disclaimer: This code is purely experimental. Feel free to
@@ -45,18 +44,15 @@ class CziScaleXYZ:
             distances = czi_box.ImageDocument.Metadata.Scaling.Items.Distance
 
             # get the scaling values for X,Y and Z
-            self.X = np.round(self._safe_get_scale(distances, 0), 3)
-            self.Y = np.round(self._safe_get_scale(distances, 1), 3)
-            self.Z = np.round(self._safe_get_scale(distances, 2), 3)
+            for axis, idx in zip(("X", "Y", "Z"), range(3)):
+                setattr(self, axis, np.round(self._safe_get_scale(distances, idx), 3))
 
         elif not czi_box.has_scale:
             self.X = 1.0
             self.Y = 1.0
             self.Z = 1.0
 
-    @staticmethod
-    def _safe_get_scale(dist: BoxList, idx: int, verbose: bool = False) -> Optional[float]:
-
+    def _safe_get_scale(dist: BoxList, idx: int) -> float:
         try:
             # get the scaling value in [micron]
             sc = float(dist[idx].Value) * 1e6
@@ -109,13 +105,13 @@ def get_czimd_box(filepath: Union[str, os.PathLike[str]]) -> Box:
     return czimd_box
 
 
-# filepath = r"F:\Testdata_Zeiss\Mindpeak\28448e7c-3dbb-486e-ab57-c4fb3ade3f1d.czi"
-# filepath = r"F:\Testdata_Zeiss\Mindpeak\sample.czi"
-# filepath = r"F:\Testdata_Zeiss\CZI_Testfiles\W96_A1+A2_S=2_4x2_Z=5_CH=2.czi"
-# filepath = r"F:\Testdata_Zeiss\CZI_Testfiles\W96_A1+A2_S=2_Pos=8_Z=5_CH=2.czi"
-filepath = r"F:\Github\czitools\data\WellD6_S1.czi"
-
 if __name__ == "__main__":
 
+    # filepath = r"F:\Testdata_Zeiss\Mindpeak\28448e7c-3dbb-486e-ab57-c4fb3ade3f1d.czi"
+    # filepath = r"F:\Testdata_Zeiss\Mindpeak\sample.czi"
+    # filepath = r"F:\Testdata_Zeiss\CZI_Testfiles\W96_A1+A2_S=2_4x2_Z=5_CH=2.czi"
+    # filepath = r"F:\Testdata_Zeiss\CZI_Testfiles\W96_A1+A2_S=2_Pos=8_Z=5_CH=2.czi"
+    filepath = r"F:\Github\czitools\data\WellD6_S1.czi"
+
     cziscale = CziScaleXYZ(filepath)
-    print(f"X: {cziscale.X}, Y: {cziscale.Y}, Z: {cziscale.Z}")
+    print(f"File: {filepath} Scale: {cziscale.X}, Y: {cziscale.Y}, Z: {cziscale.Z}")
