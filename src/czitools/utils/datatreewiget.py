@@ -11,12 +11,18 @@
 #
 #######################################################################################################################
 
-
-from PyQt5.QtWidgets import (
+from qtpy.QtWidgets import (
     QTreeWidget,
     QTreeWidgetItem,
     QPlainTextEdit,
 )
+
+
+# from PyQt5.QtWidgets import (
+#     QTreeWidget,
+#     QTreeWidgetItem,
+#     QPlainTextEdit,
+# )
 
 from pyqtgraph import TableWidget
 import numpy as np
@@ -123,12 +129,8 @@ class DataTreeWidget(QTreeWidget):
             table.setMaximumHeight(200)
             widget = table
 
-        elif isinstance(
-            data, types.TracebackType
-        ):  ## convert traceback to a list of strings
-            frames = list(
-                map(str.strip, traceback.format_list(traceback.extract_tb(data)))
-            )
+        elif isinstance(data, types.TracebackType):  ## convert traceback to a list of strings
+            frames = list(map(str.strip, traceback.format_list(traceback.extract_tb(data))))
 
             widget = QPlainTextEdit("\n".join(frames))
             widget.setMaximumHeight(200)
