@@ -57,18 +57,14 @@ def openfile(
     # request input and output image path from user
     root = Tk()
     root.withdraw()
-    input_path = filedialog.askopenfile(
-        title=title, initialdir=directory, filetypes=[(ftypename, extension)]
-    )
+    input_path = filedialog.askopenfile(title=title, initialdir=directory, filetypes=[(ftypename, extension)])
     if input_path is not None:
         return input_path.name
     if input_path is None:
         return ""
 
 
-def slicedim(
-    array: Union[np.ndarray, da.Array, zarr.Array], dimindex: int, posdim: int
-) -> np.ndarray:
+def slicedim(array: Union[np.ndarray, da.Array, zarr.Array], dimindex: int, posdim: int) -> np.ndarray:
     """Slice out a specific dimension without (!) dropping the dimension
     of the array to conserve the dimorder string
     This works for Numpy.Array, Dask and ZARR.
@@ -143,9 +139,7 @@ def calc_scaling(
     return minvalue, maxvalue
 
 
-def md2dataframe(
-    md_dict: Dict, paramcol: str = "Parameter", keycol: str = "Value"
-) -> pd.DataFrame:
+def md2dataframe(md_dict: Dict, paramcol: str = "Parameter", keycol: str = "Value") -> pd.DataFrame:
     """Converts the given metadata_tools dictionary to a Pandas DataFrame.
 
     Args:
@@ -234,9 +228,7 @@ def get_fname_woext(filepath: Union[str, os.PathLike[str]]) -> str:
     return filepath_woext
 
 
-def check_dimsize(
-    mdata_entry: Union[Any, None], set2value: Any = 1
-) -> Union[Any, None]:
+def check_dimsize(mdata_entry: Union[Any, None], set2value: Any = 1) -> Union[Any, None]:
     """Check the entries for None.
 
     Args:
@@ -256,19 +248,28 @@ def check_dimsize(
 def get_planetable(
     czifile: Union[str, os.PathLike[str]],
     norm_time: bool = True,
-    pt_complete: bool = True,
-    t: int = 0,
-    c: int = 0,
-    z: int = 0,
+    save_table: bool = False,
+    table_separator: str = ";",
+    table_index: bool = True,
+    **kwargs: dict[str, int],
 ) -> pd.DataFrame:
-    """Get the planetable from the individual subblocks
+    """Get the planetable from the individual subblocks.
+
     Args:
-        czifile: the source for the CZI image file
-        norm_time: normalize the timestamps
-        pt_complete: Read data from all subblocks or only use the ones to be shown in the plot
+        czifile: The source for the CZI image file.
+        norm_time: Whether to normalize the timestamps. Defaults to True.
+        save_table: Whether to save the planetable to a CSV file. Defaults to False.
+        table_separator: The separator for the CSV file. Defaults to ";".
+        table_index: Whether to include the index in the CSV file. Defaults to True.
+        **kwargs: Optional arguments for filtering the planetable. These can include:
+            - scene: Scene index to filter the data.
+            - tile: Tile index to filter the data.
+            - time: Time index to filter the data.
+            - channel: Channel index to filter the data.
+            - zplane: Z index to filter the data.
 
     Returns:
-        Planetable as pd.DataFrame
+        pd.DataFrame: The planetable as a Pandas DataFrame.
     """
 
     if isinstance(czifile, Path):
@@ -276,18 +277,18 @@ def get_planetable(
         czifile = str(czifile)
 
     if validators.url(czifile):
-        logger.warning("Reading PlaneTable from CZI via a link is not supported.")
+        logger.warning("Reading PlaneTable from CZI via a link is not supported yet.")
         return None, None
 
     # initialize the plane table
     df_czi = pd.DataFrame(
         columns=[
             "Subblock",
-            "Scene",
-            "Tile",
+            "S",
+            "M",
             "T",
-            "Z",
             "C",
+            "Z",
             "X[micron]",
             "Y[micron]",
             "Z[micron]",
@@ -341,15 +342,15 @@ def get_planetable(
     else:
         size_z = 1
 
-        # cast data types
+    # cast data types
     df_czi = df_czi.astype(
         {
             "Subblock": "int32",
-            "Scene": "int32",
-            "Tile": "int32",
+            "S": "int32",
+            "M": "int32",
             "T": "int32",
+            "C": "int32",
             "Z": "int32",
-            "C": "int16",
             "X[micron]": "float",
             "Y[micron]": "float",
             "Z[micron]": "float",
@@ -363,176 +364,166 @@ def get_planetable(
         errors="ignore",
     )
 
-    if not has_m:
-        df_czi.drop(columns=["Tile"], inplace=True)
-    if not has_s:
-        df_czi.drop(columns=["Scene"], inplace=True)
-    if not has_t:
-        df_czi.drop(columns=["T"], inplace=True)
-    if not has_z:
-        df_czi.drop(columns=["Z"], inplace=True)
+    # check for scenes argument
+    if "scene" in kwargs:
+        s_start = kwargs["scene"]
+        s_end = kwargs["scene"] + 1
+    else:
+        s_start = 0
+        s_end = size_s
 
-    def getsbinfo(subblock: Any) -> Tuple[float, float, float, float]:
-        try:
-            time = subblock.findall(".//AcquisitionTime")[0].text
-            timestamp = dt.parse(time).timestamp()
-        except IndexError as e:
-            timestamp = 0.0
+    # check for tile argument
+    if "tile" in kwargs:
+        m_start = kwargs["tile"]
+        m_end = kwargs["tile"] + 1
+    else:
+        m_start = 0
+        m_end = size_m
 
-        try:
-            xpos = np.double(subblock.findall(".//StageXPosition")[0].text)
-        except IndexError as e:
-            xpos = 0.0
-
-        try:
-            ypos = np.double(subblock.findall(".//StageYPosition")[0].text)
-        except IndexError as e:
-            ypos = 0.0
-
-        try:
-            zpos = np.double(subblock.findall(".//FocusPosition")[0].text)
-        except IndexError as e:
-            zpos = 0.0
-
-        return timestamp, xpos, ypos, zpos
-
-    if pt_complete:
+    # check for time argument
+    if "time" in kwargs:
+        t_start = kwargs["time"]
+        t_end = kwargs["time"] + 1
+    else:
         t_start = 0
         t_end = size_t
+
+    # check for channel argument
+    if "channel" in kwargs:
+        c_start = kwargs["channel"]
+        c_end = kwargs["channel"] + 1
+    else:
         c_start = 0
         c_end = size_c
+
+    # check for zplane argument
+    if "zplane" in kwargs:
+        z_start = kwargs["zplane"]
+        z_end = kwargs["zplane"] + 1
+    else:
         z_start = 0
         z_end = size_z
 
-    elif not pt_complete:
-        t_start = t
-        t_end = t + 1
-        c_start = c
-        c_end = c + 1
-        z_start = 0
-        z_end = z + 1
+    for s, m, t, c, z in product(
+        enumerate(range(s_start, s_end)),
+        enumerate(range(m_start, m_end)),
+        enumerate(range(t_start, t_end)),
+        enumerate(range(c_start, c_end)),
+        enumerate(range(z_start, z_end)),
+        desc="Reading sublocks planes",
+        unit=" 2Dplanes",
+    ):
+        sbcount += 1
 
-    # do if the data is not a mosaic
-    if size_m > 1:
-        for s, m, t, c, z in product(
-            range(size_s),
-            range(size_m),
-            enumerate(range(t_start, t_end)),
-            enumerate(range(c_start, c_end)),
-            enumerate(range(z_start, z_end)),
-            desc="Reading sublocks planes",
-            unit=" 2Dplanes",
-        ):
-            sbcount += 1
+        args = {"S": s[1], "M": m[1], "T": t[1], "Z": z[1], "C": c[1]}
 
-            args = {"S": s, "M": m, "T": t[1], "Z": z[1], "C": c[1]}
+        # adjust arguments if dimensions are not present
+        if not has_t:
+            args.pop("T")
+        if not has_z:
+            args.pop("Z")
+        if not has_s:
+            args.pop("S")
+        if not has_m:
+            args.pop("M")
+        if not has_c:
+            args.pop("C")
 
-            if not has_t:
-                args.pop("T")
-            if not has_z:
-                args.pop("Z")
-            if not has_s:
-                args.pop("S")
-            if not has_m:
-                args.pop("M")
-
+        # read information from subblock and bounding box
+        if has_m:
             # get x, y, width and height for a specific tile
-            tilebbox = aicsczi.get_mosaic_tile_bounding_box(**args)
+            bbox = aicsczi.get_mosaic_tile_bounding_box(**args)
+            sb = aicsczi.read_subblock_metadata(unified_xml=True, B=0, S=s[1], M=m[1], T=t[1], Z=z[1], C=c[1])
+        elif not has_m:
+            bbox = aicsczi.get_tile_bounding_box(**args)
+            sb = aicsczi.read_subblock_metadata(unified_xml=True, B=0, S=s[1], T=t[1], Z=z[1], C=c[1])
 
-            # read information from subblock
-            sb = aicsczi.read_subblock_metadata(
-                unified_xml=True, B=0, S=s, M=m, T=t[1], Z=z[1], C=c[1]
-            )
+        # get information from subblock
+        timestamp, xpos, ypos, zpos = _getsbinfo(sb)
 
-            # get information from subblock
-            timestamp, xpos, ypos, zpos = getsbinfo(sb)
+        # assemble data for a single plane
+        plane = [
+            {
+                "Subblock": sbcount,
+                "S": s[1],
+                "M": m[1],
+                "T": t[1],
+                "C": c[1],
+                "Z": z[1],
+                "X[micron]": xpos,
+                "Y[micron]": ypos,
+                "Z[micron]": zpos,
+                "Time[s]": timestamp,
+                "xstart": bbox.x,
+                "ystart": bbox.y,
+                "width": bbox.w,
+                "height": bbox.h,
+            }
+        ]
 
-            plane = [
-                {
-                    "Subblock": sbcount,
-                    "Scene": s,
-                    "Tile": m,
-                    "T": t[1],
-                    "Z": z[1],
-                    "C": c[1],
-                    "X[micron]": xpos,
-                    "Y[micron]": ypos,
-                    "Z[micron]": zpos,
-                    "Time[s]": timestamp,
-                    "xstart": tilebbox.x,
-                    "ystart": tilebbox.y,
-                    "width": tilebbox.w,
-                    "height": tilebbox.h,
-                }
-            ]
-
-            df_czi = pd.concat(
-                [df_czi if not df_czi.empty else None, pd.DataFrame(plane)],
-                ignore_index=True,
-            )
-
-    # do if the data is not a mosaic
-    if size_m == 1:
-        for s, t, c, z in product(
-            range(size_s),
-            enumerate(range(t_start, t_end)),
-            enumerate(range(c_start, c_end)),
-            enumerate(range(z_start, z_end)),
-            desc="Reading sublocks planes",
-            unit=" 2Dplanes",
-        ):
-            sbcount += 1
-
-            args = {"S": s, "T": t[1], "Z": z[1], "C": c[1]}
-
-            if not has_t:
-                args.pop("T")
-            if not has_z:
-                args.pop("Z")
-            if not has_s:
-                args.pop("S")
-
-            # get x, y, width and height for a specific tile
-            tilebbox = aicsczi.get_tile_bounding_box(S=s, T=t[1], Z=z[1], C=c[1])
-
-            # read information from subblocks
-            sb = aicsczi.read_subblock_metadata(
-                unified_xml=True, B=0, S=s, T=t[1], Z=z[1], C=c[1]
-            )
-
-            # get information from subblock
-            timestamp, xpos, ypos, zpos = getsbinfo(sb)
-
-            plane = [
-                {
-                    "Subblock": sbcount,
-                    "Scene": s,
-                    "T": t[1],
-                    "Z": z[1],
-                    "C": c[1],
-                    "X[micron]": xpos,
-                    "Y[micron]": ypos,
-                    "Z[micron]": zpos,
-                    "Time[s]": timestamp,
-                    "xstart": tilebbox.x,
-                    "ystart": tilebbox.y,
-                    "width": tilebbox.w,
-                    "height": tilebbox.h,
-                }
-            ]
-
-            df_czi = pd.concat([df_czi, pd.DataFrame(plane)], ignore_index=True)
+        # concatenate the plane data to the dataframe
+        df_czi = pd.concat(
+            [df_czi if not df_czi.empty else None, pd.DataFrame(plane)],
+            ignore_index=True,
+        )
 
     # normalize time stamps
     if norm_time:
         df_czi = norm_columns(df_czi, colname="Time[s]", mode="min")
 
+    if save_table:
+        try:
+            planetable_savepath = save_planetable(df_czi, czifile, separator=table_separator, index=table_index)
+            logger.info(f"Planetable saved successfully at: {planetable_savepath}")
+            return df_czi, planetable_savepath
+        except Exception as e:
+            logger.error(f"Failed to save planetable: {e}")
+            return df_czi, None
+
     return df_czi
 
 
-def norm_columns(
-    df: pd.DataFrame, colname: str = "Time [s]", mode: str = "min"
-) -> pd.DataFrame:
+def _getsbinfo(subblock: Any) -> Tuple[float, float, float, float]:
+    """
+    Extracts metadata information from a given subblock element.
+    This function retrieves the acquisition timestamp, stage X position,
+    stage Y position, and focus position from the provided subblock.
+    If any of the elements are missing, their corresponding values are
+    set to 0.0.
+    Args:
+        subblock (Any): The subblock element containing metadata information.
+    Returns:
+        Tuple[float, float, float, float]: A tuple containing:
+            - timestamp (float): The acquisition time in seconds since the epoch.
+            - xpos (float): The stage X position.
+            - ypos (float): The stage Y position.
+            - zpos (float): The focus position.
+    """
+    try:
+        time = subblock.findall(".//AcquisitionTime")[0].text
+        timestamp = dt.parse(time).timestamp()
+    except IndexError as e:
+        timestamp = 0.0
+
+    try:
+        xpos = np.double(subblock.findall(".//StageXPosition")[0].text)
+    except IndexError as e:
+        xpos = 0.0
+
+    try:
+        ypos = np.double(subblock.findall(".//StageYPosition")[0].text)
+    except IndexError as e:
+        ypos = 0.0
+
+    try:
+        zpos = np.double(subblock.findall(".//FocusPosition")[0].text)
+    except IndexError as e:
+        zpos = 0.0
+
+    return timestamp, xpos, ypos, zpos
+
+
+def norm_columns(df: pd.DataFrame, colname: str = "Time [s]", mode: str = "min") -> pd.DataFrame:
     """Normalize a specific column inside a Pandas dataframe
     Args:
         df: DataFrame
@@ -566,14 +557,14 @@ def filter_planetable(planetable: pd.DataFrame, **kwargs) -> pd.DataFrame:
 
     Args:
         planetable (pd.DataFrame): The DataFrame to be filtered.
-            It should contain columns "Scene", "T", "Z" and "C".
+            It should contain columns "S", "M", "T", "Z" and "C".
 
         **kwargs: Optional keyword arguments specifying the indices to filter on.
             These can include:
-                'S': The scene index.
-                'T': The time index.
-                'Z': The z-plane index.
-                'C': The channel index.
+                'scene': The scene index.
+                'time': The time index.
+                'zplane': The z-plane index.
+                'channel': The channel index.
 
     Returns:
         pd.DataFrame: The filtered planetable.
@@ -583,13 +574,13 @@ def filter_planetable(planetable: pd.DataFrame, **kwargs) -> pd.DataFrame:
         ValueError: If an invalid keyword argument is passed.
 
     Examples:
-        >>> planetable = pd.DataFrame({'Scene': [0, 1, 1], 'T': [0, 1, 0], 'Z': [0, 1, 1], 'C': [0, 1, 1]})
-        >>> filter_planetable(planetable, S=1, T=0)
-        Scene  T  Z  C
-        2      1  0  1  1
+        >>> planetable = pd.DataFrame({'scene': [0, 1, 1], 'time': [0, 1, 0], 'zplane': [0, 1, 1], 'channel': [0, 1, 1]})
+        >>> filter_planetable(planetable, scene=1, time=0)
+        scene  time  zplane  channel
+        2      1     0       1      1
     """
 
-    valid_args = ["S", "T", "Z", "C"]
+    valid_args = ["scene", "time", "zplane", "channel"]
 
     # check for invalid arguments
     for k, v in kwargs.items():
@@ -597,42 +588,40 @@ def filter_planetable(planetable: pd.DataFrame, **kwargs) -> pd.DataFrame:
         if k not in valid_args:
             raise ValueError(f"Invalid keyword argument: {k}")
 
-    if "S" in kwargs:
+    if "scene" in kwargs:
         # filter planetable for specific scene
-        planetable = planetable[planetable["Scene"] == kwargs["S"]]
+        planetable = planetable[planetable["S"] == kwargs["scene"]]
 
-    if "T" in kwargs:
+    if "time" in kwargs:
         # filter planetable for specific timepoint
-        planetable = planetable[planetable["T"] == kwargs["T"]]
+        planetable = planetable[planetable["T"] == kwargs["time"]]
 
-    if "Z" in kwargs:
+    if "zplane" in kwargs:
         # filter resulting planetable pt for a specific z-plane
-        planetable = planetable[planetable["Z"] == kwargs["Z"]]
+        planetable = planetable[planetable["Z"] == kwargs["zplane"]]
 
-    if "C" in kwargs:
+    if "channel" in kwargs:
         # filter planetable for specific channel
-        planetable = planetable[planetable["C"] == kwargs["C"]]
+        planetable = planetable[planetable["C"] == kwargs["channel"]]
 
     # return filtered planetable
     return planetable
 
 
-def save_planetable(
-    df: pd.DataFrame, filename: str, separator: str = ",", index: bool = True
-) -> str:
+def save_planetable(df: pd.DataFrame, filepath: str, separator: str = ",", index: bool = True) -> str:
     """Saves a pandas dataframe as a CSV file.
 
     Args:
         df (pd.DataFrame): The dataframe to be saved as CSV.
-        filename (str): The filename of the CSV file to be written.
+        filepath (str): The filepath of the CSV file to be written.
         separator (str, optional): The separator character for the CSV file. Defaults to ','.
         index (bool, optional): Whether to include the index in the CSV file. Defaults to True.
 
     Returns:
-        str: The filename of the CSV file that was written.
+        str: The filepath of the CSV file that was written.
     """
-    # Generate the filename for the planetable CSV.
-    csvfile = os.path.splitext(filename)[0] + "_planetable.csv"
+    # Generate the filepath for the planetable CSV.
+    csvfile = os.path.splitext(filepath)[0] + "_planetable.csv"
 
     # Write the dataframe to the planetable CSV file.
     df.to_csv(csvfile, sep=separator, index=index)
@@ -659,42 +648,89 @@ def expand5d(array: np.ndarray) -> np.ndarray:
     return array5d
 
 
-def clean_dict(d: Dict) -> Dict:
+# def clean_dict(d: Dict) -> Dict:
+#     """
+#     Recursively cleans a dictionary by removing keys with values that are None, empty lists, or empty dictionaries.
+#     Args:
+#         d (Dict): The dictionary to be cleaned.
+#     Returns:
+#         Dict: A new dictionary with the same structure as the input, but without keys that have None, empty lists, or empty dictionaries as values.
+#     """
+
+#     def _clean_dict(d: Dict) -> Dict:
+#         # Initialize an empty dictionary to store cleaned key-value pairs
+#         cleaned = {}
+
+#         # Iterate over each key-value pair in the dictionary
+#         for k, v in d.items():
+
+#             # Check if the value is a dictionary
+#             if isinstance(v, dict):
+
+#                 # Recursively clean the nested dictionary
+#                 nested = _clean_dict(v)
+
+#                 # If the nested dictionary is not empty
+#                 if nested:
+#                     # Add the cleaned nested dictionary to the cleaned dictionary
+#                     cleaned[k] = nested
+
+#             # Check if the value is an array and ensure it is not empty
+#             elif isinstance(v, (np.ndarray, da.Array)):
+#                 if v.size > 0:
+#                     cleaned[k] = v
+
+#             # Check if the value is not None, an empty list, or an empty dictionary
+#             elif v is not None and not isinstance(v, (np.ndarray, da.Array)) and v != [] and v != {}:
+#                 cleaned[k] = v
+
+#         return cleaned
+
+#     return _clean_dict(d)  # Call the inner function and return its result
+
+
+def clean_dict(d: Dict[Any, Any]) -> Dict[Any, Any]:
     """
-    Recursively cleans a dictionary by removing keys with values that are None, empty lists, or empty dictionaries.
+    Recursively cleans a dictionary by removing keys with values that are None, empty lists, empty dictionaries,
+    or empty NumPy arrays.
+
     Args:
         d (Dict): The dictionary to be cleaned.
+
     Returns:
-        Dict: A new dictionary with the same structure as the input, but without keys that have None, empty lists, or empty dictionaries as values.
+        Dict: A new dictionary with the same structure as the input, but without keys that have None, empty lists,
+        empty dictionaries, or empty NumPy arrays as values.
     """
+    if not isinstance(d, dict):
+        raise ValueError("Input must be a dictionary.")
 
-    def _clean_dict(d: Dict) -> Dict:
-        # Initialize an empty dictionary to store cleaned key-value pairs
-        cleaned = {}
+    cleaned = {}
+    for key, value in d.items():
+        # Handle None values
+        if value is None:
+            continue
 
-        # Iterate over each key-value pair in the dictionary
-        for k, v in d.items():
+        # Handle empty lists
+        if isinstance(value, list) and len(value) == 0:
+            continue
 
-            # Check if the value is a dictionary
-            if isinstance(v, dict):
+        # Handle empty dictionaries
+        if isinstance(value, dict) and len(value) == 0:
+            continue
 
-                # Recursively clean the nested dictionary
-                nested = _clean_dict(v)
+        # Handle empty NumPy arrays
+        if isinstance(value, np.ndarray) and value.size == 0:
+            continue
 
-                # If the nested dictionary is not empty
-                if nested:
-                    # Add the cleaned nested dictionary to the cleaned dictionary
-                    cleaned[k] = nested
+        # Recursively clean nested dictionaries
+        if isinstance(value, dict):
+            nested_cleaned = clean_dict(value)
+            if nested_cleaned:  # Only include if the cleaned nested dictionary is not empty
+                cleaned[key] = nested_cleaned
+        else:
+            cleaned[key] = value
 
-            # Check if the value is not None, an empty list, or an empty dictionary
-            elif v not in [None, [], {}]:
-
-                # Add the key-value pair to the cleaned dictionary
-                cleaned[k] = v
-
-        return cleaned
-
-    return _clean_dict(d)  # Call the inner function and return its result
+    return cleaned
 
 
 def download_zip(source_link: str) -> str:
@@ -719,14 +755,10 @@ def check_zoom(zoom: Annotated[float, ValueRange(0.01, 1.0)] = 1.0) -> float:
 
     # check zoom factor
     if zoom > 1.0:
-        logger.warning(
-            f"Zoom factor f{zoom} is not in valid range [0.01 - 1.0]. Using 1.0 instead."
-        )
+        logger.warning(f"Zoom factor f{zoom} is not in valid range [0.01 - 1.0]. Using 1.0 instead.")
         zoom = 1.0
     if zoom < 0.01:
-        logger.warning(
-            f"Zoom factor f{zoom} is not in valid range [0.01 - 1.0]. Using 0.01 instead."
-        )
+        logger.warning(f"Zoom factor f{zoom} is not in valid range [0.01 - 1.0]. Using 0.01 instead.")
         zoom = 0.01
 
     return zoom

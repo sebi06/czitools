@@ -45,9 +45,7 @@ def test_slicedim(czifile: str, dimindex: int, posdim: int, shape: Tuple[int]) -
         )
     ],
 )
-def test_get_planetable(
-    czifile: str, csvfile: str, xstart: List[int], ystart: List[int]
-) -> None:
+def test_get_planetable(czifile: str, csvfile: str, xstart: List[int], ystart: List[int]) -> None:
     # get the CZI filepath
     filepath = (basedir / "data" / czifile).as_posix()
 
@@ -70,17 +68,13 @@ def test_get_planetable(
         # read the data from CZI file
         planetable = misc.get_planetable(filepath, norm_time=True, pt_complete=True)
 
-    planetable_filtered = misc.filter_planetable(planetable, S=0, T=0, Z=0, C=0)
+    planetable_filtered = misc.filter_planetable(planetable, scene=0, time=0, channel=0, zplane=0)
 
     assert planetable_filtered["xstart"].values[0] == xstart[0]
-    # assert planetable_filtered["xstart"].values[1] == xstart[1]
     assert planetable_filtered["ystart"].values[0] == ystart[0]
-    # assert planetable_filtered["ystart"].values[1] == ystart[1]
 
 
-@pytest.mark.parametrize(
-    "entry, set2value, result", [(0, 1, 0), (None, 1, 1), (-1, 2, -1), (None, 3, 3)]
-)
+@pytest.mark.parametrize("entry, set2value, result", [(0, 1, 0), (None, 1, 1), (-1, 2, -1), (None, 3, 3)])
 def test_check_dimsize(entry: Optional[int], set2value: int, result: int) -> None:
     """
     This function checks the dimension size of an entry against a set value
@@ -144,23 +138,23 @@ def test_norm_columns_max(df):
 def test_filter_planetable(planetable):
 
     # Test for scene index
-    result = misc.filter_planetable(planetable, S=1)
-    assert result["Scene"].eq(1).all(), "Scene index filter failed"
+    result = misc.filter_planetable(planetable, scene=1)
+    assert result["S"].eq(1).all(), "Scene index filter failed"
 
     # Test for time index
-    result = misc.filter_planetable(planetable, T=1)
+    result = misc.filter_planetable(planetable, time=1)
     assert result["T"].eq(1).all(), "Time index filter failed"
 
     # Test for z-plane index
-    result = misc.filter_planetable(planetable, Z=1)
+    result = misc.filter_planetable(planetable, zplane=1)
     assert result["Z"].eq(1).all(), "Z-plane index filter failed"
 
     # Test for channel index
-    result = misc.filter_planetable(planetable, C=5)
+    result = misc.filter_planetable(planetable, channel=5)
     assert result["C"].eq(5).all(), "Channel index filter failed"
 
     # Test for invalid indices
-    result = misc.filter_planetable(planetable, S=2, T=2, Z=2, C=2)
+    result = misc.filter_planetable(planetable, scene=2, time=2, zplane=2, channel=2)
     assert result.empty, "Invalid index filter failed"
 
 
@@ -177,3 +171,162 @@ def test_filter_planetable(planetable):
 def test_clean_dict(input_dict: Dict, expected_dict: Dict) -> None:
     result = misc.clean_dict(input_dict)
     assert result == expected_dict
+
+
+@pytest.mark.parametrize(
+    "subblock, expected_result",
+    [
+        (
+            # Subblock with all metadata present
+            {
+                "AcquisitionTime": ["2023-01-01T12:00:00"],
+                "StageXPosition": ["10.5"],
+                "StageYPosition": ["20.5"],
+                "FocusPosition": ["30.5"],
+            },
+            (1672570800.0, 10.5, 20.5, 30.5),
+        ),
+        (
+            # Subblock missing AcquisitionTime
+            {
+                "StageXPosition": ["10.5"],
+                "StageYPosition": ["20.5"],
+                "FocusPosition": ["30.5"],
+            },
+            (0.0, 10.5, 20.5, 30.5),
+        ),
+        (
+            # Subblock missing StageXPosition
+            {
+                "AcquisitionTime": ["2023-01-01T12:00:00"],
+                "StageYPosition": ["20.5"],
+                "FocusPosition": ["30.5"],
+            },
+            (1672570800.0, 0.0, 20.5, 30.5),
+        ),
+        (
+            # Subblock missing StageYPosition
+            {
+                "AcquisitionTime": ["2023-01-01T12:00:00"],
+                "StageXPosition": ["10.5"],
+                "FocusPosition": ["30.5"],
+            },
+            (1672570800.0, 10.5, 0.0, 30.5),
+        ),
+        (
+            # Subblock missing FocusPosition
+            {
+                "AcquisitionTime": ["2023-01-01T12:00:00"],
+                "StageXPosition": ["10.5"],
+                "StageYPosition": ["20.5"],
+            },
+            (1672570800.0, 10.5, 20.5, 0.0),
+        ),
+        (
+            # Subblock missing all metadata
+            {},
+            (0.0, 0.0, 0.0, 0.0),
+        ),
+    ],
+)
+def test_getsbinfo(subblock, expected_result):
+    class MockSubblock:
+        def __init__(self, data):
+            self.data = data
+
+        def findall(self, path):
+            key = path.split("//")[-1]
+            return [MockElement(text) for text in self.data.get(key, [])]
+
+    class MockElement:
+        def __init__(self, text):
+            self.text = text
+
+    mock_subblock = MockSubblock(subblock)
+    result = misc._getsbinfo(mock_subblock)
+    assert result == expected_result
+
+
+@pytest.mark.parametrize(
+    "czifile, kwargs, expected_columns",
+    [
+        (
+            "WP96_4Pos_B4-10_DAPI.czi",
+            {"scene": 0, "time": 0, "channel": 0, "zplane": 0},
+            [
+                "Subblock",
+                "S",
+                "M",
+                "T",
+                "C",
+                "Z",
+                "X[micron]",
+                "Y[micron]",
+                "Z[micron]",
+                "Time[s]",
+                "xstart",
+                "ystart",
+                "width",
+                "height",
+            ],
+        ),
+    ],
+)
+def test_get_planetable_columns(czifile: str, kwargs: dict, expected_columns: list) -> None:
+    filepath = (basedir / "data" / czifile).as_posix()
+
+    planetable = misc.get_planetable(filepath, **kwargs)
+    assert list(planetable.columns) == expected_columns, "Column names do not match expected values."
+
+
+@pytest.mark.parametrize(
+    "czifile, kwargs, expected_shape",
+    [
+        (
+            "WP96_4Pos_B4-10_DAPI.czi",
+            {"scene": 0, "time": 0, "channel": 0, "zplane": 0},
+            (1, 14),  # Example shape based on expected data
+        ),
+    ],
+)
+def test_get_planetable_shape(czifile: str, kwargs: dict, expected_shape: tuple) -> None:
+    filepath = (basedir / "data" / czifile).as_posix()
+
+    planetable = misc.get_planetable(filepath, **kwargs)
+    assert planetable.shape == expected_shape, "DataFrame shape does not match expected values."
+
+
+@pytest.mark.parametrize(
+    "czifile, kwargs, norm_time, expected_min_time",
+    [
+        (
+            "WP96_4Pos_B4-10_DAPI.czi",
+            {"scene": 0, "time": 0, "channel": 0, "zplane": 0},
+            True,
+            0.0,  # Example normalized minimum time
+        ),
+    ],
+)
+def test_get_planetable_normalized_time(czifile: str, kwargs: dict, norm_time: bool, expected_min_time: float) -> None:
+    filepath = (basedir / "data" / czifile).as_posix()
+
+    planetable = misc.get_planetable(filepath, norm_time=norm_time, **kwargs)
+    assert planetable["Time[s]"].min() == expected_min_time, "Normalized time does not match expected value."
+
+
+@pytest.mark.parametrize(
+    "czifile, kwargs, save_table, expected_saved_path",
+    [
+        (
+            "WP96_4Pos_B4-10_DAPI.czi",
+            {"scene": 0, "time": 0, "channel": 0, "zplane": 0},
+            True,
+            "WP96_4Pos_B4-10_DAPI_planetable.csv",  # Example saved file name
+        ),
+    ],
+)
+def test_get_planetable_save_table(czifile: str, kwargs: dict, save_table: bool, expected_saved_path: str) -> None:
+    filepath = (basedir / "data" / czifile).as_posix()
+
+    _, saved_path = misc.get_planetable(filepath, save_table=save_table, **kwargs)
+    assert saved_path.endswith(expected_saved_path), "Saved file path does not match expected value."
