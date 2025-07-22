@@ -52,19 +52,7 @@ jobs:
       run: tox
       env:
         PLATFORM: ${{ matrix.platform }}
-    - name: Upload coverage reports to Codecov with GitHub Action
-      uses: codecov/codecov-action@v4.2.0
-      env:
-        CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
-
-    # # this runs the platform-specific tests declared in tox.ini
-    # - name: Test with tox
-    #   run: tox
-    #   env:
-    #     PLATFORM: ${{ matrix.platform }}
-
-    #- name: Coverage
-    #  uses: codecov/codecov-action@v4
+    
     - name: Upload coverage reports to Codecov with GitHub Action
       uses: codecov/codecov-action@v4.2.0
       env:
