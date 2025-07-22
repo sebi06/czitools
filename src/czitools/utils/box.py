@@ -6,9 +6,7 @@ from box import Box
 import validators
 
 
-def get_czimd_box(
-    filepath: Union[str, os.PathLike[str]]
-) -> Box:
+def get_czimd_box(filepath: Union[str, os.PathLike[str]]) -> Box:
     """
     get_czimd_box: Get CZI metadata_tools as a python-box. For details: https://pypi.org/project/python-box/
 
@@ -27,6 +25,8 @@ def get_czimd_box(
     # get metadata_tools dictionary using pylibCZIrw
     with pyczi.open_czi(str(filepath), readertype) as czi_document:
         metadata_dict = czi_document.metadata
+        # total_bounding_box_no_pyramid = czi_document.total_bounding_box_no_pyramid
+        scenes_bounding_rectangle = czi_document.scenes_bounding_rectangle
 
     czimd_box = Box(
         metadata_dict,
@@ -93,21 +93,19 @@ def get_czimd_box(
                     "Channels"
                     in czimd_box.ImageDocument.Metadata.Information.Image.Dimensions
                 ):
+                    # if "C" in total_bounding_box_no_pyramid.keys():
                     czimd_box.has_channels = True
 
-                if (
-                    "T"
-                    in czimd_box.ImageDocument.Metadata.Information.Image.Dimensions
-                ):
+                if "T" in czimd_box.ImageDocument.Metadata.Information.Image.Dimensions:
+                    # if "T" in total_bounding_box_no_pyramid.keys():
                     czimd_box.has_T = True
 
-                if (
-                    "Z"
-                    in czimd_box.ImageDocument.Metadata.Information.Image.Dimensions
-                ):
+                if "Z" in czimd_box.ImageDocument.Metadata.Information.Image.Dimensions:
+                    # if "Z" in total_bounding_box_no_pyramid.keys():
                     czimd_box.has_Z = True
 
-                if "S" in czimd_box.ImageDocument.Metadata.Information.Image.Dimensions:
+                # if "S" in czimd_box.ImageDocument.Metadata.Information.Image.Dimensions:
+                if len(scenes_bounding_rectangle) > 0:
                     czimd_box.has_scenes = True
 
         if "Instrument" in czimd_box.ImageDocument.Metadata.Information:

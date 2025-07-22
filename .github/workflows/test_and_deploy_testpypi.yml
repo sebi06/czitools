@@ -24,7 +24,7 @@ jobs:
     strategy:
       matrix:
         platform: [ubuntu-latest, windows-latest]
-        python-version: ['3.9', '3.10', '3.11', '3.12', '3.13', ]
+        python-version: ['3.9', '3.10', '3.11', '3.12', '3.13']
 
     steps:
     - uses: actions/checkout@v4
@@ -32,10 +32,10 @@ jobs:
       uses: actions/setup-python@v5
       with:
         python-version: ${{ matrix.python-version }}
-    - name: Upload coverage reports to Codecov with GitHub Action
-      uses: codecov/codecov-action@v4.2.0
-      env:
-        CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+    # - name: Upload coverage reports to Codecov with GitHub Action
+    #   uses: codecov/codecov-action@v4.2.0
+    #   env:
+    #     CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
 
     # note: if you need dependencies from conda, considering using
@@ -52,9 +52,7 @@ jobs:
       run: tox
       env:
         PLATFORM: ${{ matrix.platform }}
-
-    #- name: Coverage
-    #  uses: codecov/codecov-action@v4
+    
     - name: Upload coverage reports to Codecov with GitHub Action
       uses: codecov/codecov-action@v4.2.0
       env:
@@ -72,7 +70,8 @@ jobs:
     - name: Set up Python
       uses: actions/setup-python@v5
       with:
-        python-version: "3.x"
+        python-version: "3.13"
+        allow-prereleases: true
     - name: Install pypa/build
       run: >-
         python -m

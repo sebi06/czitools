@@ -19,14 +19,16 @@ class CziBoundingBox:
         The source of the CZI file, which can be a string, a path-like object, or a Box object.
     scenes_bounding_rect : Optional[Dict[int, pyczi.Rectangle]]
         A dictionary containing the bounding rectangles for each scene in the CZI file.
+    scenes_bounding_rect_no_pyramid : Optional[Dict[int, pyczi.Rectangle]]
+        A dictionary containing the bounding rectangles for each scene in the CZI file without a pyramid.
     total_rect : Optional[pyczi.Rectangle]
         The total bounding rectangle for the entire CZI file.
+    total_rect_no_pyramid : Optional[pyczi.Rectangle]
+        The total bounding rectangle for the entire CZI file without a pyramid.
     total_bounding_box : Optional[Dict[str, tuple]]
         A dictionary containing the total bounding box.
-    scenes_bounding_rect_no_pyramid : Optional[Dict[int, pyczi.Rectangle]]
-        A dictionary containing the bounding rectangles for each scene in the CZI file without pyramid.
     total_bounding_box_no_pyramid : Optional[Dict[str, tuple]]
-        A dictionary containing the total bounding box coordinates without pyramid.
+        A dictionary containing the total bounding box coordinates without a pyramid.
     verbose (bool): Flag to enable verbose logging. Initialized to False.
     Methods:
     --------
@@ -42,6 +44,7 @@ class CziBoundingBox:
         init=False, default_factory=lambda: {}
     )
     total_rect: Optional[pyczi.Rectangle] = field(init=False, default=None)
+    total_rect_no_pyarmid: Optional[pyczi.Rectangle] = field(init=False, default=None)
     total_bounding_box: Optional[Dict[str, tuple]] = field(
         init=False, default_factory=lambda: {}
     )
@@ -93,6 +96,14 @@ class CziBoundingBox:
                 self.total_rect = None
                 if self.verbose:
                     logger.info("Total Bounding Rectangle not found.")
+
+            # get total bounding rectangles
+            try:
+                self.total_rect_no_pyramid = czidoc.total_bounding_rectangle_no_pyramid
+            except Exception as e:
+                self.total_rect_no_pyramid = None
+                if self.verbose:
+                    logger.info("Total Bounding Rectangle no pyramid not found.")
 
             # get total bounding boxes
             try:

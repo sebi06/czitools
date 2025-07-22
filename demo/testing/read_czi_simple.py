@@ -21,7 +21,9 @@ import matplotlib.cm as cm
 # filepath = r"F:\Testdata_Zeiss\Mindpeak\sample.czi"
 # filepath = r"F:\Testdata_Zeiss\CZI_Testfiles\W96_A1+A2_S=2_4x2_Z=5_CH=2.czi"
 # filepath = r"F:\Testdata_Zeiss\CZI_Testfiles\W96_A1+A2_S=2_Pos=8_Z=5_CH=2.czi"
-filepath = r"F:\Github\czitools\data\WellD6_S1.czi"
+filepath = r"F:\Testdata_Zeiss\CZI_Testfiles\S2_3x3_CH2.czi"
+# filepath = r"F:\Github\czitools\data\WellD6_S1.czi"
+# filepath = r"F:\Github\czitools\data\WP96_4Pos_B4-10_DAPI.czi"
 
 
 # determine shape of combines stack
@@ -61,7 +63,5 @@ with pyczi.open_czi(filepath) as czidoc:
 
         # show the 2D image plane
         fig, ax = plt.subplots(1, 1, figsize=(12, 8))
-        ax.imshow(
-            image2d[..., 0], cmap=cm.inferno, vmin=image2d.min(), vmax=image2d.max()
-        )
+        ax.imshow(image2d[..., 0], cmap=cm.inferno, vmin=image2d.min(), vmax=image2d.max())
         plt.show()

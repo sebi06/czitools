@@ -7,13 +7,14 @@
 # Disclaimer: This code is purely experimental. Feel free to
 # use it at your own risk.
 #
-# Requires napari to be installed!
+# Requires napari & magicgui to be installed!
 #
 #################################################################
 
 from czitools.read_tools import read_tools
-from czitools.utils import misc
 from pathlib import Path
+from magicgui import magicgui
+from magicgui.types import FileDialogMode
 
 try:
     import napari
@@ -27,15 +28,31 @@ except ImportError:
 # adapt to your needs
 defaultdir = Path(Path(__file__).resolve().parents[2]) / "data"
 
-# open simple dialog to select a CZI file
-filepath = misc.openfile(
-    directory=defaultdir,
-    title="Open CZI Image File",
-    ftypename="CZI Files",
-    extension="*.czi",
-)
 
-print(filepath)
+# open simple dialog to select a CZI file
+@magicgui(
+    filepath={
+        "label": "Choose CZI files:",
+        "mode": FileDialogMode.EXISTING_FILE,
+        "filter": "*.czi",
+        "value": defaultdir,
+    },
+    call_button="Open CZI File",
+)
+def filespicker(filepath: Path) -> Path:
+    """Take a filename and do something with it."""
+    # Close the dialog after the file is selected and the button was pressed
+    # This will also return the filepath to the caller
+    filespicker.close()
+
+    return filepath
+
+
+filespicker.filepath.changed.connect(print)
+filespicker.show(run=True)
+
+filepath = filespicker.filepath.value
+print(f"Selected file: {filepath}")
 
 # return an array with dimension order STCZYX(A)
 array6d, mdata = read_tools.read_6darray(
@@ -67,9 +84,7 @@ if show_napari:
 
         # get the scaling factors for that channel and adapt Z-axis scaling
         scalefactors = [1.0] * len(sub_array.shape)
-        scalefactors[sub_array.get_axis_num("Z")] = mdata.scale.ratio[
-            "zx_sf"
-        ]  # * 1.00001
+        scalefactors[sub_array.get_axis_num("Z")] = mdata.scale.ratio["zx_sf"]  # * 1.00001
 
         # remove the last scaling factor in case of an RGB image
         if "A" in sub_array.dims:
