@@ -1,6 +1,6 @@
 import marimo
 
-__generated_with = "0.10.8"
+__generated_with = "0.14.11"
 app = marimo.App()
 
 
@@ -13,7 +13,7 @@ def _():
     from pathlib import Path
     import os
     import glob
-    return Path, czimd, glob, misc, mo, os, pd
+    return czimd, misc, mo
 
 
 @app.cell
@@ -42,7 +42,7 @@ def _(czimd, filepath):
     print(f"SizeC: {czi_dimensions.SizeC}")
     print(f"SizeY: {czi_dimensions.SizeY}")
     print(f"SizeX: {czi_dimensions.SizeX}")
-    return (czi_dimensions,)
+    return
 
 
 @app.cell
@@ -57,21 +57,21 @@ def _(czimd, filepath, misc, mo):
     mdframe = misc.md2dataframe(mdict)
 
     mo.vstack([mo.ui.table(mdframe)])
-    return mdata, mdframe, mdict
+    return
 
 
 @app.cell
 def _(filepath, misc, mo):
     # get the planetable for the CZI file
-    pt = misc.get_planetable(filepath,
+    pt, savepath = misc.get_planetable(filepath,
                              norm_time=True,
-                             pt_complete=True,
-                             t=0,
-                             c=0,
-                             z=0)
+                             save_table=True,
+                             time=0,
+                             channel=0,
+                             zplane=0)
 
     mo.vstack([mo.ui.table(pt)])
-    return (pt,)
+    return
 
 
 if __name__ == "__main__":
