@@ -10,9 +10,7 @@ def _():
     import pandas as pd
     from czitools.metadata_tools import czi_metadata as czimd
     from czitools.utils import misc
-    from pathlib import Path
-    import os
-    import glob
+
     return czimd, misc, mo
 
 
@@ -63,12 +61,7 @@ def _(czimd, filepath, misc, mo):
 @app.cell
 def _(filepath, misc, mo):
     # get the planetable for the CZI file
-    pt, savepath = misc.get_planetable(filepath,
-                             norm_time=True,
-                             save_table=True,
-                             time=0,
-                             channel=0,
-                             zplane=0)
+    pt, savepath = misc.get_planetable(filepath, norm_time=True, save_table=True, time=0, channel=0, zplane=0)
 
     mo.vstack([mo.ui.table(pt)])
     return
