@@ -10,8 +10,6 @@
 #################################################################
 
 import os
-from tkinter import filedialog
-from tkinter import Tk
 import zarr
 import pandas as pd
 import dask.array as da
@@ -30,38 +28,6 @@ import time
 import tracemalloc
 
 logger = logging_tools.set_logging()
-
-
-def openfile(
-    directory: Union[str, os.PathLike[str]],
-    title: str = "Open CZI Image File",
-    ftypename: str = "CZI Files",
-    extension: str = "*.czi",
-) -> str:
-    """Open a simple Tk dialog to select a file.
-
-    Args:
-        directory: Default directory.
-        title: Title of the dialog window, defaults to "Open CZI Image File".
-        ftypename: Name of allowed file type, defaults to "CZI Files".
-        extension: Extension of allowed file type, defaults to "*.czi".
-
-    Returns:
-        Filepath object for the selected file.
-    """
-
-    if isinstance(directory, Path):
-        # convert to string
-        directory = str(directory)
-
-    # request input and output image path from user
-    root = Tk()
-    root.withdraw()
-    input_path = filedialog.askopenfile(title=title, initialdir=directory, filetypes=[(ftypename, extension)])
-    if input_path is not None:
-        return input_path.name
-    if input_path is None:
-        return ""
 
 
 def slicedim(array: Union[np.ndarray, da.Array, zarr.Array], dimindex: int, posdim: int) -> np.ndarray:
