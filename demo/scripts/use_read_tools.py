@@ -51,7 +51,7 @@ def filespicker(filepath: Path) -> Path:
 filespicker.filepath.changed.connect(print)
 filespicker.show(run=True)
 
-filepath = filespicker.filepath.value
+filepath = str(filespicker.filepath.value)
 print(f"Selected file: {filepath}")
 
 # return an array with dimension order STCZYX(A)
