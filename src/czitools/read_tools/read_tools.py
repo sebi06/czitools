@@ -340,7 +340,7 @@ def read_6darray_lazy(
             c_start = planes["C"][0]
             c_end = planes["C"][1] + 1
 
-        # check if ADim can be removed because image is grayscale
+        # check if the A Dimension can be removed because image is grayscale
         contains_rgb = any(mdata.isRGB.values())
         remove_adim = not contains_rgb
 
