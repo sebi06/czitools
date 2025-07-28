@@ -51,17 +51,17 @@ def filespicker(filepath: Path) -> Path:
 filespicker.filepath.changed.connect(print)
 filespicker.show(run=True)
 
-filepath = filespicker.filepath.value
+filepath = str(filespicker.filepath.value)
 print(f"Selected file: {filepath}")
 
 # return an array with dimension order STCZYX(A)
 array6d, mdata = read_tools.read_6darray(
     filepath,
-    use_dask=False,
-    chunk_zyx=False,
-    zoom=1.0,
+    # use_dask=False,
+    # chunk_zyx=False,
+    # zoom=1.0,
     # planes={"S": (0, 0), "T": (1, 2), "C": (0, 0), "Z": (0, 2)},
-    use_xarray=True,
+    # use_xarray=True,
 )
 
 # print the shape of the array etc.

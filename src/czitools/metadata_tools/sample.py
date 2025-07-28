@@ -80,9 +80,7 @@ class CziSampleInfo:
 
         if size_s is not None:
             try:
-                allscenes = (
-                    czi_box.ImageDocument.Metadata.Information.Image.Dimensions.S.Scenes.Scene
-                )
+                allscenes = czi_box.ImageDocument.Metadata.Information.Image.Dimensions.S.Scenes.Scene
 
                 # check if there are multiple positions per well
                 # self.multipos_per_well = check_multipos_well(allscenes[0])
@@ -104,15 +102,11 @@ class CziSampleInfo:
 
         elif size_s is None:
             if self.verbose:
-                logger.info(
-                    "No Scene or Well information found. Try to read XY Stage Coordinates from subblocks."
-                )
+                logger.info("No Scene or Well information found. Try to read XY Stage Coordinates from subblocks.")
 
             try:
-                # read the data from CSV file
-                planetable = get_planetable(
-                    czi_box.filepath, pt_complete=False, t=0, c=0, z=0
-                )
+                # read the data from CSV file from a single plane
+                planetable = get_planetable(czi_box.filepath, scene=0, tile=0, time=0, channel=0, zplane=0)
 
                 self.image_stageX = float(planetable["X[micron]"][0])
                 self.image_stageY = float(planetable["Y[micron]"][0])
@@ -191,13 +185,9 @@ def get_scenes_for_well(sample: CziSampleInfo, wellID: str) -> Tuple[int]:
     """
 
     if sample.multipos_per_well:
-        scene_indices = [
-            i for i, x in enumerate(sample.well_array_names) if x == wellID
-        ]
+        scene_indices = [i for i, x in enumerate(sample.well_array_names) if x == wellID]
     if not sample.multipos_per_well:
-        scene_indices = [
-            i for i, x in enumerate(sample.well_position_names) if x == wellID
-        ]
+        scene_indices = [i for i, x in enumerate(sample.well_position_names) if x == wellID]
 
     return tuple(scene_indices)
 

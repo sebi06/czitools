@@ -7,7 +7,6 @@ app = marimo.App()
 @app.cell
 def _():
     import marimo as mo
-    import pandas as pd
     from czitools.metadata_tools import czi_metadata as czimd
     from czitools.utils import misc
 

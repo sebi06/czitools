@@ -29,6 +29,9 @@ from czitools.utils import misc
 from pathlib import Path
 from magicgui import magicgui
 from magicgui.types import FileDialogMode
+from czitools.utils import logging_tools
+
+logger = logging_tools.set_logging()
 
 # adapt to your needs
 defaultdir = Path(Path(__file__).resolve().parents[2]) / "data"
@@ -47,7 +50,7 @@ defaultdir = Path(Path(__file__).resolve().parents[2]) / "data"
 def filespicker(filepath: Path) -> Path:
     """Take a filename and do something with it."""
     # Close the dialog after the file is selected and the button was pressed
-    # This will also return the filepath to the caller
+    # This will return the filepath to the caller
     filespicker.close()
 
     return filepath
@@ -56,8 +59,9 @@ def filespicker(filepath: Path) -> Path:
 filespicker.filepath.changed.connect(print)
 filespicker.show(run=True)
 
-filepath = filespicker.filepath.value
-print(f"Selected file: {filepath}")
+# Get the filepath and convert to string
+filepath = str(filespicker.filepath.value)
+logger.info(f"Selected file: {filepath}")
 
 # get the metadata_tools at once as one big class
 mdata = CziMetadata(filepath)

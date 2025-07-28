@@ -1,42 +1,25 @@
 import marimo
 
-__generated_with = "0.10.14"
-app = marimo.App(auto_download=["ipynb"])
+__generated_with = "0.14.11"
+app = marimo.App()
 
 
 @app.cell
 def _():
     import marimo as mo
-    import pandas as pd
     from czitools.metadata_tools import czi_metadata as czimd
     from czitools.utils import misc
     from czitools.read_tools import read_tools as czird
     import dask.array as da
-    from pathlib import Path
-    import os
-    import glob
     from matplotlib import pyplot as plt
-    import matplotlib.cm as cm
     from matplotlib.colors import LinearSegmentedColormap
-    return (
-        LinearSegmentedColormap,
-        Path,
-        cm,
-        czimd,
-        czird,
-        da,
-        glob,
-        misc,
-        mo,
-        os,
-        pd,
-        plt,
-    )
+
+    return LinearSegmentedColormap, czimd, czird, da, misc, mo, plt
 
 
 @app.cell
 def _(mo):
-    file_browser = mo.ui.file_browser(multiple=False, filetypes=[".czi"], restrict_navigation=False, initial_path="F:\\Testdata_Zeiss\\")
+    file_browser = mo.ui.file_browser(multiple=False, filetypes=[".czi"], restrict_navigation=False, initial_path=None)
 
     # Display the file browser
     mo.vstack([file_browser])
@@ -85,17 +68,7 @@ def _(LinearSegmentedColormap, czird, da, filepath):
         chname = mdata.channelinfo.names[ch]
         rgb = hex_to_rgb(mdata.channelinfo.colors[ch][3:])
         cmaps.append(LinearSegmentedColormap.from_list(chname, [(0, 0, 0), rgb]))
-    return (
-        array6d,
-        ch,
-        chname,
-        cmaps,
-        dims,
-        dims_names,
-        hex_to_rgb,
-        mdata,
-        rgb,
-    )
+    return array6d, cmaps, dims, mdata
 
 
 @app.cell
@@ -105,9 +78,11 @@ def _(czimd, mdata, misc, mo):
 
     # convert metadata dictionary to a pandas dataframe
     mdframe = misc.md2dataframe(mdict)
+    # convert values to str -->x PyArrow can handle that
+    mdframe["Value"] = mdframe["Value"].astype(str)
 
     mo.vstack([mo.ui.table(mdframe)])
-    return mdframe, mdict
+    return
 
 
 @app.cell
@@ -161,6 +136,7 @@ def _(array6d, cmaps, plt):
         plt.imshow(array6d[s, t, c, z, ...], cmap=cmaps[c], vmin=None, vmax=None)
         plt.tight_layout()
         return plt.gca()
+
     return (show_2dplane,)
 
 
