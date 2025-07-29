@@ -9,7 +9,7 @@
 #
 #################################################################
 
-from typing import Dict, Tuple, Optional, Union, Annotated, List
+from typing import Dict, Tuple, Optional, Union, List
 from pylibCZIrw import czi as pyczi
 from aicspylibczi import CziFile
 from czitools.metadata_tools import czi_metadata as czimd
@@ -24,7 +24,6 @@ from tqdm.contrib.itertools import product
 import tempfile
 import shutil
 from czitools.utils import logging_tools
-from czitools.metadata_tools.helper import ValueRange
 from czitools.metadata_tools.helper import AttachmentType
 import xarray as xr
 
@@ -41,7 +40,7 @@ def read_6darray(
     use_dask: Optional[bool] = False,
     chunk_zyx: Optional[bool] = False,
     planes: Optional[Dict[str, Tuple[int, int]]] = None,
-    zoom: Optional[Annotated[float, ValueRange(0.01, 1.0)]] = 1.0,
+    zoom: Optional[float] = 1.0,
     use_xarray: Optional[bool] = True,
 ) -> Tuple[Optional[Union[np.ndarray, da.Array, xr.DataArray]], czimd.CziMetadata]:
     """Read a CZI image file as 6D dask array.
@@ -242,7 +241,7 @@ def read_6darray_lazy(
     filepath: Union[str, os.PathLike[str]],
     chunk_zyx=False,
     planes: Optional[Dict[str, Tuple[int, int]]] = None,
-    zoom: Optional[Annotated[float, ValueRange(0.01, 1.0)]] = 1.0,
+    zoom: Optional[float] = 1.0,
 ) -> Tuple[Optional[Union[np.ndarray, da.Array]], czimd.CziMetadata]:
     """Read a CZI image file as 6D dask array with delayed plane reading.
     Important: Currently supported are only scenes with equal size and CZIs with consistent pixel types.
@@ -414,7 +413,7 @@ def read_2dplane(
     c: int = 0,
     z: int = 0,
     has_scenes: bool = True,
-    zoom: Annotated[float, ValueRange(0.01, 1.0)] = 1.0,
+    zoom: float = 1.0,
     remove_adim: bool = True,
 ):
     """Dask delayed function to read a 2d plane from a CZI image, which has the shape
