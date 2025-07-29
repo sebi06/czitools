@@ -35,6 +35,8 @@ from czitools.metadata_tools.detector import CziDetector
 from czitools.utils.box import get_czimd_box
 from czitools.metadata_tools.helper import DictObj
 
+import contextlib
+
 logger = logging_tools.set_logging()
 
 
@@ -408,6 +410,10 @@ def create_md_dict_red(metadata: CziMetadata, sort: bool = True, remove_none: bo
         "TotalBoundingBox": metadata.bbox.total_bounding_box,
     }
 
+    # Convert all numpy values to native Python types for better display
+    with contextlib.suppress(Exception):  # Catch any conversion errors
+        md_dict = convert_numpy_types(md_dict)
+
     # check for extra entries when reading mosaic file with a scale factor
     if hasattr(metadata.image, "SizeX_sf"):
         md_dict["XScale_sf"] = metadata.scale.X_sf
@@ -512,3 +518,31 @@ def create_md_dict_nested(metadata: CziMetadata, sort: bool = True, remove_none:
         return md_dict
 
     return md_dict
+
+
+def convert_numpy_types(obj: Any) -> Any:
+    """
+    Recursively convert numpy types to native Python types.
+
+    This function handles numpy scalars, arrays, dictionaries, lists, and tuples.
+    It converts numpy scalars to their native Python equivalents, numpy arrays
+    to Python lists, and recursively processes dictionaries, lists, and tuples.
+
+    Args:
+        obj (Any): The object to convert. Can be a numpy scalar, numpy array,
+                   dictionary, list, tuple, or any other type.
+
+    Returns:
+        Any: The converted object with numpy types replaced by native Python types.
+    """
+    if hasattr(obj, "dtype"):  # numpy scalar or array
+        if obj.ndim == 0:  # scalar
+            return obj.item()  # Convert to native Python type
+        else:
+            return obj.tolist()  # Convert array to list
+    elif isinstance(obj, dict):
+        return {key: convert_numpy_types(value) for key, value in obj.items()}
+    elif isinstance(obj, list | tuple):
+        return type(obj)(convert_numpy_types(item) for item in obj)
+    else:
+        return obj
