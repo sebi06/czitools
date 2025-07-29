@@ -7,6 +7,8 @@ import pandas as pd
 import pytest
 import numpy as np
 from typing import List, Tuple, Optional, Union, Dict
+from unittest.mock import patch, Mock
+from czitools.utils.misc import is_valid_czi_url
 
 basedir = Path(__file__).resolve().parents[3]
 
@@ -171,80 +173,6 @@ def test_filter_planetable(planetable):
 def test_clean_dict(input_dict: Dict, expected_dict: Dict) -> None:
     result = misc.clean_dict(input_dict)
     assert result == expected_dict
-
-
-# @pytest.mark.parametrize(
-#     "subblock, expected_result",
-#     [
-#         (
-#             # Subblock with all metadata present
-#             {
-#                 "AcquisitionTime": ["2023-01-01T12:00:00"],
-#                 "StageXPosition": ["10.5"],
-#                 "StageYPosition": ["20.5"],
-#                 "FocusPosition": ["30.5"],
-#             },
-#             (1672570800.0, 10.5, 20.5, 30.5),
-#         ),
-#         (
-#             # Subblock missing AcquisitionTime
-#             {
-#                 "StageXPosition": ["10.5"],
-#                 "StageYPosition": ["20.5"],
-#                 "FocusPosition": ["30.5"],
-#             },
-#             (0.0, 10.5, 20.5, 30.5),
-#         ),
-#         (
-#             # Subblock missing StageXPosition
-#             {
-#                 "AcquisitionTime": ["2023-01-01T12:00:00"],
-#                 "StageYPosition": ["20.5"],
-#                 "FocusPosition": ["30.5"],
-#             },
-#             (1672570800.0, 0.0, 20.5, 30.5),
-#         ),
-#         (
-#             # Subblock missing StageYPosition
-#             {
-#                 "AcquisitionTime": ["2023-01-01T12:00:00"],
-#                 "StageXPosition": ["10.5"],
-#                 "FocusPosition": ["30.5"],
-#             },
-#             (1672570800.0, 10.5, 0.0, 30.5),
-#         ),
-#         (
-#             # Subblock missing FocusPosition
-#             {
-#                 "AcquisitionTime": ["2023-01-01T12:00:00"],
-#                 "StageXPosition": ["10.5"],
-#                 "StageYPosition": ["20.5"],
-#             },
-#             (1672570800.0, 10.5, 20.5, 0.0),
-#         ),
-#         (
-#             # Subblock missing all metadata
-#             {},
-#             (0.0, 0.0, 0.0, 0.0),
-#         ),
-#     ],
-# )
-# def test_getsbinfo(subblock, expected_result):
-#     class MockSubblock:
-#         def __init__(self, data):
-#             self.data = data
-
-#         def findall(self, path):
-#             key = path.split("//")[-1]
-#             return [MockElement(text) for text in self.data.get(key, [])]
-
-#     class MockElement:
-#         def __init__(self, text):
-#             self.text = text
-
-#     mock_subblock = MockSubblock(subblock)
-#     result = misc._getsbinfo(mock_subblock)
-#     assert result == expected_result
 
 
 @pytest.mark.parametrize(
