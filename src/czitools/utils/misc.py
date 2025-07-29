@@ -797,3 +797,40 @@ def measure_execution_time(func):
         return result
 
     return timed_execution
+
+
+def is_valid_czi_url(myurl: str) -> Tuple[bool, str]:
+    """
+    Validates whether a given URL points to a valid .czi file.
+    Args:
+        myurl (str): The URL to validate.
+    Returns:
+        tuple:
+            - bool: True if the URL is valid and points to a .czi file, False otherwise.
+            - str: A message providing details about the validation result.
+    Validation Steps:
+        1. Checks if the URL has a valid format using a URL validator.
+        2. Ensures the URL ends with the '.czi' file extension.
+        3. Sends an HTTP HEAD request to verify the file's existence and accessibility.
+           - If accessible, optionally checks the Content-Type header for additional validation.
+    Raises:
+        None: Any exceptions during the HTTP request are caught and included in the return message.
+    """
+    # Step 1: Validate the URL format
+    if not validators.url(myurl):
+        return False, "Invalid URL format"
+
+    # Step 3: Verify the file exists by making a HEAD request
+    try:
+        response = requests.head(myurl, allow_redirects=True)
+        if response.status_code == 200:
+            # Optionally, check the Content-Type header for additional validation
+            content_type = response.headers.get("Content-Type", "")
+            if "application/octet-stream" in content_type or "czi" in content_type:
+                return True, "Valid .czi file URL"
+            else:
+                return True, "File exists but Content-Type is not specific to .czi"
+        else:
+            return False, f"File not accessible, HTTP status code: {response.status_code}"
+    except requests.RequestException as e:
+        return False, f"Error during HTTP request: {e}"

@@ -35,7 +35,7 @@ def test_read_metadata_local(czifile: str) -> None:
     [
         "https://raw.githubusercontent.com/zeiss-microscopy/OAD/master/jupyter_notebooks/pylibCZIrw/images/S%3D2_CH%3D2_well_A1%2BA2_zstd.czi",
         "https://github.com/sebi06/czitools/raw/main/data/CellDivision_T10_Z15_CH2_DCV_small.czi",
-        # "https://www.dropbox.com/scl/fi/lazndscc5etck38k1vz8e/S-2_3x3_T-1_Z-1_CH-2.czi?rlkey=60apu65t2dza2zor15gq4sw15&dl=1"
+        # "https://www.dropbox.com/scl/fi/k2t0dqafsh8dn4n0jtfza/S3_1Pos_2Mosaic_T2_Z3_CH2_sm.czi?rlkey=xiui12mcr7evd0mt82newea1y&st=rnsq3hvi&dl=1"
     ],
 )
 def test_read_metadata_links(link: str) -> None:
