@@ -574,7 +574,7 @@ def convert_numpy_types(obj: Any) -> Any:
             return obj.tolist()  # Convert array to list
     elif isinstance(obj, dict):
         return {key: convert_numpy_types(value) for key, value in obj.items()}
-    elif isinstance(obj, (list, tuple):
+    elif isinstance(obj, (list, tuple)):
         return type(obj)(convert_numpy_types(item) for item in obj)
     else:
         return obj
