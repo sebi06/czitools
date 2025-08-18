@@ -11,17 +11,43 @@ This repository provides a collection of tools to simplify reading CZI (Carl Zei
 
 ## Installation
 
-To install czitools use (will not install Napari or plotting functionality):
+To install czitools (core functionality) use:
 
 ```text
 pip install czitools
 ```
 
-To install the package with all optional dependencies use (will not install Napari):
+To install the package with all optional dependencies use::
 
 ```text
 pip install czitools[all]
 ```
+
+### Local Installation
+
+Local installation for developing etc.:
+
+```text
+pip install -e .
+```
+
+Local installation (full functionality):
+
+```text
+pip install -e ".[all]"
+```
+
+### Supported Operating Systems
+
+Currently this only works on:
+
+* Linux
+* Windows
+
+MacOS is not supported yet out of the box, but if one installs pylibCZIrw wheels for MacOS manually the package should work (not tested).
+
+Thanks to the community for providing [MaxOS wheels for pylibCZIrw](https://pypi.scm.io/#/package/pylibczirw) wheels for MacOS, which makes it possible to read and write CZI files on MacOS.
+
 
 ## Reading the metadata
 
@@ -181,17 +207,3 @@ The basic usage can be inferred from this sample notebook:&nbsp;
 ## Remarks
 
 The code to read multi-dimensional with delayed reading using Dask array was heavily inspired by input from: [Pradeep Rajasekhar](https://github.com/pr4deepr).
-
-### Local Installation
-
-Local installation:
-
-```text
-pip install -e .
-```
-
-Local installation (full functionality):
-
-```text
-pip install -e ".[all]"
-```
