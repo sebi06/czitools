@@ -8,7 +8,6 @@ from pylibCZIrw import czi as pyczi
 
 from pydantic.dataclasses import dataclass
 from pydantic import BaseModel, ConfigDict
-from bioio import BioImage
 
 logger = logging_tools.set_logging()
 
@@ -230,7 +229,8 @@ class CziDimensions:
                         "No posZ list found under 'dimensions.Dimensions.Z.Positions'"
                     )
 
-    def set_dimensions_2(self):
+    # THIS IS STILL EXPRIMENTAL AND NOT USED YET
+    def set_dimensions_adv(self):
         """
         Set the dimensions of the CZI file based on metadata and subblock information.
         This method extracts dimension metadata from the provided CZI source and calculates
@@ -255,6 +255,8 @@ class CziDimensions:
         Raises:
             - Exception: If an error occurs while parsing positional information for T or Z dimensions.
         """
+
+        from bioio import BioImage
 
         # get the Box and extract the relevant dimension metadata_tools
         if isinstance(self.czisource, Box):
