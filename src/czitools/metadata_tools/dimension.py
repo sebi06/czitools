@@ -229,7 +229,7 @@ class CziDimensions:
                         "No posZ list found under 'dimensions.Dimensions.Z.Positions'"
                     )
 
-    # THIS IS STILL EXPRIMENTAL AND NOT USED YET
+    # THIS IS STILL EXPERIMENTAL AND NOT USED YET
     def set_dimensions_adv(self):
         """
         Set the dimensions of the CZI file based on metadata and subblock information.
