@@ -55,18 +55,20 @@ filepath = str(filespicker.filepath.value)
 print(f"Selected file: {filepath}")
 
 # return an array with dimension order STCZYX(A)
-array6d, mdata = read_tools.read_6darray(
+array6d, mdata, planes = read_tools.read_6darray(
     filepath,
-    # use_dask=False,
-    # chunk_zyx=False,
-    # zoom=1.0,
-    # planes={"S": (0, 0), "T": (1, 2), "C": (0, 0), "Z": (0, 2)},
-    # use_xarray=True,
+    use_dask=False,
+    chunk_zyx=False,
+    zoom=1.0,
+    planes={"S": (0, 0), "T": (0, 2), "C": (1, 1), "Z": (0, 4)},
+    use_xarray=True,
+    return_planes_STCZ=True,
 )
 
 # print the shape of the array etc.
 print(f"Shape: {array6d.shape}")
 print(f"Dimensions: {array6d.dims}")
+print(f"Planes: {planes}")
 
 for k, v in array6d.attrs.items():
     print(f"{k} :  {v}")
@@ -91,11 +93,12 @@ if show_napari:
             # remove the A axis from the scaling factors
             scalefactors.pop(sub_array.get_axis_num("A"))
 
-        # get colors and channel name
-        chname = mdata.channelinfo.names[ch]
+        # get colors and channel name and create channel index
+        ch_index = planes["C"][0] + ch
+        chname = mdata.channelinfo.names[ch_index]
 
         # inside the CZI metadata_tools colors are defined as ARGB hexstring
-        rgb = "#" + mdata.channelinfo.colors[ch][3:]
+        rgb = "#" + mdata.channelinfo.colors[ch_index][3:]
         ncmap = Colormap(["#000000", rgb], name="cm_" + chname)
 
         # add the channel to the viewer

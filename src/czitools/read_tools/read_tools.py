@@ -42,7 +42,10 @@ def read_6darray(
     planes: Optional[Dict[str, Tuple[int, int]]] = None,
     zoom: Optional[float] = 1.0,
     use_xarray: Optional[bool] = True,
-) -> Tuple[Optional[Union[np.ndarray, da.Array, xr.DataArray]], czimd.CziMetadata]:
+    return_planes_STCZ: Optional[bool] = False,
+) -> Tuple[
+    Optional[Union[np.ndarray, da.Array, xr.DataArray]], czimd.CziMetadata, Optional[dict[str, tuple[int, int]]]
+]:
     """Read a CZI image file as 6D dask array.
     Important: Currently supported are only scenes with equal size and CZIs with consistent pixel types.
     The output array has always the dimension order: STCZYX(A)
@@ -56,9 +59,12 @@ def read_6darray(
                                  Respectively {"Z":(5, 5)} will return a single z-plane with index 5. Defaults to None.
         zoom (Optional[float], optional): Downscale images using a factor [0.01 - 1.0]. Defaults to 1.0.
         use_xarray (Optional[bool], optional): Option to use xarray for the output array. Defaults to True.
+        return_planes_STCZ (Optional[bool], optional): Option to return the planes_STCZ dictionary.
+                                                       This is useful when one later wants to display the array inside Napari for example.
+                                                       Defaults to False.
 
     Returns:
-        Tuple[array6d, mdata]: output as 6D numpy, dask or xarray and metadata_tools
+        Tuple[array6d, mdata, planes6d]: output as 6D numpy, dask or xarray and metadata and planes_STCZ
     """
 
     if isinstance(filepath, Path):
@@ -93,6 +99,48 @@ def read_6darray(
                     )
                     return None, mdata
 
+    elif not planes:
+        planes = {}
+        # if mdata.image.SizeS is not None:
+        #     planes["S"] = (0, mdata.image.SizeS - 1)
+        # elif mdata.image.SizeS is None:
+        #     planes["S"] = (0, 0)
+
+        # if mdata.image.SizeT is not None:
+        #     planes["T"] = (0, mdata.image.SizeT - 1)
+        # elif mdata.image.SizeT is None:
+        #     planes["T"] = (0, 0)
+
+        # if mdata.image.SizeC is not None:
+        #     planes["C"] = (0, mdata.image.SizeC - 1)
+        # elif mdata.image.SizeC is None:
+        #     planes["C"] = (0, 0)
+
+        # if mdata.image.SizeZ is not None:
+        #     planes["Z"] = (0, mdata.image.SizeZ - 1)
+        # elif mdata.image.SizeZ is None:
+        #     planes["Z"] = (0, 0)
+
+        for dim, size_attr in [
+            ("S", mdata.image.SizeS),
+            ("T", mdata.image.SizeT),
+            ("C", mdata.image.SizeC),
+            ("Z", mdata.image.SizeZ),
+        ]:
+            planes[dim] = (0, size_attr - 1) if size_attr is not None else (0, 0)
+
+    for k in ["S", "T", "C", "Z"]:
+        if k not in planes.keys():
+            # if the dimension is not in the planes, add it with default values
+            if k == "S":
+                planes[k] = (0, mdata.image.SizeS - 1) if mdata.image.SizeS is not None else (0, 0)
+            elif k == "T":
+                planes[k] = (0, mdata.image.SizeT - 1) if mdata.image.SizeT is not None else (0, 0)
+            elif k == "C":
+                planes[k] = (0, mdata.image.SizeC - 1) if mdata.image.SizeC is not None else (0, 0)
+            elif k == "Z":
+                planes[k] = (0, mdata.image.SizeZ - 1) if mdata.image.SizeZ is not None else (0, 0)
+
     if mdata.consistent_pixeltypes:
         # use pixel type from first channel
         use_pixeltype = mdata.npdtype_list[0]
@@ -119,26 +167,51 @@ def read_6darray(
         z_start = 0
         z_end = size_z
 
+        # # check for additional arguments to create substacks
+        # if planes and mdata.image.SizeS is not None and "S" in planes.keys():
+        #     size_s = planes["S"][1] - planes["S"][0] + 1
+        #     mdata.image.SizeS = size_s
+        #     s_start = planes["S"][0]
+        #     s_end = planes["S"][1] + 1
+
+        # if planes and mdata.image.SizeT is not None and "T" in planes.keys():
+        #     size_t = planes["T"][1] - planes["T"][0] + 1
+        #     mdata.image.SizeT = size_t
+        #     t_start = planes["T"][0]
+        #     t_end = planes["T"][1] + 1
+
+        # if planes and mdata.image.SizeZ is not None and "Z" in planes.keys():
+        #     size_z = planes["Z"][1] - planes["Z"][0] + 1
+        #     mdata.image.SizeZ = size_z
+        #     z_start = planes["Z"][0]
+        #     z_end = planes["Z"][1] + 1
+
+        # if planes and mdata.image.SizeC is not None and "C" in planes.keys():
+        #     size_c = planes["C"][1] - planes["C"][0] + 1
+        #     mdata.image.SizeC = size_c
+        #     c_start = planes["C"][0]
+        #     c_end = planes["C"][1] + 1
+
         # check for additional arguments to create substacks
-        if planes and mdata.image.SizeS is not None and "S" in planes.keys():
+        if mdata.image.SizeS is not None and "S" in planes.keys():
             size_s = planes["S"][1] - planes["S"][0] + 1
             mdata.image.SizeS = size_s
             s_start = planes["S"][0]
             s_end = planes["S"][1] + 1
 
-        if planes and mdata.image.SizeT is not None and "T" in planes.keys():
+        if mdata.image.SizeT is not None and "T" in planes.keys():
             size_t = planes["T"][1] - planes["T"][0] + 1
             mdata.image.SizeT = size_t
             t_start = planes["T"][0]
             t_end = planes["T"][1] + 1
 
-        if planes and mdata.image.SizeZ is not None and "Z" in planes.keys():
+        if mdata.image.SizeZ is not None and "Z" in planes.keys():
             size_z = planes["Z"][1] - planes["Z"][0] + 1
             mdata.image.SizeZ = size_z
             z_start = planes["Z"][0]
             z_end = planes["Z"][1] + 1
 
-        if planes and mdata.image.SizeC is not None and "C" in planes.keys():
+        if mdata.image.SizeC is not None and "C" in planes.keys():
             size_c = planes["C"][1] - planes["C"][0] + 1
             mdata.image.SizeC = size_c
             c_start = planes["C"][0]
@@ -231,7 +304,11 @@ def read_6darray(
             # "metadata": mdata,  # Include metadata if it's a dictionary or serializable
         }
 
-    return array6d, mdata
+    if return_planes_STCZ:
+        # return planes as well
+        return array6d, mdata, planes
+    elif not return_planes_STCZ:
+        return array6d, mdata
 
 
 # code for which memory has to be monitored
