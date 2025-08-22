@@ -27,6 +27,7 @@ except ImportError:
 
 # adapt to your needs
 defaultdir = Path(Path(__file__).resolve().parents[2]) / "data"
+use_dialog = False
 
 
 # open simple dialog to select a CZI file
@@ -48,27 +49,32 @@ def filespicker(filepath: Path) -> Path:
     return filepath
 
 
-filespicker.filepath.changed.connect(print)
-filespicker.show(run=True)
+if use_dialog:
 
-filepath = str(filespicker.filepath.value)
-print(f"Selected file: {filepath}")
+    filespicker.filepath.changed.connect(print)
+    filespicker.show(run=True)
 
-# return an array with dimension order STCZYX(A)
-array6d, mdata, planes = read_tools.read_6darray(
-    filepath,
-    use_dask=False,
-    chunk_zyx=False,
-    zoom=1.0,
-    planes={"S": (0, 0), "T": (0, 2), "C": (1, 1), "Z": (0, 4)},
-    use_xarray=True,
-    return_planes_STCZ=True,
+    filepath = str(filespicker.filepath.value)
+    print(f"Selected file: {filepath}")
+
+elif not use_dialog:
+
+    filepath = str(defaultdir / "CellDivision_T10_Z15_CH2_DCV_small.czi")
+
+# return an xarray with dimension order STCZYX(A)
+# when no planes are specified the complete dataset
+# when planes are specified the metadata will be adapted accordingly for SizeS, SizeT, SizeC and SizeZ
+array6d, mdata = read_tools.read_6darray(
+    filepath, zoom=1.0, planes={"S": (0, 0), "T": (0, 2), "C": (0, 0), "Z": (0, 4)}, adapt_metadata=True
 )
 
-# print the shape of the array etc.
+# get the planes
+subset_planes = array6d.attrs["subset_planes"]
+
+# print the shape of the xarray etc.
 print(f"Shape: {array6d.shape}")
 print(f"Dimensions: {array6d.dims}")
-print(f"Planes: {planes}")
+print(f"Subset Planes: {subset_planes}")
 
 for k, v in array6d.attrs.items():
     print(f"{k} :  {v}")
@@ -94,7 +100,7 @@ if show_napari:
             scalefactors.pop(sub_array.get_axis_num("A"))
 
         # get colors and channel name and create channel index
-        ch_index = planes["C"][0] + ch
+        ch_index = subset_planes["C"][0] + ch
         chname = mdata.channelinfo.names[ch_index]
 
         # inside the CZI metadata_tools colors are defined as ARGB hexstring

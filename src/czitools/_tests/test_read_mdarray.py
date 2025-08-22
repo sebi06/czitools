@@ -16,7 +16,7 @@ basedir = Path(__file__).resolve().parents[3]
         ("w96_A1+A2.czi", (2, 1, 2, 1, 1416, 1960), False, False),
         ("w96_A1+A2.czi", (2, 1, 2, 1, 1416, 1960), True, False),
         ("w96_A1+A2.czi", (2, 1, 2, 1, 1416, 1960), True, True),
-        ("S3_1Pos_2Mosaic_T2_Z3_CH2_sm.czi", AttributeError, False, False),
+        ("S3_1Pos_2Mosaic_T1_Z1_CH1.czi", AttributeError, False, False),
         ("S2_3x3_CH2.czi", (2, 1, 2, 1, 1792, 1792), False, False),
         ("S2_3x3_CH2.czi", (2, 1, 2, 1, 1792, 1792), True, False),
         ("S2_3x3_CH2.czi", (2, 1, 2, 1, 1792, 1792), True, True),
@@ -108,7 +108,7 @@ def test_read_mdarray_substack(
     filepath = basedir / "data" / czifile
 
     # read only a specific scene from the CZI
-    mdarray, mdata = read_tools.read_6darray(filepath, planes=planes)
+    mdarray, mdata = read_tools.read_6darray(filepath, planes=planes, adapt_metadata=False)
 
     assert mdarray.shape == shape
     assert mdata.image.SizeS == size_s
@@ -141,17 +141,23 @@ def test_readczi_scenes(czifile: str, scene: int, has_scenes: bool) -> None:
 
 
 @pytest.mark.parametrize(
-    "czifile, planes2read, planes_STCZ, shape",
+    "czifile, planes2read, sub_planes_expected, shape",
     [
         (
             "CellDivision_T3_Z5_CH2_X240_Y170.czi",
-            {"S": (0, 0), "T": (0, 2), "C": (0, 1), "Z": (0, 4)},
+            None,
             {"S": (0, 0), "T": (0, 2), "C": (0, 1), "Z": (0, 4)},
             (1, 3, 2, 5, 170, 240),
         ),
         (
             "CellDivision_T3_Z5_CH2_X240_Y170.czi",
-            {"S": (0, 0), "T": (0, 1), "C": (1, 1), "Z": (3, 4)},
+            {"S": (0, 0), "T": (0, 2), "C": (0, 1)},
+            {"S": (0, 0), "T": (0, 2), "C": (0, 1), "Z": (0, 4)},
+            (1, 3, 2, 5, 170, 240),
+        ),
+        (
+            "CellDivision_T3_Z5_CH2_X240_Y170.czi",
+            {"T": (0, 1), "C": (1, 1), "Z": (3, 4)},
             {"S": (0, 0), "T": (0, 1), "C": (1, 1), "Z": (3, 4)},
             (1, 2, 1, 2, 170, 240),
         ),
@@ -166,28 +172,18 @@ def test_readczi_scenes(czifile: str, scene: int, has_scenes: bool) -> None:
 def test_readczi_planes(
     czifile: str,
     planes2read: Dict[str, tuple[int, int]],
-    planes_STCZ: Dict[str, tuple[int, int]],
+    sub_planes_expected: Dict[str, tuple[int, int]],
     shape: tuple[int, int, int, int, int, int],
 ) -> None:
     # get the CZI filepath
     filepath = basedir / "data" / czifile
 
-    # read without planes parameter and check output planes
-    mdarray, mdata, pl = read_tools.read_6darray(filepath, return_planes_STCZ=True)
-    planes = {}
-    for dim, size_attr in [
-        ("S", mdata.image.SizeS),
-        ("T", mdata.image.SizeT),
-        ("C", mdata.image.SizeC),
-        ("Z", mdata.image.SizeZ),
-    ]:
-        planes[dim] = (0, size_attr - 1) if size_attr is not None else (0, 0)
-    assert pl == planes
-
     # read with planes parameter and check output planes
-    mdarray, mdata, pl = read_tools.read_6darray(filepath, planes=planes2read, return_planes_STCZ=True)
-    assert pl == planes_STCZ
+    mdarray, mdata = read_tools.read_6darray(filepath, planes=planes2read, adapt_metadata=True)
 
-    # read with planes parameter and check output planes
-    mdarray, mdata = read_tools.read_6darray(filepath, planes=planes2read, return_planes_STCZ=False)
+    assert mdarray.attrs["subset_planes"] == sub_planes_expected
     assert mdarray.shape == shape
+    assert mdata.image.SizeS == shape[0]
+    assert mdata.image.SizeT == shape[1]
+    assert mdata.image.SizeC == shape[2]
+    assert mdata.image.SizeZ == shape[3]
