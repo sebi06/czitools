@@ -28,6 +28,9 @@ except ImportError:
 # adapt to your needs
 defaultdir = Path(Path(__file__).resolve().parents[2]) / "data"
 
+# option to toogle using a file open dialog or a hardcoded filename
+use_dialog = False
+
 
 # open simple dialog to select a CZI file
 @magicgui(
@@ -48,25 +51,35 @@ def filespicker(filepath: Path) -> Path:
     return filepath
 
 
-filespicker.filepath.changed.connect(print)
-filespicker.show(run=True)
+if use_dialog:
 
-filepath = str(filespicker.filepath.value)
-print(f"Selected file: {filepath}")
+    filespicker.filepath.changed.connect(print)
+    filespicker.show(run=True)
 
-# return an array with dimension order STCZYX(A)
+    filepath = str(filespicker.filepath.value)
+    print(f"Selected file: {filepath}")
+
+elif not use_dialog:
+
+    filepath = str(defaultdir / "CellDivision_T10_Z15_CH2_DCV_small.czi")
+
+# return an xarray with dimension order STCZYX(A)
+# when no planes are specified the complete dataset
+# when planes are specified the metadata will be adapted accordingly for SizeS, SizeT, SizeC and SizeZ
 array6d, mdata = read_tools.read_6darray(
     filepath,
-    # use_dask=False,
-    # chunk_zyx=False,
-    # zoom=1.0,
-    # planes={"S": (0, 0), "T": (1, 2), "C": (0, 0), "Z": (0, 2)},
-    # use_xarray=True,
+    zoom=1.0,
+    planes={"S": (0, 0), "T": (0, 2), "C": (0, 0), "Z": (0, 4)},
+    adapt_metadata=True,
 )
 
-# print the shape of the array etc.
+# get the planes
+subset_planes = array6d.attrs["subset_planes"]
+
+# print the shape of the xarray etc.
 print(f"Shape: {array6d.shape}")
 print(f"Dimensions: {array6d.dims}")
+print(f"Subset Planes: {subset_planes}")
 
 for k, v in array6d.attrs.items():
     print(f"{k} :  {v}")
@@ -84,18 +97,21 @@ if show_napari:
 
         # get the scaling factors for that channel and adapt Z-axis scaling
         scalefactors = [1.0] * len(sub_array.shape)
-        scalefactors[sub_array.get_axis_num("Z")] = mdata.scale.ratio["zx_sf"]  # * 1.00001
+        scalefactors[sub_array.get_axis_num("Z")] = mdata.scale.ratio[
+            "zx_sf"
+        ]  # * 1.00001
 
         # remove the last scaling factor in case of an RGB image
         if "A" in sub_array.dims:
             # remove the A axis from the scaling factors
             scalefactors.pop(sub_array.get_axis_num("A"))
 
-        # get colors and channel name
-        chname = mdata.channelinfo.names[ch]
+        # get colors and channel name and create channel index
+        ch_index = subset_planes["C"][0] + ch
+        chname = mdata.channelinfo.names[ch_index]
 
         # inside the CZI metadata_tools colors are defined as ARGB hexstring
-        rgb = "#" + mdata.channelinfo.colors[ch][3:]
+        rgb = "#" + mdata.channelinfo.colors[ch_index][3:]
         ncmap = Colormap(["#000000", rgb], name="cm_" + chname)
 
         # add the channel to the viewer

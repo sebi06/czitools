@@ -7,7 +7,8 @@ from matplotlib import pyplot as plt
 # filename = "CellDivision_T3_Z5_CH2_X240_Y170.czi"
 # filename = "WP96_4Pos_B4-10_DAPI.czi"
 # filename = "w96_A1+A2.czi"
-filename = "F:\Github\czitools\data\S3_1Pos_2Mosaic_T2_Z3_CH2_sm.czi"
+# filename = "F:\Github\czitools\data\S3_1Pos_2Mosaic_T2_Z3_CH2_sm.czi"
+filename = r"/home/sebi06/Downloads/overview_2_scenes.czi"
 defaultdir = Path(Path(__file__).resolve().parents[2]) / "data"
 filepath = defaultdir / filename
 
