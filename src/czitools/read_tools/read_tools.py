@@ -42,7 +42,7 @@ def read_6darray(
     planes: Optional[Dict[str, Tuple[int, int]]] = None,
     zoom: Optional[float] = 1.0,
     use_xarray: Optional[bool] = True,
-    adapt_metadata: Optional[bool] = True,
+    adapt_metadata: Optional[bool] = False,
 ) -> Tuple[Optional[Union[np.ndarray, da.Array, xr.DataArray]], czimd.CziMetadata]:
     """Read a CZI image file as 6D dask array.
     Important: Currently supported are only scenes with equal size and CZIs with consistent pixel types.
@@ -57,8 +57,8 @@ def read_6darray(
                                  Respectively {"Z":(5, 5)} will return a single z-plane with index 5. Defaults to None.
         zoom (Optional[float], optional): Downscale images using a factor [0.01 - 1.0]. Defaults to 1.0.
         use_xarray (Optional[bool], optional): Option to use xarray for the output array. Defaults to True.
-        adapt_metadata (Optional[bool], optional): Option to adapt metadata to the output array. Defaults to True.
-
+        adapt_metadata (Optional[bool], optional): Option to adapt metadata for STCZ based on the output array. Defaults to False.
+                                                   Remark: This will always create SizeS = 1 even if the original CZO has no scenes
     Returns:
         Tuple[array6d, mdata, planes6d]: output as 6D numpy, dask or xarray (default )and metadata
     """
@@ -85,7 +85,7 @@ def read_6darray(
     mdata.scale.Y_sf = np.round(mdata.scale.Y * (1 / zoom), 3)
     mdata.scale.ratio["zx_sf"] = np.round(mdata.scale.Z / mdata.scale.X_sf, 3)
 
-    # check planes
+    # check planes arguments
     if planes:
         for k in ["S", "T", "C", "Z"]:
             if k in planes.keys() and k in mdata.bbox.total_bounding_box.keys():
@@ -110,13 +110,29 @@ def read_6darray(
         if k not in planes.keys():
             # if the dimension is not in the planes, add it with default values
             if k == "S":
-                planes[k] = (0, mdata.image.SizeS - 1) if mdata.image.SizeS is not None else (0, 0)
+                planes[k] = (
+                    (0, mdata.image.SizeS - 1)
+                    if mdata.image.SizeS is not None
+                    else (0, 0)
+                )
             elif k == "T":
-                planes[k] = (0, mdata.image.SizeT - 1) if mdata.image.SizeT is not None else (0, 0)
+                planes[k] = (
+                    (0, mdata.image.SizeT - 1)
+                    if mdata.image.SizeT is not None
+                    else (0, 0)
+                )
             elif k == "C":
-                planes[k] = (0, mdata.image.SizeC - 1) if mdata.image.SizeC is not None else (0, 0)
+                planes[k] = (
+                    (0, mdata.image.SizeC - 1)
+                    if mdata.image.SizeC is not None
+                    else (0, 0)
+                )
             elif k == "Z":
-                planes[k] = (0, mdata.image.SizeZ - 1) if mdata.image.SizeZ is not None else (0, 0)
+                planes[k] = (
+                    (0, mdata.image.SizeZ - 1)
+                    if mdata.image.SizeZ is not None
+                    else (0, 0)
+                )
 
     if mdata.consistent_pixeltypes:
         # use pixel type from first channel
@@ -207,9 +223,13 @@ def read_6darray(
 
             # read a 2D image plane from the CZI
             if mdata.image.SizeS is None:
-                image2d = czidoc.read(plane={"T": t[1], "Z": z[1], "C": c[1]}, zoom=zoom)
+                image2d = czidoc.read(
+                    plane={"T": t[1], "Z": z[1], "C": c[1]}, zoom=zoom
+                )
             else:
-                image2d = czidoc.read(plane={"T": t[1], "Z": z[1], "C": c[1]}, scene=s[1], zoom=zoom)
+                image2d = czidoc.read(
+                    plane={"T": t[1], "Z": z[1], "C": c[1]}, scene=s[1], zoom=zoom
+                )
 
             if planecount == 1:
                 # allocate array based on the expected size incl. down scaling
@@ -241,12 +261,16 @@ def read_6darray(
 
             if use_dask and chunk_zyx:
                 # re-chunk array based on shape
-                array6d = array6d.rechunk(chunks=(1, 1, 1, size_z, image2d.shape[0], image2d.shape[1]))
+                array6d = array6d.rechunk(
+                    chunks=(1, 1, 1, size_z, image2d.shape[0], image2d.shape[1])
+                )
 
         if not remove_adim:
             if use_dask and chunk_zyx:
                 # re-chunk array based on shape
-                array6d = array6d.rechunk(chunks=(1, 1, 1, size_z, image2d.shape[0], image2d.shape[1], 3))
+                array6d = array6d.rechunk(
+                    chunks=(1, 1, 1, size_z, image2d.shape[0], image2d.shape[1], 3)
+                )
 
     # update metadata_tools
     mdata.array6d_size = array6d.shape
@@ -274,10 +298,18 @@ def read_6darray(
     # adapt metadata for STCZ
     if adapt_metadata:
 
-        mdata.image.SizeS = planes["S"][1] - planes["S"][0] + 1 if "S" in planes else mdata.image.SizeS
-        mdata.image.SizeT = planes["T"][1] - planes["T"][0] + 1 if "T" in planes else mdata.image.SizeT
-        mdata.image.SizeC = planes["C"][1] - planes["C"][0] + 1 if "C" in planes else mdata.image.SizeC
-        mdata.image.SizeZ = planes["Z"][1] - planes["Z"][0] + 1 if "Z" in planes else mdata.image.SizeZ
+        mdata.image.SizeS = (
+            planes["S"][1] - planes["S"][0] + 1 if "S" in planes else mdata.image.SizeS
+        )
+        mdata.image.SizeT = (
+            planes["T"][1] - planes["T"][0] + 1 if "T" in planes else mdata.image.SizeT
+        )
+        mdata.image.SizeC = (
+            planes["C"][1] - planes["C"][0] + 1 if "C" in planes else mdata.image.SizeC
+        )
+        mdata.image.SizeZ = (
+            planes["Z"][1] - planes["Z"][0] + 1 if "Z" in planes else mdata.image.SizeZ
+        )
 
     return array6d, mdata
 
@@ -524,7 +556,9 @@ def read_attachments(
 
         if attachment_type not in AttachmentType:
             # if attachment_type not in ["SlidePreview", "Label", "]:
-            raise Exception(f"{attachment_type} is not supported. Valid types are: SlidePreview, Label or Prescan.")
+            raise Exception(
+                f"{attachment_type} is not supported. Valid types are: SlidePreview, Label or Prescan."
+            )
 
         att = czimd.CziAttachments(czi_filepath)
 
@@ -554,7 +588,12 @@ def read_attachments(
 
                         if copy:
                             # create path to store the attachment image
-                            att_path = str(czi_filepath)[:-4] + "_" + att.attachment_entry.name + ".czi"
+                            att_path = (
+                                str(czi_filepath)[:-4]
+                                + "_"
+                                + att.attachment_entry.name
+                                + ".czi"
+                            )
 
                             # copy the file
                             dest = shutil.copyfile(full_path, att_path)
@@ -569,12 +608,16 @@ def read_attachments(
                             return img2d
 
     except ImportError:  # as e:
-        logger.warning("Package czifile not found. Cannot extract information about attached images.")
+        logger.warning(
+            "Package czifile not found. Cannot extract information about attached images."
+        )
 
         return None, None
 
 
-def read_tiles(filepath: Union[str, os.PathLike[str]], scene: int, tile: int, **kwargs) -> Tuple[np.ndarray, List]:
+def read_tiles(
+    filepath: Union[str, os.PathLike[str]], scene: int, tile: int, **kwargs
+) -> Tuple[np.ndarray, List]:
     """
     Reads a specific tile from a CZI file.
     Parameters:
