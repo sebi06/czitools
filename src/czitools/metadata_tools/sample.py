@@ -33,6 +33,8 @@ class CziSampleInfo:
         Row IDs of the wells.
     well_counter : Dict
         Counter for the well instances.
+    well_total_number : int
+        Total number of wells.
     scene_stageX : List[float]
         X coordinates of the scene stages.
     scene_stageY : List[float]
@@ -60,6 +62,7 @@ class CziSampleInfo:
     well_colID: List[int] = field(init=False, default_factory=lambda: [])
     well_rowID: List[int] = field(init=False, default_factory=lambda: [])
     well_counter: Dict = field(init=False, default_factory=lambda: {})
+    well_total_number: int = field(init=False, default=None)
     scene_stageX: List[float] = field(init=False, default_factory=lambda: [])
     scene_stageY: List[float] = field(init=False, default_factory=lambda: [])
     image_stageX: float = field(init=False, default=None)
@@ -134,6 +137,8 @@ class CziSampleInfo:
             self.well_array_names.append(well.ArrayName)
             # count the well instances
             self.well_counter = Counter(self.well_array_names)
+            # store the total  umber of wells
+            self.well_total_number = len(self.well_array_names)
 
         if well.Index is not None:
             self.well_indices.append(int(well.Index))
