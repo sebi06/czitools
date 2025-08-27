@@ -44,12 +44,12 @@ class TestPlaneTable(unittest.TestCase):
 
             # Load the CSV file and check that the data matches the original dataframe
             loaded_df = pd.read_csv(filepath_table, sep=";", index_col=0)
-            czi_df = misc.get_planetable(filepath_czi, norm_time=True)
+            czi_df, savepath = misc.get_planetable(filepath_czi, norm_time=True)
 
-            # differences = loaded_df.compare(czi_df)
+            #differences = loaded_df.compare(czi_df)
 
             self.assertTrue(loaded_df.equals(czi_df))
 
 
-# test_run = TestPlaneTable()
-# test_run.test_read_planetable()
+#test_run = TestPlaneTable()
+#test_run.test_read_planetable()

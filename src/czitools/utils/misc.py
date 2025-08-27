@@ -18,7 +18,7 @@ import time
 from pathlib import Path
 import dateutil.parser as dt
 from tqdm.contrib.itertools import product
-from typing import Dict, Tuple, Any, Union, Annotated
+from typing import Dict, Tuple, Any, Union, Annotated, Optional
 import validators
 from aicspylibczi import CziFile
 from czitools.metadata_tools.helper import ValueRange
@@ -213,30 +213,28 @@ def check_dimsize(mdata_entry: Union[Any, None], set2value: Any = 1) -> Union[An
 
 def get_planetable(
     czifile: Union[str, os.PathLike[str]],
-    norm_time: bool = True,
-    save_table: bool = False,
-    table_separator: str = ";",
-    table_index: bool = True,
-    **kwargs: dict[str, int],
-) -> pd.DataFrame:
-    """Get the planetable from the individual subblocks.
-
-    Args:
-        czifile: The source for the CZI image file.
-        norm_time: Whether to normalize the timestamps. Defaults to True.
-        save_table: Whether to save the planetable to a CSV file. Defaults to False.
-        table_separator: The separator for the CSV file. Defaults to ";".
-        table_index: Whether to include the index in the CSV file. Defaults to True.
-        **kwargs: Optional arguments for filtering the planetable. These can include:
-            - scene: Scene index to filter the data.
-            - tile: Tile index to filter the data.
-            - time: Time index to filter the data.
-            - channel: Channel index to filter the data.
-            - zplane: Z index to filter the data.
-
-    Returns:
-        pd.DataFrame: The planetable as a Pandas DataFrame.
+    norm_time: Optional[bool] = True,
+    save_table: Optional[bool] = False,
+    table_separator: Optional[str] = ";",
+    table_index: Optional[bool] = True,
+    planes: Optional[Dict[str, int]] = None,
+) -> Tuple[pd.DataFrame, Optional[str]]:
     """
+        Extracts the plane table from the individual subblocks of a CZI file.
+
+        Args:
+            czifile (Union[str, os.PathLike[str]]): The path to the CZI image file.
+            norm_time (Optional[bool]): Whether to normalize the timestamps. Defaults to True.
+            save_table (Optional[bool]): Whether to save the plane table to a CSV file. Defaults to False.
+            table_separator (Optional[str]): The separator for the CSV file. Defaults to ";".
+            table_index (Optional[bool]): Whether to include the index in the CSV file. Defaults to True.
+            planes (Optional[Dict[str, int]]): Optional dictionary for filtering planes by dimensions.
+
+        Returns:
+            Tuple[pd.DataFrame, Optional[str]]: A tuple containing:
+                - A Pandas DataFrame representing the plane table.
+                - The file path of the saved CSV file, if `save_table` is True; otherwise, None.
+        """
 
     if isinstance(czifile, Path):
         # convert to string
@@ -244,7 +242,7 @@ def get_planetable(
 
     if validators.url(czifile):
         logger.warning("Reading PlaneTable from CZI via a link is not supported yet.")
-        return None, None
+        return pd.DataFrame(), None
 
     # initialize the plane table
     df_czi = pd.DataFrame(
@@ -269,8 +267,12 @@ def get_planetable(
     # define subblock counter
     sbcount = -1
 
-    aicsczi = CziFile(czifile)
-    dims = aicsczi.get_dims_shape()
+    try:
+        aicsczi = CziFile(czifile)
+        dims = aicsczi.get_dims_shape()
+    except Exception as e:
+        logger.error(f"Failed to read CZI file: {e}")
+        return pd.DataFrame(), None
 
     has_s = False
     has_m = False
@@ -331,53 +333,53 @@ def get_planetable(
     )
 
     # check for scenes argument
-    if "scene" in kwargs:
-        s_start = kwargs["scene"]
-        s_end = kwargs["scene"] + 1
+    if planes is not None and "scene" in planes:
+        s_start = planes["scene"]
+        s_end = planes["scene"] + 1
     else:
         s_start = 0
         s_end = size_s
 
     # check for tile argument
-    if "tile" in kwargs:
-        m_start = kwargs["tile"]
-        m_end = kwargs["tile"] + 1
+    if planes is not None and "tile" in planes:
+        m_start = planes["tile"]
+        m_end = planes["tile"] + 1
     else:
         m_start = 0
         m_end = size_m
 
     # check for time argument
-    if "time" in kwargs:
-        t_start = kwargs["time"]
-        t_end = kwargs["time"] + 1
+    if planes is not None and "time" in planes:
+        t_start = planes["time"]
+        t_end = planes["time"] + 1
     else:
         t_start = 0
         t_end = size_t
 
     # check for channel argument
-    if "channel" in kwargs:
-        c_start = kwargs["channel"]
-        c_end = kwargs["channel"] + 1
+    if planes is not None and "channel" in planes:
+        c_start = planes["channel"]
+        c_end = planes["channel"] + 1
     else:
         c_start = 0
         c_end = size_c
 
     # check for zplane argument
-    if "zplane" in kwargs:
-        z_start = kwargs["zplane"]
-        z_end = kwargs["zplane"] + 1
+    if planes is not None and "zplane" in planes:
+        z_start = planes["zplane"]
+        z_end = planes["zplane"] + 1
     else:
         z_start = 0
         z_end = size_z
 
     for s, m, t, c, z in product(
-        enumerate(range(s_start, s_end)),
-        enumerate(range(m_start, m_end)),
-        enumerate(range(t_start, t_end)),
-        enumerate(range(c_start, c_end)),
-        enumerate(range(z_start, z_end)),
-        desc="Reading sublocks planes",
-        unit=" 2Dplanes",
+            enumerate(range(s_start, s_end)),
+            enumerate(range(m_start, m_end)),
+            enumerate(range(t_start, t_end)),
+            enumerate(range(c_start, c_end)),
+            enumerate(range(z_start, z_end)),
+            desc="Reading sublocks planes",
+            unit=" 2Dplanes",
     ):
         sbcount += 1
 
@@ -446,7 +448,7 @@ def get_planetable(
             logger.error(f"Failed to save planetable: {e}")
             return df_czi, None
 
-    return df_czi
+    return df_czi, None
 
 
 def _getsbinfo(subblock: Any) -> Tuple[float, float, float, float]:
@@ -512,66 +514,66 @@ def norm_columns(df: pd.DataFrame, colname: str = "Time [s]", mode: str = "min")
     return df
 
 
-def filter_planetable(planetable: pd.DataFrame, **kwargs) -> pd.DataFrame:
+def filter_planetable(planetable: pd.DataFrame, planes: Optional[Dict[str, int]] = None) -> pd.DataFrame:
     """
     Filters the input planetable DataFrame based on specified dimension entries.
 
-    The function uses optional keyword arguments to filter the planetable on
+    The function uses the `planes` dictionary to filter the planetable on
     various dimensions such as scene index, time index, z-plane index, and channel index.
-    If a dimension is not specified in the keyword arguments, it will not be used for filtering.
-    Only valid arguments are accepted, which are 's', 't', 'z', and 'c'. An error is raised for invalid arguments.
+    If a dimension is not specified in the `planes` dictionary, it will not be used for filtering.
+    Only valid keys are accepted, which are 'scene', 'time', 'zplane', and 'channel'.
+    An error is raised for invalid keys.
 
     Args:
         planetable (pd.DataFrame): The DataFrame to be filtered.
-            It should contain columns "S", "M", "T", "Z" and "C".
-
-        **kwargs: Optional keyword arguments specifying the indices to filter on.
-            These can include:
-                'scene': The scene index.
-                'time': The time index.
-                'zplane': The z-plane index.
-                'channel': The channel index.
+            It should contain columns "S", "M", "T", "Z", and "C".
+        planes (Optional[Dict[str, int]]): A dictionary specifying the indices to filter on.
+            Valid keys include:
+                - 'scene': The scene index.
+                - 'time': The time index.
+                - 'zplane': The z-plane index.
+                - 'channel': The channel index.
 
     Returns:
         pd.DataFrame: The filtered planetable.
 
     Raises:
-        KeyError: If a specified index is not a column in the DataFrame.
-        ValueError: If an invalid keyword argument is passed.
+        ValueError: If an invalid key is passed in the `planes` dictionary.
 
     Examples:
-        >>> planetable = pd.DataFrame({'scene': [0, 1, 1], 'time': [0, 1, 0], 'zplane': [0, 1, 1], 'channel': [0, 1, 1]})
-        >>> filter_planetable(planetable, scene=1, time=0)
-        scene  time  zplane  channel
-        2      1     0       1      1
+        >>> planetable = pd.DataFrame({'S': [0, 1, 1], 'T': [0, 1, 0], 'Z': [0, 1, 1], 'C': [0, 1, 1]})
+        >>> filter_planetable(planetable, planes={'scene': 1, 'time': 0})
+        S  T  Z  C
+        1  0  1  1
     """
 
+    # Define valid keys for filtering
     valid_args = ["scene", "time", "zplane", "channel"]
 
-    # check for invalid arguments
-    for k, v in kwargs.items():
+    # If no filtering criteria are provided, return the unfiltered planetable
+    if planes is None:
+        return planetable
+    elif planes is not None:
+        # Check for invalid keys in the `planes` dictionary
+        for k, v in planes.items():
+            if k not in valid_args:
+                raise ValueError(f"Invalid keyword argument: {k}")
 
-        if k not in valid_args:
-            raise ValueError(f"Invalid keyword argument: {k}")
+        # Apply filtering for each valid key if it exists in `planes`
+        if "scene" in planes:
+            planetable = planetable[planetable["S"] == planes["scene"]]
 
-    if "scene" in kwargs:
-        # filter planetable for specific scene
-        planetable = planetable[planetable["S"] == kwargs["scene"]]
+        if "time" in planes:
+            planetable = planetable[planetable["T"] == planes["time"]]
 
-    if "time" in kwargs:
-        # filter planetable for specific timepoint
-        planetable = planetable[planetable["T"] == kwargs["time"]]
+        if "zplane" in planes:
+            planetable = planetable[planetable["Z"] == planes["zplane"]]
 
-    if "zplane" in kwargs:
-        # filter resulting planetable pt for a specific z-plane
-        planetable = planetable[planetable["Z"] == kwargs["zplane"]]
+        if "channel" in planes:
+            planetable = planetable[planetable["C"] == planes["channel"]]
 
-    if "channel" in kwargs:
-        # filter planetable for specific channel
-        planetable = planetable[planetable["C"] == kwargs["channel"]]
-
-    # return filtered planetable
-    return planetable
+        # Return the filtered planetable
+        return planetable
 
 
 def save_planetable(df: pd.DataFrame, filepath: str, separator: str = ",", index: bool = True) -> str:

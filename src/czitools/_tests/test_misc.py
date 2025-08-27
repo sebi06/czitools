@@ -68,9 +68,9 @@ def test_get_planetable(czifile: str, csvfile: str, xstart: List[int], ystart: L
         planetable = pd.read_csv(filepath, sep=separator)
     if isczi:
         # read the data from CZI file
-        planetable = misc.get_planetable(filepath, norm_time=True, pt_complete=True)
+        planetable, savepath = misc.get_planetable(filepath, norm_time=True)
 
-    planetable_filtered = misc.filter_planetable(planetable, scene=0, time=0, channel=0, zplane=0)
+    planetable_filtered = misc.filter_planetable(planetable, planes={"scene":0, "time":0, "channel":0, "zplane":0})
 
     assert planetable_filtered["xstart"].values[0] == xstart[0]
     assert planetable_filtered["ystart"].values[0] == ystart[0]
@@ -140,23 +140,23 @@ def test_norm_columns_max(df):
 def test_filter_planetable(planetable):
 
     # Test for scene index
-    result = misc.filter_planetable(planetable, scene=1)
+    result = misc.filter_planetable(planetable, planes={"scene": 1})
     assert result["S"].eq(1).all(), "Scene index filter failed"
 
     # Test for time index
-    result = misc.filter_planetable(planetable, time=1)
+    result = misc.filter_planetable(planetable, planes={"time": 1})
     assert result["T"].eq(1).all(), "Time index filter failed"
 
     # Test for z-plane index
-    result = misc.filter_planetable(planetable, zplane=1)
+    result = misc.filter_planetable(planetable, planes={"zplane": 1})
     assert result["Z"].eq(1).all(), "Z-plane index filter failed"
 
     # Test for channel index
-    result = misc.filter_planetable(planetable, channel=5)
+    result = misc.filter_planetable(planetable, planes={"channel": 5})
     assert result["C"].eq(5).all(), "Channel index filter failed"
 
     # Test for invalid indices
-    result = misc.filter_planetable(planetable, scene=2, time=2, zplane=2, channel=2)
+    result = misc.filter_planetable(planetable, planes={"scene": 2, "time": 2, "zplane": 2, "channel": 2})
     assert result.empty, "Invalid index filter failed"
 
 
@@ -176,7 +176,7 @@ def test_clean_dict(input_dict: Dict, expected_dict: Dict) -> None:
 
 
 @pytest.mark.parametrize(
-    "czifile, kwargs, expected_columns",
+    "czifile, planes, expected_columns",
     [
         (
             "WP96_4Pos_B4-10_DAPI.czi",
@@ -200,15 +200,15 @@ def test_clean_dict(input_dict: Dict, expected_dict: Dict) -> None:
         ),
     ],
 )
-def test_get_planetable_columns(czifile: str, kwargs: dict, expected_columns: list) -> None:
+def test_get_planetable_columns(czifile: str, planes: dict[str, int], expected_columns: list) -> None:
     filepath = (basedir / "data" / czifile).as_posix()
 
-    planetable = misc.get_planetable(filepath, **kwargs)
+    planetable, savepath = misc.get_planetable(filepath, planes=planes)
     assert list(planetable.columns) == expected_columns, "Column names do not match expected values."
 
 
 @pytest.mark.parametrize(
-    "czifile, kwargs, expected_shape",
+    "czifile, planes, expected_shape",
     [
         (
             "WP96_4Pos_B4-10_DAPI.czi",
@@ -217,15 +217,15 @@ def test_get_planetable_columns(czifile: str, kwargs: dict, expected_columns: li
         ),
     ],
 )
-def test_get_planetable_shape(czifile: str, kwargs: dict, expected_shape: tuple) -> None:
+def test_get_planetable_shape(czifile: str, planes: dict[str, int], expected_shape: tuple) -> None:
     filepath = (basedir / "data" / czifile).as_posix()
 
-    planetable = misc.get_planetable(filepath, **kwargs)
+    planetable, savepath = misc.get_planetable(filepath, planes=planes)
     assert planetable.shape == expected_shape, "DataFrame shape does not match expected values."
 
 
 @pytest.mark.parametrize(
-    "czifile, kwargs, norm_time, expected_min_time",
+    "czifile, planes, norm_time, expected_min_time",
     [
         (
             "WP96_4Pos_B4-10_DAPI.czi",
@@ -235,15 +235,15 @@ def test_get_planetable_shape(czifile: str, kwargs: dict, expected_shape: tuple)
         ),
     ],
 )
-def test_get_planetable_normalized_time(czifile: str, kwargs: dict, norm_time: bool, expected_min_time: float) -> None:
+def test_get_planetable_normalized_time(czifile: str, planes: dict[str, int], norm_time: bool, expected_min_time: float) -> None:
     filepath = (basedir / "data" / czifile).as_posix()
 
-    planetable = misc.get_planetable(filepath, norm_time=norm_time, **kwargs)
+    planetable, savepath = misc.get_planetable(filepath, norm_time=norm_time, planes=planes)
     assert planetable["Time[s]"].min() == expected_min_time, "Normalized time does not match expected value."
 
 
 @pytest.mark.parametrize(
-    "czifile, kwargs, save_table, expected_saved_path",
+    "czifile, planes, save_table, expected_saved_path",
     [
         (
             "WP96_4Pos_B4-10_DAPI.czi",
@@ -253,8 +253,8 @@ def test_get_planetable_normalized_time(czifile: str, kwargs: dict, norm_time: b
         ),
     ],
 )
-def test_get_planetable_save_table(czifile: str, kwargs: dict, save_table: bool, expected_saved_path: str) -> None:
+def test_get_planetable_save_table(czifile: str, planes: dict[str, int], save_table: bool, expected_saved_path: str) -> None:
     filepath = (basedir / "data" / czifile).as_posix()
 
-    _, saved_path = misc.get_planetable(filepath, save_table=save_table, **kwargs)
+    _, saved_path = misc.get_planetable(filepath, save_table=save_table, planes=planes)
     assert saved_path.endswith(expected_saved_path), "Saved file path does not match expected value."
