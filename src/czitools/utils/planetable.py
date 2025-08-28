@@ -10,21 +10,15 @@
 #################################################################
 
 import os
-import zarr
 import pandas as pd
-import dask.array as da
 import numpy as np
-import time
 from pathlib import Path
 import dateutil.parser as dt
 from tqdm.contrib.itertools import product
-from typing import Dict, Tuple, Any, Union, Annotated, Optional
+from typing import Dict, Tuple, Any, Union, Optional
 import validators
 from aicspylibczi import CziFile
-from czitools.metadata_tools.helper import ValueRange
 from czitools.utils import logging_tools
-import requests
-import tracemalloc
 
 logger = logging_tools.set_logging()
 
