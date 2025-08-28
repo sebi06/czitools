@@ -108,22 +108,22 @@ def _getsbinfo(subblock: Any) -> Tuple[float, float, float, float]:
     try:
         time = subblock.findall(".//AcquisitionTime")[0].text
         timestamp = dt.parse(time).timestamp()
-    except IndexError as e:
+    except IndexError:
         timestamp = 0.0
 
     try:
         xpos = np.double(subblock.findall(".//StageXPosition")[0].text)
-    except IndexError as e:
+    except IndexError:
         xpos = 0.0
 
     try:
         ypos = np.double(subblock.findall(".//StageYPosition")[0].text)
-    except IndexError as e:
+    except IndexError:
         ypos = 0.0
 
     try:
         zpos = np.double(subblock.findall(".//FocusPosition")[0].text)
-    except IndexError as e:
+    except IndexError:
         zpos = 0.0
 
     return timestamp, xpos, ypos, zpos
