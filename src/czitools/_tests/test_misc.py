@@ -1,5 +1,6 @@
 from czitools.read_tools import read_tools
 from czitools.utils import misc
+from czitools.utils import planetable as plt_tools
 from pathlib import Path
 import dask.array as da
 import zarr
@@ -68,9 +69,11 @@ def test_get_planetable(czifile: str, csvfile: str, xstart: List[int], ystart: L
         planetable = pd.read_csv(filepath, sep=separator)
     if isczi:
         # read the data from CZI file
-        planetable, savepath = misc.get_planetable(filepath, norm_time=True)
+        planetable, savepath = plt_tools.get_planetable(filepath, norm_time=True)
 
-    planetable_filtered = misc.filter_planetable(planetable, planes={"scene":0, "time":0, "channel":0, "zplane":0})
+    planetable_filtered = plt_tools.filter_planetable(
+        planetable, planes={"scene": 0, "time": 0, "channel": 0, "zplane": 0}
+    )
 
     assert planetable_filtered["xstart"].values[0] == xstart[0]
     assert planetable_filtered["ystart"].values[0] == ystart[0]
@@ -126,13 +129,13 @@ def test_calc_scaling(
 
 
 def test_norm_columns_min(df):
-    result = misc.norm_columns(df, colname="Time [s]", mode="min")
+    result = plt_tools.norm_columns(df, colname="Time [s]", mode="min")
     expected = pd.DataFrame({"Time [s]": [0, 1, 2, 3], "Value": [10, 20, 30, 40]})
     pd.testing.assert_frame_equal(result, expected)
 
 
 def test_norm_columns_max(df):
-    result = misc.norm_columns(df, colname="Time [s]", mode="max")
+    result = plt_tools.norm_columns(df, colname="Time [s]", mode="max")
     expected = pd.DataFrame({"Time [s]": [-3, -2, -1, 0], "Value": [10, 20, 30, 40]})
     pd.testing.assert_frame_equal(result, expected)
 
@@ -140,23 +143,23 @@ def test_norm_columns_max(df):
 def test_filter_planetable(planetable):
 
     # Test for scene index
-    result = misc.filter_planetable(planetable, planes={"scene": 1})
+    result = plt_tools.filter_planetable(planetable, planes={"scene": 1})
     assert result["S"].eq(1).all(), "Scene index filter failed"
 
     # Test for time index
-    result = misc.filter_planetable(planetable, planes={"time": 1})
+    result = plt_tools.filter_planetable(planetable, planes={"time": 1})
     assert result["T"].eq(1).all(), "Time index filter failed"
 
     # Test for z-plane index
-    result = misc.filter_planetable(planetable, planes={"zplane": 1})
+    result = plt_tools.filter_planetable(planetable, planes={"zplane": 1})
     assert result["Z"].eq(1).all(), "Z-plane index filter failed"
 
     # Test for channel index
-    result = misc.filter_planetable(planetable, planes={"channel": 5})
+    result = plt_tools.filter_planetable(planetable, planes={"channel": 5})
     assert result["C"].eq(5).all(), "Channel index filter failed"
 
     # Test for invalid indices
-    result = misc.filter_planetable(planetable, planes={"scene": 2, "time": 2, "zplane": 2, "channel": 2})
+    result = plt_tools.filter_planetable(planetable, planes={"scene": 2, "time": 2, "zplane": 2, "channel": 2})
     assert result.empty, "Invalid index filter failed"
 
 
@@ -203,7 +206,7 @@ def test_clean_dict(input_dict: Dict, expected_dict: Dict) -> None:
 def test_get_planetable_columns(czifile: str, planes: dict[str, int], expected_columns: list) -> None:
     filepath = (basedir / "data" / czifile).as_posix()
 
-    planetable, savepath = misc.get_planetable(filepath, planes=planes)
+    planetable, savepath = plt_tools.get_planetable(filepath, planes=planes)
     assert list(planetable.columns) == expected_columns, "Column names do not match expected values."
 
 
@@ -220,7 +223,7 @@ def test_get_planetable_columns(czifile: str, planes: dict[str, int], expected_c
 def test_get_planetable_shape(czifile: str, planes: dict[str, int], expected_shape: tuple) -> None:
     filepath = (basedir / "data" / czifile).as_posix()
 
-    planetable, savepath = misc.get_planetable(filepath, planes=planes)
+    planetable, savepath = plt_tools.get_planetable(filepath, planes=planes)
     assert planetable.shape == expected_shape, "DataFrame shape does not match expected values."
 
 
@@ -235,10 +238,12 @@ def test_get_planetable_shape(czifile: str, planes: dict[str, int], expected_sha
         ),
     ],
 )
-def test_get_planetable_normalized_time(czifile: str, planes: dict[str, int], norm_time: bool, expected_min_time: float) -> None:
+def test_get_planetable_normalized_time(
+    czifile: str, planes: dict[str, int], norm_time: bool, expected_min_time: float
+) -> None:
     filepath = (basedir / "data" / czifile).as_posix()
 
-    planetable, savepath = misc.get_planetable(filepath, norm_time=norm_time, planes=planes)
+    planetable, savepath = plt_tools.get_planetable(filepath, norm_time=norm_time, planes=planes)
     assert planetable["Time[s]"].min() == expected_min_time, "Normalized time does not match expected value."
 
 
@@ -253,8 +258,10 @@ def test_get_planetable_normalized_time(czifile: str, planes: dict[str, int], no
         ),
     ],
 )
-def test_get_planetable_save_table(czifile: str, planes: dict[str, int], save_table: bool, expected_saved_path: str) -> None:
+def test_get_planetable_save_table(
+    czifile: str, planes: dict[str, int], save_table: bool, expected_saved_path: str
+) -> None:
     filepath = (basedir / "data" / czifile).as_posix()
 
-    _, saved_path = misc.get_planetable(filepath, save_table=save_table, planes=planes)
+    _, saved_path = plt_tools.get_planetable(filepath, save_table=save_table, planes=planes)
     assert saved_path.endswith(expected_saved_path), "Saved file path does not match expected value."

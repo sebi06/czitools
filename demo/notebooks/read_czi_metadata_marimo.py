@@ -9,8 +9,9 @@ def _():
     import marimo as mo
     from czitools.metadata_tools import czi_metadata as czimd
     from czitools.utils import misc
+    from czitools.utils import planetable
 
-    return czimd, misc, mo
+    return czimd, misc, mo, planetable
 
 
 @app.cell
@@ -58,9 +59,9 @@ def _(czimd, filepath, misc, mo):
 
 
 @app.cell
-def _(filepath, misc, mo):
+def _(filepath, misc, mo, planetable):
     # get the planetable for the CZI file
-    pt, savepath = misc.get_planetable(filepath, norm_time=True, save_table=True, time=0, channel=0, zplane=0)
+    pt, savepath = planetable.get_planetable(filepath, norm_time=True, save_table=True, time=0, channel=0, zplane=0)
 
     mo.vstack([mo.ui.table(pt)])
     return

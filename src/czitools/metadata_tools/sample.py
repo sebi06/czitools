@@ -6,7 +6,7 @@ import numpy as np
 from collections import Counter
 from czitools.utils import logging_tools
 from czitools.utils.box import get_czimd_box
-from czitools.utils.misc import get_planetable
+from czitools.utils.planetable import get_planetable
 from czitools.metadata_tools.dimension import CziDimensions
 import traceback
 
@@ -116,7 +116,9 @@ class CziSampleInfo:
 
             try:
                 # read the data from CSV file from a single plane
-                planetable, savepath = get_planetable(czi_box.filepath, {"scene": 0, "tile":0, "time":0, "channel":0, "zplane":0})
+                planetable, savepath = get_planetable(
+                    czi_box.filepath, {"scene": 0, "tile": 0, "time": 0, "channel": 0, "zplane": 0}
+                )
 
                 self.image_stageX = float(planetable["X[micron]"][0])
                 self.image_stageY = float(planetable["Y[micron]"][0])
@@ -125,9 +127,6 @@ class CziSampleInfo:
                 if self.verbose:
                     traceback.print_exc()
                     logger.error(e)
-
-
-
 
     def get_well_info(self, well: Box):
         """
