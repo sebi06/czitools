@@ -6,6 +6,7 @@ from box import Box
 import xmltodict
 import xml.etree.ElementTree as ET
 from czitools.utils import misc
+from czitools.utils import planetable
 
 
 def get_subblock_metadata(bioimage: BioImage, attribute_filters: dict = {"S": "0"}):
@@ -68,7 +69,7 @@ filepath = r"f:\Github\czitools\data\WP96_4Pos_B4-10_DAPI.czi"
 
 
 # get the planetable for the CZI file
-pt, savepath = misc.get_planetable(
+pt, savepath = planetable.get_planetable(
     filepath,
     norm_time=True,
     save_table=True,

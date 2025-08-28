@@ -1,7 +1,7 @@
 import pandas as pd
 import unittest
 import os
-from czitools.utils import misc
+from czitools.utils import planetable
 from pathlib import Path
 
 basedir = Path(__file__).resolve().parents[3]
@@ -16,7 +16,7 @@ class TestPlaneTable(unittest.TestCase):
         # Define the test filename
         test_filename = "test.csv"
         # Call the save_planetable function
-        result = misc.save_planetable(df=test_df, filepath=test_filename, separator=";", index=False)
+        result = planetable.save_planetable(df=test_df, filepath=test_filename, separator=";", index=False)
         # Check that the result matches the expected filename
         self.assertEqual(result, "test_planetable.csv")
         # Check that the file was created
@@ -44,7 +44,7 @@ class TestPlaneTable(unittest.TestCase):
 
             # Load the CSV file and check that the data matches the original dataframe
             loaded_df = pd.read_csv(filepath_table, sep=";", index_col=0)
-            czi_df = misc.get_planetable(filepath_czi, norm_time=True)
+            czi_df, savepath = planetable.get_planetable(filepath_czi, norm_time=True)
 
             # differences = loaded_df.compare(czi_df)
 

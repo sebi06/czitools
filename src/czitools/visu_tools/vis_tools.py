@@ -13,23 +13,25 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib import cm
 import plotly.graph_objects as go
+import pandas as pd
+from typing import Tuple
 from czitools.utils import logging_tools
 
 logger = logging_tools.set_logging()
 
 
 def scatterplot_mpl(
-    planetable,
-    s=0,
-    t=0,
-    z=0,
-    c=0,
-    msz2d=35,
-    normz=True,
-    fig1savename="zsurface2d.png",
-    fig2savename="zsurface3d.png",
-    msz3d=20,
-):
+    planetable: pd.DataFrame,
+    s: int = 0,
+    t: int = 0,
+    z: int = 0,
+    c: int = 0,
+    msz2d: int = 35,
+    normz: bool = True,
+    fig1savename: str = "zsurface2d.png",
+    fig2savename: str = "zsurface3d.png",
+    msz3d: int = 20,
+) -> Tuple[plt.Figure, plt.Figure]:
     """
     Generates 2D and 3D scatter plots of XYZ positions from a given table and saves them as PNG files.
     Parameters:
@@ -77,7 +79,7 @@ def scatterplot_mpl(
         xpos = planetable["X[micron]"]
         ypos = planetable["Y[micron]"]
         zpos = planetable["Z[micron]"]
-    except KeyError as e:
+    except KeyError:
         xpos = planetable["X [micron]"]
         ypos = planetable["Y [micron]"]
         zpos = planetable["Z [micron]"]
@@ -124,13 +126,9 @@ def scatterplot_mpl(
 
     # add a label
     if normz:
-        cb1.set_label(
-            "Z-Offset [micron]", labelpad=20, fontsize=12, fontweight="normal"
-        )
+        cb1.set_label("Z-Offset [micron]", labelpad=20, fontsize=12, fontweight="normal")
     if not normz:
-        cb1.set_label(
-            "Z-Position [micron]", labelpad=20, fontsize=12, fontweight="normal"
-        )
+        cb1.set_label("Z-Position [micron]", labelpad=20, fontsize=12, fontweight="normal")
 
     # save figure as PNG
     fig1.savefig(fig1savename, dpi=100)
@@ -164,13 +162,9 @@ def scatterplot_mpl(
     cb2 = plt.colorbar(sc2, shrink=0.8)
     # add a label
     if normz:
-        cb2.set_label(
-            "Z-Offset [micron]", labelpad=20, fontsize=12, fontweight="normal"
-        )
+        cb2.set_label("Z-Offset [micron]", labelpad=20, fontsize=12, fontweight="normal")
     if not normz:
-        cb2.set_label(
-            "Z-Position [micron]", labelpad=20, fontsize=12, fontweight="normal"
-        )
+        cb2.set_label("Z-Position [micron]", labelpad=20, fontsize=12, fontweight="normal")
 
     # save figure as PNG
     fig2.savefig(fig2savename, dpi=100)
@@ -180,17 +174,17 @@ def scatterplot_mpl(
 
 
 def scatterplot_plotly(
-    planetable,
-    s=0,
-    t=0,
-    z=0,
-    c=0,
-    msz2d=35,
-    normz=True,
-    fig1savename="zsurface2d.html",
-    fig2savename="zsurface3d.html",
-    msz3d=20,
-):
+    planetable: pd.DataFrame,
+    s: int = 0,
+    t: int = 0,
+    z: int = 0,
+    c: int = 0,
+    msz2d: int = 35,
+    normz: bool = True,
+    fig1savename: str = "zsurface2d.html",
+    fig2savename: str = "zsurface3d.html",
+    msz3d: int = 20,
+) -> Tuple[go.Figure, go.Figure]:
     """
     Generates 2D and 3D scatter plots using Plotly and saves them as HTML files.
     Parameters:
@@ -228,7 +222,7 @@ def scatterplot_plotly(
         xpos = planetable["X[micron]"]
         ypos = planetable["Y[micron]"]
         zpos = planetable["Z[micron]"]
-    except KeyError as e:
+    except KeyError:
         xpos = planetable["X [micron]"]
         ypos = planetable["Y [micron]"]
         zpos = planetable["Z [micron]"]
@@ -256,9 +250,7 @@ def scatterplot_plotly(
                 colorscale="Viridis",
                 line_width=2,
                 showscale=True,
-                colorbar=dict(
-                    thickness=10, title=dict(text=scalebar_title, side="right")
-                ),
+                colorbar=dict(thickness=10, title=dict(text=scalebar_title, side="right")),
             ),
         )
     )
@@ -289,9 +281,7 @@ def scatterplot_plotly(
                     color=zpos,
                     colorscale="Viridis",
                     opacity=0.8,
-                    colorbar=dict(
-                        thickness=10, title=dict(text=scalebar_title, side="right")
-                    ),
+                    colorbar=dict(thickness=10, title=dict(text=scalebar_title, side="right")),
                 ),
             )
         ]

@@ -6,7 +6,7 @@ import numpy as np
 from collections import Counter
 from czitools.utils import logging_tools
 from czitools.utils.box import get_czimd_box
-from czitools.utils.misc import get_planetable
+from czitools.utils.planetable import get_planetable
 from czitools.metadata_tools.dimension import CziDimensions
 import traceback
 
@@ -31,8 +31,12 @@ class CziSampleInfo:
         Column IDs of the wells.
     well_rowID : List[int]
         Row IDs of the wells.
-    well_counter : Dict
+    well_counter : Dict[str, int]
         Counter for the well instances.
+    well_scene_indices : Dict[str, int]
+        Dictionary to store scene indices for each well.
+    well_total_number : int
+        Total number of wells.
     scene_stageX : List[float]
         X coordinates of the scene stages.
     scene_stageY : List[float]
@@ -59,7 +63,9 @@ class CziSampleInfo:
     well_position_names: List[str] = field(init=False, default_factory=lambda: [])
     well_colID: List[int] = field(init=False, default_factory=lambda: [])
     well_rowID: List[int] = field(init=False, default_factory=lambda: [])
-    well_counter: Dict = field(init=False, default_factory=lambda: {})
+    well_counter: Dict[str, int] = field(init=False, default_factory=lambda: {})
+    well_scene_indices: Dict[str, int] = field(init=False, default_factory=lambda: {})
+    well_total_number: int = field(init=False, default=None)
     scene_stageX: List[float] = field(init=False, default_factory=lambda: [])
     scene_stageY: List[float] = field(init=False, default_factory=lambda: [])
     image_stageX: float = field(init=False, default=None)
@@ -96,6 +102,10 @@ class CziSampleInfo:
                     for well in range(len(allscenes)):
                         self.get_well_info(allscenes[well])
 
+                # loop over all wells and store the scene indices for each well
+                for well_id in self.well_counter.keys():
+                    self.well_scene_indices[well_id] = get_scenes_for_well(self, well_id)
+
             except AttributeError:
                 if self.verbose:
                     logger.info("CZI contains no scene metadata_tools.")
@@ -106,7 +116,9 @@ class CziSampleInfo:
 
             try:
                 # read the data from CSV file from a single plane
-                planetable = get_planetable(czi_box.filepath, scene=0, tile=0, time=0, channel=0, zplane=0)
+                planetable, savepath = get_planetable(
+                    czi_box.filepath, {"scene": 0, "tile": 0, "time": 0, "channel": 0, "zplane": 0}
+                )
 
                 self.image_stageX = float(planetable["X[micron]"][0])
                 self.image_stageY = float(planetable["Y[micron]"][0])
@@ -134,6 +146,8 @@ class CziSampleInfo:
             self.well_array_names.append(well.ArrayName)
             # count the well instances
             self.well_counter = Counter(self.well_array_names)
+            # store the total number of wells
+            self.well_total_number = len(self.well_array_names)
 
         if well.Index is not None:
             self.well_indices.append(int(well.Index))
@@ -171,25 +185,24 @@ class CziSampleInfo:
                 self.scene_stageY.append(0.0)
 
 
-def get_scenes_for_well(sample: CziSampleInfo, wellID: str) -> Tuple[int]:
+def get_scenes_for_well(sample: CziSampleInfo, well_id: str) -> list[int]:
     """
-    Returns a list of scene indices for a given well ID. The list of wells is stored inside
-    the "sample" section of the metadata
+    Returns a list of scene indices for a given well ID.
 
     Args:
-        sample_info (CziSampleInfo): The CziSampleInfo object containing well information.
-        wellID (str): The ID of the well.
+        sample: The CziSampleInfo object containing well information.
+        well_id: The ID of the well.
 
     Returns:
-        Tuple[int]: A list of scene indices corresponding to the given well ID.
+        list[int]: List of scene indices corresponding to the given well ID.
     """
 
     if sample.multipos_per_well:
-        scene_indices = [i for i, x in enumerate(sample.well_array_names) if x == wellID]
-    if not sample.multipos_per_well:
-        scene_indices = [i for i, x in enumerate(sample.well_position_names) if x == wellID]
+        scene_indices = [i for i, x in enumerate(sample.well_array_names) if x == well_id]
+    else:
+        scene_indices = [i for i, x in enumerate(sample.well_position_names) if x == well_id]
 
-    return tuple(scene_indices)
+    return scene_indices
 
 
 def check_multipos_well(scene: Box):
