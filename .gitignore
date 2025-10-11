@@ -150,6 +150,9 @@ examples/pylibCZIrw_docu/newCZI_zscenes.czi
 **/demo/pylibCZIrw_docu/**
 demo/experimental/
 demo/experimental/**
+demo/testing/
+demo/testing/**
+demo/notebooks/.ipynb_checkpoints/
 data/*.zarr
 data/*.xml
 **/data/*.zarr
