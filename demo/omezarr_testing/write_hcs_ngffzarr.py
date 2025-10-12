@@ -1,7 +1,6 @@
 from ome_zarr_utils import convert_czi_to_hcsplate
 from plotting_utils import create_well_plate_heatmap
 import ngff_zarr as nz
-from czitools.read_tools import read_tools
 from pathlib import Path
 import numpy as np
 import matplotlib.pyplot as plt
@@ -15,21 +14,14 @@ if __name__ == "__main__":
     validate = True
     show_napari = False
 
-    # # Point to the main data folder (two directories up from demo/omezarr_testing)
-    # czi_filepath: str = str(Path(__file__).parent.parent.parent / "data" / "WP96_4Pos_B4-10_DAPI.czi")
+    # Point to the main data folder (two directories up from demo/omezarr_testing)
+    czi_filepath: str = str(Path(__file__).parent.parent.parent / "data" / "WP96_4Pos_B4-10_DAPI.czi")
 
-    # # Read CZI file
-    # array6d, mdata = read_tools.read_6darray(czi_filepath, use_xarray=True)
-    # print(f"Array Type: {type(array6d)}, Shape: {array6d.shape}, Dtype: {array6d.dtype}")
+    zarr_output_path = convert_czi_to_hcsplate(czi_filepath, plate_name="Automated Plate", overwrite=overwrite)
 
-    # zarr_output_path = convert_czi_to_hcsplate(czi_filepath, plate_name="Automated Plate", overwrite=overwrite)
-
-    zarr_output_path = r"F:\Github\czitools\data\WP96_4Pos_B4-10_DAPI_ngff_plate.ome.zarr"
-
-    if validate:
-        print("Validating created HCS-ZARR file against schema...")
-        hcs_plate = nz.from_hcs_zarr(zarr_output_path, validate=True)
-        print("Validation successful.")
+    print("Validating created HCS-ZARR file against schema...")
+    hcs_plate = nz.from_hcs_zarr(zarr_output_path, validate=validate)
+    print("Validation successful.")
 
     # run some processing
     results_obj = {}
