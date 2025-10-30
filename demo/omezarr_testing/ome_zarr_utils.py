@@ -297,7 +297,7 @@ def convert_czi_to_hcsplate(czi_filepath: str, plate_name: str = "Automated Plat
     to_hcs_zarr(hcs_plate, zarr_output_path)
 
     for well in wells:
-        print(f"Processing well: {well.path}")
+        print(f"Creatingw Well: {well.path}")
         row_name, col_name = well.path.split("/")
         current_well_id = well.path.replace("/", "")
         print(f"Current WellID: {current_well_id} Row: {row_name}, Column: {col_name}")
