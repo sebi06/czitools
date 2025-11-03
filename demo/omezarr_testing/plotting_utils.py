@@ -10,11 +10,12 @@ def create_well_plate_heatmap(
     results: Dict[str, float],
     num_rows: int = 8,
     num_cols: int = 12,
-    title: str = "Well Plate Heatmap - Mean Intensity",
+    title: str = "Well Plate Heatmap",
+    parameter: str = "Objects",
     cmap: str = "viridis",
     figsize: tuple = (12, 6),
     annot: bool = True,
-    fmt: str = ".1f",
+    fmt: str = ".0f",
 ) -> plt.Figure:
     """
     Create a heatmap visualization of well plate data.
@@ -71,15 +72,18 @@ def create_well_plate_heatmap(
 
     # Create the heatmap
     fig = plt.figure(figsize=figsize)
-    sns.heatmap(
+    ax = sns.heatmap(
         df_heatmap,
         annot=annot,
         fmt=fmt,
         cmap=cmap,
-        cbar_kws={"label": "Mean Intensity"},
+        cbar_kws={"label": parameter},
         linewidths=0.5,
         linecolor="gray",
     )
+    # Set colorbar label font properties
+    cbar = ax.collections[0].colorbar
+    cbar.set_label(parameter, fontsize=12, fontweight="bold")
     plt.title(title, fontsize=14, fontweight="bold")
     plt.xlabel("Column", fontsize=12)
     plt.ylabel("Row", fontsize=12)

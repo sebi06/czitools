@@ -1,28 +1,31 @@
-from ome_zarr_utils import convert_czi_to_hcsplate
+import logging
 from plotting_utils import create_well_plate_heatmap
 import ngff_zarr as nz
-from pathlib import Path
 import numpy as np
 import matplotlib.pyplot as plt
 from processing_tools import ArrayProcessor
 
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    handlers=[logging.StreamHandler()],
+)
+logger = logging.getLogger(__name__)
 
 # Main execution
 if __name__ == "__main__":
 
-    overwrite = True
-    validate = True
-    show_napari = False
+    hcs_omezarr_path = r"F:\Testdata_Zeiss\CZI_Testfiles\testwell96_ngff_plate.ome.zarr"
+    channel2analyze = 0  # Index of the channel to analyze
 
-    # Point to the main data folder (two directories up from demo/omezarr_testing)
-    czi_filepath: str = str(Path(__file__).parent.parent.parent / "data" / "WP96_4Pos_B4-10_DAPI.czi")
-
-    zarr_output_path = convert_czi_to_hcsplate(czi_filepath, plate_name="Automated Plate", overwrite=overwrite)
-
-    if validate:
-        print("Validating created HCS-ZARR file against schema...")
-        hcs_plate = nz.from_hcs_zarr(zarr_output_path, validate=validate)
-        print("Validation successful.")
+    try:
+        logger.info("Validating created HCS-ZARR file against schema...")
+        hcs_plate = nz.from_hcs_zarr(hcs_omezarr_path, validate=True)
+        logger.info("Validation successful.")
+    except Exception as e:
+        logger.error(f"Validation failed: {e}")
+        raise e
 
     # run some processing
     results_obj = {}
@@ -68,12 +71,12 @@ if __name__ == "__main__":
 
                 # Load the image data into memory (compute() for dask arrays)
                 data = image.images[0].data.compute()
-                print(
+                logger.info(
                     f"Processing well: {well_meta.path} - Field {field_idx} data shape: {data.shape}, dtype: {data.dtype}"
                 )
 
                 # count objects
-                ap = ArrayProcessor(np.squeeze(data))  # 2D data as input
+                ap = ArrayProcessor(np.squeeze(data[:, channel2analyze, ...]))  # 2D data as input
                 pro2d = ap.apply_otsu_threshold()
                 ap = ArrayProcessor(pro2d)
                 pro2d, num_objects, props = ap.label_objects(
@@ -99,7 +102,7 @@ if __name__ == "__main__":
         results_obj[f"{row}/{col}"] = np.sum(field_num_objects)
 
     # Report the number of wells processed
-    print(f"Total Size of results: {len(results_mean)}")
+    logger.info(f"Total Size of results: {len(results_mean)}")
 
     # Create and display heatmap visualization using the dedicated function
     fig = create_well_plate_heatmap(
@@ -113,11 +116,3 @@ if __name__ == "__main__":
         fmt=".0f",
     )
     plt.show()
-
-    # Optional: Visualize the plate data using napari
-    if show_napari:
-        import napari
-
-        viewer = napari.Viewer()
-        viewer.open(zarr_output_path, plugin="napari-ome-zarr")
-        napari.run()

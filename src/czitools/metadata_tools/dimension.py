@@ -78,12 +78,8 @@ class CziDimensions:
     """
 
     czisource: Union[str, os.PathLike[str], Box]
-    SizeX: Optional[int] = field(
-        init=False, default=None
-    )  # total size X including scenes
-    SizeY: Optional[int] = field(
-        init=False, default=None
-    )  # total size Y including scenes
+    SizeX: Optional[int] = field(init=False, default=None)  # total size X including scenes
+    SizeY: Optional[int] = field(init=False, default=None)  # total size Y including scenes
     SizeX_scene: Optional[List[int]] = field(
         init=False, default_factory=lambda: []
     )  # size X per scene (if equal scene sizes)
@@ -181,173 +177,159 @@ class CziDimensions:
                 self.SizeX_scene = None
                 self.SizeY_scene = None
                 if self.verbose:
-                    logger.warning(
-                        "Scenes Dimension detected but no bounding rectangle information found."
-                    )
+                    logger.warning("Scenes Dimension detected but no bounding rectangle information found.")
 
         if czi_box.has_T:
             # check if there is a list with timepoints (is not in very CZI)
             if dimensions.Dimensions.T.Positions is not None:
                 if dimensions.Dimensions.T.Positions.List is not None:
                     try:
-                        self.posT = string_to_float_list(
-                            dimensions.Dimensions.T.Positions.List.Offsets
-                        )
+                        self.posT = string_to_float_list(dimensions.Dimensions.T.Positions.List.Offsets)
                     except Exception as e:
                         if self.verbose:
                             logger.error(f"{e}")
                 else:
                     if self.verbose:
-                        logger.warning(
-                            "No posT list found under 'dimensions.Dimensions.T.Positions.List'"
-                        )
+                        logger.warning("No posT list found under 'dimensions.Dimensions.T.Positions.List'")
             else:
                 if self.verbose:
-                    logger.warning(
-                        "No posT list found under 'dimensions.Dimensions.T.Positions'"
-                    )
+                    logger.warning("No posT list found under 'dimensions.Dimensions.T.Positions'")
 
         if czi_box.has_Z:
             # check if there is a list with z-positions (is not in very CZI)
             if dimensions.Dimensions.Z.Positions is not None:
                 if dimensions.Dimensions.Z.Positions.List is not None:
                     try:
-                        self.posZ = string_to_float_list(
-                            dimensions.Dimensions.Z.Positions.List.Offsets
-                        )
+                        self.posZ = string_to_float_list(dimensions.Dimensions.Z.Positions.List.Offsets)
                     except Exception as e:
                         if self.verbose:
                             logger.error(f"{e}")
                 else:
                     if self.verbose:
-                        logger.warning(
-                            "No posZ list found under 'dimensions.Dimensions.Z.Positions.List'"
-                        )
+                        logger.warning("No posZ list found under 'dimensions.Dimensions.Z.Positions.List'")
             else:
                 if self.verbose:
-                    logger.warning(
-                        "No posZ list found under 'dimensions.Dimensions.Z.Positions'"
-                    )
+                    logger.warning("No posZ list found under 'dimensions.Dimensions.Z.Positions'")
 
-    # THIS IS STILL EXPERIMENTAL AND NOT USED YET
-    def set_dimensions_adv(self):
-        """
-        Set the dimensions of the CZI file based on metadata and subblock information.
-        This method extracts dimension metadata from the provided CZI source and calculates
-        the sizes of various dimensions (e.g., X, Y, T, Z, etc.) using the total bounding box
-        of the CZI file. It also attempts to retrieve positional information for time (T) and
-        Z-dimensions if available.
+    # # THIS IS STILL EXPERIMENTAL AND NOT USED YET
+    # def set_dimensions_adv(self):
+    #     """
+    #     Set the dimensions of the CZI file based on metadata and subblock information.
+    #     This method extracts dimension metadata from the provided CZI source and calculates
+    #     the sizes of various dimensions (e.g., X, Y, T, Z, etc.) using the total bounding box
+    #     of the CZI file. It also attempts to retrieve positional information for time (T) and
+    #     Z-dimensions if available.
 
-        Attributes Set:
-            - SizeX, SizeY, SizeT, SizeZ, SizeC, SizeR, SizeH, SizeI, SizeV, SizeB:
-              Sizes of respective dimensions if present in the total bounding box.
-            - SizeS: Number of scenes in the CZI file.
-            - SizeM: Number of mosaic tiles, determined using BioImage or metadata.
-            - SizeX_scene, SizeY_scene: Scene dimensions if bounding rectangle information is available.
-            - posT: List of time positions if available in the metadata.
-            - posZ: List of Z positions if available in the metadata.
+    #     Attributes Set:
+    #         - SizeX, SizeY, SizeT, SizeZ, SizeC, SizeR, SizeH, SizeI, SizeV, SizeB:
+    #           Sizes of respective dimensions if present in the total bounding box.
+    #         - SizeS: Number of scenes in the CZI file.
+    #         - SizeM: Number of mosaic tiles, determined using BioImage or metadata.
+    #         - SizeX_scene, SizeY_scene: Scene dimensions if bounding rectangle information is available.
+    #         - posT: List of time positions if available in the metadata.
+    #         - posZ: List of Z positions if available in the metadata.
 
-        Notes:
-            - The method uses `pyczi.open_czi` to open the CZI file and extract subblock information.
-            - Positional information for T and Z dimensions is optional and may not be present in all CZI files.
-            - Verbose logging is used to provide detailed warnings or errors during execution.
+    #     Notes:
+    #         - The method uses `pyczi.open_czi` to open the CZI file and extract subblock information.
+    #         - Positional information for T and Z dimensions is optional and may not be present in all CZI files.
+    #         - Verbose logging is used to provide detailed warnings or errors during execution.
 
-        Raises:
-            - Exception: If an error occurs while parsing positional information for T or Z dimensions.
-        """
+    #     Raises:
+    #         - Exception: If an error occurs while parsing positional information for T or Z dimensions.
+    #     """
 
-        from bioio import BioImage
+    #     from bioio import BioImage
 
-        # get the Box and extract the relevant dimension metadata_tools
-        if isinstance(self.czisource, Box):
-            czi_box = self.czisource
-        else:
-            czi_box = get_czimd_box(self.czisource)
+    #     # get the Box and extract the relevant dimension metadata_tools
+    #     if isinstance(self.czisource, Box):
+    #         czi_box = self.czisource
+    #     else:
+    #         czi_box = get_czimd_box(self.czisource)
 
-        dimensions = czi_box.ImageDocument.Metadata.Information.Image
+    #     dimensions = czi_box.ImageDocument.Metadata.Information.Image
 
-        with pyczi.open_czi(self.czisource, czi_box.czi_open_arg) as czidoc:
+    #     with pyczi.open_czi(self.czisource, czi_box.czi_open_arg) as czidoc:
 
-            # get the sizes from the subblocks and not from the metadata
-            tb = czidoc.total_bounding_box_no_pyramid
+    #         # get the sizes from the subblocks and not from the metadata
+    #         tb = czidoc.total_bounding_box_no_pyramid
 
-            for dim in ["X", "Y", "T", "Z", "C", "R", "H", "I", "V", "B"]:
-                if dim in tb.keys():
-                    setattr(self, f"Size{dim}", tb[dim][1])
+    #         for dim in ["X", "Y", "T", "Z", "C", "R", "H", "I", "V", "B"]:
+    #             if dim in tb.keys():
+    #                 setattr(self, f"Size{dim}", tb[dim][1])
 
-            self.SizeS = len(czidoc.scenes_bounding_rectangle_no_pyramid)
+    #         self.SizeS = len(czidoc.scenes_bounding_rectangle_no_pyramid)
 
-            if czi_box.czi_open_arg == pyczi.ReaderFileInputTypes.Standard:
+    #         if czi_box.czi_open_arg == pyczi.ReaderFileInputTypes.Standard:
 
-                # try to read the number of Mosaic tiles in using bioio-czi and aicspylibczi
-                img = BioImage(
-                    self.czisource,
-                    reconstruct_mosaic=False,
-                    include_subblock_metadata=True,
-                    use_aicspylibczi=True,
-                )
+    #             # try to read the number of Mosaic tiles in using bioio-czi and aicspylibczi
+    #             img = BioImage(
+    #                 self.czisource,
+    #                 reconstruct_mosaic=False,
+    #                 include_subblock_metadata=True,
+    #                 use_aicspylibczi=True,
+    #             )
 
-                if hasattr(img.dims, "M"):
-                    self.SizeM = img.dims.M
+    #             if hasattr(img.dims, "M"):
+    #                 self.SizeM = img.dims.M
 
-            elif czi_box.czi_open_arg == pyczi.ReaderFileInputTypes.Curl:
+    #         elif czi_box.czi_open_arg == pyczi.ReaderFileInputTypes.Curl:
 
-                if dimensions.SizeM is not None:
-                    # try to read the number of Mosaic tiles from the metadata XML
-                    self.SizeM = dimensions.SizeM
+    #             if dimensions.SizeM is not None:
+    #                 # try to read the number of Mosaic tiles from the metadata XML
+    #                 self.SizeM = dimensions.SizeM
 
-            if self.SizeS is not None:
+    #         if self.SizeS is not None:
 
-                for s in range(len(czidoc.scenes_bounding_rectangle_no_pyramid)):
-                    if czidoc.scenes_bounding_rectangle_no_pyramid[s].w is not None:
-                        self.SizeX_scene.append(
-                            czidoc.scenes_bounding_rectangle_no_pyramid[s].w
-                        )
-                    if czidoc.scenes_bounding_rectangle_no_pyramid[s].h is not None:
-                        self.SizeY_scene.append(
-                            czidoc.scenes_bounding_rectangle_no_pyramid[s].h
-                        )
+    #             for s in range(len(czidoc.scenes_bounding_rectangle_no_pyramid)):
+    #                 if czidoc.scenes_bounding_rectangle_no_pyramid[s].w is not None:
+    #                     self.SizeX_scene.append(
+    #                         czidoc.scenes_bounding_rectangle_no_pyramid[s].w
+    #                     )
+    #                 if czidoc.scenes_bounding_rectangle_no_pyramid[s].h is not None:
+    #                     self.SizeY_scene.append(
+    #                         czidoc.scenes_bounding_rectangle_no_pyramid[s].h
+    #                     )
 
-        if czi_box.has_T:
-            # check if there is a list with timepoints (is not in very CZI)
-            if dimensions.Dimensions.T.Positions is not None:
-                if dimensions.Dimensions.T.Positions.List is not None:
-                    try:
-                        self.posT = string_to_float_list(
-                            dimensions.Dimensions.T.Positions.List.Offsets
-                        )
-                    except Exception as e:
-                        if self.verbose:
-                            logger.error(f"{e}")
-                else:
-                    if self.verbose:
-                        logger.warning(
-                            "No posT list found under 'dimensions.Dimensions.T.Positions.List'"
-                        )
-            else:
-                if self.verbose:
-                    logger.warning(
-                        "No posT list found under 'dimensions.Dimensions.T.Positions'"
-                    )
+    #     if czi_box.has_T:
+    #         # check if there is a list with timepoints (is not in very CZI)
+    #         if dimensions.Dimensions.T.Positions is not None:
+    #             if dimensions.Dimensions.T.Positions.List is not None:
+    #                 try:
+    #                     self.posT = string_to_float_list(
+    #                         dimensions.Dimensions.T.Positions.List.Offsets
+    #                     )
+    #                 except Exception as e:
+    #                     if self.verbose:
+    #                         logger.error(f"{e}")
+    #             else:
+    #                 if self.verbose:
+    #                     logger.warning(
+    #                         "No posT list found under 'dimensions.Dimensions.T.Positions.List'"
+    #                     )
+    #         else:
+    #             if self.verbose:
+    #                 logger.warning(
+    #                     "No posT list found under 'dimensions.Dimensions.T.Positions'"
+    #                 )
 
-        if czi_box.has_Z:
-            # check if there is a list with z-positions (is not in very CZI)
-            if dimensions.Dimensions.Z.Positions is not None:
-                if dimensions.Dimensions.Z.Positions.List is not None:
-                    try:
-                        self.posZ = string_to_float_list(
-                            dimensions.Dimensions.Z.Positions.List.Offsets
-                        )
-                    except Exception as e:
-                        if self.verbose:
-                            logger.error(f"{e}")
-                else:
-                    if self.verbose:
-                        logger.warning(
-                            "No posZ list found under 'dimensions.Dimensions.Z.Positions.List'"
-                        )
-            else:
-                if self.verbose:
-                    logger.warning(
-                        "No posZ list found under 'dimensions.Dimensions.Z.Positions'"
-                    )
+    #     if czi_box.has_Z:
+    #         # check if there is a list with z-positions (is not in very CZI)
+    #         if dimensions.Dimensions.Z.Positions is not None:
+    #             if dimensions.Dimensions.Z.Positions.List is not None:
+    #                 try:
+    #                     self.posZ = string_to_float_list(
+    #                         dimensions.Dimensions.Z.Positions.List.Offsets
+    #                     )
+    #                 except Exception as e:
+    #                     if self.verbose:
+    #                         logger.error(f"{e}")
+    #             else:
+    #                 if self.verbose:
+    #                     logger.warning(
+    #                         "No posZ list found under 'dimensions.Dimensions.Z.Positions.List'"
+    #                     )
+    #         else:
+    #             if self.verbose:
+    #                 logger.warning(
+    #                     "No posZ list found under 'dimensions.Dimensions.Z.Positions'"
+    #                 )

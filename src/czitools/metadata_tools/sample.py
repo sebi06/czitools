@@ -89,8 +89,6 @@ class CziSampleInfo:
                 allscenes = czi_box.ImageDocument.Metadata.Information.Image.Dimensions.S.Scenes.Scene
 
                 # check if there are multiple positions per well
-                # self.multipos_per_well = check_multipos_well(allscenes[0])
-
                 if isinstance(allscenes, Box):
                     # check if there are multiple positions per well
                     self.multipos_per_well = check_multipos_well(allscenes)
