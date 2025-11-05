@@ -29,10 +29,10 @@ if __name__ == "__main__":
 Examples:
     # Basic conversion with default settings
     python convert2hcs_omezarr.py --czifile WP96_plate.czi
-    
+
     # Specify custom output path and plate name
     python convert2hcs_omezarr.py --czifile WP96_plate.czi --zarr_output /path/to/output.ome.zarr --plate_name "Experiment_001"
-    
+
     # Enable overwrite mode to replace existing files
     python convert2hcs_omezarr.py --czifile WP96_plate.czi --overwrite
 
@@ -127,7 +127,9 @@ Notes:
     try:
         logger.info("Starting conversion process...")
         result_path = convert_czi_to_hcsplate(
-            czi_filepath=str(czi_filepath), plate_name=args.plate_name, overwrite=args.overwrite
+            czi_filepath=str(czi_filepath),
+            plate_name=args.plate_name,
+            overwrite=args.overwrite,
         )
 
         # Log successful completion
