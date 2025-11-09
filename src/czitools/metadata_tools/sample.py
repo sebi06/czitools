@@ -115,7 +115,7 @@ class CziSampleInfo:
             try:
                 # read the data from CSV file from a single plane
                 planetable, savepath = get_planetable(
-                    czi_box.filepath, {"scene": 0, "tile": 0, "time": 0, "channel": 0, "zplane": 0}
+                    czi_box.filepath, planes={"scene": 0, "tile": 0, "time": 0, "channel": 0, "zplane": 0}
                 )
 
                 self.image_stageX = float(planetable["X[micron]"][0])

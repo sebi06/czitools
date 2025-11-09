@@ -6,7 +6,7 @@ from ome_zarr_utils import write_omezarr_ngff
 # Point to the main data folder (two directories up from demo/omezarr_testing)
 filepath1: str = str(Path(__file__).parent.parent.parent / "data" / "CellDivision_T10_Z15_CH2_DCV_small.czi")
 filepath2: str = str(Path(__file__).parent.parent.parent / "data" / "WP96_4Pos_B4-10_DAPI.czi")
-filepaths = [filepath1, filepath2]
+filepaths = [Path(filepath1), Path(filepath2)]
 
 show_napari = False  # Whether to display the result in napari viewer
 
