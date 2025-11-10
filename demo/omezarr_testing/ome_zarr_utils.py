@@ -17,9 +17,16 @@ import numpy as np
 import xarray as xr
 from typing import Union, Optional
 import dask.array as da
+from enum import Enum, unique
 
 
-def convert_czi_to_hcs_zarr(czi_filepath: str, overwrite: bool = True) -> str:
+@unique
+class omezarr_package(Enum):
+    OME_ZARR = 1
+    NGFF_ZARR = 2
+
+
+def convert_czi2hcs_omezarr(czi_filepath: str, overwrite: bool = True) -> str:
     """Convert CZI file to OME-ZARR HCS (High Content Screening) format.
 
     This function converts a CZI (Carl Zeiss Image) file containing plate data into
@@ -247,7 +254,7 @@ def define_plate_by_well_count(well_count: int, field_count: int = 1) -> Plate:
     return plate_metadata
 
 
-def convert_czi_to_hcsplate(czi_filepath: str, plate_name: str = "Automated Plate", overwrite: bool = True) -> str:
+def convert_czi2hcs_ngff(czi_filepath: str, plate_name: str = "Automated Plate", overwrite: bool = True) -> str:
 
     # Define output path
     zarr_output_path = Path(czi_filepath[:-4] + "_ngff_plate.ome.zarr")

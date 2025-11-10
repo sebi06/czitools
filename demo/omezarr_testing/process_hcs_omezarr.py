@@ -1,8 +1,6 @@
 import logging
-from plotting_utils import create_well_plate_heatmap
 import ngff_zarr as nz
 import numpy as np
-import matplotlib.pyplot as plt
 from processing_tools import ArrayProcessor
 
 # Configure logging
@@ -13,11 +11,17 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# Main execution
-if __name__ == "__main__":
 
-    hcs_omezarr_path = r"F:\Testdata_Zeiss\CZI_Testfiles\testwell96_ngff_plate.ome.zarr"
-    channel2analyze = 0  # Index of the channel to analyze
+def process_hcs_omezarr(
+    hcs_omezarr_path: str, channel2analyze: int = 0, measure_properties=("label", "area", "centroid", "bbox")
+):
+    """
+    Process an HCS OME-ZARR file to analyze wells and generate heatmaps.
+
+    Parameters:
+        hcs_omezarr_path (str): Path to the HCS OME-ZARR file.
+        channel2analyze (int): Index of the channel to analyze.
+    """
 
     try:
         logger.info("Validating created HCS-ZARR file against schema...")
@@ -33,8 +37,8 @@ if __name__ == "__main__":
     measure_properties = ("label", "area", "centroid", "bbox")
 
     # Debug: Print plate metadata information
-    print(f"Number of wells in metadata: {len(hcs_plate.metadata.wells)}")
-    print(f"Wells in metadata: {[w.path for w in hcs_plate.metadata.wells]}")
+    logger.info(f"Number of wells in metadata: {len(hcs_plate.metadata.wells)}")
+    logger.info(f"Wells in metadata: {[w.path for w in hcs_plate.metadata.wells]}")
 
     # Iterate through all wells that actually have data
     # Use the well path directly since it's always correct (e.g., "B/4")
@@ -42,18 +46,18 @@ if __name__ == "__main__":
 
         # Extract row and column from the path (format: "B/4")
         row, col = well_meta.path.split("/")
-        print(f"\nProcessing well: {well_meta.path} (Row: {row}, Column: {col})")
+        logger.info(f"\nProcessing well: {well_meta.path} (Row: {row}, Column: {col})")
 
         # Get the well object for the current row/column position
         well = hcs_plate.get_well(row, col)
 
         # Only process if the well exists and has data
         if not well:
-            print(f"  Warning: Well {well_meta.path} not found in plate, skipping")
+            logger.warning(f"  Warning: Well {well_meta.path} not found in plate, skipping")
             continue
 
         if not well.images or len(well.images) == 0:
-            print(f"  Warning: Well {well_meta.path} has no images, skipping")
+            logger.warning(f"  Warning: Well {well_meta.path} has no images, skipping")
             continue
 
         # Store intensities for all fields (positions) within the well
@@ -104,15 +108,4 @@ if __name__ == "__main__":
     # Report the number of wells processed
     logger.info(f"Total Size of results: {len(results_mean)}")
 
-    # Create and display heatmap visualization using the dedicated function
-    fig = create_well_plate_heatmap(
-        results=results_obj,
-        num_rows=8,  # Standard 96-well plate
-        num_cols=12,  # Standard 96-well plate
-        title="96-Well Plate Heatmap",
-        parameter="Objects",
-        cmap="viridis",
-        figsize=(12, 6),
-        fmt=".0f",
-    )
-    plt.show()
+    return results_obj

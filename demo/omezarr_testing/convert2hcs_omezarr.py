@@ -31,7 +31,7 @@ Examples:
     python convert2hcs_omezarr.py --czifile WP96_plate.czi
 
     # Specify custom output path and plate name
-    python convert2hcs_omezarr.py --czifile WP96_plate.czi --zarr_output /path/to/output.ome.zarr --plate_name "Experiment_001"
+    python convert2hcs_omezarr.py --czifile WP96_plate.czi --zarr /path/to/output.ome.zarr --plate "Experiment_001"
 
     # Enable overwrite mode to replace existing files
     python convert2hcs_omezarr.py --czifile WP96_plate.czi --overwrite
@@ -53,13 +53,19 @@ Notes:
 
     # Optional arguments
     parser.add_argument(
-        "--zarr_output",
+        "--use_ngff",
+        action="store_true",
+        help="Use MGFF-ZARR to create the HCS Plate Layout. If not set the OME-ZARR will be used (default: False)",
+    )
+    # Optional arguments
+    parser.add_argument(
+        "--zarr",
         type=str,
         default=None,
         help="Output path for the OME-ZARR file (default: <czifile>_ngff_plate.ome.zarr)",
     )
     parser.add_argument(
-        "--plate_name",
+        "--plate",
         type=str,
         default="Automated Plate",
         help="Name of the well plate for metadata (default: 'Automated Plate')",
@@ -110,7 +116,7 @@ Notes:
     # Determine output path
     if args.zarr_output is None:
         # Generate default output path based on input filename
-        zarr_output_path = str(czi_filepath.with_suffix("")) + "_ngff_plate.ome.zarr"
+        zarr_output_path = str(czi_filepath.with_suffix("")) + "HCS.ome.zarr"
         logger.info(f"No output path specified, using default: {zarr_output_path}")
     else:
         zarr_output_path = args.zarr_output
@@ -126,11 +132,22 @@ Notes:
     # Perform the conversion
     try:
         logger.info("Starting conversion process...")
-        result_path = convert_czi_to_hcsplate(
-            czi_filepath=str(czi_filepath),
-            plate_name=args.plate_name,
-            overwrite=args.overwrite,
-        )
+
+        if not args.use_ngff:
+            logger.info("Using OME-ZARR format for HCS Plate Layout.")
+            result_path = convert_czi_to_hcsplate(
+                czi_filepath=str(czi_filepath),
+                plate_name=args.plate_name,
+                overwrite=args.overwrite,
+            )
+
+        if args.use_ngff:
+            logger.info("Using NGFF-ZARR format for HCS Plate Layout.")
+            result_path = convert_czi_to_hcsplate(
+                czi_filepath=str(czi_filepath),
+                plate_name=args.plate_name,
+                overwrite=args.overwrite,
+            )
 
         # Log successful completion
         logger.info("=" * 80)
