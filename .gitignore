@@ -188,3 +188,4 @@ data/Tumor_HE_RGB_disp.czi
 .pylintrc
 /old
 /demo/notebooks/__marimo__
+/demo/omezarr_testing/HCS_ZARR_METADATA_FIX.md
