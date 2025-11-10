@@ -12,12 +12,22 @@ from ngff_zarr.v04.zarr_metadata import Plate, PlateColumn, PlateRow, PlateWell
 from ngff_zarr.hcs import HCSPlate, to_hcs_zarr
 from dataclasses import dataclass
 from typing import Dict
-from enum import Enum
+from enum import Enum, unique
 import numpy as np
 import xarray as xr
 from typing import Union, Optional
 import dask.array as da
-from enum import Enum, unique
+import logging
+
+# Configure logging with both console and file output
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    handlers=[
+        logging.StreamHandler(),  # Output to console
+    ],
+)
+logger = logging.getLogger(__name__)
 
 
 @unique
@@ -45,14 +55,14 @@ def convert_czi2hcs_omezarr(czi_filepath: str, overwrite: bool = True) -> str:
         organizing the data in a plate/row/column/field hierarchy.
     """
     # Define output path
-    zarr_output_path = Path(czi_filepath[:-4] + "_ngff_plate.ome.zarr")
+    zarr_output_path = Path(czi_filepath[:-4] + "HCSplate.ome.zarr")
 
     # Handle existing files
     if zarr_output_path.exists():
         if overwrite:
             shutil.rmtree(zarr_output_path)
         else:
-            print(f"File exists at {zarr_output_path}. Set overwrite=True to remove.")
+            logger.info(f"File exists at {zarr_output_path}. Set overwrite=True to remove.")
             return str(zarr_output_path)
 
     # Read CZI file
@@ -91,6 +101,7 @@ def convert_czi2hcs_omezarr(czi_filepath: str, overwrite: bool = True) -> str:
         for fi, field in enumerate(field_paths):
             image_group = well_group.require_group(str(field))
             current_scene_index = mdata.sample.well_scene_indices[current_well_id][fi]
+            logger.info(f"Writing Well: {wp}, Field: {field}, Scene Index: {current_scene_index}")
 
             write_image(
                 image=array6d[current_scene_index, ...],
@@ -98,6 +109,8 @@ def convert_czi2hcs_omezarr(czi_filepath: str, overwrite: bool = True) -> str:
                 axes=array6d.axes[1:].lower(),
                 storage_options=dict(chunks=(1, 1, 1, array6d.Y.size, array6d.X.size)),
             )
+
+    logger
 
     return str(zarr_output_path)
 
@@ -257,14 +270,14 @@ def define_plate_by_well_count(well_count: int, field_count: int = 1) -> Plate:
 def convert_czi2hcs_ngff(czi_filepath: str, plate_name: str = "Automated Plate", overwrite: bool = True) -> str:
 
     # Define output path
-    zarr_output_path = Path(czi_filepath[:-4] + "_ngff_plate.ome.zarr")
+    zarr_output_path = Path(czi_filepath[:-4] + "_HCSplate.ome.zarr")
 
     # Handle existing files
     if zarr_output_path.exists():
         if overwrite:
             shutil.rmtree(zarr_output_path)
         else:
-            print(f"File exists at {zarr_output_path}. Set overwrite=True to remove.")
+            logger.info(f"File exists at {zarr_output_path}. Set overwrite=True to remove.")
             return str(zarr_output_path)
 
     # Read CZI file
@@ -311,6 +324,7 @@ def convert_czi2hcs_ngff(czi_filepath: str, plate_name: str = "Automated Plate",
         for fi, field in enumerate(field_paths):
             current_scene_index = mdata.sample.well_scene_indices[current_well_id][fi]
 
+            logger.info(f"Writing Well: {well.path}, Field: {field}, Scene Index: {current_scene_index}")
             # create current field image
             current_field_image = nz.NgffImage(
                 data=array6d[current_scene_index, ...].data,
@@ -335,6 +349,7 @@ def convert_czi2hcs_ngff(czi_filepath: str, plate_name: str = "Automated Plate",
                 field_index=fi,  # First field of view
                 acquisition_id=0,
             )
+    logger.info("CZI to NGFF HCS-ZARR conversion completed.")
 
     return str(zarr_output_path)
 

@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 # Main execution
 if __name__ == "__main__":
 
-    hcs_omezarr_path = r"F:\Testdata_Zeiss\CZI_Testfiles\testwell96_ngff_plate.ome.zarr"
+    hcs_omezarr_path = r"F:\Testdata_Zeiss\CZI_Testfiles\testwell96_HCSplate.ome.zarr"
     channel2analyze = 0  # Index of the channel to analyze
     measure_properties = ("label", "area", "centroid", "bbox")
 
