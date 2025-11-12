@@ -189,3 +189,6 @@ data/Tumor_HE_RGB_disp.czi
 /old
 /demo/notebooks/__marimo__
 /demo/omezarr_testing/HCS_ZARR_METADATA_FIX.md
+/demo/omezarr_testing/1_image_loading.ipynb
+/demo/omezarr_testing/2_image_writing.ipynb
+/demo/omezarr_testing/3_simple_dask.ipynb
