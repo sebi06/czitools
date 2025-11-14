@@ -91,18 +91,33 @@ class CziSampleInfo:
                 # check if there are multiple positions per well
                 if isinstance(allscenes, Box):
                     # check if there are multiple positions per well
-                    self.multipos_per_well = check_multipos_well(allscenes)
+                    # self.multipos_per_well = check_multipos_well(allscenes)
                     self.get_well_info(allscenes)
 
                 if isinstance(allscenes, BoxList):
                     # check if there are multiple positions per well
-                    self.multipos_per_well = check_multipos_well(allscenes[0])
+                    # self.multipos_per_well = check_multipos_well(allscenes[0])
                     for well in range(len(allscenes)):
                         self.get_well_info(allscenes[well])
+
+                # check if there are multiple positions per well
+                # multipos = []
 
                 # loop over all wells and store the scene indices for each well
                 for well_id in self.well_counter.keys():
                     self.well_scene_indices[well_id] = get_scenes_for_well(self, well_id)
+
+                #     if len(self.well_scene_indices[well_id]) > 1:
+                #         multipos.append(True)
+                #     elif len(self.well_scene_indices[well_id]) == 1:
+                #         multipos.append(False)
+
+                # if all(multipos):
+                #     self.multipos_per_well = True
+                # elif not all(multipos):
+                #     self.multipos_per_well = False
+                # else:
+                #     logger.warning("Wells contain different number of fields")
 
             except AttributeError:
                 if self.verbose:
@@ -146,6 +161,17 @@ class CziSampleInfo:
             self.well_counter = Counter(self.well_array_names)
             # store the total number of wells
             self.well_total_number = len(self.well_array_names)
+        elif well.ArrayName is None:
+            try:
+                id = well.Shape.Name
+                self.well_array_names.append(id)
+                # count the well instances
+                self.well_counter = Counter(self.well_array_names)
+                # store the total number of wells
+                self.well_total_number = len(self.well_array_names)
+            except AttributeError:
+                if self.verbose:
+                    logger.info("Well Array Names not found.")
 
         if well.Index is not None:
             self.well_indices.append(int(well.Index))
@@ -182,6 +208,12 @@ class CziSampleInfo:
                 self.scene_stageX.append(0.0)
                 self.scene_stageY.append(0.0)
 
+        # check if there multiple positions per well
+        if Counter(self.well_counter.values())[1] == len(self.well_counter):
+            self.multipos_per_well = False
+        else:
+            self.multipos_per_well = True
+
 
 def get_scenes_for_well(sample: CziSampleInfo, well_id: str) -> list[int]:
     """
@@ -203,9 +235,9 @@ def get_scenes_for_well(sample: CziSampleInfo, well_id: str) -> list[int]:
     return scene_indices
 
 
-def check_multipos_well(scene: Box):
+# def check_multipos_well(scene: Box):
 
-    if scene.ArrayName is None and scene.Name is not None:
-        return False
-    else:
-        return True
+#     if scene.ArrayName is None and scene.Name is not None:
+#         return False
+#     else:
+#         return True
