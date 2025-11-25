@@ -12,6 +12,8 @@
 # from __future__ import annotations
 from typing import List, Dict, Tuple, Optional, Any, Union
 import os
+import gc
+import warnings
 import xml.etree.ElementTree as ET
 from pylibCZIrw import czi as pyczi
 from czitools.utils import logging_tools, misc, pixels
@@ -100,18 +102,12 @@ class CziMetadata:
     creation_date: Optional[str] = field(init=False, default=None)
     user_name: Optional[str] = field(init=False, default=None)
     czi_box: Optional[Box] = field(init=False, default=None)
-    pyczi_dims: Optional[Dict[str, tuple]] = field(
-        init=False, default_factory=lambda: {}
-    )
+    pyczi_dims: Optional[Dict[str, tuple]] = field(init=False, default_factory=lambda: {})
     aics_dimstring: Optional[str] = field(init=False, default=None)
-    aics_dims_shape: Optional[List[Dict[str, tuple]]] = field(
-        init=False, default_factory=lambda: {}
-    )
+    aics_dims_shape: Optional[List[Dict[str, tuple]]] = field(init=False, default_factory=lambda: {})
     aics_size: Optional[Tuple[int]] = field(init=False, default_factory=lambda: ())
     aics_ismosaic: Optional[bool] = field(init=False, default=None)
-    aics_dim_order: Optional[Dict[str, int]] = field(
-        init=False, default_factory=lambda: {}
-    )
+    aics_dim_order: Optional[Dict[str, int]] = field(init=False, default_factory=lambda: {})
     aics_dim_index: Optional[List[int]] = field(init=False, default_factory=lambda: [])
     aics_dim_valid: Optional[int] = field(init=False, default=None)
     aics_posC: Optional[int] = field(init=False, default=None)
@@ -133,9 +129,7 @@ class CziMetadata:
     microscope: Optional[CziMicroscope] = field(init=False, default=None)
     sample: Optional[CziSampleInfo] = field(init=False, default=None)
     add_metadata: Optional[CziAddMetaData] = field(init=False, default=None)
-    scene_size_consistent: Optional[Tuple[int]] = field(
-        init=False, default_factory=lambda: ()
-    )
+    scene_size_consistent: Optional[Tuple[int]] = field(init=False, default_factory=lambda: ())
     verbose: bool = False
 
     def __post_init__(self):
@@ -143,9 +137,7 @@ class CziMetadata:
             self.pyczi_readertype = pyczi.ReaderFileInputTypes.Curl
             self.is_url = True
             if self.verbose:
-                logger.info(
-                    "FilePath is a valid link. Only pylibCZIrw functionality is available."
-                )
+                logger.info("FilePath is a valid link. Only pylibCZIrw functionality is available.")
         else:
             self.pyczi_readertype = pyczi.ReaderFileInputTypes.Standard
             self.is_url = False
@@ -166,25 +158,15 @@ class CziMetadata:
 
         # get acquisition data and SW version
         if self.czi_box.ImageDocument.Metadata.Information.Application is not None:
-            self.software_name = (
-                self.czi_box.ImageDocument.Metadata.Information.Application.Name
-            )
-            self.software_version = (
-                self.czi_box.ImageDocument.Metadata.Information.Application.Version
-            )
+            self.software_name = self.czi_box.ImageDocument.Metadata.Information.Application.Name
+            self.software_version = self.czi_box.ImageDocument.Metadata.Information.Application.Version
 
         if self.czi_box.ImageDocument.Metadata.Information.Image is not None:
-            self.acquisition_date = (
-                self.czi_box.ImageDocument.Metadata.Information.Image.AcquisitionDateAndTime
-            )
+            self.acquisition_date = self.czi_box.ImageDocument.Metadata.Information.Image.AcquisitionDateAndTime
 
         if self.czi_box.ImageDocument.Metadata.Information.Document is not None:
-            self.creation_date = (
-                self.czi_box.ImageDocument.Metadata.Information.Document.CreationDate
-            )
-            self.user_name = (
-                self.czi_box.ImageDocument.Metadata.Information.Document.UserName
-            )
+            self.creation_date = self.czi_box.ImageDocument.Metadata.Information.Document.CreationDate
+            self.user_name = self.czi_box.ImageDocument.Metadata.Information.Document.UserName
 
         # get the dimensions and order
         self.image = CziDimensions(self.czi_box, verbose=self.verbose)
@@ -196,40 +178,45 @@ class CziMetadata:
 
             # get the pixel typed for all channels
             self.pixeltypes = czidoc.pixel_types
-            self.isRGB, self.consistent_pixeltypes = pixels.check_if_rgb(
-                self.pixeltypes
-            )
+            self.isRGB, self.consistent_pixeltypes = pixels.check_if_rgb(self.pixeltypes)
 
             # check for consistent scene shape
-            self.scene_shape_is_consistent = pixels.check_scenes_shape(
-                czidoc, size_s=self.image.SizeS
-            )
+            self.scene_shape_is_consistent = pixels.check_scenes_shape(czidoc, size_s=self.image.SizeS)
 
         if not self.is_url:
             # get some additional metadata_tools using aicspylibczi
-            try:
-                from aicspylibczi import CziFile
+            # Suppress ResourceWarning as we explicitly clean up the CziFile object
+            # aicspylibczi.CziFile doesn't provide a close() method, so Python may warn about unclosed file
+            with warnings.catch_warnings():
+                warnings.filterwarnings("ignore", category=ResourceWarning, message=".*CziFile.*")
+                warnings.filterwarnings("ignore", category=ResourceWarning, message=".*BufferedReader.*")
 
-                # get the general CZI object using aicspylibczi
-                aicsczi = CziFile(self.filepath)
+                try:
+                    from aicspylibczi import CziFile
 
-                self.aics_dimstring = aicsczi.dims
-                self.aics_dims_shape = aicsczi.get_dims_shape()
-                self.aics_size = aicsczi.size
-                self.aics_ismosaic = aicsczi.is_mosaic()
-                (
-                    self.aics_dim_order,
-                    self.aics_dim_index,
-                    self.aics_dim_valid,
-                ) = pixels.get_dimorder(aicsczi.dims)
-                self.aics_posC = self.aics_dim_order["C"]
+                    # get the general CZI object using aicspylibczi
+                    aicsczi = CziFile(self.filepath)
 
-            except ImportError as e:
-                # print("Package aicspylibczi not found. Use Fallback values.")
-                logger.warning(
-                    f" {e} : Package aicspylibczi not found. Use Fallback values."
-                )
+                    self.aics_dimstring = aicsczi.dims
+                    self.aics_dims_shape = aicsczi.get_dims_shape()
+                    self.aics_size = aicsczi.size
+                    self.aics_ismosaic = aicsczi.is_mosaic()
+                    (
+                        self.aics_dim_order,
+                        self.aics_dim_index,
+                        self.aics_dim_valid,
+                    ) = pixels.get_dimorder(aicsczi.dims)
+                    self.aics_posC = self.aics_dim_order["C"]
 
+                    # Explicitly delete the CziFile object to close underlying file handle
+                    # aicspylibczi.CziFile doesn't provide a close() method, so we rely on deletion
+                    # and explicit garbage collection to ensure the file handle is released
+                    del aicsczi
+                    gc.collect()
+
+                except ImportError as e:
+                    # print("Package aicspylibczi not found. Use Fallback values.")
+                    logger.warning(f" {e} : Package aicspylibczi not found. Use Fallback values.")
         self.npdtype_list = []
         self.maxvalue_list = []
 
@@ -339,9 +326,7 @@ def obj2dict(obj: Any, sort: bool = True) -> Dict[str, Any]:
         return result
 
 
-def writexml(
-    filepath: Union[str, os.PathLike[str]], xmlsuffix: str = "_CZI_MetaData.xml"
-) -> str:
+def writexml(filepath: Union[str, os.PathLike[str]], xmlsuffix: str = "_CZI_MetaData.xml") -> str:
     """
     writexml: Write XML information of CZI to disk
 
@@ -373,9 +358,7 @@ def writexml(
     return xmlfile
 
 
-def create_md_dict_red(
-    metadata: CziMetadata, sort: bool = True, remove_none: bool = True
-) -> Dict:
+def create_md_dict_red(metadata: CziMetadata, sort: bool = True, remove_none: bool = True) -> Dict:
     """
     create_mdict_red: Created a reduced metadata_tools dictionary
 
@@ -463,9 +446,7 @@ def create_md_dict_red(
         return md_dict
 
 
-def create_md_dict_nested(
-    metadata: CziMetadata, sort: bool = True, remove_none: bool = True
-) -> Dict:
+def create_md_dict_nested(metadata: CziMetadata, sort: bool = True, remove_none: bool = True) -> Dict:
     """
     Create nested dictionary from metadata_tools
 
