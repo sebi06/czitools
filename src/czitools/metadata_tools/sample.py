@@ -88,36 +88,17 @@ class CziSampleInfo:
             try:
                 allscenes = czi_box.ImageDocument.Metadata.Information.Image.Dimensions.S.Scenes.Scene
 
-                # check if there are multiple positions per well
+                # get well information
                 if isinstance(allscenes, Box):
-                    # check if there are multiple positions per well
-                    # self.multipos_per_well = check_multipos_well(allscenes)
                     self.get_well_info(allscenes)
 
                 if isinstance(allscenes, BoxList):
-                    # check if there are multiple positions per well
-                    # self.multipos_per_well = check_multipos_well(allscenes[0])
                     for well in range(len(allscenes)):
                         self.get_well_info(allscenes[well])
-
-                # check if there are multiple positions per well
-                # multipos = []
 
                 # loop over all wells and store the scene indices for each well
                 for well_id in self.well_counter.keys():
                     self.well_scene_indices[well_id] = get_scenes_for_well(self, well_id)
-
-                #     if len(self.well_scene_indices[well_id]) > 1:
-                #         multipos.append(True)
-                #     elif len(self.well_scene_indices[well_id]) == 1:
-                #         multipos.append(False)
-
-                # if all(multipos):
-                #     self.multipos_per_well = True
-                # elif not all(multipos):
-                #     self.multipos_per_well = False
-                # else:
-                #     logger.warning("Wells contain different number of fields")
 
             except AttributeError:
                 if self.verbose:
@@ -227,17 +208,6 @@ def get_scenes_for_well(sample: CziSampleInfo, well_id: str) -> list[int]:
         list[int]: List of scene indices corresponding to the given well ID.
     """
 
-    if sample.multipos_per_well:
-        scene_indices = [i for i, x in enumerate(sample.well_array_names) if x == well_id]
-    else:
-        scene_indices = [i for i, x in enumerate(sample.well_position_names) if x == well_id]
+    scene_indices = [i for i, x in enumerate(sample.well_array_names) if x == well_id]
 
     return scene_indices
-
-
-# def check_multipos_well(scene: Box):
-
-#     if scene.ArrayName is None and scene.Name is not None:
-#         return False
-#     else:
-#         return True
