@@ -1,3 +1,11 @@
+"""Bounding box helpers for CZI files.
+
+This module exposes `CziBoundingBox`, a small helper that reads scene
+and total bounding rectangles from a CZI using `pylibCZIrw`. The class
+is defensive: missing metadata fields are represented as ``None`` and
+diagnostic messages are emitted only when ``verbose`` is True.
+"""
+
 from typing import Optional, Union, Dict
 from dataclasses import dataclass, field
 from box import Box
@@ -37,23 +45,15 @@ class CziBoundingBox:
     """
 
     czisource: Union[str, os.PathLike[str], Box]
-    scenes_bounding_rect: Optional[Dict[int, pyczi.Rectangle]] = field(
-        init=False, default_factory=lambda: {}
-    )
+    scenes_bounding_rect: Optional[Dict[int, pyczi.Rectangle]] = field(init=False, default_factory=lambda: {})
     scenes_bounding_rect_no_pyramid: Optional[Dict[int, pyczi.Rectangle]] = field(
         init=False, default_factory=lambda: {}
     )
     total_rect: Optional[pyczi.Rectangle] = field(init=False, default=None)
-    total_rect_no_pyarmid: Optional[pyczi.Rectangle] = field(init=False, default=None)
-    total_bounding_box: Optional[Dict[str, tuple]] = field(
-        init=False, default_factory=lambda: {}
-    )
-    total_bounding_box_no_pyramid: Optional[Dict[str, tuple]] = field(
-        init=False, default_factory=lambda: {}
-    )
+    total_rect_no_pyramid: Optional[pyczi.Rectangle] = field(init=False, default=None)
+    total_bounding_box: Optional[Dict[str, tuple]] = field(init=False, default_factory=lambda: {})
+    total_bounding_box_no_pyramid: Optional[Dict[str, tuple]] = field(init=False, default_factory=lambda: {})
     verbose: bool = False
-
-    # TODO Is this really needed as a separate class or better integrate directly into CziMetadata class?
 
     def __post_init__(self):
         if self.verbose:
@@ -66,33 +66,30 @@ class CziBoundingBox:
 
         if validators.url(str(self.czisource)):
             pyczi_readertype = pyczi.ReaderFileInputTypes.Curl
-            logger.info(
-                "FilePath is a valid link. Only pylibCZIrw functionality is available."
-            )
+            logger.info("FilePath is a valid link. Only pylibCZIrw functionality is available.")
 
         with pyczi.open_czi(str(self.czisource), pyczi_readertype) as czidoc:
 
             # get scenes bounding rectangles
             try:
                 self.scenes_bounding_rect = czidoc.scenes_bounding_rectangle
-            except Exception as e:
+            except Exception:
+                # Always set to None on failure; optionally log when verbose
+                self.scenes_bounding_rect = None
                 if self.verbose:
-                    self.scenes_bounding_rect = None
                     logger.info("Scenes Bounding Rectangle not found.")
 
             try:
-                self.scenes_bounding_rect_no_pyramid = (
-                    czidoc.scenes_bounding_rectangle_no_pyramid
-                )
-            except Exception as e:
+                self.scenes_bounding_rect_no_pyramid = czidoc.scenes_bounding_rectangle_no_pyramid
+            except Exception:
+                self.scenes_bounding_rect_no_pyramid = None
                 if self.verbose:
-                    self.scenes_bounding_rect_no_pyramid = None
                     logger.info("Scenes Bounding Rectangle no Pyramid not found.")
 
             # get total bounding rectangles
             try:
                 self.total_rect = czidoc.total_bounding_rectangle
-            except Exception as e:
+            except Exception:
                 self.total_rect = None
                 if self.verbose:
                     logger.info("Total Bounding Rectangle not found.")
@@ -100,7 +97,7 @@ class CziBoundingBox:
             # get total bounding rectangles
             try:
                 self.total_rect_no_pyramid = czidoc.total_bounding_rectangle_no_pyramid
-            except Exception as e:
+            except Exception:
                 self.total_rect_no_pyramid = None
                 if self.verbose:
                     logger.info("Total Bounding Rectangle no pyramid not found.")
@@ -108,15 +105,13 @@ class CziBoundingBox:
             # get total bounding boxes
             try:
                 self.total_bounding_box = czidoc.total_bounding_box
-            except Exception as e:
+            except Exception:
                 self.total_bounding_box = None
                 if self.verbose:
                     logger.info("Total Bounding Box not found.")
 
             try:
-                self.total_bounding_box_no_pyramid = (
-                    czidoc.total_bounding_box_no_pyramid
-                )
+                self.total_bounding_box_no_pyramid = czidoc.total_bounding_box_no_pyramid
             except Exception as e:
                 self.total_bounding_box_no_pyramid = None
                 if self.verbose:
