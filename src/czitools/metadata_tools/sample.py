@@ -1,4 +1,16 @@
-from typing import Union, List, Dict, Tuple
+"""CZI sample information utilities.
+
+This module provides `CziSampleInfo`, a small helper dataclass that
+extracts sample-carrier (well/scene) and stage position information
+from CZI metadata. It uses the `python-box` (`Box`) representation for
+embedded XML metadata and falls back to scanning subblock plane
+information (via `get_planetable`) when scene metadata is not present.
+
+The code must handle multiple metadata sources and many missing fields
+gracefully; comments explain key fallbacks and edge cases.
+"""
+
+from typing import Union, List, Dict, Optional
 from dataclasses import dataclass, field
 from box import Box, BoxList
 import os
@@ -64,12 +76,12 @@ class CziSampleInfo:
     well_colID: List[int] = field(init=False, default_factory=lambda: [])
     well_rowID: List[int] = field(init=False, default_factory=lambda: [])
     well_counter: Dict[str, int] = field(init=False, default_factory=lambda: {})
-    well_scene_indices: Dict[str, int] = field(init=False, default_factory=lambda: {})
-    well_total_number: int = field(init=False, default=None)
+    well_scene_indices: Dict[str, List[int]] = field(init=False, default_factory=lambda: {})
+    well_total_number: Optional[int] = field(init=False, default=None)
     scene_stageX: List[float] = field(init=False, default_factory=lambda: [])
     scene_stageY: List[float] = field(init=False, default_factory=lambda: [])
-    image_stageX: float = field(init=False, default=None)
-    image_stageY: float = field(init=False, default=None)
+    image_stageX: Optional[float] = field(init=False, default=None)
+    image_stageY: Optional[float] = field(init=False, default=None)
     multipos_per_well: bool = False
     verbose: bool = False
 
@@ -82,6 +94,9 @@ class CziSampleInfo:
         else:
             czi_box = get_czimd_box(self.czisource)
 
+        # Determine whether the CZI contains explicit scene/well information
+        # using the pylibCZIrw-backed `CziDimensions` helper. If `SizeS` is
+        # set the file contains scenes that may include well metadata.
         size_s = CziDimensions(czi_box).SizeS
 
         if size_s is not None:
@@ -104,16 +119,27 @@ class CziSampleInfo:
                 if self.verbose:
                     logger.info("CZI contains no scene metadata_tools.")
 
-        elif size_s is None:
+        else:
+            # If there is no scene metadata, attempt a fallback: read a
+            # single-plane planetable (reads subblock metadata) and extract
+            # the XY stage coordinates for the first plane. This is a best-
+            # effort fallback for files saved without scene/well XML.
+
             if self.verbose:
                 logger.info("No Scene or Well information found. Try to read XY Stage Coordinates from subblocks.")
 
             try:
-                # read the data from CSV file from a single plane
+                # read the data from planetable for the first plane; keys
+                # come from `planetable.get_planetable()` which returns a
+                # dataframe. We guard this call in try/except because the
+                # fallback may fail on malformed files.
                 planetable, savepath = get_planetable(
                     czi_box.filepath, planes={"scene": 0, "tile": 0, "time": 0, "channel": 0, "zplane": 0}
                 )
 
+                # If planetable produced rows, extract the first XY stage
+                # coordinates and store as floats. These values remain
+                # Optional[float] if the fallback fails.
                 self.image_stageX = float(planetable["X[micron]"][0])
                 self.image_stageY = float(planetable["Y[micron]"][0])
 
@@ -135,6 +161,12 @@ class CziSampleInfo:
         - Appends the well's CenterPosition coordinates to self.scene_stageX and self.scene_stageY. If CenterPosition is None, logs a message and appends 0.0 to both.
         """
 
+        # Primary source: ArrayName. Many CZIs have ArrayName; others don't.
+        # We handle missing attributes (AttributeError) and fall back to
+        # other fields where possible.
+        #
+        # Note: we intentionally avoid raising for missing values; callers
+        # expect a best-effort population of the dataclass fields.
         # check the ArrayName
         if well.ArrayName is not None:
             self.well_array_names.append(well.ArrayName)
@@ -178,11 +210,19 @@ class CziSampleInfo:
                 self.well_rowID.append(0)
 
         if well.CenterPosition is not None:
-            # get the SceneCenter Position
-            sx = well.CenterPosition.split(",")[0]
-            sy = well.CenterPosition.split(",")[1]
-            self.scene_stageX.append(np.double(sx))
-            self.scene_stageY.append(np.double(sy))
+            # get the SceneCenter Position stored as a comma-separated
+            # pair: "x,y". Guarding the split ensures malformed strings
+            # don't raise unhandled exceptions.
+            try:
+                sx = well.CenterPosition.split(",")[0]
+                sy = well.CenterPosition.split(",")[1]
+                self.scene_stageX.append(np.double(sx))
+                self.scene_stageY.append(np.double(sy))
+            except Exception:
+                if self.verbose:
+                    logger.warning("Malformed CenterPosition value; using 0.0 for scene stage XY.")
+                self.scene_stageX.append(0.0)
+                self.scene_stageY.append(0.0)
         elif well.CenterPosition is None:
             if self.verbose:
                 logger.info("Stage Positions XY not found.")
@@ -196,7 +236,7 @@ class CziSampleInfo:
             self.multipos_per_well = True
 
 
-def get_scenes_for_well(sample: CziSampleInfo, well_id: str) -> list[int]:
+def get_scenes_for_well(sample: CziSampleInfo, well_id: str) -> List[int]:
     """
     Returns a list of scene indices for a given well ID.
 
