@@ -1,4 +1,5 @@
 import pytest
+import pandas as pd
 
 # Predefined planetable dict fixture for tests
 PLANETABLE_DICT = {
@@ -36,3 +37,14 @@ def _attach_planetable_to_unittest_instance(request, planetable_dict):
         setattr(instance, "planetable_dict", planetable_dict)
     return planetable_dict
 
+
+@pytest.fixture
+def df():
+    """Simple DataFrame used by tests that expect Time [s] and Value columns."""
+    return pd.DataFrame({"Time [s]": [0, 1, 2, 3], "Value": [10, 20, 30, 40]})
+
+
+@pytest.fixture
+def planetable(planetable_dict):
+    """Return a pandas DataFrame built from the predefined planetable dict."""
+    return pd.DataFrame(planetable_dict)
