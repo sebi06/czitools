@@ -192,3 +192,4 @@ data/Tumor_HE_RGB_disp.czi
 /demo/omezarr_testing/1_image_loading.ipynb
 /demo/omezarr_testing/2_image_writing.ipynb
 /demo/omezarr_testing/3_simple_dask.ipynb
+/demo/notebooks/_experimental

@@ -1,3 +1,11 @@
+"""Scaling helpers for CZI files.
+
+Provides `CziScaling` which extracts physical scaling (X/Y/Z) from
+CZI metadata and computes downsampled values and simple ratios. The
+implementation is defensive: missing values fall back to sensible
+defaults and ratio computations avoid division-by-zero.
+"""
+
 from typing import Union, Optional, Annotated, Dict
 from dataclasses import dataclass, field
 from box import Box, BoxList
@@ -37,8 +45,6 @@ class CziScaling:
     X_sf: Optional[float] = field(init=False, default=None)
     Y_sf: Optional[float] = field(init=False, default=None)
     ratio: Optional[Dict[str, float]] = field(init=False, default=None)
-    # ratio_sf: Optional[Dict[str, float]] = field(init=False, default=None)
-    # scalefactorXY: Optional[float] = field(init=False, default=None)
     unit: Optional[str] = field(init=True, default="micron")
     zoom: Annotated[float, ValueRange(0.01, 1.0)] = field(init=True, default=1.0)
     verbose: bool = False
@@ -52,39 +58,36 @@ class CziScaling:
         else:
             czi_box = get_czimd_box(self.czisource)
 
-        if czi_box.has_scale:
+        if getattr(czi_box, "has_scale", False):
             distances = czi_box.ImageDocument.Metadata.Scaling.Items.Distance
 
-            # get the scaling values for X,Y and Z
-            self.X = np.round(
-                self._safe_get_scale(distances, 0, verbose=self.verbose), 3
-            )
-            self.Y = np.round(
-                self._safe_get_scale(distances, 1, verbose=self.verbose), 3
-            )
-            self.Z = np.round(
-                self._safe_get_scale(distances, 2, verbose=self.verbose), 3
-            )
+            # get the scaling values for X,Y and Z (safe_get returns 1.0 fallback)
+            self.X = np.round(self._safe_get_scale(distances, 0, verbose=self.verbose), 3)
+            self.Y = np.round(self._safe_get_scale(distances, 1, verbose=self.verbose), 3)
+            self.Z = np.round(self._safe_get_scale(distances, 2, verbose=self.verbose), 3)
 
-            # calc the scaling values for X,Y when applying downscaling
-            self.X_sf = np.round(self.X * (1 / self.zoom), 3)
-            self.Y_sf = np.round(self.Y * (1 / self.zoom), 3)
+            # calc the scaling values for X,Y when applying downscaling (guard zoom)
+            if self.X is not None and self.zoom:
+                self.X_sf = np.round(self.X * (1.0 / float(self.zoom)), 3)
+            if self.Y is not None and self.zoom:
+                self.Y_sf = np.round(self.Y * (1.0 / float(self.zoom)), 3)
 
-            # calc the scaling ratio
-            self.ratio = {
-                "xy": np.round(self.X / self.Y, 3),
-                "zx": np.round(self.Z / self.X, 3),
-                "zx_sf": np.round(self.Z / self.X_sf, 3),
-            }
+            # calc the scaling ratios only when denom isn't zero or None
+            xy = zx = zx_sf = None
+            if self.X and self.Y:
+                xy = float(np.round(self.X / self.Y, 3))
+            if self.X and self.Z:
+                zx = float(np.round(self.Z / self.X, 3))
+            if self.X_sf and self.Z:
+                zx_sf = float(np.round(self.Z / self.X_sf, 3))
 
-        elif not czi_box.has_scale:
+            self.ratio = {"xy": xy, "zx": zx, "zx_sf": zx_sf}
+        else:
             if self.verbose:
                 logger.warning("No scaling information found.")
 
     @staticmethod
-    def _safe_get_scale(
-        dist: BoxList, idx: int, verbose: bool = False
-    ) -> Optional[float]:
+    def _safe_get_scale(dist: BoxList, idx: int, verbose: bool = False) -> Optional[float]:
         scales = ["X", "Y", "Z"]
 
         try:
@@ -95,18 +98,10 @@ class CziScaling:
             if sc == 0.0:
                 sc = 1.0
                 if verbose:
-                    logger.info(
-                        "Detected Scaling = 0.0 for "
-                        + scales[idx]
-                        + " Using default = 1.0 [micron]."
-                    )
+                    logger.info("Detected Scaling = 0.0 for " + scales[idx] + " Using default = 1.0 [micron].")
             return sc
 
         except (IndexError, TypeError, AttributeError):
             if verbose:
-                logger.info(
-                    "No "
-                    + scales[idx]
-                    + "-Scaling found. Using default = 1.0 [micron]."
-                )
+                logger.info("No " + scales[idx] + "-Scaling found. Using default = 1.0 [micron].")
             return 1.0

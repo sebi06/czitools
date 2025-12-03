@@ -10,6 +10,8 @@
 #################################################################
 
 from typing import Dict, Tuple, Optional, Union, List
+import gc
+import warnings
 from pylibCZIrw import czi as pyczi
 from aicspylibczi import CziFile
 from czitools.metadata_tools import czi_metadata as czimd
@@ -58,7 +60,7 @@ def read_6darray(
         zoom (Optional[float], optional): Downscale images using a factor [0.01 - 1.0]. Defaults to 1.0.
         use_xarray (Optional[bool], optional): Option to use xarray for the output array. Defaults to True.
         adapt_metadata (Optional[bool], optional): Option to adapt metadata for STCZ based on the output array. Defaults to False.
-                                                   Remark: This will always create SizeS = 1 even if the original CZO has no scenes
+                                                   Remark: This will always create SizeS = 1 even if the original CZI has no scenes
     Returns:
         Tuple[array6d, mdata, planes6d]: output as 6D numpy, dask or xarray (default )and metadata
     """
@@ -110,29 +112,13 @@ def read_6darray(
         if k not in planes.keys():
             # if the dimension is not in the planes, add it with default values
             if k == "S":
-                planes[k] = (
-                    (0, mdata.image.SizeS - 1)
-                    if mdata.image.SizeS is not None
-                    else (0, 0)
-                )
+                planes[k] = (0, mdata.image.SizeS - 1) if mdata.image.SizeS is not None else (0, 0)
             elif k == "T":
-                planes[k] = (
-                    (0, mdata.image.SizeT - 1)
-                    if mdata.image.SizeT is not None
-                    else (0, 0)
-                )
+                planes[k] = (0, mdata.image.SizeT - 1) if mdata.image.SizeT is not None else (0, 0)
             elif k == "C":
-                planes[k] = (
-                    (0, mdata.image.SizeC - 1)
-                    if mdata.image.SizeC is not None
-                    else (0, 0)
-                )
+                planes[k] = (0, mdata.image.SizeC - 1) if mdata.image.SizeC is not None else (0, 0)
             elif k == "Z":
-                planes[k] = (
-                    (0, mdata.image.SizeZ - 1)
-                    if mdata.image.SizeZ is not None
-                    else (0, 0)
-                )
+                planes[k] = (0, mdata.image.SizeZ - 1) if mdata.image.SizeZ is not None else (0, 0)
 
     if mdata.consistent_pixeltypes:
         # use pixel type from first channel
@@ -223,13 +209,9 @@ def read_6darray(
 
             # read a 2D image plane from the CZI
             if mdata.image.SizeS is None:
-                image2d = czidoc.read(
-                    plane={"T": t[1], "Z": z[1], "C": c[1]}, zoom=zoom
-                )
+                image2d = czidoc.read(plane={"T": t[1], "Z": z[1], "C": c[1]}, zoom=zoom)
             else:
-                image2d = czidoc.read(
-                    plane={"T": t[1], "Z": z[1], "C": c[1]}, scene=s[1], zoom=zoom
-                )
+                image2d = czidoc.read(plane={"T": t[1], "Z": z[1], "C": c[1]}, scene=s[1], zoom=zoom)
 
             if planecount == 1:
                 # allocate array based on the expected size incl. down scaling
@@ -261,16 +243,12 @@ def read_6darray(
 
             if use_dask and chunk_zyx:
                 # re-chunk array based on shape
-                array6d = array6d.rechunk(
-                    chunks=(1, 1, 1, size_z, image2d.shape[0], image2d.shape[1])
-                )
+                array6d = array6d.rechunk(chunks=(1, 1, 1, size_z, image2d.shape[0], image2d.shape[1]))
 
         if not remove_adim:
             if use_dask and chunk_zyx:
                 # re-chunk array based on shape
-                array6d = array6d.rechunk(
-                    chunks=(1, 1, 1, size_z, image2d.shape[0], image2d.shape[1], 3)
-                )
+                array6d = array6d.rechunk(chunks=(1, 1, 1, size_z, image2d.shape[0], image2d.shape[1], 3))
 
     # update metadata_tools
     mdata.array6d_size = array6d.shape
@@ -298,18 +276,10 @@ def read_6darray(
     # adapt metadata for STCZ
     if adapt_metadata:
 
-        mdata.image.SizeS = (
-            planes["S"][1] - planes["S"][0] + 1 if "S" in planes else mdata.image.SizeS
-        )
-        mdata.image.SizeT = (
-            planes["T"][1] - planes["T"][0] + 1 if "T" in planes else mdata.image.SizeT
-        )
-        mdata.image.SizeC = (
-            planes["C"][1] - planes["C"][0] + 1 if "C" in planes else mdata.image.SizeC
-        )
-        mdata.image.SizeZ = (
-            planes["Z"][1] - planes["Z"][0] + 1 if "Z" in planes else mdata.image.SizeZ
-        )
+        mdata.image.SizeS = planes["S"][1] - planes["S"][0] + 1 if "S" in planes else mdata.image.SizeS
+        mdata.image.SizeT = planes["T"][1] - planes["T"][0] + 1 if "T" in planes else mdata.image.SizeT
+        mdata.image.SizeC = planes["C"][1] - planes["C"][0] + 1 if "C" in planes else mdata.image.SizeC
+        mdata.image.SizeZ = planes["Z"][1] - planes["Z"][0] + 1 if "Z" in planes else mdata.image.SizeZ
 
     return array6d, mdata
 
@@ -556,9 +526,7 @@ def read_attachments(
 
         if attachment_type not in AttachmentType:
             # if attachment_type not in ["SlidePreview", "Label", "]:
-            raise Exception(
-                f"{attachment_type} is not supported. Valid types are: SlidePreview, Label or Prescan."
-            )
+            raise Exception(f"{attachment_type} is not supported. Valid types are: SlidePreview, Label or Prescan.")
 
         att = czimd.CziAttachments(czi_filepath)
 
@@ -588,12 +556,7 @@ def read_attachments(
 
                         if copy:
                             # create path to store the attachment image
-                            att_path = (
-                                str(czi_filepath)[:-4]
-                                + "_"
-                                + att.attachment_entry.name
-                                + ".czi"
-                            )
+                            att_path = str(czi_filepath)[:-4] + "_" + att.attachment_entry.name + ".czi"
 
                             # copy the file
                             dest = shutil.copyfile(full_path, att_path)
@@ -608,16 +571,12 @@ def read_attachments(
                             return img2d
 
     except ImportError:  # as e:
-        logger.warning(
-            "Package czifile not found. Cannot extract information about attached images."
-        )
+        logger.warning("Package czifile not found. Cannot extract information about attached images.")
 
         return None, None
 
 
-def read_tiles(
-    filepath: Union[str, os.PathLike[str]], scene: int, tile: int, **kwargs
-) -> Tuple[np.ndarray, List]:
+def read_tiles(filepath: Union[str, os.PathLike[str]], scene: int, tile: int, **kwargs) -> Tuple[np.ndarray, List]:
     """
     Reads a specific tile from a CZI file.
     Parameters:
@@ -661,23 +620,36 @@ def read_tiles(
             raise ValueError(f"Invalid keyword argument: {k}")
 
     # read CZI using aicspylibczi: : https://pypi.org/project/aicspylibczi/
-    czi = CziFile(filepath)
+    # Suppress ResourceWarning as we explicitly clean up the CziFile object in finally block
+    # aicspylibczi.CziFile doesn't provide a close() method, so Python may warn about unclosed file
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore", category=ResourceWarning, message=".*CziFile.*")
+        warnings.filterwarnings("ignore", category=ResourceWarning, message=".*BufferedReader.*")
 
-    # show the values
-    logger.info(f"Reading File: {filepath} Scene: {scene} - Tile {tile}")
-    logger.info(f"Dimensions Shape: {czi.get_dims_shape()}")
+        czi = CziFile(filepath)
 
-    # in case the CZI is a mosaic file and has the M-dimension
-    if czi.is_mosaic():
-        tile_stack, size = czi.read_image(S=scene, M=tile, **kwargs)
+        try:
+            # show the values
+            logger.info(f"Reading File: {filepath} Scene: {scene} - Tile {tile}")
+            logger.info(f"Dimensions Shape: {czi.get_dims_shape()}")
 
-        # remove the M-Dimension from the array and size
-        tile_stack = np.squeeze(tile_stack, axis=czi.dims.find("M"))
-        size.remove(("M", 1))
+            # in case the CZI is a mosaic file and has the M-dimension
+            if czi.is_mosaic():
+                tile_stack, size = czi.read_image(S=scene, M=tile, **kwargs)
 
-    # in case the CZI is not a mosaic file and has no M-dimension
-    elif not czi.is_mosaic():
-        logger.warning("CZI file is not a mosaic. No M-Dimension found.")
-        tile_stack, size = czi.read_image(S=scene, **kwargs)
+                # remove the M-Dimension from the array and size
+                tile_stack = np.squeeze(tile_stack, axis=czi.dims.find("M"))
+                size.remove(("M", 1))
 
-    return tile_stack, size
+            # in case the CZI is not a mosaic file and has no M-dimension
+            elif not czi.is_mosaic():
+                logger.warning("CZI file is not a mosaic. No M-Dimension found.")
+                tile_stack, size = czi.read_image(S=scene, **kwargs)
+
+            return tile_stack, size
+        finally:
+            # Explicitly delete the CziFile object to close underlying file handle
+            # aicspylibczi.CziFile doesn't provide a close() method, so we rely on deletion
+            # and explicit garbage collection to ensure the file handle is released
+            del czi
+            gc.collect()

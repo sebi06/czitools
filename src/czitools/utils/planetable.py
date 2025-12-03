@@ -10,6 +10,8 @@
 #################################################################
 
 import os
+import gc
+import warnings
 import pandas as pd
 import numpy as np
 from pathlib import Path
@@ -62,31 +64,44 @@ def get_planetable(
     df_czi = _initialize_planetable_dataframe()
 
     # Read CZI file and extract dimension information
-    try:
-        aicsczi = CziFile(czifile)
-        dims = aicsczi.get_dims_shape()
-    except Exception as e:
-        logger.error(f"Failed to read CZI file: {e}")
-        return pd.DataFrame(), None
+    #  Suppress ResourceWarning as we explicitly clean up the CziFile object in finally block
+    # aicspylibczi.CziFile doesn't provide a close() method, so Python may warn about unclosed file
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore", category=ResourceWarning, message=".*CziFile.*")
+        warnings.filterwarnings("ignore", category=ResourceWarning, message=".*BufferedReader.*")
 
-    # Extract dimension information in a more organized way
-    dim_info = _extract_dimension_info(dims)
+        try:
+            aicsczi = CziFile(czifile)
+            dims = aicsczi.get_dims_shape()
+        except Exception as e:
+            logger.error(f"Failed to read CZI file: {e}")
+            return pd.DataFrame(), None
 
-    # Calculate iteration ranges based on available dimensions and user-specified planes
-    iteration_ranges = _calculate_iteration_ranges(dim_info, planes)
+        try:
+            # Extract dimension information in a more organized way
+            dim_info = _extract_dimension_info(dims)
 
-    # Process each subblock and extract plane information
-    df_czi = _process_subblocks(aicsczi, dim_info, iteration_ranges, df_czi)
+            # Calculate iteration ranges based on available dimensions and user-specified planes
+            iteration_ranges = _calculate_iteration_ranges(dim_info, planes)
 
-    # Normalize time stamps if requested
-    if norm_time:
-        df_czi = norm_columns(df_czi, colname="Time[s]", mode="min")
+            # Process each subblocks and extract plane information
+            df_czi = _process_subblocks(aicsczi, dim_info, iteration_ranges, df_czi)
 
-    # Save table to CSV if requested
-    if save_table:
-        return _save_planetable_if_requested(df_czi, czifile, table_separator, table_index)
+            # Normalize time stamps if requested
+            if norm_time:
+                df_czi = norm_columns(df_czi, colname="Time[s]", mode="min")
 
-    return df_czi, None
+            # Save table to CSV if requested
+            if save_table:
+                return _save_planetable_if_requested(df_czi, czifile, table_separator, table_index)
+
+            return df_czi, None
+        finally:
+            # Explicitly delete the CziFile object to close underlying file handle
+            # aicspylibczi.CziFile doesn't provide a close() method
+            # explicit garbage collection to ensure the file handle is released
+            del aicsczi
+            gc.collect()
 
 
 def _getsbinfo(subblock: Any) -> Tuple[float, float, float, float]:

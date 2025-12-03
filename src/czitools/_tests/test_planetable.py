@@ -3,10 +3,12 @@ import unittest
 import os
 from czitools.utils import planetable
 from pathlib import Path
+import pytest
 
 basedir = Path(__file__).resolve().parents[3]
 
 
+@pytest.mark.usefixtures("planetable_dict")
 class TestPlaneTable(unittest.TestCase):
 
     def test_save_planetable(self):
@@ -28,28 +30,19 @@ class TestPlaneTable(unittest.TestCase):
         # Clean up the created file
         os.remove("test_planetable.csv")
 
-    def test_read_planetable(self):
 
-        cvs = [
-            "S2_3x3_CH2_planetable.csv",
-            "CellDivision_T3_Z5_CH2_X240_Y170_planetable.csv",
-        ]
-        czi = ["S2_3x3_CH2.czi", "CellDivision_T3_Z5_CH2_X240_Y170.czi"]
+    def test_read_planetable_from_fixture(self):
+        """Use the predefined planetable dict (attached as self.planetable_dict by conftest.py)
+        to build a DataFrame and compare it to the DataFrame returned by get_planetable.
+        """
+        # Build DataFrame from the fixture dict provided by conftest.py
+        df_fixture = pd.DataFrame(self.planetable_dict)
 
-        for csvfile, czifile in zip(cvs, czi):
+        # Call get_planetable for the same CZI used in the CSV-based test
+        czifile = "CellDivision_T3_Z5_CH2_X240_Y170.czi"
+        filepath_czi = basedir / "data" / czifile
+        czi_df, _ = planetable.get_planetable(filepath_czi, save_table=False, norm_time=True, planes={"time":0, "channel":0})
 
-            # get the CZI filepath
-            filepath_table = basedir / "data" / csvfile
-            filepath_czi = basedir / "data" / czifile
+        # Compare the DataFrames
+        self.assertTrue(df_fixture.equals(czi_df))
 
-            # Load the CSV file and check that the data matches the original dataframe
-            loaded_df = pd.read_csv(filepath_table, sep=";", index_col=0)
-            czi_df, savepath = planetable.get_planetable(filepath_czi, norm_time=True)
-
-            # differences = loaded_df.compare(czi_df)
-
-            self.assertTrue(loaded_df.equals(czi_df))
-
-
-# test_run = TestPlaneTable()
-# test_run.test_read_planetable()

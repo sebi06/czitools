@@ -1,5 +1,5 @@
 from typing import Tuple, Optional, Union, List
-from dataclasses import dataclass, field, fields, Field
+from dataclasses import field, fields, Field
 from box import Box
 import os
 from czitools.utils import logging_tools
@@ -7,7 +7,7 @@ from czitools.utils.box import get_czimd_box
 from pylibCZIrw import czi as pyczi
 
 from pydantic.dataclasses import dataclass
-from pydantic import BaseModel, ConfigDict
+from pydantic import ConfigDict
 
 logger = logging_tools.set_logging()
 
@@ -28,11 +28,11 @@ def string_to_float_list(string: str) -> List[float]:
     return float_numbers
 
 
-class Config:
-    arbitrary_types_allowed = True
+# class Config:
+#     arbitrary_types_allowed = True
 
 
-@dataclass(config=Config)
+@dataclass(config=ConfigDict(arbitrary_types_allowed=True))
 class CziDimensions:
     """
     CziDimensions is a dataclass that encapsulates the dimensions of a CZI image.
