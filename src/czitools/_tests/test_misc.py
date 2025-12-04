@@ -9,7 +9,8 @@ import pytest
 import numpy as np
 from typing import List, Tuple, Optional, Union, Dict
 from unittest.mock import patch, Mock
-from czitools.utils.misc import is_valid_czi_url
+from czitools.utils.misc import is_valid_czi_url, get_pyczi_readertype
+from pylibCZIrw import czi as pyczi
 
 basedir = Path(__file__).resolve().parents[3]
 
@@ -77,6 +78,43 @@ def test_get_planetable(czifile: str, csvfile: str, xstart: List[int], ystart: L
 
     assert planetable_filtered["xstart"].values[0] == xstart[0]
     assert planetable_filtered["ystart"].values[0] == ystart[0]
+
+
+@pytest.mark.parametrize(
+    "filepath, expected_readertype, expected_is_url",
+    [
+        # Local file paths
+        ("C:/data/test.czi", pyczi.ReaderFileInputTypes.Standard, False),
+        ("/home/user/data/test.czi", pyczi.ReaderFileInputTypes.Standard, False),
+        (Path("data/test.czi"), pyczi.ReaderFileInputTypes.Standard, False),
+        # HTTP URLs
+        (
+            "https://github.com/sebi06/czitools/raw/main/data/test.czi",
+            pyczi.ReaderFileInputTypes.Curl,
+            True,
+        ),
+        (
+            "http://example.com/test.czi",
+            pyczi.ReaderFileInputTypes.Curl,
+            True,
+        ),
+        # Other URL schemes
+        (
+            "ftp://server.com/data/test.czi",
+            pyczi.ReaderFileInputTypes.Curl,
+            True,
+        ),
+    ],
+)
+def test_get_pyczi_readertype(
+    filepath: Union[str, Path],
+    expected_readertype: pyczi.ReaderFileInputTypes,
+    expected_is_url: bool,
+) -> None:
+    """Test that get_pyczi_readertype correctly identifies reader types for URLs and local files."""
+    readertype, is_url = get_pyczi_readertype(filepath)
+    assert readertype == expected_readertype
+    assert is_url == expected_is_url
 
 
 @pytest.mark.parametrize("entry, set2value, result", [(0, 1, 0), (None, 1, 1), (-1, 2, -1), (None, 3, 3)])

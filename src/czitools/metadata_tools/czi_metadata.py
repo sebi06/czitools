@@ -22,7 +22,6 @@ from czitools.utils import logging_tools, misc, pixels
 from dataclasses import dataclass, field
 from pathlib import Path
 from box import Box
-import validators
 from dataclasses import asdict
 from czitools.metadata_tools.dimension import CziDimensions
 from czitools.metadata_tools.boundingbox import CziBoundingBox
@@ -133,18 +132,15 @@ class CziMetadata:
     verbose: bool = False
 
     def __post_init__(self):
-        if validators.url(str(self.filepath)):
-            self.pyczi_readertype = pyczi.ReaderFileInputTypes.Curl
-            self.is_url = True
-            if self.verbose:
-                logger.info("FilePath is a valid link. Only pylibCZIrw functionality is available.")
-        else:
-            self.pyczi_readertype = pyczi.ReaderFileInputTypes.Standard
-            self.is_url = False
+        # Convert Path to string if needed
+        if isinstance(self.filepath, Path):
+            self.filepath = str(self.filepath)
 
-            if isinstance(self.filepath, Path):
-                # convert to string
-                self.filepath = str(self.filepath)
+        # Determine reader type using utility function
+        self.pyczi_readertype, self.is_url = misc.get_pyczi_readertype(self.filepath)
+
+        if self.is_url and self.verbose:
+            logger.info("FilePath is a valid link. Only pylibCZIrw functionality is available.")
 
         # get directory and filename etc.
         self.dirname = str(Path(self.filepath).parent)

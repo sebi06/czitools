@@ -1,0 +1,62 @@
+"""Demo: using read_scenes() from czitools.read_tools.
+
+This script demonstrates the read_scenes() function which reads all 2D planes
+from a CZI file, grouped by scene. It supports:
+  - Lazy loading via dask arrays
+  - xarray DataArrays with labeled dimensions
+  - Optional stacking of scenes with matching shapes
+
+Dimension order is always: [V, R, I, H, M] + T + C + Z + Y + X [+ A]
+"""
+
+import xarray as xr
+from czitools.read_tools import read_tools
+
+# Test files
+# filepath = r"F:\AzureDevOps\RMS_CAREamics_Container\_archive\calc_mean_testimage.czi"
+# filepath = r"F:\Testdata_Zeiss\CZI_Testfiles\S=3_1Pos_2Mosaic_T=2=Z=3_CH=2.czi"
+filepath = r"F:\Testdata_Zeiss\CZI_Testfiles\WP96_4Pos_B4-10_DAPI.czi"
+
+
+if __name__ == "__main__":
+    # Read scenes using the new function from czitools.read_tools
+    # Options:
+    #   use_dask=True  -> lazy loading (data read only when accessed)
+    #   use_xarray=True -> returns xr.DataArray with labeled dimensions
+    #   stack_scenes=True -> combine scenes if they have the same shape
+
+    result, dims, num_scenes = read_tools.read_scenes(
+        filepath,
+        use_dask=True,
+        use_xarray=True,
+        stack_scenes=True,
+    )
+
+    print("\n=== Results ===")
+    print(f"Number of scenes: {num_scenes}")
+    print(f"Dimension order: {dims}")
+
+    if isinstance(result, list):
+        # List of per-scene arrays
+        for idx, arr in enumerate(result):
+            if isinstance(arr, xr.DataArray):
+                print(f"Scene {idx}: dims={arr.dims}, shape={arr.shape}, dtype={arr.dtype}")
+            else:
+                print(f"Scene {idx}: shape={arr.shape}, dims={dims}, dtype={arr.dtype}")
+    else:
+        # Single stacked array
+        if isinstance(result, xr.DataArray):
+            print(f"Stacked: dims={result.dims}, shape={result.shape}, dtype={result.dtype}")
+        else:
+            print(f"Stacked: shape={result.shape}, dims={dims}, dtype={result.dtype}")
+
+    # With use_dask=True, result is backed by dask - no data loaded yet
+    print(f"\nArray shape (no data loaded): {result.shape}")
+
+    # Load only a subset (triggers read for just those planes)
+    if isinstance(result, xr.DataArray) and "T" in result.dims and "C" in result.dims:
+        subset = result.sel(T=0, C=0).compute()
+        print(f"Subset shape after .compute(): {subset.shape}")
+
+    # Or load everything
+    # full_data = result.compute()
