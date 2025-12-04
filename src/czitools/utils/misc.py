@@ -22,8 +22,34 @@ from czitools.metadata_tools.helper import ValueRange
 from czitools.utils import logging_tools
 import requests
 import tracemalloc
+from pylibCZIrw import czi as pyczi
 
 logger = logging_tools.set_logging()
+
+
+def get_pyczi_readertype(filepath: Union[str, os.PathLike[str]]) -> Tuple[pyczi.ReaderFileInputTypes, bool]:
+    """Determine the appropriate pylibCZIrw reader type for a CZI file path.
+
+    This utility function checks whether the filepath is a URL or a local file
+    and returns the appropriate reader type for pylibCZIrw.
+
+    Args:
+        filepath: Path to the CZI file. Can be a local path or a URL.
+
+    Returns:
+        Tuple of (reader_type, is_url) where:
+            - reader_type: pyczi.ReaderFileInputTypes.Curl for URLs,
+                          pyczi.ReaderFileInputTypes.Standard for local files.
+            - is_url: True if the filepath is a valid URL, False otherwise.
+    """
+    # Convert Path to string if needed
+    if isinstance(filepath, Path):
+        filepath = str(filepath)
+
+    if validators.url(str(filepath)):
+        return pyczi.ReaderFileInputTypes.Curl, True
+    else:
+        return pyczi.ReaderFileInputTypes.Standard, False
 
 
 def slicedim(array: Union[np.ndarray, da.Array, zarr.Array], dimindex: int, posdim: int) -> np.ndarray:

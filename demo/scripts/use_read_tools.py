@@ -63,7 +63,7 @@ elif not use_dialog:
 
     filepath = str(defaultdir / "CellDivision_T10_Z15_CH2_DCV_small.czi")
 
-# return an xarray with dimension order STCZYX(A)
+# return a xarray with dimension order STCZYX(A)
 # when no planes are specified the complete dataset
 # when planes are specified the metadata will be adapted accordingly for SizeS, SizeT, SizeC and SizeZ
 array6d, mdata = read_tools.read_6darray(
