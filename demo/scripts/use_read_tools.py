@@ -29,7 +29,7 @@ except ImportError:
 defaultdir = Path(Path(__file__).resolve().parents[2]) / "data"
 
 # option to toogle using a file open dialog or a hardcoded filename
-use_dialog = False
+use_dialog = True
 
 
 # open simple dialog to select a CZI file
@@ -69,7 +69,7 @@ elif not use_dialog:
 array6d, mdata = read_tools.read_6darray(
     filepath,
     zoom=1.0,
-    planes={"S": (0, 0), "T": (0, 2), "C": (0, 0), "Z": (0, 4)},
+    # planes={"S": (0, 0), "T": (0, 2), "C": (0, 0), "Z": (0, 4)},
     adapt_metadata=True,
 )
 
@@ -97,9 +97,7 @@ if show_napari:
 
         # get the scaling factors for that channel and adapt Z-axis scaling
         scalefactors = [1.0] * len(sub_array.shape)
-        scalefactors[sub_array.get_axis_num("Z")] = mdata.scale.ratio[
-            "zx_sf"
-        ]  # * 1.00001
+        scalefactors[sub_array.get_axis_num("Z")] = mdata.scale.ratio["zx_sf"]  # * 1.00001
 
         # remove the last scaling factor in case of an RGB image
         if "A" in sub_array.dims:

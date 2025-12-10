@@ -58,9 +58,7 @@ class CziChannelInfo:
     pixeltypes: Dict[int, str] = field(init=False, default_factory=lambda: {})
     isRGB: Dict[int, bool] = field(init=False, default_factory=lambda: {})
     consistent_pixeltypes: bool = field(init=False, default=None)
-    czi_disp_settings: Dict[int, pyczi.ChannelDisplaySettingsDataClass] = field(
-        init=False, default_factory=lambda: {}
-    )
+    czi_disp_settings: Dict[int, pyczi.ChannelDisplaySettingsDataClass] = field(init=False, default_factory=lambda: {})
     verbose: bool = False
 
     def __post_init__(self):
@@ -76,16 +74,10 @@ class CziChannelInfo:
         if czi_box.has_channels:
             try:
                 # extract the relevant dimension metadata_tools
-                channels = (
-                    czi_box.ImageDocument.Metadata.Information.Image.Dimensions.Channels.Channel
-                )
+                channels = czi_box.ImageDocument.Metadata.Information.Image.Dimensions.Channels.Channel
                 if isinstance(channels, Box):
                     # get the data in case of only one channel
-                    (
-                        self.names.append("CH1")
-                        if channels.Name is None
-                        else self.names.append(channels.Name)
-                    )
+                    (self.names.append("CH1") if channels.Name is None else self.names.append(channels.Name))
                 elif isinstance(channels, BoxList):
                     # get the data in case multiple channels
                     for ch in range(len(channels)):
@@ -96,21 +88,17 @@ class CziChannelInfo:
                         )
 
                 # get the pixel types for all channels
-                with pyczi.open_czi(
-                    str(czi_box.filepath), czi_box.czi_open_arg
-                ) as czidoc:
+                with pyczi.open_czi(str(czi_box.filepath), czi_box.czi_open_arg) as czidoc:
 
                     # get the pixel typed for all channels
                     self.pixeltypes = czidoc.pixel_types
-                    self.isRGB, self.consistent_pixeltypes = pixels.check_if_rgb(
-                        self.pixeltypes
-                    )
+                    self.isRGB, self.consistent_pixeltypes = pixels.check_if_rgb(self.pixeltypes)
 
             except AttributeError:
                 channels = None
         elif not czi_box.has_channels:
-            if self.verbose:
-                logger.info("Channel(s) information not found.")
+            logger.warning("Channel(s) information not found. Using Default Channel Names.")
+            self.names.append("CH1")
 
         if czi_box.has_disp:
             try:
@@ -133,11 +121,7 @@ class CziChannelInfo:
 
     def _get_channel_info(self, display: Box):
         if display is not None:
-            (
-                self.dyes.append("Dye-CH1")
-                if display.Name is None
-                else self.dyes.append(display.Name)
-            )
+            (self.dyes.append("Dye-CH1") if display.Name is None else self.dyes.append(display.Name))
             (
                 self.dyes_short.append("Dye-CH1")
                 if display.ShortName is None
@@ -148,21 +132,13 @@ class CziChannelInfo:
                 if display.ShortName is None
                 else self.channel_descriptions.append(display.Description)
             )
-            (
-                self.colors.append("#80808000")
-                if display.Color is None
-                else self.colors.append(display.Color)
-            )
+            (self.colors.append("#80808000") if display.Color is None else self.colors.append(display.Color))
 
             low = 0.0 if display.Low is None else float(display.Low)
             high = 0.5 if display.High is None else float(display.High)
 
             self.clims.append([low, high])
-            (
-                self.gamma.append(0.85)
-                if display.Gamma is None
-                else self.gamma.append(float(display.Gamma))
-            )
+            (self.gamma.append(0.85) if display.Gamma is None else self.gamma.append(float(display.Gamma)))
         else:
             self.dyes.append("Dye-CH1")
             self.colors.append("#80808000")
@@ -170,38 +146,73 @@ class CziChannelInfo:
             self.gamma.append(0.85)
 
     def _calculate_display_settings(self) -> Dict:
+        """Construct pylibCZIrw channel display settings for each channel.
 
-        # get the number of channels
+        The function maps per-channel metadata (color, display limits, and
+        whether the channel is stored as RGB) to a
+        `pylibCZIrw.czi.ChannelDisplaySettingsDataClass` instance. The
+        returned dictionary uses the channel index as key.
+
+        Behavior summary:
+        - Colors in the CZI DisplaySetting are stored as hex strings in the
+        form `#AARRGGBB`. We slice off the leading alpha bytes and convert
+        the `RRGGBB` hex to integer RGB triplet via `hex_to_rgb`.
+        - If the channel is flagged as an RGB channel (pixel type: RGB), we
+        choose `TintingMode.none` and fixed black/white points so the
+        reader displays raw RGB values. For grayscale channels we use
+        `TintingMode.Color` and apply the provided `clims` (low/high).
+        - If no display settings are present, sensible defaults are used.
+
+        Returns:
+            Dict[int, pyczi.ChannelDisplaySettingsDataClass]: Mapping from
+            channel index to the pylibCZIrw display settings dataclass.
+        """
+
+        # number of channels known from metadata
         num_channels = len(self.names)
 
-        # initialize the display settings
-        display_settings_dict = {}
+        # initialize the display settings mapping
+        display_settings_dict: Dict[int, pyczi.ChannelDisplaySettingsDataClass] = {}
 
         for channel_index in range(num_channels):
 
-            # Get RGB values based on a RGB hexstring. Inside a CZI per channel one gets #AARRGGBB.
+            # Colors in CZI are often stored as #AARRGGBB (alpha + RGB). The
+            # display metadata in `self.colors` contains this value; we strip
+            # the alpha bytes (first two hex chars) and convert the remaining
+            # RRGGBB hex string to integer RGB values.
             r, g, b = hex_to_rgb(self.colors[channel_index][3:])
 
+            # If there is no channel-specific RGB information available,
+            # ensure `self.isRGB` contains a boolean entry for this channel.
+            if self.isRGB == {}:
+                self.isRGB[channel_index] = False
+
+            # Choose tinting mode and display limits depending on whether the
+            # channel is RGB or an intensity channel.
             if self.isRGB[channel_index]:
+                # For true RGB channels we don't apply color tinting and use
+                # a full-range black/white point so RGB values are shown
+                # directly.
                 tinting_mode = pyczi.TintingMode.none
                 black_point = 0.0
                 white_point = 1.0
-
             else:
+                # For intensity (grayscale) channels we use the configured
+                # color tinting and the low/high values (clims) from the
+                # metadata as black/white points.
                 tinting_mode = pyczi.TintingMode.Color
                 black_point = self.clims[channel_index][0]
                 white_point = self.clims[channel_index][1]
 
-            display_settings_dict[channel_index] = (
-                pyczi.ChannelDisplaySettingsDataClass(
-                    is_enabled=True,
-                    tinting_mode=tinting_mode,
-                    tinting_color=pyczi.Rgb8Color(
-                        np.uint8(r), np.uint8(g), np.uint8(b)
-                    ),
-                    black_point=black_point,  # min value for histogram
-                    white_point=white_point,  # max value for histogram
-                )
+            # Build the pylibCZIrw ChannelDisplaySettingsDataClass instance.
+            # Note: pylibCZIrw expects 8-bit RGB values for the tinting color
+            # (hence the np.uint8 casts).
+            display_settings_dict[channel_index] = pyczi.ChannelDisplaySettingsDataClass(
+                is_enabled=True,
+                tinting_mode=tinting_mode,
+                tinting_color=pyczi.Rgb8Color(np.uint8(r), np.uint8(g), np.uint8(b)),
+                black_point=black_point,  # minimum value for histogram display
+                white_point=white_point,  # maximum value for histogram display
             )
 
         return display_settings_dict
