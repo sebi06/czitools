@@ -21,30 +21,19 @@ logger = logging_tools.set_logging()
 @dataclass
 class CziChannelInfo:
     """
-    A class to handle channel information from CZI image data.
+    Small helper class that extracts and normalizes channel-related
+    metadata from a CZI (as a `Box` or file path). The object collects
+    channel names, dyes, display colors, intensity limits and builds
+    pylibCZIrw-compatible display settings.
 
-    Attributes:
-        czisource (Union[str, os.PathLike[str], Box]): The source of the CZI image data.
-        names (List[str]): List of channel names.
-        dyes (List[str]): List of dye names.
-        dyes_short (List[str]): List of short dye names.
-        channel_descriptions (List[str]): List of channel descriptions.
-        colors (List[str]): List of channel colors.
-        clims (List[List[float]]): List of channel intensity limits.
-        gamma (List[float]): List of gamma values for each channel.
-        pixeltypes (Dict[int, str]): Dictionary of pixel types for each channel.
-        isRGB (Dict[int, bool]): Dictionary indicating if each channel is RGB.
-        consistent_pixeltypes (bool): Indicates if pixel types are consistent across channels.
-        czi_disp_settings (Dict[int, pyczi.ChannelDisplaySettingsDataClass]): Dictionary containing the display settings for each channel.
-        verbose (bool): Flag to enable verbose logging. Initialized to False.
+    Attributes (selected):
+      - `czisource`: CZI filepath or metadata `Box`.
+      - `names`, `dyes`, `colors`, `clims`, `gamma`: per-channel lists.
+      - `pixeltypes`, `isRGB`: maps channel index -> pixel type / RGB flag.
+      - `czi_disp_settings`: mapping channel index -> pylibCZIrw display settings.
 
-    Methods:
-        __post_init__():
-            Initializes the channel information from the CZI image data.
-        _get_channel_info(display: Box):
-            Extracts and appends channel display information.
-        _calculate_display_settings() -> Dict:
-            Calculates and returns the display settings for each channel.
+    The class focuses on data normalization and does not open large image
+    pixel arrays — it only reads lightweight metadata from the CZI.
     """
 
     czisource: Union[str, os.PathLike[str], Box]
@@ -70,7 +59,7 @@ class CziChannelInfo:
         else:
             czi_box = get_czimd_box(self.czisource)
 
-        # get channels part of dict
+        # get channels part of metadata
         if czi_box.has_channels:
             try:
                 # extract the relevant dimension metadata_tools
@@ -90,7 +79,7 @@ class CziChannelInfo:
                 # get the pixel types for all channels
                 with pyczi.open_czi(str(czi_box.filepath), czi_box.czi_open_arg) as czidoc:
 
-                    # get the pixel typed for all channels
+                    # get the pixel types for all channels
                     self.pixeltypes = czidoc.pixel_types
                     self.isRGB, self.consistent_pixeltypes = pixels.check_if_rgb(self.pixeltypes)
 
@@ -120,30 +109,40 @@ class CziChannelInfo:
                 logger.info("DisplaySetting(s) not inside CZI metadata.")
 
     def _get_channel_info(self, display: Box):
-        if display is not None:
-            (self.dyes.append("Dye-CH1") if display.Name is None else self.dyes.append(display.Name))
-            (
-                self.dyes_short.append("Dye-CH1")
-                if display.ShortName is None
-                else self.dyes_short.append(display.ShortName)
-            )
-            (
-                self.channel_descriptions.append("")
-                if display.ShortName is None
-                else self.channel_descriptions.append(display.Description)
-            )
-            (self.colors.append("#80808000") if display.Color is None else self.colors.append(display.Color))
+        """Extract channel display info from a display `Box` and append to lists.
 
-            low = 0.0 if display.Low is None else float(display.Low)
-            high = 0.5 if display.High is None else float(display.High)
+        Args:
+            display: A `Box` representing a single channel's DisplaySetting
+                     metadata (may be None).
+        """
 
-            self.clims.append([low, high])
-            (self.gamma.append(0.85) if display.Gamma is None else self.gamma.append(float(display.Gamma)))
-        else:
+        if display is None:
+            # Append safe defaults when no display metadata is present.
             self.dyes.append("Dye-CH1")
             self.colors.append("#80808000")
             self.clims.append([0.0, 0.5])
             self.gamma.append(0.85)
+            return
+
+        # Name fields: fall back to sensible defaults when missing
+        self.dyes.append("Dye-CH1" if display.Name is None else display.Name)
+        self.dyes_short.append("Dye-CH1" if display.ShortName is None else display.ShortName)
+        (
+            self.channel_descriptions.append("")
+            if display.Description is None
+            else self.channel_descriptions.append(display.Description)
+        )
+
+        # Color: keep CZI-provided hex string or fallback to a neutral gray
+        self.colors.append("#80808000" if display.Color is None else display.Color)
+
+        # Display limits: low/high with safe defaults
+        low = 0.0 if display.Low is None else float(display.Low)
+        high = 0.5 if display.High is None else float(display.High)
+        self.clims.append([low, high])
+
+        # Gamma: fallback to 0.85 if not provided
+        self.gamma.append(0.85 if display.Gamma is None else float(display.Gamma))
 
     def _calculate_display_settings(self) -> Dict:
         """Construct pylibCZIrw channel display settings for each channel.
