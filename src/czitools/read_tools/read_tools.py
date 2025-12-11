@@ -334,227 +334,227 @@ def read_6darray(
     return array6d, mdata
 
 
-# code for which memory has to be monitored
-# instantiating the decorator
-# @profile
-def read_6darray_lazy(
-    filepath: Union[str, os.PathLike[str]],
-    chunk_zyx: bool = False,
-    planes: Optional[Dict[str, Tuple[int, int]]] = None,
-    zoom: float = 1.0,
-    use_xarray: bool = False,
-) -> Tuple[Optional[Union[da.Array, xr.DataArray]], czimd.CziMetadata]:
-    """Read a CZI image file as 6D dask array with delayed plane reading.
+# # code for which memory has to be monitored
+# # instantiating the decorator
+# # @profile
+# def read_6darray_lazy(
+#     filepath: Union[str, os.PathLike[str]],
+#     chunk_zyx: bool = False,
+#     planes: Optional[Dict[str, Tuple[int, int]]] = None,
+#     zoom: float = 1.0,
+#     use_xarray: bool = False,
+# ) -> Tuple[Optional[Union[da.Array, xr.DataArray]], czimd.CziMetadata]:
+#     """Read a CZI image file as 6D dask array with delayed plane reading.
 
-    Important: Currently supported are only scenes with equal size and CZIs
-    with consistent pixel types. The output array has always the dimension
-    order: STCZYX(A).
+#     Important: Currently supported are only scenes with equal size and CZIs
+#     with consistent pixel types. The output array has always the dimension
+#     order: STCZYX(A).
 
-    Note: This function creates lazy dask arrays. The actual pixel data is only
-    read when the array is computed (e.g., via .compute() or indexing).
+#     Note: This function creates lazy dask arrays. The actual pixel data is only
+#     read when the array is computed (e.g., via .compute() or indexing).
 
-    Args:
-        filepath: Path to the CZI image file.
-        chunk_zyx: If True, rechunk the dask array so each chunk contains
-                   the full Z-stack for a single S, T, C position. Defaults to False.
-        planes: Dictionary specifying substack ranges. Allowed keys are S, T, Z, C.
-                Values are tuples of (start, end) indices (zero-based, inclusive).
-                Example: {"Z": (0, 2)} returns 3 z-planes with indices 0, 1, 2.
-                Example: {"Z": (5, 5)} returns a single z-plane with index 5.
-                Defaults to None (read all planes).
-        zoom: Downscale factor for images [0.01 - 1.0]. Defaults to 1.0.
-        use_xarray: If True, return an xr.DataArray with labeled dimensions.
-                    If False, return a plain dask array. Defaults to False.
+#     Args:
+#         filepath: Path to the CZI image file.
+#         chunk_zyx: If True, rechunk the dask array so each chunk contains
+#                    the full Z-stack for a single S, T, C position. Defaults to False.
+#         planes: Dictionary specifying substack ranges. Allowed keys are S, T, Z, C.
+#                 Values are tuples of (start, end) indices (zero-based, inclusive).
+#                 Example: {"Z": (0, 2)} returns 3 z-planes with indices 0, 1, 2.
+#                 Example: {"Z": (5, 5)} returns a single z-plane with index 5.
+#                 Defaults to None (read all planes).
+#         zoom: Downscale factor for images [0.01 - 1.0]. Defaults to 1.0.
+#         use_xarray: If True, return an xr.DataArray with labeled dimensions.
+#                     If False, return a plain dask array. Defaults to False.
 
-    Returns:
-        Tuple of (array6d, metadata) where array6d is a 6D dask array or
-        xr.DataArray (if use_xarray=True), and metadata is CziMetadata.
-        Returns (None, metadata) if the file cannot be read as a 6D array.
-    """
+#     Returns:
+#         Tuple of (array6d, metadata) where array6d is a 6D dask array or
+#         xr.DataArray (if use_xarray=True), and metadata is CziMetadata.
+#         Returns (None, metadata) if the file cannot be read as a 6D array.
+#     """
 
-    if isinstance(filepath, Path):
-        # convert to string
-        filepath = str(filepath)
+#     if isinstance(filepath, Path):
+#         # convert to string
+#         filepath = str(filepath)
 
-    # get the complete metadata_tools at once as one big class
-    mdata = czimd.CziMetadata(filepath)
+#     # get the complete metadata_tools at once as one big class
+#     mdata = czimd.CziMetadata(filepath)
 
-    if not mdata.consistent_pixeltypes:
-        logger.info("Detected PixelTypes are not consistent. Cannot create array6d")
-        return None, mdata
+#     if not mdata.consistent_pixeltypes:
+#         logger.info("Detected PixelTypes are not consistent. Cannot create array6d")
+#         return None, mdata
 
-    # check zoom factor for valid range
-    zoom = misc.check_zoom(zoom=zoom)
+#     # check zoom factor for valid range
+#     zoom = misc.check_zoom(zoom=zoom)
 
-    # update scaling
-    mdata.scale.X_sf = np.round(mdata.scale.X * (1 / zoom), 3)
-    mdata.scale.Y_sf = np.round(mdata.scale.Y * (1 / zoom), 3)
-    mdata.scale.ratio["zx_sf"] = np.round(mdata.scale.Z / mdata.scale.X_sf, 3)
+#     # update scaling
+#     mdata.scale.X_sf = np.round(mdata.scale.X * (1 / zoom), 3)
+#     mdata.scale.Y_sf = np.round(mdata.scale.Y * (1 / zoom), 3)
+#     mdata.scale.ratio["zx_sf"] = np.round(mdata.scale.Z / mdata.scale.X_sf, 3)
 
-    # check planes
-    if planes:
-        for k in ["S", "T", "C", "Z"]:
-            if k in planes.keys() and k in mdata.bbox.total_bounding_box.keys():
-                if mdata.bbox.total_bounding_box[k][1] - 1 < planes[k][1]:
-                    logger.info(
-                        f"Planes indices (zero-based) for {planes[k]} are invalid. BBox for {[k]}: {mdata.bbox.total_bounding_box[k]}"
-                    )
-                    return None, mdata
+#     # check planes
+#     if planes:
+#         for k in ["S", "T", "C", "Z"]:
+#             if k in planes.keys() and k in mdata.bbox.total_bounding_box.keys():
+#                 if mdata.bbox.total_bounding_box[k][1] - 1 < planes[k][1]:
+#                     logger.info(
+#                         f"Planes indices (zero-based) for {planes[k]} are invalid. BBox for {[k]}: {mdata.bbox.total_bounding_box[k]}"
+#                     )
+#                     return None, mdata
 
-    if not mdata.scene_shape_is_consistent and "S" not in (planes or {}):
-        logger.info("Scenes have inconsistent shape. Cannot read 6D array")
-        return None, mdata
+#     if not mdata.scene_shape_is_consistent and "S" not in (planes or {}):
+#         logger.info("Scenes have inconsistent shape. Cannot read 6D array")
+#         return None, mdata
 
-    # open the CZI document to read
-    with pyczi.open_czi(filepath, mdata.pyczi_readertype) as czidoc:
-        if mdata.image.SizeS is not None:
-            # use the size of the 1st scenes_bounding_rectangle
-            size_x = czidoc.scenes_bounding_rectangle[0].w
-            size_y = czidoc.scenes_bounding_rectangle[0].h
-        else:
-            # use the size of the total_bounding_rectangle
-            size_x = czidoc.total_bounding_rectangle.w
-            size_y = czidoc.total_bounding_rectangle.h
+#     # open the CZI document to read
+#     with pyczi.open_czi(filepath, mdata.pyczi_readertype) as czidoc:
+#         if mdata.image.SizeS is not None:
+#             # use the size of the 1st scenes_bounding_rectangle
+#             size_x = czidoc.scenes_bounding_rectangle[0].w
+#             size_y = czidoc.scenes_bounding_rectangle[0].h
+#         else:
+#             # use the size of the total_bounding_rectangle
+#             size_x = czidoc.total_bounding_rectangle.w
+#             size_y = czidoc.total_bounding_rectangle.h
 
-        # check if dimensions are None (because they do not exist for that image)
-        size_c = misc.check_dimsize(mdata.image.SizeC, set2value=1)
-        size_z = misc.check_dimsize(mdata.image.SizeZ, set2value=1)
-        size_t = misc.check_dimsize(mdata.image.SizeT, set2value=1)
-        size_s = misc.check_dimsize(mdata.image.SizeS, set2value=1)
+#         # check if dimensions are None (because they do not exist for that image)
+#         size_c = misc.check_dimsize(mdata.image.SizeC, set2value=1)
+#         size_z = misc.check_dimsize(mdata.image.SizeZ, set2value=1)
+#         size_t = misc.check_dimsize(mdata.image.SizeT, set2value=1)
+#         size_s = misc.check_dimsize(mdata.image.SizeS, set2value=1)
 
-        s_start, s_end = 0, size_s
-        t_start, t_end = 0, size_t
-        c_start, c_end = 0, size_c
-        z_start, z_end = 0, size_z
+#         s_start, s_end = 0, size_s
+#         t_start, t_end = 0, size_t
+#         c_start, c_end = 0, size_c
+#         z_start, z_end = 0, size_z
 
-        # check for additional arguments to create substacks
-        if planes and mdata.image.SizeS is not None and "S" in planes.keys():
-            size_s = planes["S"][1] - planes["S"][0] + 1
-            mdata.image.SizeS = size_s
-            s_start = planes["S"][0]
-            s_end = planes["S"][1] + 1
+#         # check for additional arguments to create substacks
+#         if planes and mdata.image.SizeS is not None and "S" in planes.keys():
+#             size_s = planes["S"][1] - planes["S"][0] + 1
+#             mdata.image.SizeS = size_s
+#             s_start = planes["S"][0]
+#             s_end = planes["S"][1] + 1
 
-        if planes and mdata.image.SizeT is not None and "T" in planes.keys():
-            size_t = planes["T"][1] - planes["T"][0] + 1
-            mdata.image.SizeT = size_t
-            t_start = planes["T"][0]
-            t_end = planes["T"][1] + 1
+#         if planes and mdata.image.SizeT is not None and "T" in planes.keys():
+#             size_t = planes["T"][1] - planes["T"][0] + 1
+#             mdata.image.SizeT = size_t
+#             t_start = planes["T"][0]
+#             t_end = planes["T"][1] + 1
 
-        if planes and mdata.image.SizeZ is not None and "Z" in planes.keys():
-            size_z = planes["Z"][1] - planes["Z"][0] + 1
-            mdata.image.SizeZ = size_z
-            z_start = planes["Z"][0]
-            z_end = planes["Z"][1] + 1
+#         if planes and mdata.image.SizeZ is not None and "Z" in planes.keys():
+#             size_z = planes["Z"][1] - planes["Z"][0] + 1
+#             mdata.image.SizeZ = size_z
+#             z_start = planes["Z"][0]
+#             z_end = planes["Z"][1] + 1
 
-        if planes and mdata.image.SizeC is not None and "C" in planes.keys():
-            size_c = planes["C"][1] - planes["C"][0] + 1
-            mdata.image.SizeC = size_c
-            c_start = planes["C"][0]
-            c_end = planes["C"][1] + 1
+#         if planes and mdata.image.SizeC is not None and "C" in planes.keys():
+#             size_c = planes["C"][1] - planes["C"][0] + 1
+#             mdata.image.SizeC = size_c
+#             c_start = planes["C"][0]
+#             c_end = planes["C"][1] + 1
 
-        # check if the A Dimension can be removed because image is grayscale
-        contains_rgb = any(mdata.isRGB.values())
-        remove_adim = not contains_rgb
+#         # check if the A Dimension can be removed because image is grayscale
+#         contains_rgb = any(mdata.isRGB.values())
+#         remove_adim = not contains_rgb
 
-        # Determine shape of 2D planes
-        # A dimension is either 1 (grayscale) or 3 (RGB)
-        if contains_rgb:
-            shape2d = (size_y, size_x, 3)
-            num_components = 3
-        else:
-            shape2d = (size_y, size_x)
-            num_components = 1
+#         # Determine shape of 2D planes
+#         # A dimension is either 1 (grayscale) or 3 (RGB)
+#         if contains_rgb:
+#             shape2d = (size_y, size_x, 3)
+#             num_components = 3
+#         else:
+#             shape2d = (size_y, size_x)
+#             num_components = 1
 
-        # Build dask array structure with delayed plane reads
-        # Note: No actual data is read here - only the task graph is constructed
-        total_planes = size_s * size_t * size_c * size_z
-        logger.info(f"read_6darray_lazy: Building dask graph for {total_planes} planes")
-        if mdata.is_url:
-            logger.info("read_6darray_lazy: Reading from URL - using Curl reader")
+#         # Build dask array structure with delayed plane reads
+#         # Note: No actual data is read here - only the task graph is constructed
+#         total_planes = size_s * size_t * size_c * size_z
+#         logger.info(f"read_6darray_lazy: Building dask graph for {total_planes} planes")
+#         if mdata.is_url:
+#             logger.info("read_6darray_lazy: Reading from URL - using Curl reader")
 
-        img = []
-        for s in range(s_start, s_end):
-            time_stack = []
+#         img = []
+#         for s in range(s_start, s_end):
+#             time_stack = []
 
-            for t in range(t_start, t_end):
-                ch_stack = []
+#             for t in range(t_start, t_end):
+#                 ch_stack = []
 
-                for c in range(c_start, c_end):
-                    z_stack = []
+#                 for c in range(c_start, c_end):
+#                     z_stack = []
 
-                    for z in range(z_start, z_end):
-                        # Use filepath-based delayed read (file opened inside delayed fn)
-                        z_slice = da.from_delayed(
-                            _read_2dplane_delayed(
-                                filepath,
-                                s=s,
-                                t=t,
-                                c=c,
-                                z=z,
-                                has_scenes=mdata.has_scenes,
-                                zoom=zoom,
-                                remove_adim=remove_adim,
-                                readertype=mdata.pyczi_readertype,
-                            ),
-                            shape=shape2d,
-                            dtype=mdata.npdtype_list[0],
-                        )
-                        z_stack.append(z_slice)
+#                     for z in range(z_start, z_end):
+#                         # Use filepath-based delayed read (file opened inside delayed fn)
+#                         z_slice = da.from_delayed(
+#                             _read_2dplane_delayed(
+#                                 filepath,
+#                                 s=s,
+#                                 t=t,
+#                                 c=c,
+#                                 z=z,
+#                                 has_scenes=mdata.has_scenes,
+#                                 zoom=zoom,
+#                                 remove_adim=remove_adim,
+#                                 readertype=mdata.pyczi_readertype,
+#                             ),
+#                             shape=shape2d,
+#                             dtype=mdata.npdtype_list[0],
+#                         )
+#                         z_stack.append(z_slice)
 
-                    # Stack z-planes into a Z dimension
-                    z_stack = da.stack(z_stack, axis=0)
-                    ch_stack.append(z_stack)
+#                     # Stack z-planes into a Z dimension
+#                     z_stack = da.stack(z_stack, axis=0)
+#                     ch_stack.append(z_stack)
 
-                time_stack.append(ch_stack)
+#                 time_stack.append(ch_stack)
 
-            img.append(time_stack)
+#             img.append(time_stack)
 
-        # Create final STCZYX dask array
-        array6d = da.stack(img, axis=0)
+#         # Create final STCZYX dask array
+#         array6d = da.stack(img, axis=0)
 
-        # Rechunk if requested
-        if chunk_zyx:
-            if remove_adim:
-                array6d = array6d.rechunk(chunks=(1, 1, 1, size_z, size_y, size_x))
-            else:
-                array6d = array6d.rechunk(
-                    chunks=(1, 1, 1, size_z, size_y, size_x, num_components)
-                )
+#         # Rechunk if requested
+#         if chunk_zyx:
+#             if remove_adim:
+#                 array6d = array6d.rechunk(chunks=(1, 1, 1, size_z, size_y, size_x))
+#             else:
+#                 array6d = array6d.rechunk(
+#                     chunks=(1, 1, 1, size_z, size_y, size_x, num_components)
+#                 )
 
-    # Update metadata with array shape
-    mdata.array6d_size = array6d.shape
+#     # Update metadata with array shape
+#     mdata.array6d_size = array6d.shape
 
-    # Convert to xarray if requested
-    if use_xarray:
-        dims = (
-            ("S", "T", "C", "Z", "Y", "X")
-            if remove_adim
-            else ("S", "T", "C", "Z", "Y", "X", "A")
-        )
-        coords = {
-            "S": range(size_s),
-            "T": range(size_t),
-            "C": range(size_c),
-            "Z": range(size_z),
-            "Y": range(size_y),
-            "X": range(size_x),
-        }
-        if not remove_adim:
-            coords["A"] = range(num_components)
+#     # Convert to xarray if requested
+#     if use_xarray:
+#         dims = (
+#             ("S", "T", "C", "Z", "Y", "X")
+#             if remove_adim
+#             else ("S", "T", "C", "Z", "Y", "X", "A")
+#         )
+#         coords = {
+#             "S": range(size_s),
+#             "T": range(size_t),
+#             "C": range(size_c),
+#             "Z": range(size_z),
+#             "Y": range(size_y),
+#             "X": range(size_x),
+#         }
+#         if not remove_adim:
+#             coords["A"] = range(num_components)
 
-        array6d = xr.DataArray(
-            array6d,
-            dims=dims,
-            coords=coords,
-            attrs={
-                "description": "6D image data from CZI file (lazy dask array)",
-                "source": mdata.filepath,
-                "axes": "".join(dims),
-                "subset_planes": planes,
-            },
-        )
+#         array6d = xr.DataArray(
+#             array6d,
+#             dims=dims,
+#             coords=coords,
+#             attrs={
+#                 "description": "6D image data from CZI file (lazy dask array)",
+#                 "source": mdata.filepath,
+#                 "axes": "".join(dims),
+#                 "subset_planes": planes,
+#             },
+#         )
 
-    return array6d, mdata
+#     return array6d, mdata
 
 
 @dask.delayed
@@ -602,51 +602,7 @@ def _read_2dplane_delayed(
     return image2d
 
 
-# Keep old function name for backward compatibility (deprecated)
-@dask.delayed
-def read_2dplane(
-    czidoc: pyczi.CziReader,
-    s: int = 0,
-    t: int = 0,
-    c: int = 0,
-    z: int = 0,
-    has_scenes: bool = True,
-    zoom: float = 1.0,
-    remove_adim: bool = True,
-) -> np.ndarray:
-    """Dask delayed function to read a 2D plane from a CZI image.
-
-    .. deprecated::
-        This function is deprecated because it requires an open file handle
-        which may be closed before the delayed function executes.
-        Use `_read_2dplane_delayed` with a filepath instead.
-
-    Args:
-        czidoc: CziReader object (must remain open until compute is called).
-        s: Scene index. Defaults to 0.
-        t: Time index. Defaults to 0.
-        c: Channel index. Defaults to 0.
-        z: Z-Plane index. Defaults to 0.
-        has_scenes: If True, use scene parameter when reading. Defaults to True.
-        zoom: Downscale factor [0.01 - 1.0]. Defaults to 1.0.
-        remove_adim: If True, squeeze the trailing A dimension. Defaults to True.
-
-    Returns:
-        2D numpy array with shape (Y, X) or (Y, X, A).
-    """
-    warnings.warn(
-        "read_2dplane is deprecated. Use _read_2dplane_delayed with filepath instead.",
-        DeprecationWarning,
-        stacklevel=2,
-    )
-    if has_scenes:
-        image2d = czidoc.read(plane={"T": t, "C": c, "Z": z}, scene=s, zoom=zoom)
-    else:
-        image2d = czidoc.read(plane={"T": t, "C": c, "Z": z}, zoom=zoom)
-
-    if remove_adim:
-        return image2d[..., 0]
-    return image2d
+# NOTE: Deprecated helper removed. Use `_read_2dplane_delayed` or `_read_plane_delayed` instead.
 
 
 def read_attachments(
