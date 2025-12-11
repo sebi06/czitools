@@ -35,7 +35,7 @@ import xarray as xr
 
 logger = logging_tools.set_logging()
 
-# Canonical dimension order for read_scenes
+# Canonical dimension order for read_stacks
 # Extra dimensions come first, then core dimensions
 _EXTRA_DIMS = ["V", "R", "I", "H", "M"]  # optional extra dims (prepended if present)
 _CORE_DIMS = ["T", "C", "Z"]  # always present (default size=1); S handled separately
@@ -133,13 +133,29 @@ def read_6darray(
         if k not in planes.keys():
             # if the dimension is not in the planes, add it with default values
             if k == "S":
-                planes[k] = (0, mdata.image.SizeS - 1) if mdata.image.SizeS is not None else (0, 0)
+                planes[k] = (
+                    (0, mdata.image.SizeS - 1)
+                    if mdata.image.SizeS is not None
+                    else (0, 0)
+                )
             elif k == "T":
-                planes[k] = (0, mdata.image.SizeT - 1) if mdata.image.SizeT is not None else (0, 0)
+                planes[k] = (
+                    (0, mdata.image.SizeT - 1)
+                    if mdata.image.SizeT is not None
+                    else (0, 0)
+                )
             elif k == "C":
-                planes[k] = (0, mdata.image.SizeC - 1) if mdata.image.SizeC is not None else (0, 0)
+                planes[k] = (
+                    (0, mdata.image.SizeC - 1)
+                    if mdata.image.SizeC is not None
+                    else (0, 0)
+                )
             elif k == "Z":
-                planes[k] = (0, mdata.image.SizeZ - 1) if mdata.image.SizeZ is not None else (0, 0)
+                planes[k] = (
+                    (0, mdata.image.SizeZ - 1)
+                    if mdata.image.SizeZ is not None
+                    else (0, 0)
+                )
 
     if mdata.consistent_pixeltypes:
         # use pixel type from first channel
@@ -214,7 +230,9 @@ def read_6darray(
             logger.info("Reading pixel data via network from link location.")
 
         total_planes = size_s * size_t * size_c * size_z
-        logger.info(f"read_6darray: Reading {total_planes} planes (S={size_s}, T={size_t}, C={size_c}, Z={size_z})")
+        logger.info(
+            f"read_6darray: Reading {total_planes} planes (S={size_s}, T={size_t}, C={size_c}, Z={size_z})"
+        )
 
         planecount = 0
 
@@ -231,9 +249,13 @@ def read_6darray(
 
             # read a 2D image plane from the CZI
             if mdata.has_scenes:
-                image2d = czidoc.read(plane={"T": t[1], "Z": z[1], "C": c[1]}, scene=s[1], zoom=zoom)
+                image2d = czidoc.read(
+                    plane={"T": t[1], "Z": z[1], "C": c[1]}, scene=s[1], zoom=zoom
+                )
             else:
-                image2d = czidoc.read(plane={"T": t[1], "Z": z[1], "C": c[1]}, zoom=zoom)
+                image2d = czidoc.read(
+                    plane={"T": t[1], "Z": z[1], "C": c[1]}, zoom=zoom
+                )
 
             if planecount == 1:
                 # Allocate array based on the actual 2D plane size (accounts for zoom)
@@ -249,7 +271,9 @@ def read_6darray(
                 )
 
                 if use_dask:
-                    array6d = da.empty(array_shape, dtype=use_pixeltype, chunks=array_shape)
+                    array6d = da.empty(
+                        array_shape, dtype=use_pixeltype, chunks=array_shape
+                    )
                 else:
                     array6d = np.empty(array_shape, dtype=use_pixeltype)
 
@@ -294,10 +318,18 @@ def read_6darray(
     # adapt metadata for STCZ
     if adapt_metadata:
 
-        mdata.image.SizeS = planes["S"][1] - planes["S"][0] + 1 if "S" in planes else mdata.image.SizeS
-        mdata.image.SizeT = planes["T"][1] - planes["T"][0] + 1 if "T" in planes else mdata.image.SizeT
-        mdata.image.SizeC = planes["C"][1] - planes["C"][0] + 1 if "C" in planes else mdata.image.SizeC
-        mdata.image.SizeZ = planes["Z"][1] - planes["Z"][0] + 1 if "Z" in planes else mdata.image.SizeZ
+        mdata.image.SizeS = (
+            planes["S"][1] - planes["S"][0] + 1 if "S" in planes else mdata.image.SizeS
+        )
+        mdata.image.SizeT = (
+            planes["T"][1] - planes["T"][0] + 1 if "T" in planes else mdata.image.SizeT
+        )
+        mdata.image.SizeC = (
+            planes["C"][1] - planes["C"][0] + 1 if "C" in planes else mdata.image.SizeC
+        )
+        mdata.image.SizeZ = (
+            planes["Z"][1] - planes["Z"][0] + 1 if "Z" in planes else mdata.image.SizeZ
+        )
 
     return array6d, mdata
 
@@ -485,14 +517,20 @@ def read_6darray_lazy(
             if remove_adim:
                 array6d = array6d.rechunk(chunks=(1, 1, 1, size_z, size_y, size_x))
             else:
-                array6d = array6d.rechunk(chunks=(1, 1, 1, size_z, size_y, size_x, num_components))
+                array6d = array6d.rechunk(
+                    chunks=(1, 1, 1, size_z, size_y, size_x, num_components)
+                )
 
     # Update metadata with array shape
     mdata.array6d_size = array6d.shape
 
     # Convert to xarray if requested
     if use_xarray:
-        dims = ("S", "T", "C", "Z", "Y", "X") if remove_adim else ("S", "T", "C", "Z", "Y", "X", "A")
+        dims = (
+            ("S", "T", "C", "Z", "Y", "X")
+            if remove_adim
+            else ("S", "T", "C", "Z", "Y", "X", "A")
+        )
         coords = {
             "S": range(size_s),
             "T": range(size_t),
@@ -635,7 +673,9 @@ def read_attachments(
 
         if attachment_type not in AttachmentType:
             # if attachment_type not in ["SlidePreview", "Label", "]:
-            raise Exception(f"{attachment_type} is not supported. Valid types are: SlidePreview, Label or Prescan.")
+            raise Exception(
+                f"{attachment_type} is not supported. Valid types are: SlidePreview, Label or Prescan."
+            )
 
         att = czimd.CziAttachments(czi_filepath)
 
@@ -665,7 +705,12 @@ def read_attachments(
 
                         if copy:
                             # create path to store the attachment image
-                            att_path = str(czi_filepath)[:-4] + "_" + att.attachment_entry.name + ".czi"
+                            att_path = (
+                                str(czi_filepath)[:-4]
+                                + "_"
+                                + att.attachment_entry.name
+                                + ".czi"
+                            )
 
                             # copy the file
                             dest = shutil.copyfile(full_path, att_path)
@@ -680,12 +725,16 @@ def read_attachments(
                             return img2d
 
     except ImportError:  # as e:
-        logger.warning("Package czifile not found. Cannot extract information about attached images.")
+        logger.warning(
+            "Package czifile not found. Cannot extract information about attached images."
+        )
 
         return None, None
 
 
-def read_tiles(filepath: Union[str, os.PathLike[str]], scene: int, tile: int, **kwargs) -> Tuple[np.ndarray, List]:
+def read_tiles(
+    filepath: Union[str, os.PathLike[str]], scene: int, tile: int, **kwargs
+) -> Tuple[np.ndarray, List]:
     """
     Reads a specific tile from a CZI file.
     Parameters:
@@ -732,8 +781,12 @@ def read_tiles(filepath: Union[str, os.PathLike[str]], scene: int, tile: int, **
     # Suppress ResourceWarning as we explicitly clean up the CziFile object in finally block
     # aicspylibczi.CziFile doesn't provide a close() method, so Python may warn about unclosed file
     with warnings.catch_warnings():
-        warnings.filterwarnings("ignore", category=ResourceWarning, message=".*CziFile.*")
-        warnings.filterwarnings("ignore", category=ResourceWarning, message=".*BufferedReader.*")
+        warnings.filterwarnings(
+            "ignore", category=ResourceWarning, message=".*CziFile.*"
+        )
+        warnings.filterwarnings(
+            "ignore", category=ResourceWarning, message=".*BufferedReader.*"
+        )
 
         czi = CziFile(filepath)
 
@@ -764,10 +817,11 @@ def read_tiles(filepath: Union[str, os.PathLike[str]], scene: int, tile: int, **
             gc.collect()
 
 
+@dask.delayed
 def _read_plane_delayed(
     filepath: str,
     plane: Dict[str, int],
-    scene_idx: int,
+    stack_idx: int,
     squeeze_grayscale: bool,
     readertype: pyczi.ReaderFileInputTypes = pyczi.ReaderFileInputTypes.Standard,
 ) -> np.ndarray:
@@ -779,7 +833,7 @@ def _read_plane_delayed(
     Args:
         filepath: Path to the CZI file (local path or URL).
         plane: Dictionary mapping dimension names to coordinate values.
-        scene_idx: Index of the scene to read.
+    stack_idx: Index of the stack to read (same as scene index in CZIs).
         squeeze_grayscale: If True, squeeze the trailing dimension for grayscale images.
         readertype: The pylibCZIrw reader type (Standard for local files, Curl for URLs).
 
@@ -787,21 +841,30 @@ def _read_plane_delayed(
         2D numpy array of the plane data.
     """
     with pyczi.open_czi(filepath, readertype) as czidoc:
-        img2d = czidoc.read(plane=plane, scene=scene_idx)
+        img2d = czidoc.read(plane=plane, scene=stack_idx)
         if squeeze_grayscale:
             img2d = img2d[..., 0]
     return img2d
 
 
-def read_scenes(
+def read_stacks(
     filepath: Union[str, os.PathLike[str]],
     use_dask: bool = False,
     use_xarray: bool = True,
     stack_scenes: bool = False,
 ) -> Tuple[
-    Union[List[xr.DataArray], List[np.ndarray], xr.DataArray, np.ndarray, List[da.Array], da.Array], List[str], int
+    Union[
+        List[xr.DataArray],
+        List[np.ndarray],
+        xr.DataArray,
+        np.ndarray,
+        List[da.Array],
+        da.Array,
+    ],
+    List[str],
+    int,
 ]:
-    """Read all 2D planes from a CZI file, grouped by scene.
+    """Read all 2D planes from a CZI file, grouped per stack.
 
     This function reads pixel data based on the total_bounding_box (derived from
     CZI subblocks, not XML metadata). It supports all CZI dimensions and returns
@@ -840,11 +903,11 @@ def read_scenes(
     Example:
         >>> from czitools.read_tools import read_tools
         >>> # Lazy loading with xarray
-        >>> arrays, dims, num_scenes = read_tools.read_scenes(
+        >>> arrays, dims, num_stacks = read_tools.read_stacks(
         ...     "path/to/file.czi", use_dask=True, use_xarray=True
         ... )
         >>> # Stack scenes if they have the same shape
-        >>> stacked, dims, num_scenes = read_tools.read_scenes(
+        >>> stacked, dims, num_stacks = read_tools.read_stacks(
         ...     "path/to/file.czi", stack_scenes=True
         ... )
     """
@@ -854,15 +917,17 @@ def read_scenes(
     # Determine reader type for URL or local file support
     readertype, is_url = misc.get_pyczi_readertype(filepath)
     if is_url:
-        logger.info("read_scenes: Reading from URL - using Curl reader")
+        logger.info("read_stacks: Reading from URL - using Curl reader")
 
-    scene_arrays: List[Union[xr.DataArray, np.ndarray, da.Array]] = []
-    scene_shapes: List[Tuple[int, ...]] = []
+    stack_arrays: List[Union[xr.DataArray, np.ndarray, da.Array]] = []
+    stack_shapes: List[Tuple[int, ...]] = []
 
     with pyczi.open_czi(filepath, readertype) as czidoc:
         total_bbox = czidoc.total_bounding_box
-        num_scenes = len(czidoc.scenes_bounding_rectangle)
-        logger.info(f"read_scenes: num_scenes={num_scenes}, total_bounding_box={total_bbox}")
+        num_stacks = len(czidoc.scenes_bounding_rectangle)
+        logger.info(
+            f"read_stacks: num_stacks={num_stacks}, total_bounding_box={total_bbox}"
+        )
 
         # Build dimension info from total_bounding_box
         # dim_from_bbox: {dim_name: (start, size)}
@@ -899,7 +964,7 @@ def read_scenes(
             canonical_dims.append(dim)
 
         # Track S separately
-        dim_sizes_map["S"] = num_scenes
+        dim_sizes_map["S"] = num_stacks
         dim_starts_map["S"] = 0
 
         # Dims for reading planes (excludes S which is the scene loop)
@@ -907,20 +972,24 @@ def read_scenes(
         read_sizes = [dim_sizes_map[d] for d in read_dims]
         read_starts = [dim_starts_map[d] for d in read_dims]
 
-        logger.info(f"read_scenes: canonical_dims={canonical_dims}, dim_sizes={dim_sizes_map}")
+        logger.info(
+            f"read_stacks: canonical_dims={canonical_dims}, dim_sizes={dim_sizes_map}"
+        )
         if use_dask:
-            logger.info("read_scenes: Using lazy dask arrays - data will be read on demand")
+            logger.info(
+                "read_stacks: Using lazy dask arrays - data will be read on demand"
+            )
 
         all_dims: List[str] = []  # will be set in loop
 
-        for scene_idx in range(num_scenes):
-            scene_rect = czidoc.scenes_bounding_rectangle[scene_idx]
-            size_y, size_x = scene_rect.h, scene_rect.w
-            logger.debug(f"read_scenes: Scene {scene_idx}: Y={size_y}, X={size_x}")
+        for stack_idx in range(num_stacks):
+            stack_rect = czidoc.scenes_bounding_rectangle[stack_idx]
+            size_y, size_x = stack_rect.h, stack_rect.w
+            logger.debug(f"read_stacks: Stack {stack_idx}: Y={size_y}, X={size_x}")
 
             # Sample read to get dtype and actual spatial shape
             sample_plane = {name: start for name, start in zip(read_dims, read_starts)}
-            sample = czidoc.read(plane=sample_plane, scene=scene_idx)
+            sample = czidoc.read(plane=sample_plane, scene=stack_idx)
             dtype = sample.dtype
 
             # Handle pixel type dimension (A) - grayscale (A=1) or RGB (A=3)
@@ -944,7 +1013,7 @@ def read_scenes(
                 plane_shape = (spatial_y, spatial_x)
                 all_dims = read_dims + ["Y", "X"]
 
-            scene_shapes.append(array_shape)
+            stack_shapes.append(array_shape)
 
             if use_dask:
                 # Build lazy dask array from delayed reads
@@ -955,15 +1024,25 @@ def read_scenes(
                     """Recursively build the nested list structure for dask.block."""
                     if not dims_remaining:
                         # Base case: create a delayed array for this plane
-                        plane = {name: start + idx for name, start, idx in zip(read_dims, read_starts, current_indices)}
-                        delayed_read = dask.delayed(_read_plane_delayed)(
-                            filepath, plane, scene_idx, squeeze_grayscale, readertype
+                        plane = {
+                            name: start + idx
+                            for name, start, idx in zip(
+                                read_dims, read_starts, current_indices
+                            )
+                        }
+                        delayed_read = _read_plane_delayed(
+                            filepath, plane, stack_idx, squeeze_grayscale, readertype
                         )
-                        return da.from_delayed(delayed_read, shape=plane_shape, dtype=dtype)
+                        return da.from_delayed(
+                            delayed_read, shape=plane_shape, dtype=dtype
+                        )
                     else:
                         # Recursive case: build list for this dimension
                         dim_size = dims_remaining[0]
-                        return [build_dask_block(dims_remaining[1:], current_indices + [i]) for i in range(dim_size)]
+                        return [
+                            build_dask_block(dims_remaining[1:], current_indices + [i])
+                            for i in range(dim_size)
+                        ]
 
                 if read_sizes:
                     nested_blocks = build_dask_block(read_sizes, [])
@@ -974,12 +1053,16 @@ def read_scenes(
                 else:
                     # No read dimensions, just one plane
                     plane = {name: start for name, start in zip(read_dims, read_starts)}
-                    delayed_read = dask.delayed(_read_plane_delayed)(
-                        filepath, plane, scene_idx, squeeze_grayscale, readertype
+                    delayed_read = _read_plane_delayed(
+                        filepath, plane, stack_idx, squeeze_grayscale, readertype
                     )
-                    stack = da.from_delayed(delayed_read, shape=plane_shape, dtype=dtype)
+                    stack = da.from_delayed(
+                        delayed_read, shape=plane_shape, dtype=dtype
+                    )
 
-                logger.debug(f"read_scenes: Scene {scene_idx} -> dask.array shape={stack.shape}, chunks={stack.chunks}")
+                logger.debug(
+                    f"read_stacks: Stack {stack_idx} -> dask.array shape={stack.shape}, chunks={stack.chunks}"
+                )
 
             else:
                 # Eager loading - read all planes immediately
@@ -991,8 +1074,11 @@ def read_scenes(
 
                 for idx, combo in enumerate(itertools.product(*ranges)):
                     # Build plane dict with actual coordinate values
-                    plane = {name: start + offset for name, start, offset in zip(read_dims, read_starts, combo)}
-                    img2d = czidoc.read(plane=plane, scene=scene_idx)
+                    plane = {
+                        name: start + offset
+                        for name, start, offset in zip(read_dims, read_starts, combo)
+                    }
+                    img2d = czidoc.read(plane=plane, scene=stack_idx)
 
                     # Squeeze grayscale (A=1) but keep RGB (A=3) / RGBA (A=4)
                     if squeeze_grayscale:
@@ -1001,7 +1087,9 @@ def read_scenes(
                     # Store in the correct position
                     stack[combo] = img2d
 
-                logger.debug(f"read_scenes: Scene {scene_idx} -> np.ndarray shape={stack.shape}")
+                logger.debug(
+                    f"read_stacks: Stack {stack_idx} -> np.ndarray shape={stack.shape}"
+                )
 
             if use_xarray:
                 # Build coordinate arrays for each dimension
@@ -1019,33 +1107,37 @@ def read_scenes(
                     stack,
                     dims=all_dims,
                     coords=coords,
-                    attrs={"scene": scene_idx, "filepath": filepath},
+                    attrs={"stack": stack_idx, "filepath": filepath},
                 )
-                scene_arrays.append(xr_da)
+                stack_arrays.append(xr_da)
             else:
-                scene_arrays.append(stack)
+                stack_arrays.append(stack)
 
     # Optionally stack scenes if requested and all shapes match
     if stack_scenes:
-        unique_shapes = set(scene_shapes)
+        unique_shapes = set(stack_shapes)
         if len(unique_shapes) == 1:
-            logger.info(f"read_scenes: Stacking {num_scenes} scenes (all shapes equal: {scene_shapes[0]})")
+            logger.info(
+                f"read_stacks: Stacking {num_stacks} stacks (all shapes equal: {stack_shapes[0]})"
+            )
             stacked_dims = ["S"] + all_dims
 
             if use_xarray:
                 # Stack xr.DataArrays along new S dimension
-                stacked = xr.concat(scene_arrays, dim="S")
-                stacked = stacked.assign_coords(S=np.arange(num_scenes))
+                stacked = xr.concat(stack_arrays, dim="S")
+                stacked = stacked.assign_coords(S=np.arange(num_stacks))
                 stacked.attrs["filepath"] = filepath
-                return stacked, stacked_dims, num_scenes
+                return stacked, stacked_dims, num_stacks
             else:
                 # Stack arrays (numpy or dask)
                 if use_dask:
-                    stacked = da.stack(scene_arrays, axis=0)
+                    stacked = da.stack(stack_arrays, axis=0)
                 else:
-                    stacked = np.stack(scene_arrays, axis=0)
-                return stacked, stacked_dims, num_scenes
+                    stacked = np.stack(stack_arrays, axis=0)
+                return stacked, stacked_dims, num_stacks
         else:
-            logger.warning(f"read_scenes: Cannot stack scenes - shapes differ: {unique_shapes}")
+            logger.warning(
+                f"read_stacks: Cannot stack stacks - shapes differ: {unique_shapes}"
+            )
 
-    return scene_arrays, all_dims, num_scenes
+    return stack_arrays, all_dims, num_stacks

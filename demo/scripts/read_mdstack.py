@@ -1,7 +1,7 @@
-"""Demo: using read_scenes() from czitools.read_tools.
+"""Demo: using read_stacks() from czitools.read_tools.
 
-This script demonstrates the read_scenes() function which reads all 2D planes
-from a CZI file, grouped by scene. It supports:
+This script demonstrates the read_stacks() function which reads all 2D planes
+from a CZI file, grouped per stack. It supports:
   - Lazy loading via dask arrays
   - xarray DataArrays with labeled dimensions
   - Optional stacking of scenes with matching shapes
@@ -25,7 +25,7 @@ if __name__ == "__main__":
     #   use_xarray=True -> returns xr.DataArray with labeled dimensions
     #   stack_scenes=True -> combine scenes if they have the same shape
 
-    result, dims, num_scenes = read_tools.read_scenes(
+    result, dims, num_stacks = read_tools.read_stacks(
         filepath,
         use_dask=True,
         use_xarray=True,
@@ -33,20 +33,24 @@ if __name__ == "__main__":
     )
 
     print("\n=== Results ===")
-    print(f"Number of scenes: {num_scenes}")
+    print(f"Number of stacks: {num_stacks}")
     print(f"Dimension order: {dims}")
 
     if isinstance(result, list):
         # List of per-scene arrays
         for idx, arr in enumerate(result):
             if isinstance(arr, xr.DataArray):
-                print(f"Scene {idx}: dims={arr.dims}, shape={arr.shape}, dtype={arr.dtype}")
+                print(
+                    f"Stack {idx}: dims={arr.dims}, shape={arr.shape}, dtype={arr.dtype}"
+                )
             else:
-                print(f"Scene {idx}: shape={arr.shape}, dims={dims}, dtype={arr.dtype}")
+                print(f"Stack {idx}: shape={arr.shape}, dims={dims}, dtype={arr.dtype}")
     else:
         # Single stacked array
         if isinstance(result, xr.DataArray):
-            print(f"Stacked: dims={result.dims}, shape={result.shape}, dtype={result.dtype}")
+            print(
+                f"Stacked: dims={result.dims}, shape={result.shape}, dtype={result.dtype}"
+            )
         else:
             print(f"Stacked: shape={result.shape}, dims={dims}, dtype={result.dtype}")
 
