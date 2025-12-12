@@ -12,6 +12,7 @@ Dimension order is always: [V, R, I, H, M] + T + C + Z + Y + X [+ A]
 import xarray as xr
 from czitools.read_tools import read_tools
 from czitools.metadata_tools.czi_metadata import CziMetadata
+from czitools.utils.napari_tools import display_xarray_in_napari
 
 # Test files
 # filepath = r"F:\AzureDevOps\RMS_CAREamics_Container\_archive\calc_mean_testimage.czi"
@@ -19,6 +20,8 @@ from czitools.metadata_tools.czi_metadata import CziMetadata
 # filepath = r"F:\Testdata_Zeiss\CZI_Testfiles\WP96_4Pos_B4-10_DAPI.czi"
 filepath = r"F:\Github\czitools\data\CellDivision_T10_Z15_CH2_DCV_small.czi"
 
+# show resulting stack inside napari
+show_napari = True
 
 if __name__ == "__main__":
     # Read scenes using the new function from czitools.read_tools
@@ -64,3 +67,11 @@ if __name__ == "__main__":
 
     # Or load everything
     # full_data = result.compute()
+
+    if show_napari:
+
+        # get the planes
+        subset_planes = result.attrs["subset_planes"]
+
+        # Delegate Napari display to the utility function
+        display_xarray_in_napari(result, mdata, subset_planes)
