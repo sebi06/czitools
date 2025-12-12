@@ -1091,7 +1091,12 @@ def read_stacks(
                     stack,
                     dims=all_dims,
                     coords=coords,
-                    attrs={"stack": stack_idx, "filepath": filepath},
+                    attrs={
+                        "stack": stack_idx,
+                        "filepath": filepath,
+                        "axes": "".join(all_dims),
+                        "subset_planes": planes,
+                    },
                 )
                 stack_arrays.append(xr_da)
             else:
