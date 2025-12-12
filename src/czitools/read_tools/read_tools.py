@@ -108,8 +108,12 @@ def read_6darray(
     mdata.scale.Y_sf = np.round(mdata.scale.Y * (1 / zoom), 3)
     mdata.scale.ratio["zx_sf"] = np.round(mdata.scale.Z / mdata.scale.X_sf, 3)
 
-    # check planes arguments
-    if planes:
+    # Normalize planes argument without mutating caller-provided dict.
+    # Treat falsy/missing `planes` the same as before (i.e., fill defaults).
+    planes_input = planes
+    if planes_input:
+        planes = dict(planes_input)
+        # Validate provided ranges against total_bounding_box
         for k in ["S", "T", "C", "Z"]:
             if k in planes.keys() and k in mdata.bbox.total_bounding_box.keys():
                 if mdata.bbox.total_bounding_box[k][1] - 1 < planes[k][1]:
@@ -117,10 +121,8 @@ def read_6darray(
                         f"Planes indices (zero-based) for {planes[k]} are invalid. BBox for {[k]}: {mdata.bbox.total_bounding_box[k]}"
                     )
                     return None, mdata
-
-    elif not planes:
+    else:
         planes = {}
-
         for dim, size_attr in [
             ("S", mdata.image.SizeS),
             ("T", mdata.image.SizeT),
@@ -129,9 +131,9 @@ def read_6darray(
         ]:
             planes[dim] = (0, size_attr - 1) if size_attr is not None else (0, 0)
 
+    # Ensure all expected dims exist in the local `planes` copy
     for k in ["S", "T", "C", "Z"]:
         if k not in planes.keys():
-            # if the dimension is not in the planes, add it with default values
             if k == "S":
                 planes[k] = (0, mdata.image.SizeS - 1) if mdata.image.SizeS is not None else (0, 0)
             elif k == "T":
