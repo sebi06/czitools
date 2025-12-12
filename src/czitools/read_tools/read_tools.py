@@ -263,6 +263,10 @@ def read_6darray(
             array6d = np.squeeze(array6d, axis=-1)
             dims = ("S", "T", "C", "Z", "Y", "X")
 
+        if contains_rgb and array6d.shape[-1] == 3:
+            # image has BGR values and need to be converted to RGB
+            array6d = array6d[..., ::-1]
+
         # Rechunk if requested (only applies to dask arrays)
         if use_dask and chunk_zyx:
             if remove_adim:
@@ -486,6 +490,10 @@ def read_6darray_lazy(
 
         # Create final STCZYX dask array
         array6d = da.stack(img, axis=0)
+
+        if contains_rgb and array6d.shape[-1] == 3:
+            # image has BGR values and need to be converted to RGB
+            array6d = array6d[..., ::-1]
 
         # Rechunk if requested
         if chunk_zyx:
@@ -1076,6 +1084,12 @@ def read_stacks(
                     stack[combo] = img2d
 
                 logger.debug(f"read_stacks: Stack {stack_idx} -> np.ndarray shape={stack.shape}")
+
+            # check if stack is an BGR image and convert to RGB
+            contains_rgb = any(mdata.isRGB.values())
+            if contains_rgb and stack.shape[-1] == 3:
+                # image has BGR values and need to be converted to RGB
+                stack = stack[..., ::-1]
 
             if use_xarray:
                 # Build coordinate arrays for each dimension
