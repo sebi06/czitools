@@ -12,10 +12,18 @@ logger = logging_tools.set_logging()
 class CziDetector:
     """Extract detector information from a CZI file.
 
-    The class populates parallel lists for detector attributes. It is
-    defensive about missing metadata: if the Instrument block is absent
-    it will populate lists with a single ``None`` element to match the
-    historical shape expected by callers/tests.
+    This class converts the detector information found under
+    `ImageDocument.Metadata.Information.Instrument.Detectors.Detector`
+    into parallel lists for each detector attribute. The implementation
+    is defensive: if the Instrument/Detectors block is missing the
+    instance will contain single-element lists with ``None`` so callers
+    that expect list-shaped fields keep working.
+
+    Attributes:
+        czisource: Path/URL string or already-parsed `Box` with metadata.
+        model, name, Id, modeltype, gain, zoom, amplificationgain:
+            Lists containing values per-detector (may be a single None).
+        verbose: If True, log informational messages while parsing.
     """
 
     czisource: Union[str, os.PathLike, Box]
@@ -30,51 +38,49 @@ class CziDetector:
 
     def __post_init__(self) -> None:
         if self.verbose:
-            logger.info("Reading Detector information from CZI image data.")
+            logger.info("Reading Detector information from CZI image metadata.")
 
         czi_box = self.czisource if isinstance(self.czisource, Box) else get_czimd_box(self.czisource)
 
-        # Guard existence of Instrument block
+        # Instrument block may be absent in some CZI files; handle gracefully
         instr = getattr(czi_box.ImageDocument.Metadata.Information, "Instrument", None)
         if instr is None:
             if self.verbose:
-                logger.info("No Detector(s) information found.")
+                logger.info("No Detector(s) information found in Instrument block.")
             # Keep historical single-None placeholders
-            self.model = [None]
-            self.name = [None]
-            self.Id = [None]
-            self.modeltype = [None]
-            self.gain = [None]
-            self.zoom = [None]
-            self.amplificationgain = [None]
+            placeholder = [None]
+            self.model = placeholder.copy()
+            self.name = placeholder.copy()
+            self.Id = placeholder.copy()
+            self.modeltype = placeholder.copy()
+            self.gain = placeholder.copy()
+            self.zoom = placeholder.copy()
+            self.amplificationgain = placeholder.copy()
             return
 
-        # Extract detectors block
+        # Get Detectors.Detector which can be a Box (single) or BoxList (multiple)
         detectors = getattr(instr, "Detectors", None)
         det = getattr(detectors, "Detector", None) if detectors is not None else None
 
         if det is None:
             if self.verbose:
-                logger.info("No Detector entries found under Instrument.Detectors.")
+                logger.info("Instrument present but no Detector entries found under Instrument.Detectors.")
             return
+
+        def _append_from_box(b: Box) -> None:
+            self.Id.append(getattr(b, "Id", None))
+            self.name.append(getattr(b, "Name", None))
+            self.model.append(getattr(b, "Model", None))
+            self.modeltype.append(getattr(b, "Type", None))
+            self.gain.append(getattr(b, "Gain", None))
+            self.zoom.append(getattr(b, "Zoom", None))
+            self.amplificationgain.append(getattr(b, "AmplificationGain", None))
 
         # Single detector
         if isinstance(det, Box):
-            self.Id.append(getattr(det, "Id", None))
-            self.name.append(getattr(det, "Name", None))
-            self.model.append(getattr(det, "Model", None))
-            self.modeltype.append(getattr(det, "Type", None))
-            self.gain.append(getattr(det, "Gain", None))
-            self.zoom.append(getattr(det, "Zoom", None))
-            self.amplificationgain.append(getattr(det, "AmplificationGain", None))
+            _append_from_box(det)
 
         # Multiple detectors
         elif isinstance(det, BoxList):
             for d in det:
-                self.Id.append(getattr(d, "Id", None))
-                self.name.append(getattr(d, "Name", None))
-                self.model.append(getattr(d, "Model", None))
-                self.modeltype.append(getattr(d, "Type", None))
-                self.gain.append(getattr(d, "Gain", None))
-                self.zoom.append(getattr(d, "Zoom", None))
-                self.amplificationgain.append(getattr(d, "AmplificationGain", None))
+                _append_from_box(d)

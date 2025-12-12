@@ -103,7 +103,7 @@ class CziMetadata:
     czi_box: Optional[Box] = field(init=False, default=None)
     pyczi_dims: Optional[Dict[str, tuple]] = field(init=False, default_factory=lambda: {})
     aics_dimstring: Optional[str] = field(init=False, default=None)
-    aics_dims_shape: Optional[List[Dict[str, tuple]]] = field(init=False, default_factory=lambda: {})
+    aics_dims_shape: Optional[List[Dict[str, tuple]]] = field(init=False, default_factory=lambda: [])
     aics_size: Optional[Tuple[int]] = field(init=False, default_factory=lambda: ())
     aics_ismosaic: Optional[bool] = field(init=False, default=None)
     aics_dim_order: Optional[Dict[str, int]] = field(init=False, default_factory=lambda: {})
@@ -154,10 +154,12 @@ class CziMetadata:
 
         # get acquisition data and SW version
         if self.czi_box.ImageDocument.Metadata.Information.Application is not None:
+            # Application provides both name and version; map them correctly
             self.software_name = self.czi_box.ImageDocument.Metadata.Information.Application.Name
             self.software_version = self.czi_box.ImageDocument.Metadata.Information.Application.Version
 
         if self.czi_box.ImageDocument.Metadata.Information.Image is not None:
+            # Acquisition date/time (if available)
             self.acquisition_date = self.czi_box.ImageDocument.Metadata.Information.Image.AcquisitionDateAndTime
 
         if self.czi_box.ImageDocument.Metadata.Information.Document is not None:
@@ -374,8 +376,9 @@ def create_md_dict_red(metadata: CziMetadata, sort: bool = True, remove_none: bo
         "AcqDate": metadata.acquisition_date,
         "CreationDate": metadata.creation_date,
         "UserName": metadata.user_name,
-        "SW-App": metadata.software_version,
-        "SW-Version": metadata.software_name,
+        # Keep keys descriptive: Application name and version
+        "SW-App": metadata.software_name,
+        "SW-Version": metadata.software_version,
         "SizeX": metadata.image.SizeX,
         "SizeY": metadata.image.SizeY,
         "SizeZ": metadata.image.SizeZ,
@@ -412,10 +415,11 @@ def create_md_dict_red(metadata: CziMetadata, sort: bool = True, remove_none: bo
         "WellRowID": metadata.sample.well_rowID,
         "WellColumnID": metadata.sample.well_colID,
         "WellCounter": metadata.sample.well_counter,
+        # Stage positions: ensure X/Y fields are mapped correctly
         "SceneCenterStageX": metadata.sample.scene_stageX,
-        "SceneCenterStageY": metadata.sample.scene_stageX,
+        "SceneCenterStageY": metadata.sample.scene_stageY,
         "ImageStageX": metadata.sample.image_stageX,
-        "ImageStageY": metadata.sample.image_stageX,
+        "ImageStageY": metadata.sample.image_stageY,
         "TotalBoundingBox": metadata.bbox.total_bounding_box,
     }
 
