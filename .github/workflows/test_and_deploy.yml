@@ -4,89 +4,87 @@
 name: test_and_deploy_pypi
 
 on:
-  push:
-    branches:
-      - master
-      - main
-    tags:
-      - "v*" # Push events to matching v*, i.e. v1.0, v20.15.10
-  pull_request:
-    branches:
-      - master
-      - main
-  workflow_dispatch:
+    push:
+        branches:
+            - master
+            - main
+        tags:
+            - "v*" # Push events to matching v*, i.e. v1.0, v20.15.10
+    pull_request:
+        branches:
+            - master
+            - main
+    workflow_dispatch:
 
 jobs:
-  test:
-    name: ${{ matrix.platform }} py${{ matrix.python-version }}
-    runs-on: ${{ matrix.platform }}
-    if: contains(github.ref, 'tags')
-    strategy:
-      matrix:
-        platform: [ubuntu-latest, windows-latest]
-        python-version: ['3.10', '3.11', '3.12', '3.13']
+    test:
+        name: ${{ matrix.platform }} py${{ matrix.python-version }}
+        runs-on: ${{ matrix.platform }}
+        if: contains(github.ref, 'tags')
+        strategy:
+            matrix:
+                platform: [ubuntu-latest, windows-latest, macos-latest]
+                python-version: ["3.10", "3.11", "3.12", "3.13"]
 
-    steps:
-    - uses: actions/checkout@v4
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v5
-      with:
-        python-version: ${{ matrix.python-version }}
-    # - name: Upload coverage reports to Codecov with GitHub Action
-    #   uses: codecov/codecov-action@v4.2.0
-    #   env:
-    #     CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+        steps:
+            - uses: actions/checkout@v4
+            - name: Set up Python ${{ matrix.python-version }}
+              uses: actions/setup-python@v5
+              with:
+                  python-version: ${{ matrix.python-version }}
+            # - name: Upload coverage reports to Codecov with GitHub Action
+            #   uses: codecov/codecov-action@v4.2.0
+            #   env:
+            #     CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
+            # note: if you need dependencies from conda, considering using
+            # setup-miniconda: https://github.com/conda-incubator/setup-miniconda
+            # and
+            # tox-conda: https://github.com/tox-dev/tox-conda
+            - name: Install dependencies
+              run: |
+                  python -m pip install --upgrade pip
+                  pip install setuptools tox tox-gh-actions pytest pytest-qt pytest-cov pandas
 
-    # note: if you need dependencies from conda, considering using
-    # setup-miniconda: https://github.com/conda-incubator/setup-miniconda
-    # and
-    # tox-conda: https://github.com/tox-dev/tox-conda
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install setuptools tox tox-gh-actions pytest pytest-qt pytest-cov pandas
+            # this runs the platform-specific tests declared in tox.ini
+            - name: Test with tox
+              run: tox
+              env:
+                  PLATFORM: ${{ matrix.platform }}
 
-    # this runs the platform-specific tests declared in tox.ini
-    - name: Test with tox
-      run: tox
-      env:
-        PLATFORM: ${{ matrix.platform }}
+            - name: Upload coverage reports to Codecov with GitHub Action
+              uses: codecov/codecov-action@v4.2.0
+              env:
+                  CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
-    - name: Upload coverage reports to Codecov with GitHub Action
-      uses: codecov/codecov-action@v4.2.0
-      env:
-        CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
-
-  deploy:
-    # this will run when you have tagged a commit, starting with "v*"
-    # and requires that you have put your twine API key in your
-    # github secrets (see readme for details)
-    needs: [test]
-    runs-on: ubuntu-latest
-    if: contains(github.ref, 'tags')
-    steps:
-    - uses: actions/checkout@master
-    - name: Set up Python
-      uses: actions/setup-python@v5
-      with:
-        python-version: "3.x"
-    - name: Install pypa/build
-      run: >-
-        python -m
-        pip install
-        build
-        --user
-    - name: Build a binary wheel and a source tarball
-      run: >-
-        python -m
-        build
-        --sdist
-        --wheel
-        --outdir dist/
-        .
-    - name: Publish distribution to PyPI
-      uses: pypa/gh-action-pypi-publish@release/v1
-      with:
-        password: ${{ secrets.TWINE_PYPI_TOKEN }}
-
+    deploy:
+        # this will run when you have tagged a commit, starting with "v*"
+        # and requires that you have put your twine API key in your
+        # github secrets (see readme for details)
+        needs: [test]
+        runs-on: ubuntu-latest
+        if: contains(github.ref, 'tags')
+        steps:
+            - uses: actions/checkout@master
+            - name: Set up Python
+              uses: actions/setup-python@v5
+              with:
+                  python-version: "3.x"
+            - name: Install pypa/build
+              run: >-
+                  python -m
+                  pip install
+                  build
+                  --user
+            - name: Build a binary wheel and a source tarball
+              run: >-
+                  python -m
+                  build
+                  --sdist
+                  --wheel
+                  --outdir dist/
+                  .
+            - name: Publish distribution to PyPI
+              uses: pypa/gh-action-pypi-publish@release/v1
+              with:
+                  password: ${{ secrets.TWINE_PYPI_TOKEN }}
