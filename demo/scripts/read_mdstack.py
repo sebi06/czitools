@@ -16,9 +16,9 @@ from czitools.utils.napari_tools import display_xarray_in_napari
 
 # Test files
 # filepath = r"F:\AzureDevOps\RMS_CAREamics_Container\_archive\calc_mean_testimage.czi"
-# filepath = r"F:\Testdata_Zeiss\CZI_Testfiles\S=3_1Pos_2Mosaic_T=2=Z=3_CH=2.czi"
+filepath = r"F:\Testdata_Zeiss\CZI_Testfiles\S=3_1Pos_2Mosaic_T=2=Z=3_CH=2.czi"
 # filepath = r"F:\Testdata_Zeiss\CZI_Testfiles\WP96_4Pos_B4-10_DAPI.czi"
-filepath = r"F:\Github\czitools\data\CellDivision_T10_Z15_CH2_DCV_small.czi"
+# filepath = r"F:\Github\czitools\data\CellDivision_T10_Z15_CH2_DCV_small.czi"
 
 # show resulting stack inside napari
 show_napari = True
@@ -57,8 +57,8 @@ if __name__ == "__main__":
         else:
             print(f"Stacked: shape={result.shape}, dims={dims}, dtype={result.dtype}")
 
-    # With use_dask=True, result is backed by dask - no data loaded yet
-    print(f"\nArray shape (no data loaded): {result.shape}")
+        # With use_dask=True, result is backed by dask - no data loaded yet
+        print(f"\nArray shape (no data loaded): {result.shape}")
 
     # Load only a subset (triggers read for just those planes)
     if isinstance(result, xr.DataArray) and "T" in result.dims and "C" in result.dims:
@@ -70,8 +70,15 @@ if __name__ == "__main__":
 
     if show_napari:
 
-        # get the planes
-        subset_planes = result.attrs["subset_planes"]
+        try:
+            # get the planes
+            subset_planes = result.attrs["subset_planes"]
 
-        # Delegate Napari display to the utility function
-        display_xarray_in_napari(result, mdata, subset_planes)
+            # Delegate Napari display to the utility function
+            display_xarray_in_napari(result, mdata, subset_planes)
+        except (KeyError, AttributeError):
+            # use 1st entry
+            subset_planes = result[0].attrs["subset_planes"]
+
+            # Delegate Napari display to the utility function
+            display_xarray_in_napari(result[0], mdata, subset_planes)
