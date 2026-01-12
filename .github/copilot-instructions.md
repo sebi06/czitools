@@ -54,6 +54,15 @@ src/czitools/
 
 ## Coding Conventions
 
+### General Guidelines
+- write clear, maintainable, and well-documented code
+- use SOLID Design Principles in python
+  - Single-responsibility principle (SRP) or Separation of concerns (SoC)
+  - Open–closed principle (OCP)
+  - Liskov substitution principle (LSP)
+  - Interface segregation principle (ISP)
+  - Dependency inversion principle (DIP)
+
 ### Python Style
 - Use Python 3.10+ syntax and type hints
 - Follow PEP 8 style guidelines
