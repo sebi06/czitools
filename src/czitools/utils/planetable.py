@@ -16,11 +16,42 @@ import pandas as pd
 import numpy as np
 from pathlib import Path
 import dateutil.parser as dt
-from tqdm.contrib.itertools import product
 from typing import Dict, Tuple, Any, Union, Optional
 import validators
 from aicspylibczi import CziFile
 from czitools.utils import logging_tools
+
+
+def _should_use_tqdm() -> bool:
+    """
+    Determine if tqdm progress bars should be used.
+
+    Disables tqdm in headless CI/CD environments to avoid threading deadlocks
+    that occur when tqdm's monitor thread interacts with CZI file reading
+    on Linux systems.
+
+    Returns:
+        bool: True if tqdm should be used, False otherwise.
+    """
+    if os.environ.get("CI") == "true":
+        return False
+    if os.environ.get("GITHUB_ACTIONS") == "true":
+        return False
+    if os.environ.get("TQDM_DISABLE") == "1":
+        return False
+    if os.environ.get("QT_QPA_PLATFORM") == "offscreen":
+        return False
+    return True
+
+
+# Import product based on environment
+if _should_use_tqdm():
+    try:
+        from tqdm.contrib.itertools import product
+    except ImportError:
+        from itertools import product
+else:
+    from itertools import product
 
 logger = logging_tools.set_logging()
 

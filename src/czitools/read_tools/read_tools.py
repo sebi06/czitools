@@ -13,6 +13,45 @@ from typing import Dict, Tuple, Optional, Union, List
 import gc
 import warnings
 import itertools
+import os
+
+
+def _should_use_tqdm() -> bool:
+    """
+    Determine if tqdm progress bars should be used.
+
+    Disables tqdm in headless CI/CD environments to avoid threading deadlocks
+    that occur when tqdm's monitor thread interacts with CZI file reading
+    on Linux systems.
+
+    Returns:
+        bool: True if tqdm should be used, False otherwise.
+    """
+    if os.environ.get("CI") == "true":
+        return False
+    if os.environ.get("GITHUB_ACTIONS") == "true":
+        return False
+    if os.environ.get("TQDM_DISABLE") == "1":
+        return False
+    if os.environ.get("QT_QPA_PLATFORM") == "offscreen":
+        return False
+    return True
+
+
+# Import tqdm based on environment
+if _should_use_tqdm():
+    try:
+        from tqdm import tqdm
+        from tqdm.contrib.itertools import product
+    except ImportError:
+        def tqdm(x, *args, **kwargs):
+            return x
+        product = itertools.product
+else:
+    def tqdm(x, *args, **kwargs):
+        return x
+    product = itertools.product
+
 from pylibCZIrw import czi as pyczi
 from aicspylibczi import CziFile
 from czitools.metadata_tools import czi_metadata as czimd
@@ -23,8 +62,6 @@ import dask.array as da
 import dask
 import dask.delayed
 import os
-from tqdm import tqdm
-from tqdm.contrib.itertools import product
 import tempfile
 import shutil
 from czitools.utils import logging_tools
