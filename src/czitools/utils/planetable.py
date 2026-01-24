@@ -18,40 +18,17 @@ from pathlib import Path
 import dateutil.parser as dt
 from typing import Dict, Tuple, Any, Union, Optional
 import validators
+from itertools import product
 from aicspylibczi import CziFile
 from czitools.utils import logging_tools
 
+# Import progressbar2
+try:
+    import progressbar
 
-def _should_use_tqdm() -> bool:
-    """
-    Determine if tqdm progress bars should be used.
-
-    Disables tqdm in headless CI/CD environments to avoid threading deadlocks
-    that occur when tqdm's monitor thread interacts with CZI file reading
-    on Linux systems.
-
-    Returns:
-        bool: True if tqdm should be used, False otherwise.
-    """
-    if os.environ.get("CI") == "true":
-        return False
-    if os.environ.get("GITHUB_ACTIONS") == "true":
-        return False
-    if os.environ.get("TQDM_DISABLE") == "1":
-        return False
-    if os.environ.get("QT_QPA_PLATFORM") == "offscreen":
-        return False
-    return True
-
-
-# Import product based on environment
-if _should_use_tqdm():
-    try:
-        from tqdm.contrib.itertools import product
-    except ImportError:
-        from itertools import product
-else:
-    from itertools import product
+    HAS_PROGRESSBAR = True
+except ImportError:
+    HAS_PROGRESSBAR = False
 
 logger = logging_tools.set_logging()
 
@@ -98,8 +75,12 @@ def get_planetable(
     #  Suppress ResourceWarning as we explicitly clean up the CziFile object in finally block
     # aicspylibczi.CziFile doesn't provide a close() method, so Python may warn about unclosed file
     with warnings.catch_warnings():
-        warnings.filterwarnings("ignore", category=ResourceWarning, message=".*CziFile.*")
-        warnings.filterwarnings("ignore", category=ResourceWarning, message=".*BufferedReader.*")
+        warnings.filterwarnings(
+            "ignore", category=ResourceWarning, message=".*CziFile.*"
+        )
+        warnings.filterwarnings(
+            "ignore", category=ResourceWarning, message=".*BufferedReader.*"
+        )
 
         try:
             aicsczi = CziFile(czifile)
@@ -124,7 +105,9 @@ def get_planetable(
 
             # Save table to CSV if requested
             if save_table:
-                return _save_planetable_if_requested(df_czi, czifile, table_separator, table_index)
+                return _save_planetable_if_requested(
+                    df_czi, czifile, table_separator, table_index
+                )
 
             return df_czi, None
         finally:
@@ -175,7 +158,9 @@ def _getsbinfo(subblock: Any) -> Tuple[float, float, float, float]:
     return timestamp, xpos, ypos, zpos
 
 
-def norm_columns(df: pd.DataFrame, colname: str = "Time [s]", mode: str = "min") -> pd.DataFrame:
+def norm_columns(
+    df: pd.DataFrame, colname: str = "Time [s]", mode: str = "min"
+) -> pd.DataFrame:
     """Normalize a specific column inside a Pandas dataframe
     Args:
         df: DataFrame
@@ -198,7 +183,9 @@ def norm_columns(df: pd.DataFrame, colname: str = "Time [s]", mode: str = "min")
     return df
 
 
-def filter_planetable(planetable: pd.DataFrame, planes: Optional[Dict[str, int]] = None) -> pd.DataFrame:
+def filter_planetable(
+    planetable: pd.DataFrame, planes: Optional[Dict[str, int]] = None
+) -> pd.DataFrame:
     """
     Filters the input planetable DataFrame based on specified dimension entries.
 
@@ -260,7 +247,9 @@ def filter_planetable(planetable: pd.DataFrame, planes: Optional[Dict[str, int]]
         return planetable
 
 
-def save_planetable(df: pd.DataFrame, filepath: str, separator: str = ",", index: bool = True) -> str:
+def save_planetable(
+    df: pd.DataFrame, filepath: str, separator: str = ",", index: bool = True
+) -> str:
     """Saves a pandas dataframe as a CSV file.
 
     Args:
@@ -353,13 +342,16 @@ def _extract_dimension_info(dims: list) -> Dict[str, Dict[str, Union[int, bool]]
             # Dimension doesn't exist, set default values
             dim_info[dim] = {"size": 1, "present": False}
 
-    logger.info(f"CZI dimensions found: {[dim for dim in dimensions if dim_info[dim]['present']]}")
+    logger.info(
+        f"CZI dimensions found: {[dim for dim in dimensions if dim_info[dim]['present']]}"
+    )
 
     return dim_info
 
 
 def _calculate_iteration_ranges(
-    dim_info: Dict[str, Dict[str, Union[int, bool]]], planes: Optional[Dict[str, int]] = None
+    dim_info: Dict[str, Dict[str, Union[int, bool]]],
+    planes: Optional[Dict[str, int]] = None,
 ) -> Dict[str, Tuple[int, int]]:
     """
     Calculate the iteration ranges for each dimension based on user input and available dimensions.
@@ -392,7 +384,9 @@ def _calculate_iteration_ranges(
 
             # Validate that the specified index is within bounds
             if start_idx >= max_size:
-                logger.warning(f"Specified {user_key} index {start_idx} exceeds maximum {max_size-1}. Using maximum.")
+                logger.warning(
+                    f"Specified {user_key} index {start_idx} exceeds maximum {max_size-1}. Using maximum."
+                )
                 start_idx = max_size - 1
                 end_idx = max_size
         else:
@@ -432,23 +426,53 @@ def _process_subblocks(
     c_start, c_end = ranges["C"]
     z_start, z_end = ranges["Z"]
 
-    # Iterate through all combinations of dimensions
-    for s, m, t, c, z in product(
+    # Calculate total number of planes for progress bar
+    total_planes = (
+        (s_end - s_start)
+        * (m_end - m_start)
+        * (t_end - t_start)
+        * (c_end - c_start)
+        * (z_end - z_start)
+    )
+
+    # Create the product iterator
+    plane_iterator = product(
         enumerate(range(s_start, s_end)),
         enumerate(range(m_start, m_end)),
         enumerate(range(t_start, t_end)),
         enumerate(range(c_start, c_end)),
         enumerate(range(z_start, z_end)),
-        desc="Reading subblock planes",
-        unit=" 2Dplanes",
-    ):
+    )
+
+    # Wrap with progress bar if available
+    if HAS_PROGRESSBAR:
+        widgets = [
+            progressbar.Percentage(),
+            " ",
+            progressbar.Bar(),
+            " ",
+            progressbar.ETA(),
+            " ",
+            progressbar.SimpleProgress(),
+        ]
+        plane_iterator = progressbar.progressbar(
+            plane_iterator,
+            widgets=widgets,
+            max_value=total_planes,
+            term_width=80,
+        )
+
+    # Iterate through all combinations of dimensions
+    for s, m, t, c, z in plane_iterator:
         sbcount += 1
 
         # Prepare arguments for CZI file reading, including only present dimensions
         args = _prepare_czi_args(dim_info, s[1], m[1], t[1], c[1], z[1])
 
         # Read bounding box and subblock metadata
-        bbox, sb = _read_subblock_data(aicsczi, dim_info["M"]["present"], args, s[1], m[1], t[1], c[1], z[1])
+        bbox, sb = _read_subblock_data(
+            aicsczi, dim_info["M"]["present"], args, s[1], m[1], t[1], c[1], z[1]
+        )
 
         # Extract information from subblock metadata
         timestamp, xpos, ypos, zpos = _getsbinfo(sb)
@@ -478,7 +502,12 @@ def _process_subblocks(
 
 
 def _prepare_czi_args(
-    dim_info: Dict[str, Dict[str, Union[int, bool]]], s: int, m: int, t: int, c: int, z: int
+    dim_info: Dict[str, Dict[str, Union[int, bool]]],
+    s: int,
+    m: int,
+    t: int,
+    c: int,
+    z: int,
 ) -> Dict[str, int]:
     """
     Prepare arguments for CZI file reading, including only dimensions that are present.
@@ -503,7 +532,14 @@ def _prepare_czi_args(
 
 
 def _read_subblock_data(
-    aicsczi: CziFile, has_m: bool, args: Dict[str, int], s: int, m: int, t: int, c: int, z: int
+    aicsczi: CziFile,
+    has_m: bool,
+    args: Dict[str, int],
+    s: int,
+    m: int,
+    t: int,
+    c: int,
+    z: int,
 ) -> Tuple[Any, Any]:
     """
     Read bounding box and subblock metadata from CZI file.
@@ -520,7 +556,9 @@ def _read_subblock_data(
     if has_m:
         # Handle mosaic/tile data
         bbox = aicsczi.get_mosaic_tile_bounding_box(**args)
-        sb = aicsczi.read_subblock_metadata(unified_xml=True, B=0, S=s, M=m, T=t, Z=z, C=c)
+        sb = aicsczi.read_subblock_metadata(
+            unified_xml=True, B=0, S=s, M=m, T=t, Z=z, C=c
+        )
     else:
         # Handle regular (non-mosaic) data
         bbox = aicsczi.get_tile_bounding_box(**args)
@@ -545,7 +583,9 @@ def _save_planetable_if_requested(
         Tuple[pd.DataFrame, Optional[str]]: DataFrame and path to saved CSV file.
     """
     try:
-        planetable_savepath = save_planetable(df_czi, czifile, separator=table_separator, index=table_index)
+        planetable_savepath = save_planetable(
+            df_czi, czifile, separator=table_separator, index=table_index
+        )
         logger.info(f"Planetable saved successfully at: {planetable_savepath}")
         return df_czi, planetable_savepath
     except Exception as e:
