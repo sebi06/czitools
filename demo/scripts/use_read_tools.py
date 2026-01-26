@@ -23,7 +23,7 @@ show_napari = True
 defaultdir = Path(Path(__file__).resolve().parents[2]) / "data"
 
 # option to toogle using a file open dialog or a hardcoded filename
-use_dialog = False
+use_dialog = True
 
 
 # open simple dialog to select a CZI file
