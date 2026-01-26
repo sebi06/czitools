@@ -33,6 +33,53 @@ except ImportError:
 logger = logging_tools.set_logging()
 
 
+def _get_planetable_impl(
+    czifile: Union[str, os.PathLike[str]],
+    norm_time: Optional[bool] = True,
+    save_table: Optional[bool] = False,
+    table_separator: Optional[str] = ";",
+    table_index: Optional[bool] = True,
+    planes: Optional[Dict[str, int]] = None,
+) -> Tuple[pd.DataFrame, Optional[str]]:
+    """
+    Internal implementation of get_planetable().
+
+    This function performs the actual planetable extraction using aicspylibczi.
+    It should not be called directly - use get_planetable() instead.
+    """
+    if isinstance(czifile, Path):
+        czifile = str(czifile)
+
+    if validators.url(czifile):
+        logger.warning("Reading PlaneTable from CZI via a link is not supported yet.")
+        return pd.DataFrame(), None
+
+    df_czi = _initialize_planetable_dataframe()
+
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore", category=ResourceWarning, message=".*CziFile.*")
+        warnings.filterwarnings("ignore", category=ResourceWarning, message=".*BufferedReader.*")
+
+        aicsczi = CziFile(czifile)
+        dims = aicsczi.get_dims_shape()
+
+    try:
+        dim_info = _extract_dimension_info(dims)
+        iteration_ranges = _calculate_iteration_ranges(dim_info, planes)
+        df_czi = _process_subblocks(aicsczi, dim_info, iteration_ranges, df_czi)
+
+        if norm_time:
+            df_czi = norm_columns(df_czi, colname="Time[s]", mode="min")
+
+        if save_table:
+            return _save_planetable_if_requested(df_czi, czifile, table_separator, table_index)
+
+        return df_czi, None
+    finally:
+        del aicsczi
+        gc.collect()
+
+
 def get_planetable(
     czifile: Union[str, os.PathLike[str]],
     norm_time: Optional[bool] = True,
@@ -42,7 +89,7 @@ def get_planetable(
     planes: Optional[Dict[str, int]] = None,
 ) -> Tuple[pd.DataFrame, Optional[str]]:
     """
-    Extracts the plane table from the individual subblocks of a CZI file.
+    Extracts the plane table from the individual subblocks of a CZI file with thread-safe locking.
 
     Args:
         czifile (Union[str, os.PathLike[str]]): The path to the CZI image file.
@@ -57,65 +104,47 @@ def get_planetable(
         Tuple[pd.DataFrame, Optional[str]]: A tuple containing:
             - A Pandas DataFrame representing the plane table.
             - The file path of the saved CSV file, if `save_table` is True; otherwise, None.
-    """
 
-    # Convert Path object to string if necessary
+    Notes:
+        **Thread-Safety for Napari on Linux:**
+
+        This function uses `aicspylibczi` which can have threading conflicts with PyQt/Napari on Linux.
+
+        **Solution 1 (Safest)**: Disable aicspylibczi entirely:
+        ```python
+        import os
+        os.environ["CZITOOLS_DISABLE_AICSPYLIBCZI"] = "1"
+        # get_planetable() will return empty DataFrame
+        ```
+
+        **Solution 2**: Use thread-locked version (current default):
+        - Uses a global lock to serialize aicspylibczi access
+        - Provides basic thread-safety
+        - May still have PyQt conflicts on Linux - test carefully!
+
+        If crashes persist with Napari, use Solution 1.
+    """
     if isinstance(czifile, Path):
         czifile = str(czifile)
 
-    # Check if input is URL - not supported for plane table extraction
-    if validators.url(czifile):
-        logger.warning("Reading PlaneTable from CZI via a link is not supported yet.")
+    # Check if aicspylibczi is disabled
+    if os.environ.get("CZITOOLS_DISABLE_AICSPYLIBCZI", "0") == "1":
+        logger.warning(
+            "get_planetable() requires aicspylibczi, but it is disabled via CZITOOLS_DISABLE_AICSPYLIBCZI. "
+            "Planetable extraction is not available in safe mode."
+        )
         return pd.DataFrame(), None
 
-    # Initialize the plane table with predefined columns and data types
-    df_czi = _initialize_planetable_dataframe()
+    # Warn about potential Napari conflicts on Linux
+    from czitools.utils.threading_helpers import warn_if_unsafe_for_napari
 
-    # Read CZI file and extract dimension information
-    #  Suppress ResourceWarning as we explicitly clean up the CziFile object in finally block
-    # aicspylibczi.CziFile doesn't provide a close() method, so Python may warn about unclosed file
-    with warnings.catch_warnings():
-        warnings.filterwarnings(
-            "ignore", category=ResourceWarning, message=".*CziFile.*"
-        )
-        warnings.filterwarnings(
-            "ignore", category=ResourceWarning, message=".*BufferedReader.*"
-        )
+    warn_if_unsafe_for_napari()
 
-        try:
-            aicsczi = CziFile(czifile)
-            dims = aicsczi.get_dims_shape()
-        except Exception as e:
-            logger.error(f"Failed to read CZI file: {e}")
-            return pd.DataFrame(), None
+    # Call implementation with thread lock
+    from czitools.utils.threading_helpers import with_aics_lock
 
-        try:
-            # Extract dimension information in a more organized way
-            dim_info = _extract_dimension_info(dims)
-
-            # Calculate iteration ranges based on available dimensions and user-specified planes
-            iteration_ranges = _calculate_iteration_ranges(dim_info, planes)
-
-            # Process each subblocks and extract plane information
-            df_czi = _process_subblocks(aicsczi, dim_info, iteration_ranges, df_czi)
-
-            # Normalize time stamps if requested
-            if norm_time:
-                df_czi = norm_columns(df_czi, colname="Time[s]", mode="min")
-
-            # Save table to CSV if requested
-            if save_table:
-                return _save_planetable_if_requested(
-                    df_czi, czifile, table_separator, table_index
-                )
-
-            return df_czi, None
-        finally:
-            # Explicitly delete the CziFile object to close underlying file handle
-            # aicspylibczi.CziFile doesn't provide a close() method
-            # explicit garbage collection to ensure the file handle is released
-            del aicsczi
-            gc.collect()
+    locked_impl = with_aics_lock(_get_planetable_impl)
+    return locked_impl(czifile, norm_time, save_table, table_separator, table_index, planes)
 
 
 def _getsbinfo(subblock: Any) -> Tuple[float, float, float, float]:

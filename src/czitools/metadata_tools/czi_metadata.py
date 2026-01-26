@@ -183,38 +183,50 @@ class CziMetadata:
 
         if not self.is_url:
             # get some additional metadata_tools using aicspylibczi
-            # Suppress ResourceWarning as we explicitly clean up the CziFile object
-            # aicspylibczi.CziFile doesn't provide a close() method, so Python may warn about unclosed file
-            with warnings.catch_warnings():
-                warnings.filterwarnings("ignore", category=ResourceWarning, message=".*CziFile.*")
-                warnings.filterwarnings("ignore", category=ResourceWarning, message=".*BufferedReader.*")
+            # WARNING: aicspylibczi has known threading issues when used with Napari/PyQt on Linux
+            # If you experience crashes, set the environment variable CZITOOLS_DISABLE_AICSPYLIBCZI=1
+            use_aicspylibczi = os.environ.get("CZITOOLS_DISABLE_AICSPYLIBCZI", "0") != "1"
 
-                try:
-                    from aicspylibczi import CziFile
+            if use_aicspylibczi:
+                # Suppress ResourceWarning as we explicitly clean up the CziFile object
+                # aicspylibczi.CziFile doesn't provide a close() method, so Python may warn about unclosed file
+                with warnings.catch_warnings():
+                    warnings.filterwarnings("ignore", category=ResourceWarning, message=".*CziFile.*")
+                    warnings.filterwarnings("ignore", category=ResourceWarning, message=".*BufferedReader.*")
 
-                    # get the general CZI object using aicspylibczi
-                    aicsczi = CziFile(self.filepath)
+                    try:
+                        from aicspylibczi import CziFile
 
-                    self.aics_dimstring = aicsczi.dims
-                    self.aics_dims_shape = aicsczi.get_dims_shape()
-                    self.aics_size = aicsczi.size
-                    self.aics_ismosaic = aicsczi.is_mosaic()
-                    (
-                        self.aics_dim_order,
-                        self.aics_dim_index,
-                        self.aics_dim_valid,
-                    ) = pixels.get_dimorder(aicsczi.dims)
-                    self.aics_posC = self.aics_dim_order["C"]
+                        # get the general CZI object using aicspylibczi
+                        aicsczi = CziFile(self.filepath)
 
-                    # Explicitly delete the CziFile object to close underlying file handle
-                    # aicspylibczi.CziFile doesn't provide a close() method, so we rely on deletion
-                    # and explicit garbage collection to ensure the file handle is released
-                    del aicsczi
-                    gc.collect()
+                        self.aics_dimstring = aicsczi.dims
+                        self.aics_dims_shape = aicsczi.get_dims_shape()
+                        self.aics_size = aicsczi.size
+                        self.aics_ismosaic = aicsczi.is_mosaic()
+                        (
+                            self.aics_dim_order,
+                            self.aics_dim_index,
+                            self.aics_dim_valid,
+                        ) = pixels.get_dimorder(aicsczi.dims)
+                        self.aics_posC = self.aics_dim_order["C"]
 
-                except ImportError as e:
-                    # print("Package aicspylibczi not found. Use Fallback values.")
-                    logger.warning(f" {e} : Package aicspylibczi not found. Use Fallback values.")
+                        # Explicitly delete the CziFile object to close underlying file handle
+                        # aicspylibczi.CziFile doesn't provide a close() method, so we rely on deletion
+                        # and explicit garbage collection to ensure the file handle is released
+                        del aicsczi
+                        gc.collect()
+
+                    except ImportError as e:
+                        logger.warning(f"{e}: Package aicspylibczi not found. Using fallback values.")
+                    except Exception as e:
+                        logger.warning(
+                            f"aicspylibczi failed (possibly due to threading conflict): {e}. "
+                            "Set CZITOOLS_DISABLE_AICSPYLIBCZI=1 to disable. Using fallback values."
+                        )
+            else:
+                if self.verbose:
+                    logger.info("aicspylibczi disabled via CZITOOLS_DISABLE_AICSPYLIBCZI environment variable")
         self.npdtype_list = []
         self.maxvalue_list = []
 
