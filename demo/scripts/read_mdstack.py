@@ -16,7 +16,8 @@ from czitools.utils.napari_tools import display_xarray_in_napari
 
 # Test files
 # filepath = r"F:\AzureDevOps\RMS_CAREamics_Container\_archive\calc_mean_testimage.czi"
-filepath = r"F:\Testdata_Zeiss\CZI_Testfiles\S=3_1Pos_2Mosaic_T=2=Z=3_CH=2.czi"
+# filepath = r"F:\Testdata_Zeiss\CZI_Testfiles\S=3_1Pos_2Mosaic_T=2=Z=3_CH=2.czi"
+filepath = r"F:\Testdata_Zeiss\CZI_Testfiles\96well_S=192_2pos_CH=3.czi"
 # filepath = r"F:\Testdata_Zeiss\CZI_Testfiles\WP96_4Pos_B4-10_DAPI.czi"
 # filepath = r"F:\Github\czitools\data\CellDivision_T10_Z15_CH2_DCV_small.czi"
 

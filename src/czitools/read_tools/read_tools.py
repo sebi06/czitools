@@ -656,9 +656,52 @@ def read_attachments(
         return None, None
 
 
+def _read_tiles_impl(
+    filepath: Union[str, os.PathLike[str]], scene: int, tile: int, **kwargs
+) -> Tuple[np.ndarray, List]:
+    """
+    Internal implementation of read_tiles().
+
+    This function performs the actual tile reading using aicspylibczi.
+    It should not be called directly - use read_tiles() instead.
+    """
+    if isinstance(filepath, Path):
+        filepath = str(filepath)
+
+    valid_args = ["T", "Z", "C"]
+    for k, v in kwargs.items():
+        if k not in valid_args:
+            raise ValueError(f"Invalid keyword argument: {k}")
+
+    # Suppress ResourceWarning for aicspylibczi file handling
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore", category=ResourceWarning, message=".*CziFile.*")
+        warnings.filterwarnings("ignore", category=ResourceWarning, message=".*BufferedReader.*")
+
+        czi = CziFile(filepath)
+
+    try:
+        logger.info(f"Reading File: {filepath} Scene: {scene} - Tile {tile}")
+        logger.info(f"Dimensions Shape: {czi.get_dims_shape()}")
+
+        if czi.is_mosaic():
+            tile_stack, size = czi.read_image(S=scene, M=tile, **kwargs)
+            tile_stack = np.squeeze(tile_stack, axis=czi.dims.find("M"))
+            size.remove(("M", 1))
+        elif not czi.is_mosaic():
+            logger.warning("CZI file is not a mosaic. No M-Dimension found.")
+            tile_stack, size = czi.read_image(S=scene, **kwargs)
+
+        return tile_stack, size
+    finally:
+        del czi
+        gc.collect()
+
+
 def read_tiles(filepath: Union[str, os.PathLike[str]], scene: int, tile: int, **kwargs) -> Tuple[np.ndarray, List]:
     """
-    Reads a specific tile from a CZI file.
+    Reads a specific tile from a CZI file with thread-safe locking.
+
     Parameters:
     -----------
     filepath : Union[str, os.PathLike[str]]
@@ -672,67 +715,61 @@ def read_tiles(filepath: Union[str, os.PathLike[str]], scene: int, tile: int, **
         - 'T': Time dimension
         - 'Z': Z-dimension (depth)
         - 'C': Channel dimension
+
     Returns:
     --------
     Tuple[np.ndarray, List]
         A tuple containing:
         - tile_stack (np.ndarray): The image data of the specified tile.
         - size (List): A list of tuples representing the dimensions and their sizes.
+
     Raises:
     -------
     ValueError
         If an invalid keyword argument is provided in **kwargs.
+    RuntimeError
+        If CZITOOLS_DISABLE_AICSPYLIBCZI=1 is set (safe mode).
+
     Notes:
     ------
-    This function uses the `aicspylibczi` library to read CZI files. If the CZI file
-    is a mosaic, the M-dimension is handled accordingly.
-    """
+    **Thread-Safety for Napari on Linux:**
 
+    This function uses `aicspylibczi` which can have threading conflicts with PyQt/Napari on Linux.
+
+    **Solution 1 (Safest)**: Disable aicspylibczi entirely:
+    ```python
+    import os
+    os.environ["CZITOOLS_DISABLE_AICSPYLIBCZI"] = "1"
+    # Use read_6darray() instead of read_tiles()
+    ```
+
+    **Solution 2**: Use thread-locked version (current default):
+    - Uses a global lock to serialize aicspylibczi access
+    - Provides basic thread-safety
+    - May still have PyQt conflicts on Linux - test carefully!
+
+    If crashes persist with Napari, use Solution 1 and read_6darray().
+    """
     if isinstance(filepath, Path):
-        # convert to string
         filepath = str(filepath)
 
-    valid_args = ["T", "Z", "C"]
+    # Check if aicspylibczi is disabled
+    if os.environ.get("CZITOOLS_DISABLE_AICSPYLIBCZI", "0") == "1":
+        raise RuntimeError(
+            "read_tiles() requires aicspylibczi, but it is disabled via CZITOOLS_DISABLE_AICSPYLIBCZI. "
+            "Use read_6darray() with use_dask=True as an alternative."
+        )
 
-    # check for invalid arguments to specify substacks
-    for k, v in kwargs.items():
-        if k not in valid_args:
-            raise ValueError(f"Invalid keyword argument: {k}")
+    # Warn about potential Napari conflicts on Linux
+    from czitools.utils.threading_helpers import warn_if_unsafe_for_napari
 
-    # read CZI using aicspylibczi: : https://pypi.org/project/aicspylibczi/
-    # Suppress ResourceWarning as we explicitly clean up the CziFile object in finally block
-    # aicspylibczi.CziFile doesn't provide a close() method, so Python may warn about unclosed file
-    with warnings.catch_warnings():
-        warnings.filterwarnings("ignore", category=ResourceWarning, message=".*CziFile.*")
-        warnings.filterwarnings("ignore", category=ResourceWarning, message=".*BufferedReader.*")
+    warn_if_unsafe_for_napari()
 
-        czi = CziFile(filepath)
+    # Call implementation with thread lock
+    from czitools.utils.threading_helpers import with_aics_lock
 
-        try:
-            # show the values
-            logger.info(f"Reading File: {filepath} Scene: {scene} - Tile {tile}")
-            logger.info(f"Dimensions Shape: {czi.get_dims_shape()}")
-
-            # in case the CZI is a mosaic file and has the M-dimension
-            if czi.is_mosaic():
-                tile_stack, size = czi.read_image(S=scene, M=tile, **kwargs)
-
-                # remove the M-Dimension from the array and size
-                tile_stack = np.squeeze(tile_stack, axis=czi.dims.find("M"))
-                size.remove(("M", 1))
-
-            # in case the CZI is not a mosaic file and has no M-dimension
-            elif not czi.is_mosaic():
-                logger.warning("CZI file is not a mosaic. No M-Dimension found.")
-                tile_stack, size = czi.read_image(S=scene, **kwargs)
-
-            return tile_stack, size
-        finally:
-            # Explicitly delete the CziFile object to close underlying file handle
-            # aicspylibczi.CziFile doesn't provide a close() method, so we rely on deletion
-            # and explicit garbage collection to ensure the file handle is released
-            del czi
-            gc.collect()
+    locked_impl = with_aics_lock(_read_tiles_impl)
+    return locked_impl(filepath, scene, tile, **kwargs)
 
 
 @dask.delayed

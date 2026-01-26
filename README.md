@@ -9,6 +9,61 @@
 
 This repository provides a collection of tools to simplify reading CZI (Carl Zeiss Image) pixel and metadata in Python. It is available as a [Python Package on PyPi](https://pypi.org/project/czitools/)
 
+## ⚠️ Important: Using czitools with Napari on Linux
+
+## ⚠️ Important: Using czitools with Napari on Linux
+
+If you use **Napari** on **Linux** and need `get_planetable()` or `read_tiles()`:
+
+📖 **[Linux + Napari + Planetable Guide](docs/LINUX_NAPARI_PLANETABLE.md)** ⭐ **READ THIS**
+
+**The Solution: Sequential Execution Pattern**
+
+Extract planetable **BEFORE** starting Napari to avoid threading conflicts:
+
+```python
+# Step 1: Get planetable FIRST (before Napari)
+from czitools.utils.planetable import get_planetable
+df, _ = get_planetable("file.czi")
+
+# Step 2: Load image (thread-safe)
+from czitools.read_tools import read_tools
+array, _ = read_tools.read_6darray("file.czi", use_dask=True)
+
+# Step 3: NOW start Napari (safe - no conflicts!)
+import napari
+viewer = napari.Viewer()
+viewer.add_image(array)
+napari.run()
+```
+
+✅ **Full planetable functionality on Linux**  
+✅ **No crashes**  
+✅ **No performance loss**
+
+**Alternative: Safe Mode** (simpler, but no planetable/tiles):
+
+```python
+import os
+os.environ["CZITOOLS_DISABLE_AICSPYLIBCZI"] = "1"
+
+from czitools.read_tools import read_tools
+# Use read_6darray() instead of read_tiles()
+array, mdata = read_tools.read_6darray("file.czi", use_dask=True)
+```
+
+**Why?** `aicspylibczi` has threading conflicts with PyQt on Linux.  
+**Solution:** Extract planetable before PyQt event loop starts (sequential execution).
+
+📄 **Documentation:**
+- [Linux + Napari + Planetable Guide](docs/LINUX_NAPARI_PLANETABLE.md) - Complete examples
+- [Threading Considerations](docs/threading_considerations.md) - Technical details
+- [Quick Fix Guide](docs/NAPARI_FIX.md) - Emergency fixes
+
+---
+
+See [demo/scripts/napari_with_process_isolation.py](demo/scripts/napari_with_process_isolation.py) for complete examples and [docs/threading_considerations.md](docs/threading_considerations.md) for detailed information.
+
 ## Installation
 
 To install czitools (core functionality) use:
