@@ -378,11 +378,11 @@ This provides the best balance of:
 
 ## Summary: Two Different Scenarios
 
-| Scenario | Pattern | Works? |
-|----------|---------|--------|
-| **Standalone script** | Sequential (planetable first) | ✅ Yes |
-| **Napari plugin** | Thread-locked (Napari already running) | ⚠️ Test on Linux |
-| **Plugin + Safe Mode** | Disable aicspylibczi before Napari | ✅ Yes (no planetable) |
+| Scenario               | Pattern                                | Works?                |
+| ---------------------- | -------------------------------------- | --------------------- |
+| **Standalone script**  | Sequential (planetable first)          | ✅ Yes                 |
+| **Napari plugin**      | Thread-locked (Napari already running) | ⚠️ Test on Linux       |
+| **Plugin + Safe Mode** | Disable aicspylibczi before Napari     | ✅ Yes (no planetable) |
 
 
 
