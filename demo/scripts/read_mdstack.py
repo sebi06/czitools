@@ -17,9 +17,10 @@ from czitools.utils.napari_tools import display_xarray_in_napari
 # Test files
 # filepath = r"F:\AzureDevOps\RMS_CAREamics_Container\_archive\calc_mean_testimage.czi"
 # filepath = r"F:\Testdata_Zeiss\CZI_Testfiles\S=3_1Pos_2Mosaic_T=2=Z=3_CH=2.czi"
-filepath = r"F:\Testdata_Zeiss\CZI_Testfiles\96well_S=192_2pos_CH=3.czi"
+# filepath = r"F:\Testdata_Zeiss\CZI_Testfiles\96well_S=192_2pos_CH=3.czi"
 # filepath = r"F:\Testdata_Zeiss\CZI_Testfiles\WP96_4Pos_B4-10_DAPI.czi"
 # filepath = r"F:\Github\czitools\data\CellDivision_T10_Z15_CH2_DCV_small.czi"
+filepath = r"f:\Testdata_Zeiss\LLS7\LS_Mitosis_T=150-300.czi"
 
 # show resulting stack inside napari
 show_napari = True
@@ -35,7 +36,7 @@ if __name__ == "__main__":
 
     result, dims, num_stacks = read_tools.read_stacks(
         filepath,
-        use_dask=True,
+        use_dask=False,
         use_xarray=True,
         stack_scenes=True,
     )
@@ -61,10 +62,10 @@ if __name__ == "__main__":
         # With use_dask=True, result is backed by dask - no data loaded yet
         print(f"\nArray shape (no data loaded): {result.shape}")
 
-    # Load only a subset (triggers read for just those planes)
-    if isinstance(result, xr.DataArray) and "T" in result.dims and "C" in result.dims:
-        subset = result.sel(T=0, C=0).compute()
-        print(f"Subset shape after .compute(): {subset.shape}")
+    # # Load only a subset (triggers read for just those planes)
+    # if isinstance(result, xr.DataArray) and "T" in result.dims and "C" in result.dims:
+    #     subset = result.sel(T=0, C=0).compute()
+    #     print(f"Subset shape after .compute(): {subset.shape}")
 
     # Or load everything
     # full_data = result.compute()
