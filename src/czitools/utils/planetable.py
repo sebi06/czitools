@@ -187,9 +187,7 @@ def _getsbinfo(subblock: Any) -> Tuple[float, float, float, float]:
     return timestamp, xpos, ypos, zpos
 
 
-def norm_columns(
-    df: pd.DataFrame, colname: str = "Time [s]", mode: str = "min"
-) -> pd.DataFrame:
+def norm_columns(df: pd.DataFrame, colname: str = "Time [s]", mode: str = "min") -> pd.DataFrame:
     """Normalize a specific column inside a Pandas dataframe
     Args:
         df: DataFrame
@@ -212,9 +210,7 @@ def norm_columns(
     return df
 
 
-def filter_planetable(
-    planetable: pd.DataFrame, planes: Optional[Dict[str, int]] = None
-) -> pd.DataFrame:
+def filter_planetable(planetable: pd.DataFrame, planes: Optional[Dict[str, int]] = None) -> pd.DataFrame:
     """
     Filters the input planetable DataFrame based on specified dimension entries.
 
@@ -276,9 +272,7 @@ def filter_planetable(
         return planetable
 
 
-def save_planetable(
-    df: pd.DataFrame, filepath: str, separator: str = ",", index: bool = True
-) -> str:
+def save_planetable(df: pd.DataFrame, filepath: str, separator: str = ",", index: bool = True) -> str:
     """Saves a pandas dataframe as a CSV file.
 
     Args:
@@ -343,7 +337,6 @@ def _initialize_planetable_dataframe() -> pd.DataFrame:
             "width": "int32",
             "height": "int32",
         },
-        copy=False,
         errors="ignore",
     )
 
@@ -371,9 +364,7 @@ def _extract_dimension_info(dims: list) -> Dict[str, Dict[str, Union[int, bool]]
             # Dimension doesn't exist, set default values
             dim_info[dim] = {"size": 1, "present": False}
 
-    logger.info(
-        f"CZI dimensions found: {[dim for dim in dimensions if dim_info[dim]['present']]}"
-    )
+    logger.info(f"CZI dimensions found: {[dim for dim in dimensions if dim_info[dim]['present']]}")
 
     return dim_info
 
@@ -413,9 +404,7 @@ def _calculate_iteration_ranges(
 
             # Validate that the specified index is within bounds
             if start_idx >= max_size:
-                logger.warning(
-                    f"Specified {user_key} index {start_idx} exceeds maximum {max_size-1}. Using maximum."
-                )
+                logger.warning(f"Specified {user_key} index {start_idx} exceeds maximum {max_size-1}. Using maximum.")
                 start_idx = max_size - 1
                 end_idx = max_size
         else:
@@ -456,13 +445,7 @@ def _process_subblocks(
     z_start, z_end = ranges["Z"]
 
     # Calculate total number of planes for progress bar
-    total_planes = (
-        (s_end - s_start)
-        * (m_end - m_start)
-        * (t_end - t_start)
-        * (c_end - c_start)
-        * (z_end - z_start)
-    )
+    total_planes = (s_end - s_start) * (m_end - m_start) * (t_end - t_start) * (c_end - c_start) * (z_end - z_start)
 
     # Create the product iterator
     plane_iterator = product(
@@ -499,9 +482,7 @@ def _process_subblocks(
         args = _prepare_czi_args(dim_info, s[1], m[1], t[1], c[1], z[1])
 
         # Read bounding box and subblock metadata
-        bbox, sb = _read_subblock_data(
-            aicsczi, dim_info["M"]["present"], args, s[1], m[1], t[1], c[1], z[1]
-        )
+        bbox, sb = _read_subblock_data(aicsczi, dim_info["M"]["present"], args, s[1], m[1], t[1], c[1], z[1])
 
         # Extract information from subblock metadata
         timestamp, xpos, ypos, zpos = _getsbinfo(sb)
@@ -585,9 +566,7 @@ def _read_subblock_data(
     if has_m:
         # Handle mosaic/tile data
         bbox = aicsczi.get_mosaic_tile_bounding_box(**args)
-        sb = aicsczi.read_subblock_metadata(
-            unified_xml=True, B=0, S=s, M=m, T=t, Z=z, C=c
-        )
+        sb = aicsczi.read_subblock_metadata(unified_xml=True, B=0, S=s, M=m, T=t, Z=z, C=c)
     else:
         # Handle regular (non-mosaic) data
         bbox = aicsczi.get_tile_bounding_box(**args)
@@ -612,9 +591,7 @@ def _save_planetable_if_requested(
         Tuple[pd.DataFrame, Optional[str]]: DataFrame and path to saved CSV file.
     """
     try:
-        planetable_savepath = save_planetable(
-            df_czi, czifile, separator=table_separator, index=table_index
-        )
+        planetable_savepath = save_planetable(df_czi, czifile, separator=table_separator, index=table_index)
         logger.info(f"Planetable saved successfully at: {planetable_savepath}")
         return df_czi, planetable_savepath
     except Exception as e:

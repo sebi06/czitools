@@ -129,6 +129,7 @@ class CziMetadata:
     sample: Optional[CziSampleInfo] = field(init=False, default=None)
     add_metadata: Optional[CziAddMetaData] = field(init=False, default=None)
     scene_size_consistent: Optional[Tuple[int]] = field(init=False, default_factory=lambda: ())
+    array6d_size: Optional[Tuple[int, ...]] = field(init=False, default=None)
     verbose: bool = False
 
     def __post_init__(self):
@@ -267,6 +268,33 @@ class CziMetadata:
 
         # check for attached label or preview image
         self.attachments = CziAttachments(self.czi_box, verbose=self.verbose)
+
+    @staticmethod
+    def _require_component(name: str, value: Any) -> Any:
+        """Return a required metadata component or raise a clear error."""
+        if value is None:
+            raise RuntimeError(f"CziMetadata.{name} is not available.")
+        return value
+
+    @property
+    def image_required(self) -> CziDimensions:
+        """Return non-optional image dimensions."""
+        return self._require_component("image", self.image)
+
+    @property
+    def bbox_required(self) -> CziBoundingBox:
+        """Return non-optional bounding box metadata."""
+        return self._require_component("bbox", self.bbox)
+
+    @property
+    def channelinfo_required(self) -> CziChannelInfo:
+        """Return non-optional channel metadata."""
+        return self._require_component("channelinfo", self.channelinfo)
+
+    @property
+    def scale_required(self) -> CziScaling:
+        """Return non-optional scaling metadata."""
+        return self._require_component("scale", self.scale)
 
 
 def get_metadata_as_object(filepath: Union[str, os.PathLike[str]]) -> DictObj:
