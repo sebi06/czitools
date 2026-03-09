@@ -46,6 +46,7 @@ src/czitools/
 │   ├── logging_tools.py  # Logging configuration
 │   ├── box.py            # Box utilities for metadata
 │   ├── misc.py           # Miscellaneous helpers
+│   ├── ndv_tools.py      # NDV LUT/scale helpers
 │   ├── pixels.py         # Pixel type utilities
 │   └── planetable.py     # Planetable generation
 ├── visu_tools/           # Visualization utilities
@@ -70,6 +71,7 @@ src/czitools/
 - Use `field(init=False, default=None)` for computed fields in dataclasses
 - Prefer `Optional[Type]` for nullable types
 - Use `Union[str, os.PathLike[str]]` for file paths
+- For lightweight structural typing across utility modules, prefer `Protocol` for metadata-like inputs
 
 ### Type Annotations
 ```python
@@ -177,6 +179,7 @@ def read_6darray(
 - Tests are in `src/czitools/_tests/`
 - Test files follow pattern: `test_*.py`
 - Use pytest as the test framework
+- Keep utility-specific tests close to the module naming (for example `test_ndv_tools.py` for `utils/ndv_tools.py`)
 
 ### Test Structure
 ```python

@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 #################################################################
-# File        : use_read_tools.py
+# File        : use_ndv_tools.py
 # Author      : sebi06
 #
 # Disclaimer: This code is purely experimental. Feel free to
@@ -19,10 +19,10 @@ from pathlib import Path
 from magicgui import magicgui
 from magicgui.types import FileDialogMode
 from czitools.utils.napari_tools import display_xarray_in_napari
+from czitools.utils.ndv_tools import create_luts_ndv, create_scales_ndv
 import ndv
-from cmap import Colormap
 import xarray as xr
-from typing import Any
+from typing import Any, Mapping, cast
 from ndv._types import AxisKey
 
 show_napari = False
@@ -38,17 +38,6 @@ defaultdir = Path(Path(__file__).resolve().parents[2]) / "data"
 array6d: Any = None
 subset_planes: dict[str, Any] = {}
 result: Any = None
-
-
-def normalize_luts(luts_like):
-    """Normalize LUT definitions to NDV's channel-indexed mapping format."""
-    if isinstance(luts_like, dict):
-        return luts_like
-
-    if isinstance(luts_like, list):
-        return {i: {"cmap": cmap} for i, cmap in enumerate(luts_like)}
-
-    raise TypeError("luts must be a dict or list")
 
 
 # open simple dialog to select a CZI file
@@ -153,33 +142,19 @@ if show_napari:
         display_xarray_in_napari(array6d, mdata, subset_planes)
 
 if show_ndv:
-    luts = {}
 
-    size_c = int(getattr(mdata.image, "SizeC", 0) or 0)
-    names = getattr(mdata.channelinfo, "names", None) or []
-    colors = getattr(mdata.channelinfo, "colors", None) or []
+    # create NDV luts and scales from metadata
+    luts = create_luts_ndv(mdata)
+    scales = cast(Mapping[AxisKey, float], create_scales_ndv(mdata))
 
-    for ch_index in range(0, size_c):
-        chname = names[ch_index] if ch_index < len(names) else f"ch{ch_index}"
-        # ARGB stored in metadata as hexstring; convert to #RRGGBB
-        color_argb = colors[ch_index] if ch_index < len(colors) else "FF00FF00"
-        rgb = "#" + str(color_argb)[3:]
-        luts[ch_index] = {"cmap": Colormap(["#000000", rgb], name="cm_" + chname)}
-
+    # NDV imshow kwargs: use composite mode, channel axis is "C", and provide the luts
     imshow_kwargs = {
         "channel_mode": "composite",
         "channel_axis": "C",
-        "luts": normalize_luts(luts),
+        "luts": luts,
     }
 
-    # ndv >= commit c7955c8 supports `scales`; older versions require coords fallback.
-    # {"Z": z_scale, "Y": y_scale, "X": x_scale}
-    scales: dict[AxisKey, float] = {
-        "Z": float(getattr(mdata.scale, "Z", 1.0) or 1.0),
-        "Y": float(getattr(mdata.scale, "Y", 1.0) or 1.0),
-        "X": float(getattr(mdata.scale, "X", 1.0) or 1.0),
-    }
-
+    # Determine the appropriate data to display in NDV based on the results from read_stacks
     viewer_data = None
     if isinstance(result, list):
         viewer_data = result[0] if len(result) > 0 else None
@@ -191,4 +166,5 @@ if show_ndv:
     if viewer_data is None:
         raise RuntimeError("No data available for NDV display.")
 
+    # Display the data in NDV with the created luts and scales
     viewer = ndv.imshow(viewer_data, scales=scales, **imshow_kwargs)

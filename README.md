@@ -9,61 +9,6 @@
 
 This repository provides a collection of tools to simplify reading CZI (Carl Zeiss Image) pixel and metadata in Python. It is available as a [Python Package on PyPi](https://pypi.org/project/czitools/)
 
-## ⚠️ Important: Using czitools with Napari on Linux
-
-## ⚠️ Important: Using czitools with Napari on Linux
-
-If you use **Napari** on **Linux** and need `get_planetable()` or `read_tiles()`:
-
-📖 **[Linux + Napari + Planetable Guide](docs/LINUX_NAPARI_PLANETABLE.md)** ⭐ **READ THIS**
-
-**The Solution: Sequential Execution Pattern**
-
-Extract planetable **BEFORE** starting Napari to avoid threading conflicts:
-
-```python
-# Step 1: Get planetable FIRST (before Napari)
-from czitools.utils.planetable import get_planetable
-df, _ = get_planetable("file.czi")
-
-# Step 2: Load image (thread-safe)
-from czitools.read_tools import read_tools
-array, _ = read_tools.read_6darray("file.czi", use_dask=True)
-
-# Step 3: NOW start Napari (safe - no conflicts!)
-import napari
-viewer = napari.Viewer()
-viewer.add_image(array)
-napari.run()
-```
-
-✅ **Full planetable functionality on Linux**  
-✅ **No crashes**  
-✅ **No performance loss**
-
-**Alternative: Safe Mode** (simpler, but no planetable/tiles):
-
-```python
-import os
-os.environ["CZITOOLS_DISABLE_AICSPYLIBCZI"] = "1"
-
-from czitools.read_tools import read_tools
-# Use read_6darray() instead of read_tiles()
-array, mdata = read_tools.read_6darray("file.czi", use_dask=True)
-```
-
-**Why?** `aicspylibczi` has threading conflicts with PyQt on Linux.  
-**Solution:** Extract planetable before PyQt event loop starts (sequential execution).
-
-📄 **Documentation:**
-- [Linux + Napari + Planetable Guide](docs/LINUX_NAPARI_PLANETABLE.md) - Complete examples
-- [Threading Considerations](docs/threading_considerations.md) - Technical details
-- [Quick Fix Guide](docs/NAPARI_FIX.md) - Emergency fixes
-
----
-
-See [demo/scripts/napari_with_process_isolation.py](demo/scripts/napari_with_process_isolation.py) for complete examples and [docs/threading_considerations.md](docs/threading_considerations.md) for detailed information.
-
 ## Installation
 
 To install czitools (core functionality) use:
@@ -101,7 +46,7 @@ Currently this only works on:
 
 MacOS is not supported yet out of the box, but if one installs pylibCZIrw wheels for MacOS manually the package should work (not tested).
 
-Thanks to the community for providing [MaxOS wheels for pylibCZIrw](https://pypi.scm.io/#/package/pylibczirw) wheels for MacOS, which makes it possible to read and write CZI files on MacOS.
+Thanks to the community for providing [MacOS wheels for pylibCZIrw](https://pypi.scm.io/#/package/pylibczirw), which makes it possible to read and write CZI files on MacOS.
 
 
 ## Reading the metadata
@@ -224,6 +169,21 @@ if show_napari:
 
 ```
 
+## NDV Viewer Helpers
+
+For NDV visualization workflows, `czitools` provides small helpers to generate channel LUTs and axis scales directly from CZI metadata:
+
+```python
+from czitools.metadata_tools.czi_metadata import CziMetadata
+from czitools.utils.ndv_tools import create_luts_ndv, create_scales_ndv
+
+mdata = CziMetadata(filepath)
+luts = create_luts_ndv(mdata)
+scales = create_scales_ndv(mdata)
+```
+
+These helpers are used by `demo/scripts/use_ndv.py` and keep color/scale conversion logic in one place.
+
 
 ![5D CZI inside Napari](https://github.com/sebi06/czitools/raw/main/images/czi_napari2.png)
 
@@ -254,11 +214,63 @@ The basic usage can be inferred from this sample notebook:&nbsp;
 The basic usage can be inferred from this sample notebook:&nbsp;
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/sebi06/czitools/blob/main/demo/notebooks/show_czi_surface.ipynb)
 
-### Read a CZI and segment using Voroni-Otsu provided by PyClesperanto GPU processing
+### Read a CZI and segment using Voronoi-Otsu provided by PyClesperanto GPU processing
 
 The basic usage can be inferred from this sample notebook:&nbsp;
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/sebi06/czitools/blob/main/demo/notebooks/read_czi_segment_voroni_otsu.ipynb)
 
 ## Remarks
 
-The code to read multi-dimensional with delayed reading using Dask array was heavily inspired by input from: [Pradeep Rajasekhar](https://github.com/pr4deepr).
+### ⚠️ Important: Using czitools with Napari on Linux
+
+If you use **Napari** on **Linux** and need `get_planetable()` or `read_tiles()`:
+
+📖 **[Linux + Napari + Planetable Guide](docs/LINUX_NAPARI_PLANETABLE.md)** ⭐ **READ THIS**
+
+#### The Solution: Sequential Execution Pattern
+
+Extract planetable **BEFORE** starting Napari to avoid threading conflicts:
+
+```python
+# Step 1: Get planetable FIRST (before Napari)
+from czitools.utils.planetable import get_planetable
+df, _ = get_planetable("file.czi")
+
+# Step 2: Load image (thread-safe)
+from czitools.read_tools import read_tools
+array, _ = read_tools.read_6darray("file.czi", use_dask=True)
+
+# Step 3: NOW start Napari (safe - no conflicts!)
+import napari
+viewer = napari.Viewer()
+viewer.add_image(array)
+napari.run()
+```
+
+✅ **Full planetable functionality on Linux**  
+✅ **No crashes**  
+✅ **No performance loss**
+
+**Alternative: Safe Mode** (simpler, but no planetable/tiles):
+
+```python
+import os
+os.environ["CZITOOLS_DISABLE_AICSPYLIBCZI"] = "1"
+
+from czitools.read_tools import read_tools
+# Use read_6darray() instead of read_tiles()
+array, mdata = read_tools.read_6darray("file.czi", use_dask=True)
+```
+
+**Why?** `aicspylibczi` has threading conflicts with PyQt on Linux.  
+**Solution:** Extract planetable before PyQt event loop starts (sequential execution).
+
+📄 **Documentation:**
+
+* [Linux + Napari + Planetable Guide](docs/LINUX_NAPARI_PLANETABLE.md) - Complete examples
+* [Threading Considerations](docs/threading_considerations.md) - Technical details
+* [Quick Fix Guide](docs/NAPARI_FIX.md) - Emergency fixes
+
+---
+
+See [demo/scripts/napari_with_process_isolation.py](demo/scripts/napari_with_process_isolation.py) for complete examples and [docs/threading_considerations.md](docs/threading_considerations.md) for detailed information.
