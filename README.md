@@ -48,7 +48,6 @@ MacOS is not supported yet out of the box, but if one installs pylibCZIrw wheels
 
 Thanks to the community for providing [MacOS wheels for pylibCZIrw](https://pypi.scm.io/#/package/pylibczirw), which makes it possible to read and write CZI files on MacOS.
 
-
 ## Reading the metadata
 
 Please check [use_metadata_tools.py](https://github.com/sebi06/czitools/blob/main/demo/scripts/use_metadata_tools.py) for some examples.
@@ -167,6 +166,61 @@ if show_napari:
 
     napari.run()
 
+```
+
+### Reading Scene Stacks (`read_stacks`)
+
+`read_stacks` supports scene-wise reading with optional stacking:
+
+```python
+from czitools.read_tools import read_tools
+
+result, dims, num_stacks = read_tools.read_stacks(
+    filepath,
+    use_dask=True,
+    use_xarray=True,
+    stack_scenes=True,
+)
+```
+
+Important return behavior:
+
+* `stack_scenes=False`: always returns a list (one array per scene)
+* `stack_scenes=True` and shapes match: returns one stacked array (with `S` dim)
+* `stack_scenes=True` and shapes differ: returns a list (with warning)
+
+If you prefer strict return contracts for typed code:
+
+* `read_tools.read_stacks_list(...)` always returns a list
+* `read_tools.read_stacks_stacked(...)` requires stacked output and raises `ValueError` when scenes cannot be stacked
+
+### Napari Display Helpers
+
+For robust display in Napari (including string channel labels and list-of-stacks results), use the helpers from `czitools.utils.napari_tools`.
+
+Single array:
+
+```python
+from czitools.utils.napari_tools import display_xarray_in_napari
+
+subset_planes = array6d.attrs.get("subset_planes", {})
+display_xarray_in_napari(array6d, mdata, subset_planes)
+```
+
+List of stacks (works even if scenes have different shapes):
+
+```python
+from czitools.utils.napari_tools import display_xarray_list_in_napari
+
+display_xarray_list_in_napari(result_list, mdata)
+```
+
+Tip: if you only want one stack from a list, select it first:
+
+```python
+idx = 0
+subset_planes = result_list[idx].attrs.get("subset_planes", {})
+display_xarray_in_napari(result_list[idx], mdata, subset_planes)
 ```
 
 ## NDV Viewer Helpers
