@@ -22,9 +22,8 @@ show_napari = True
 # adapt to your needs
 defaultdir = Path(Path(__file__).resolve().parents[2]) / "data"
 
-# option to toogle using a file open dialog or a hardcoded filename
+# option to toggle using a file open dialog or a hardcoded filename
 use_dialog = True
-
 
 # open simple dialog to select a CZI file
 @magicgui(
@@ -65,6 +64,8 @@ array6d, mdata = read_tools.read_6darray(
     zoom=1.0,
     # planes={"S": (0, 0), "T": (0, 2), "C": (0, 0), "Z": (0, 4)},
     adapt_metadata=True,
+    use_dask=False,
+    use_xarray=True,
 )
 
 # get the planes

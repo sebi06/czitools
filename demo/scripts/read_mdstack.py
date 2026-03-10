@@ -13,16 +13,25 @@ import xarray as xr
 from czitools.read_tools import read_tools
 from czitools.metadata_tools.czi_metadata import CziMetadata
 from czitools.utils.napari_tools import display_xarray_in_napari
+from czitools.utils.napari_tools import display_xarray_list_in_napari
 
 # Test files
 # filepath = r"F:\AzureDevOps\RMS_CAREamics_Container\_archive\calc_mean_testimage.czi"
-# filepath = r"F:\Testdata_Zeiss\CZI_Testfiles\S=3_1Pos_2Mosaic_T=2=Z=3_CH=2.czi"
-filepath = r"F:\Testdata_Zeiss\CZI_Testfiles\96well_S=192_2pos_CH=3.czi"
+filepath = r"F:\Testdata_Zeiss\CZI_Testfiles\S=3_1Pos_2Mosaic_T=2=Z=3_CH=2.czi"
+# filepath = r"F:\Testdata_Zeiss\CZI_Testfiles\96well_S=192_2pos_CH=3.czi"
 # filepath = r"F:\Testdata_Zeiss\CZI_Testfiles\WP96_4Pos_B4-10_DAPI.czi"
 # filepath = r"F:\Github\czitools\data\CellDivision_T10_Z15_CH2_DCV_small.czi"
+# filepath = r"f:\Testdata_Zeiss\LLS7\LS_Mitosis_T=150-300.czi"
 
 # show resulting stack inside napari
 show_napari = True
+# If result is a list of stacks, choose display mode:
+# - True: show all stacks in one viewer
+# - False: show only one stack selected by ``list_stack_index``
+show_all_list_stacks = False
+# Stack index used when ``result`` is a list and ``show_all_list_stacks`` is False.
+# Ignored when result is not a list.
+list_stack_index = 0
 
 if __name__ == "__main__":
     # Read scenes using the new function from czitools.read_tools
@@ -35,9 +44,9 @@ if __name__ == "__main__":
 
     result, dims, num_stacks = read_tools.read_stacks(
         filepath,
-        use_dask=True,
+        use_dask=False,
         use_xarray=True,
-        stack_scenes=True,
+        stack_scenes=False,
     )
 
     print("\n=== Results ===")
@@ -61,25 +70,18 @@ if __name__ == "__main__":
         # With use_dask=True, result is backed by dask - no data loaded yet
         print(f"\nArray shape (no data loaded): {result.shape}")
 
-    # Load only a subset (triggers read for just those planes)
-    if isinstance(result, xr.DataArray) and "T" in result.dims and "C" in result.dims:
-        subset = result.sel(T=0, C=0).compute()
-        print(f"Subset shape after .compute(): {subset.shape}")
-
-    # Or load everything
-    # full_data = result.compute()
-
     if show_napari:
+        if isinstance(result, list):
+            if len(result) == 0:
+                raise RuntimeError("No stack data available for Napari display.")
 
-        try:
-            # get the planes
-            subset_planes = result.attrs["subset_planes"]
-
-            # Delegate Napari display to the utility function
+            if show_all_list_stacks:
+                display_xarray_list_in_napari(result, mdata)
+            else:
+                selected_index = max(0, min(list_stack_index, len(result) - 1))
+                subset_planes = result[selected_index].attrs.get("subset_planes", {})
+                print(f"Showing stack index: {selected_index}")
+                display_xarray_in_napari(result[selected_index], mdata, subset_planes)
+        else:
+            subset_planes = result.attrs.get("subset_planes", {})
             display_xarray_in_napari(result, mdata, subset_planes)
-        except (KeyError, AttributeError):
-            # use 1st entry
-            subset_planes = result[0].attrs["subset_planes"]
-
-            # Delegate Napari display to the utility function
-            display_xarray_in_napari(result[0], mdata, subset_planes)

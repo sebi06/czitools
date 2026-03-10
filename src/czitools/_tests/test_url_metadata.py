@@ -14,30 +14,52 @@ class TestUrlMetadata:
     """Test class for URL-based CZI metadata operations."""
 
     @pytest.fixture
-    def sample_url(self):
-        """GitHub raw URL for a sample CZI file."""
-        return "https://github.com/sebi06/czitools/raw/main/data/CellDivision_T3_Z5_CH2_X240_Y170.czi"
+    def sample_urls(self):
+        """Candidate URLs for a sample CZI file (prefer direct raw host)."""
+        return [
+            "https://raw.githubusercontent.com/sebi06/czitools/main/data/CellDivision_T3_Z5_CH2_X240_Y170.czi",
+            "https://github.com/sebi06/czitools/raw/main/data/CellDivision_T3_Z5_CH2_X240_Y170.czi",
+        ]
 
-    def test_url_metadata_creation(self, sample_url):
+    def _load_mdata_or_skip(self, urls):
+        """Try to load metadata from candidate URLs; skip on transient network issues."""
+        last_error = None
+        for url in urls:
+            try:
+                return CziMetadata(url)
+            except RuntimeError as exc:
+                # libcurl/pylibCZIrw transient failures should not hard-fail CI.
+                msg = str(exc).lower()
+                if "ssl" in msg or "curl_easy_perform" in msg or "fileheadersegment" in msg:
+                    last_error = exc
+                    continue
+                raise
+            except OSError as exc:
+                last_error = exc
+                continue
+
+        pytest.skip(f"Network-dependent URL metadata test skipped due to transient URL/SSL error: {last_error}")
+
+    def test_url_metadata_creation(self, sample_urls):
         """Test that CziMetadata can be created from a URL."""
-        mdata = CziMetadata(sample_url)
+        mdata = self._load_mdata_or_skip(sample_urls)
 
         # Verify metadata object was created successfully
         assert mdata is not None
         assert isinstance(mdata, CziMetadata)
 
-    def test_url_metadata_has_bbox(self, sample_url):
+    def test_url_metadata_has_bbox(self, sample_urls):
         """Test that metadata from URL contains bounding box information."""
-        mdata = CziMetadata(sample_url)
+        mdata = self._load_mdata_or_skip(sample_urls)
 
         # Verify bounding box exists and is correct type
         assert hasattr(mdata, "bbox")
         assert mdata.bbox is not None
         assert isinstance(mdata.bbox, CziBoundingBox)
 
-    def test_url_metadata_total_bounding_box(self, sample_url):
+    def test_url_metadata_total_bounding_box(self, sample_urls):
         """Test that total_bounding_box is accessible and properly formatted."""
-        mdata = CziMetadata(sample_url)
+        mdata = self._load_mdata_or_skip(sample_urls)
 
         # Verify total_bounding_box exists and is a dictionary
         assert mdata.bbox.total_bounding_box is not None
@@ -52,9 +74,9 @@ class TestUrlMetadata:
             assert isinstance(bbox[dim], tuple), f"Dimension '{dim}' should be a tuple"
             assert len(bbox[dim]) == 2, f"Dimension '{dim}' should have 2 values (min, max)"
 
-    def test_url_metadata_specific_dimensions(self, sample_url):
+    def test_url_metadata_specific_dimensions(self, sample_urls):
         """Test specific dimension values match expected sample data."""
-        mdata = CziMetadata(sample_url)
+        mdata = self._load_mdata_or_skip(sample_urls)
         bbox = mdata.bbox.total_bounding_box
 
         # Test specific dimensions based on filename expectations
@@ -65,9 +87,9 @@ class TestUrlMetadata:
         assert bbox["X"][1] == 240, f"Expected X dimension max of 240, got {bbox['X'][1]}"
         assert bbox["Y"][1] == 170, f"Expected Y dimension max of 170, got {bbox['Y'][1]}"
 
-    def test_url_metadata_dimension_access(self, sample_url):
+    def test_url_metadata_dimension_access(self, sample_urls):
         """Test that individual dimensions can be accessed without errors."""
-        mdata = CziMetadata(sample_url)
+        mdata = self._load_mdata_or_skip(sample_urls)
         bbox = mdata.bbox.total_bounding_box
 
         # Test accessing each dimension
@@ -80,12 +102,12 @@ class TestUrlMetadata:
             assert max_val > min_val
 
     @pytest.mark.network
-    def test_url_metadata_network_dependency(self, sample_url):
+    def test_url_metadata_network_dependency(self, sample_urls):
         """Test marked as requiring network access."""
         # This test is marked with @pytest.mark.network
         # It can be skipped in environments without network access
         # using: pytest -m "not network"
-        mdata = CziMetadata(sample_url)
+        mdata = self._load_mdata_or_skip(sample_urls)
         assert mdata is not None
 
     # TODO: Adapt CziMetadata error handling
