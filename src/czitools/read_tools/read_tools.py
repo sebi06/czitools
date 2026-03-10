@@ -57,6 +57,23 @@ def _as_float(value: Any, default: float = 1.0) -> float:
     return float(value)
 
 
+def _channel_names_or_default(mdata: czimd.CziMetadata, size_c: int) -> List[str]:
+    """Return channel names with deterministic fallback labels.
+
+    When metadata does not provide channel names (or provides too few names),
+    fallback labels ``ch0``, ``ch1``, ... are appended to match ``size_c``.
+    """
+    names: List[str] = []
+    channelinfo = mdata.channelinfo
+    if channelinfo is not None and channelinfo.names is not None:
+        names = [str(name) for name in channelinfo.names[:size_c]]
+
+    if len(names) < size_c:
+        names.extend(f"ch{i}" for i in range(len(names), size_c))
+
+    return names
+
+
 # Canonical dimension order for read_stacks
 # Extra dimensions come first, then core dimensions
 _EXTRA_DIMS = ["V", "R", "I", "H", "M"]  # optional extra dims (prepended if present)
@@ -372,7 +389,7 @@ def read_6darray(
 
         # Assign coordinate values based on metadata scaling and channel names
         array6d = array6d.assign_coords(
-            C=mdata.channelinfo.names[: array6d.sizes["C"]],
+            C=_channel_names_or_default(mdata, array6d.sizes["C"]),
             **{ax: np.arange(array6d.sizes[ax]) * getattr(mdata.scale, ax) for ax in "ZYX"},
         )
 
@@ -624,7 +641,7 @@ def read_6darray_lazy(
 
         # Assign coordinate values based on metadata scaling and channel names
         array6d = array6d.assign_coords(
-            C=mdata.channelinfo.names[: array6d.sizes["C"]],
+            C=_channel_names_or_default(mdata, array6d.sizes["C"]),
             **{ax: np.arange(array6d.sizes[ax]) * getattr(mdata.scale, ax) for ax in "ZYX"},
         )
 
@@ -957,6 +974,55 @@ def _read_plane_chunk(
     return chunk_array
 
 
+@overload
+def read_stacks(
+    filepath: Union[str, os.PathLike[str]],
+    use_dask: bool = False,
+    use_xarray: Literal[True] = True,
+    stack_scenes: Literal[False] = False,
+    planes: Optional[Dict[str, Tuple[int, int]]] = None,
+    chunk_policy: str = "none",
+    chunk_memory_limit: int = 256 * 1024 * 1024,
+) -> Tuple[List[xr.DataArray], List[str], int]: ...
+
+
+@overload
+def read_stacks(
+    filepath: Union[str, os.PathLike[str]],
+    use_dask: bool = False,
+    use_xarray: Literal[True] = True,
+    stack_scenes: Literal[True] = True,
+    planes: Optional[Dict[str, Tuple[int, int]]] = None,
+    chunk_policy: str = "none",
+    chunk_memory_limit: int = 256 * 1024 * 1024,
+) -> Tuple[Union[xr.DataArray, List[xr.DataArray]], List[str], int]: ...
+
+
+@overload
+def read_stacks(
+    filepath: Union[str, os.PathLike[str]],
+    use_dask: bool = False,
+    use_xarray: Literal[False] = False,
+    stack_scenes: Literal[False] = False,
+    planes: Optional[Dict[str, Tuple[int, int]]] = None,
+    chunk_policy: str = "none",
+    chunk_memory_limit: int = 256 * 1024 * 1024,
+) -> Tuple[List[Union[np.ndarray, da.Array]], List[str], int]: ...
+
+
+@overload
+def read_stacks(
+    filepath: Union[str, os.PathLike[str]],
+    use_dask: bool = False,
+    use_xarray: Literal[False] = False,
+    stack_scenes: Literal[True] = True,
+    planes: Optional[Dict[str, Tuple[int, int]]] = None,
+    chunk_policy: str = "none",
+    chunk_memory_limit: int = 256 * 1024 * 1024,
+) -> Tuple[Union[np.ndarray, da.Array, List[Union[np.ndarray, da.Array]]], List[str], int]: ...
+
+
+@overload
 def read_stacks(
     filepath: Union[str, os.PathLike[str]],
     use_dask: bool = False,
@@ -967,7 +1033,29 @@ def read_stacks(
     chunk_memory_limit: int = 256 * 1024 * 1024,
 ) -> Tuple[
     Union[
-        List[Union[xr.DataArray, np.ndarray, da.Array]],
+        List[xr.DataArray],
+        List[Union[np.ndarray, da.Array]],
+        xr.DataArray,
+        np.ndarray,
+        da.Array,
+    ],
+    List[str],
+    int,
+]: ...
+
+
+def read_stacks(
+    filepath: Union[str, os.PathLike[str]],
+    use_dask: bool = False,
+    use_xarray: bool = True,
+    stack_scenes: bool = False,
+    planes: Optional[Dict[str, Tuple[int, int]]] = None,
+    chunk_policy: str = "none",
+    chunk_memory_limit: int = 256 * 1024 * 1024,
+) -> Tuple[
+    Union[
+        List[xr.DataArray],
+        List[Union[np.ndarray, da.Array]],
         xr.DataArray,
         np.ndarray,
         da.Array,
@@ -1355,7 +1443,7 @@ def read_stacks(
 
                 # Assign coordinate values based on metadata scaling and channel names
                 xr_da = xr_da.assign_coords(
-                    C=mdata.channelinfo.names[: xr_da.sizes["C"]],
+                    C=_channel_names_or_default(mdata, xr_da.sizes["C"]),
                     **{ax: np.arange(xr_da.sizes[ax]) * getattr(mdata.scale, ax) for ax in "ZYX"},
                 )
 
@@ -1368,7 +1456,11 @@ def read_stacks(
         # If no stacks were collected, just return the list (nothing to stack).
         if not stack_shapes:
             logger.info("read_stacks: stack_scenes requested but no stacks were found; returning list")
-            return stack_arrays, all_dims, num_stacks
+            return (
+                cast(Union[List[xr.DataArray], List[Union[np.ndarray, da.Array]]], stack_arrays),
+                all_dims,
+                num_stacks,
+            )
 
         unique_shapes = set(stack_shapes)
         if len(unique_shapes) == 1:
@@ -1472,4 +1564,107 @@ def read_stacks(
         else:
             logger.warning(f"read_stacks: Cannot stack stacks - shapes differ: {unique_shapes}")
 
-    return stack_arrays, all_dims, num_stacks
+    return cast(Union[List[xr.DataArray], List[Union[np.ndarray, da.Array]]], stack_arrays), all_dims, num_stacks
+
+
+@overload
+def read_stacks_list(
+    filepath: Union[str, os.PathLike[str]],
+    use_dask: bool = False,
+    use_xarray: Literal[True] = True,
+    planes: Optional[Dict[str, Tuple[int, int]]] = None,
+    chunk_policy: str = "none",
+    chunk_memory_limit: int = 256 * 1024 * 1024,
+) -> Tuple[List[xr.DataArray], List[str], int]: ...
+
+
+@overload
+def read_stacks_list(
+    filepath: Union[str, os.PathLike[str]],
+    use_dask: bool = False,
+    use_xarray: Literal[False] = False,
+    planes: Optional[Dict[str, Tuple[int, int]]] = None,
+    chunk_policy: str = "none",
+    chunk_memory_limit: int = 256 * 1024 * 1024,
+) -> Tuple[List[Union[np.ndarray, da.Array]], List[str], int]: ...
+
+
+def read_stacks_list(
+    filepath: Union[str, os.PathLike[str]],
+    use_dask: bool = False,
+    use_xarray: bool = True,
+    planes: Optional[Dict[str, Tuple[int, int]]] = None,
+    chunk_policy: str = "none",
+    chunk_memory_limit: int = 256 * 1024 * 1024,
+) -> Tuple[Union[List[xr.DataArray], List[Union[np.ndarray, da.Array]]], List[str], int]:
+    """Read stacks and always return a list (one element per scene).
+
+    This is a typed convenience wrapper around ``read_stacks(..., stack_scenes=False)``.
+    Use this function when you want a stable list return contract for static typing.
+    """
+    result, dims, num_stacks = read_stacks(
+        filepath=filepath,
+        use_dask=use_dask,
+        use_xarray=use_xarray,
+        stack_scenes=False,
+        planes=planes,
+        chunk_policy=chunk_policy,
+        chunk_memory_limit=chunk_memory_limit,
+    )
+
+    return cast(Union[List[xr.DataArray], List[Union[np.ndarray, da.Array]]], result), dims, num_stacks
+
+
+@overload
+def read_stacks_stacked(
+    filepath: Union[str, os.PathLike[str]],
+    use_dask: bool = False,
+    use_xarray: Literal[True] = True,
+    planes: Optional[Dict[str, Tuple[int, int]]] = None,
+    chunk_policy: str = "none",
+    chunk_memory_limit: int = 256 * 1024 * 1024,
+) -> Tuple[xr.DataArray, List[str], int]: ...
+
+
+@overload
+def read_stacks_stacked(
+    filepath: Union[str, os.PathLike[str]],
+    use_dask: bool = False,
+    use_xarray: Literal[False] = False,
+    planes: Optional[Dict[str, Tuple[int, int]]] = None,
+    chunk_policy: str = "none",
+    chunk_memory_limit: int = 256 * 1024 * 1024,
+) -> Tuple[Union[np.ndarray, da.Array], List[str], int]: ...
+
+
+def read_stacks_stacked(
+    filepath: Union[str, os.PathLike[str]],
+    use_dask: bool = False,
+    use_xarray: bool = True,
+    planes: Optional[Dict[str, Tuple[int, int]]] = None,
+    chunk_policy: str = "none",
+    chunk_memory_limit: int = 256 * 1024 * 1024,
+) -> Tuple[Union[xr.DataArray, np.ndarray, da.Array], List[str], int]:
+    """Read stacks and require a single stacked output with an S dimension.
+
+    This is a typed convenience wrapper around ``read_stacks(..., stack_scenes=True)``.
+    It raises ``ValueError`` when scenes cannot be stacked into a single output
+    (for example, when scene shapes differ).
+    """
+    result, dims, num_stacks = read_stacks(
+        filepath=filepath,
+        use_dask=use_dask,
+        use_xarray=use_xarray,
+        stack_scenes=True,
+        planes=planes,
+        chunk_policy=chunk_policy,
+        chunk_memory_limit=chunk_memory_limit,
+    )
+
+    if isinstance(result, list):
+        raise ValueError(
+            "read_stacks_stacked requires stackable scenes, but read_stacks returned a list. "
+            "Use read_stacks_list for per-scene outputs."
+        )
+
+    return result, dims, num_stacks
