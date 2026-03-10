@@ -74,6 +74,28 @@ def _channel_names_or_default(mdata: czimd.CziMetadata, size_c: int) -> List[str
     return names
 
 
+def _get_axis_coord_step(scale: Any, axis: str, zoom: float = 1.0) -> float:
+    """Return physical coordinate spacing for a given axis.
+
+    For zoomed reads, X and Y spacing must be scaled to keep physical
+    coordinates consistent with downsampled pixel grids.
+    """
+    if axis == "Z":
+        return _as_float(getattr(scale, "Z", None), 1.0)
+    if axis == "Y":
+        return _as_float(
+            getattr(scale, "Y_sf", None),
+            _as_float(getattr(scale, "Y", None), 1.0) * (1.0 / zoom),
+        )
+    if axis == "X":
+        return _as_float(
+            getattr(scale, "X_sf", None),
+            _as_float(getattr(scale, "X", None), 1.0) * (1.0 / zoom),
+        )
+
+    raise ValueError(f"Unsupported axis for coordinate step: {axis}")
+
+
 # Canonical dimension order for read_stacks
 # Extra dimensions come first, then core dimensions
 _EXTRA_DIMS = ["V", "R", "I", "H", "M"]  # optional extra dims (prepended if present)
@@ -388,9 +410,11 @@ def read_6darray(
         array6d = xr.DataArray(array6d, dims=dims, coords=coords)
 
         # Assign coordinate values based on metadata scaling and channel names
+        spatial_coords = {
+            ax: np.arange(array6d.sizes[ax]) * _get_axis_coord_step(mdata.scale, ax, zoom) for ax in "ZYX"
+        }
         array6d = array6d.assign_coords(
-            C=_channel_names_or_default(mdata, array6d.sizes["C"]),
-            **{ax: np.arange(array6d.sizes[ax]) * getattr(mdata.scale, ax) for ax in "ZYX"},
+            C=_channel_names_or_default(mdata, array6d.sizes["C"]), **cast(Any, spatial_coords)
         )
 
         # Set attributes for the DataArray
@@ -615,6 +639,10 @@ def read_6darray_lazy(
 
     # Convert to xarray if requested
     if use_xarray:
+        # Use actual zoomed spatial shape from the built array.
+        size_y = int(array6d.shape[4])
+        size_x = int(array6d.shape[5])
+
         dims = ("S", "T", "C", "Z", "Y", "X") if remove_adim else ("S", "T", "C", "Z", "Y", "X", "A")
         coords = {
             "S": range(size_s),
@@ -640,9 +668,11 @@ def read_6darray_lazy(
         )
 
         # Assign coordinate values based on metadata scaling and channel names
+        spatial_coords = {
+            ax: np.arange(array6d.sizes[ax]) * _get_axis_coord_step(mdata.scale, ax, zoom) for ax in "ZYX"
+        }
         array6d = array6d.assign_coords(
-            C=_channel_names_or_default(mdata, array6d.sizes["C"]),
-            **{ax: np.arange(array6d.sizes[ax]) * getattr(mdata.scale, ax) for ax in "ZYX"},
+            C=_channel_names_or_default(mdata, array6d.sizes["C"]), **cast(Any, spatial_coords)
         )
 
     return array6d, mdata
@@ -892,6 +922,7 @@ def _read_plane_delayed(
     plane: Dict[str, int],
     stack_idx: Optional[int],
     squeeze_grayscale: bool,
+    zoom: float = 1.0,
     readertype: pyczi.ReaderFileInputTypes = pyczi.ReaderFileInputTypes.Standard,
 ) -> np.ndarray:
     """Delayed function to read a single 2D plane from a CZI file.
@@ -902,8 +933,9 @@ def _read_plane_delayed(
     Args:
         filepath: Path to the CZI file (local path or URL).
         plane: Dictionary mapping dimension names to coordinate values.
-    stack_idx: Index of the stack to read (same as scene index in CZIs).
+        stack_idx: Index of the stack to read (same as scene index in CZIs).
         squeeze_grayscale: If True, squeeze the trailing dimension for grayscale images.
+        zoom: Downscale factor for 2D plane reads [0.01 - 1.0].
         readertype: The pylibCZIrw reader type (Standard for local files, Curl for URLs).
 
     Returns:
@@ -912,9 +944,9 @@ def _read_plane_delayed(
     with pyczi.open_czi(filepath, readertype) as czidoc:
         # If stack_idx is None the CZI has no scenes; read without scene arg
         if stack_idx is None:
-            img2d = czidoc.read(plane=plane)
+            img2d = czidoc.read(plane=plane, zoom=zoom)
         else:
-            img2d = czidoc.read(plane=plane, scene=stack_idx)
+            img2d = czidoc.read(plane=plane, scene=stack_idx, zoom=zoom)
 
         if squeeze_grayscale:
             img2d = img2d[..., 0]
@@ -930,6 +962,7 @@ def _read_plane_chunk(
     squeeze_grayscale: bool,
     plane_shape: Tuple[int, ...],
     dtype: np.dtype,
+    zoom: float = 1.0,
     readertype: pyczi.ReaderFileInputTypes = pyczi.ReaderFileInputTypes.Standard,
 ) -> np.ndarray:
     """Read a chunk of multiple planes from a CZI file in a single task.
@@ -947,6 +980,7 @@ def _read_plane_chunk(
         squeeze_grayscale: If True, squeeze the trailing dimension for grayscale images.
         plane_shape: Shape of a single plane.
         dtype: Data type of the array.
+        zoom: Downscale factor for 2D plane reads [0.01 - 1.0].
         readertype: The pylibCZIrw reader type (Standard for local files, Curl for URLs).
 
     Returns:
@@ -962,9 +996,9 @@ def _read_plane_chunk(
 
             # Read the plane
             if stack_idx is None:
-                img2d = czidoc.read(plane=plane)
+                img2d = czidoc.read(plane=plane, zoom=zoom)
             else:
-                img2d = czidoc.read(plane=plane, scene=stack_idx)
+                img2d = czidoc.read(plane=plane, scene=stack_idx, zoom=zoom)
 
             if squeeze_grayscale:
                 img2d = img2d[..., 0]
@@ -981,6 +1015,7 @@ def read_stacks(
     use_xarray: Literal[True] = True,
     stack_scenes: Literal[False] = False,
     planes: Optional[Dict[str, Tuple[int, int]]] = None,
+    zoom: float = 1.0,
     chunk_policy: str = "none",
     chunk_memory_limit: int = 256 * 1024 * 1024,
 ) -> Tuple[List[xr.DataArray], List[str], int]: ...
@@ -993,6 +1028,7 @@ def read_stacks(
     use_xarray: Literal[True] = True,
     stack_scenes: Literal[True] = True,
     planes: Optional[Dict[str, Tuple[int, int]]] = None,
+    zoom: float = 1.0,
     chunk_policy: str = "none",
     chunk_memory_limit: int = 256 * 1024 * 1024,
 ) -> Tuple[Union[xr.DataArray, List[xr.DataArray]], List[str], int]: ...
@@ -1005,6 +1041,7 @@ def read_stacks(
     use_xarray: Literal[False] = False,
     stack_scenes: Literal[False] = False,
     planes: Optional[Dict[str, Tuple[int, int]]] = None,
+    zoom: float = 1.0,
     chunk_policy: str = "none",
     chunk_memory_limit: int = 256 * 1024 * 1024,
 ) -> Tuple[List[Union[np.ndarray, da.Array]], List[str], int]: ...
@@ -1017,6 +1054,7 @@ def read_stacks(
     use_xarray: Literal[False] = False,
     stack_scenes: Literal[True] = True,
     planes: Optional[Dict[str, Tuple[int, int]]] = None,
+    zoom: float = 1.0,
     chunk_policy: str = "none",
     chunk_memory_limit: int = 256 * 1024 * 1024,
 ) -> Tuple[Union[np.ndarray, da.Array, List[Union[np.ndarray, da.Array]]], List[str], int]: ...
@@ -1029,6 +1067,7 @@ def read_stacks(
     use_xarray: bool = True,
     stack_scenes: bool = False,
     planes: Optional[Dict[str, Tuple[int, int]]] = None,
+    zoom: float = 1.0,
     chunk_policy: str = "none",
     chunk_memory_limit: int = 256 * 1024 * 1024,
 ) -> Tuple[
@@ -1050,6 +1089,7 @@ def read_stacks(
     use_xarray: bool = True,
     stack_scenes: bool = False,
     planes: Optional[Dict[str, Tuple[int, int]]] = None,
+    zoom: float = 1.0,
     chunk_policy: str = "none",
     chunk_memory_limit: int = 256 * 1024 * 1024,
 ) -> Tuple[
@@ -1088,6 +1128,7 @@ def read_stacks(
         planes: Optional dict specifying substack ranges (keys: S, T, C, Z).
             Values are (start, end) tuples, zero-based inclusive. Mirrors
             `read_6darray` semantics.
+        zoom: Downscale factor for 2D plane reads [0.01 - 1.0]. Defaults to 1.0.
         chunk_policy: How to rechunk per-stack Dask arrays before stacking.
             - 'none' (default): do not rechunk.
             - 'scene-shape': rechunk each per-scene array to its scene shape
@@ -1124,6 +1165,9 @@ def read_stacks(
     """
     filepath = str(filepath)
 
+    # check zoom factor for valid range
+    zoom = misc.check_zoom(zoom=zoom)
+
     # Determine reader type for URL or local file support
     readertype, is_url = misc.get_pyczi_readertype(filepath)
     if is_url:
@@ -1133,6 +1177,14 @@ def read_stacks(
     mdata = czimd.CziMetadata(filepath)
     image = mdata.image_required
     bbox = mdata.bbox_required
+    scale = mdata.scale_required
+
+    # update scaling for zoomed XY reads
+    scale.X_sf = np.round(_as_float(scale.X) * (1 / zoom), 3)
+    scale.Y_sf = np.round(_as_float(scale.Y) * (1 / zoom), 3)
+    if scale.ratio is None:
+        scale.ratio = {}
+    scale.ratio["zx_sf"] = np.round(_as_float(scale.Z) / _as_float(scale.X_sf), 3)
 
     if planes:
         bbox_total = bbox.total_bounding_box or {}
@@ -1253,9 +1305,9 @@ def read_stacks(
             sample_plane = {name: start for name, start in zip(read_dims, read_starts)}
             # If scenes present, read from the mapped scene_index; otherwise read total
             if scene_index is not None and len(czidoc.scenes_bounding_rectangle) > scene_index:
-                sample = czidoc.read(plane=sample_plane, scene=scene_index)
+                sample = czidoc.read(plane=sample_plane, scene=scene_index, zoom=zoom)
             else:
-                sample = czidoc.read(plane=sample_plane)
+                sample = czidoc.read(plane=sample_plane, zoom=zoom)
             dtype = sample.dtype
 
             # Handle pixel type dimension (A) - grayscale (A=1) or RGB (A=3)
@@ -1326,6 +1378,7 @@ def read_stacks(
                             squeeze_grayscale,
                             plane_shape,
                             dtype,
+                            zoom,
                             readertype,
                         )
                         delayed_chunks.append(
@@ -1358,6 +1411,7 @@ def read_stacks(
                                 plane,
                                 None if scene_index is None else scene_index,
                                 squeeze_grayscale,
+                                zoom,
                                 readertype,
                             )
                             return da.from_delayed(delayed_read, shape=plane_shape, dtype=dtype)
@@ -1378,6 +1432,7 @@ def read_stacks(
                             plane,
                             None if scene_index is None else scene_index,
                             squeeze_grayscale,
+                            zoom,
                             readertype,
                         )
                         stack = da.from_delayed(delayed_read, shape=plane_shape, dtype=dtype)
@@ -1398,9 +1453,9 @@ def read_stacks(
                     plane = {name: start + offset for name, start, offset in zip(read_dims, read_starts, combo)}
                     # If no explicit scenes exist, omit scene param
                     if scene_index is not None and len(czidoc.scenes_bounding_rectangle) > scene_index:
-                        img2d = czidoc.read(plane=plane, scene=scene_index)
+                        img2d = czidoc.read(plane=plane, scene=scene_index, zoom=zoom)
                     else:
-                        img2d = czidoc.read(plane=plane)
+                        img2d = czidoc.read(plane=plane, zoom=zoom)
 
                     # Squeeze grayscale (A=1) but keep RGB (A=3) / RGBA (A=4)
                     if squeeze_grayscale:
@@ -1442,9 +1497,11 @@ def read_stacks(
                 )
 
                 # Assign coordinate values based on metadata scaling and channel names
+                spatial_coords = {
+                    ax: np.arange(xr_da.sizes[ax]) * _get_axis_coord_step(mdata.scale, ax, zoom) for ax in "ZYX"
+                }
                 xr_da = xr_da.assign_coords(
-                    C=_channel_names_or_default(mdata, xr_da.sizes["C"]),
-                    **{ax: np.arange(xr_da.sizes[ax]) * getattr(mdata.scale, ax) for ax in "ZYX"},
+                    C=_channel_names_or_default(mdata, xr_da.sizes["C"]), **cast(Any, spatial_coords)
                 )
 
                 stack_arrays.append(xr_da)
@@ -1573,6 +1630,7 @@ def read_stacks_list(
     use_dask: bool = False,
     use_xarray: Literal[True] = True,
     planes: Optional[Dict[str, Tuple[int, int]]] = None,
+    zoom: float = 1.0,
     chunk_policy: str = "none",
     chunk_memory_limit: int = 256 * 1024 * 1024,
 ) -> Tuple[List[xr.DataArray], List[str], int]: ...
@@ -1584,6 +1642,7 @@ def read_stacks_list(
     use_dask: bool = False,
     use_xarray: Literal[False] = False,
     planes: Optional[Dict[str, Tuple[int, int]]] = None,
+    zoom: float = 1.0,
     chunk_policy: str = "none",
     chunk_memory_limit: int = 256 * 1024 * 1024,
 ) -> Tuple[List[Union[np.ndarray, da.Array]], List[str], int]: ...
@@ -1594,6 +1653,7 @@ def read_stacks_list(
     use_dask: bool = False,
     use_xarray: bool = True,
     planes: Optional[Dict[str, Tuple[int, int]]] = None,
+    zoom: float = 1.0,
     chunk_policy: str = "none",
     chunk_memory_limit: int = 256 * 1024 * 1024,
 ) -> Tuple[Union[List[xr.DataArray], List[Union[np.ndarray, da.Array]]], List[str], int]:
@@ -1608,6 +1668,7 @@ def read_stacks_list(
         use_xarray=use_xarray,
         stack_scenes=False,
         planes=planes,
+        zoom=zoom,
         chunk_policy=chunk_policy,
         chunk_memory_limit=chunk_memory_limit,
     )
@@ -1621,6 +1682,7 @@ def read_stacks_stacked(
     use_dask: bool = False,
     use_xarray: Literal[True] = True,
     planes: Optional[Dict[str, Tuple[int, int]]] = None,
+    zoom: float = 1.0,
     chunk_policy: str = "none",
     chunk_memory_limit: int = 256 * 1024 * 1024,
 ) -> Tuple[xr.DataArray, List[str], int]: ...
@@ -1632,6 +1694,7 @@ def read_stacks_stacked(
     use_dask: bool = False,
     use_xarray: Literal[False] = False,
     planes: Optional[Dict[str, Tuple[int, int]]] = None,
+    zoom: float = 1.0,
     chunk_policy: str = "none",
     chunk_memory_limit: int = 256 * 1024 * 1024,
 ) -> Tuple[Union[np.ndarray, da.Array], List[str], int]: ...
@@ -1642,6 +1705,7 @@ def read_stacks_stacked(
     use_dask: bool = False,
     use_xarray: bool = True,
     planes: Optional[Dict[str, Tuple[int, int]]] = None,
+    zoom: float = 1.0,
     chunk_policy: str = "none",
     chunk_memory_limit: int = 256 * 1024 * 1024,
 ) -> Tuple[Union[xr.DataArray, np.ndarray, da.Array], List[str], int]:
@@ -1657,6 +1721,7 @@ def read_stacks_stacked(
         use_xarray=use_xarray,
         stack_scenes=True,
         planes=planes,
+        zoom=zoom,
         chunk_policy=chunk_policy,
         chunk_memory_limit=chunk_memory_limit,
     )

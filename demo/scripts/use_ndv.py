@@ -26,7 +26,7 @@ from typing import Any, cast
 
 show_napari = False
 show_ndv = True
-use_mdtsack = False
+use_mdtsack = True
 # option to toggle using a file open dialog or a hardcoded filename
 use_dialog = True
 
@@ -80,7 +80,7 @@ if not use_mdtsack:
         zoom=1.0,
         # planes={"S": (0, 0), "T": (0, 2), "C": (0, 0), "Z": (0, 4)},
         adapt_metadata=True,
-        use_dask=False,
+        use_dask=True,
         use_xarray=True,
     )
 
@@ -106,6 +106,7 @@ elif use_mdtsack:
 
     result, dims, num_stacks = read_tools.read_stacks(
         filepath,
+        zoom=0.5,
         use_dask=False,
         use_xarray=True,
         stack_scenes=True,
