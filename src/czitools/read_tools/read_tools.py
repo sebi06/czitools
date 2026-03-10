@@ -370,13 +370,18 @@ def read_6darray(
         # Create the xarray.DataArray
         array6d = xr.DataArray(array6d, dims=dims, coords=coords)
 
+        # Assign coordinate values based on metadata scaling and channel names
+        array6d = array6d.assign_coords(
+            C=mdata.channelinfo.names[: array6d.sizes["C"]],
+            **{ax: np.arange(array6d.sizes[ax]) * getattr(mdata.scale, ax) for ax in "ZYX"},
+        )
+
         # Set attributes for the DataArray
         array6d.attrs = {
             "description": "6D image data from CZI file",
             "source": mdata.filepath,
             "axes": "".join(dims),
             "subset_planes": planes,
-            # "metadata": mdata,  # Include metadata if it's a dictionary or serializable
         }
 
     # adapt metadata for STCZ
@@ -615,6 +620,12 @@ def read_6darray_lazy(
                 "axes": "".join(dims),
                 "subset_planes": planes,
             },
+        )
+
+        # Assign coordinate values based on metadata scaling and channel names
+        array6d = array6d.assign_coords(
+            C=mdata.channelinfo.names[: array6d.sizes["C"]],
+            **{ax: np.arange(array6d.sizes[ax]) * getattr(mdata.scale, ax) for ax in "ZYX"},
         )
 
     return array6d, mdata
@@ -1341,6 +1352,13 @@ def read_stacks(
                         "subset_planes": planes,
                     },
                 )
+
+                # Assign coordinate values based on metadata scaling and channel names
+                xr_da = xr_da.assign_coords(
+                    C=mdata.channelinfo.names[: xr_da.sizes["C"]],
+                    **{ax: np.arange(xr_da.sizes[ax]) * getattr(mdata.scale, ax) for ax in "ZYX"},
+                )
+
                 stack_arrays.append(xr_da)
             else:
                 stack_arrays.append(stack)

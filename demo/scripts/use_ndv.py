@@ -19,15 +19,14 @@ from pathlib import Path
 from magicgui import magicgui
 from magicgui.types import FileDialogMode
 from czitools.utils.napari_tools import display_xarray_in_napari
-from czitools.utils.ndv_tools import create_luts_ndv, create_scales_ndv
+from czitools.utils.ndv_tools import create_luts_ndv
 import ndv
 import xarray as xr
-from typing import Any, Mapping, cast
-from ndv._types import AxisKey
+from typing import Any, cast
 
 show_napari = False
 show_ndv = True
-use_mdtsack = True
+use_mdtsack = False
 # option to toggle using a file open dialog or a hardcoded filename
 use_dialog = True
 
@@ -143,17 +142,6 @@ if show_napari:
 
 if show_ndv:
 
-    # create NDV luts and scales from metadata
-    luts = create_luts_ndv(mdata)
-    scales = cast(Mapping[AxisKey, float], create_scales_ndv(mdata))
-
-    # NDV imshow kwargs: use composite mode, channel axis is "C", and provide the luts
-    imshow_kwargs = {
-        "channel_mode": "composite",
-        "channel_axis": "C",
-        "luts": luts,
-    }
-
     # Determine the appropriate data to display in NDV based on the results from read_stacks
     viewer_data = None
     if isinstance(result, list):
@@ -166,5 +154,5 @@ if show_ndv:
     if viewer_data is None:
         raise RuntimeError("No data available for NDV display.")
 
-    # Display the data in NDV with the created luts and scales
-    viewer = ndv.imshow(viewer_data, scales=scales, **imshow_kwargs)
+    luts: Any = create_luts_ndv(cast(Any, mdata))
+    viewer = ndv.imshow(viewer_data, channel_mode="composite", luts=luts)
