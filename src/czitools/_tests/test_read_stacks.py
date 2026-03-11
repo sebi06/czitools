@@ -446,3 +446,40 @@ def test_read_stacks_no_scenes_returns_empty() -> None:
     # Files without scenes return empty results
     assert num_stacks == 0
     assert len(arrays) == 0
+
+
+def test_read_stacks_planes_scene_subset_and_no_mutation() -> None:
+    """Test read_stacks applies S-plane subsetting and does not mutate input planes."""
+    filepath = basedir / "data" / "w96_A1+A2.czi"
+    planes = {"S": (1, 1)}
+    planes_before = dict(planes)
+
+    arrays, dims, num_stacks = read_tools.read_stacks(
+        filepath,
+        use_xarray=True,
+        stack_scenes=False,
+        planes=planes,
+    )
+
+    assert isinstance(arrays, list)
+    assert num_stacks == 1
+    assert len(arrays) == 1
+    assert planes == planes_before
+
+
+def test_read_stacks_stacked_scene_subset_s_coords() -> None:
+    """Test stacked scene subset preserves selected S coordinate values."""
+    filepath = basedir / "data" / "w96_A1+A2.czi"
+
+    result, dims, num_stacks = read_tools.read_stacks(
+        filepath,
+        use_xarray=True,
+        stack_scenes=True,
+        planes={"S": (1, 1)},
+    )
+
+    assert isinstance(result, xr.DataArray)
+    assert num_stacks == 1
+    assert "S" in result.dims
+    assert result.sizes["S"] == 1
+    assert int(result.coords["S"].values[0]) == 1
