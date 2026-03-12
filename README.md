@@ -175,7 +175,7 @@ if show_napari:
 ```python
 from czitools.read_tools import read_tools
 
-result, dims, num_stacks = read_tools.read_stacks(
+result, dims, num_stacks, mdata = read_tools.read_stacks(
     filepath,
     use_dask=True,
     use_xarray=True,
@@ -184,6 +184,8 @@ result, dims, num_stacks = read_tools.read_stacks(
 ```
 
 Important return behavior:
+
+* function return signature is `(result, dims, num_stacks, mdata)`
 
 * `stack_scenes=False`: always returns a list (one array per scene)
 * `stack_scenes=True` and shapes match: returns one stacked array (with `S` dim)
