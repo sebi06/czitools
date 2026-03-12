@@ -41,7 +41,7 @@ src/czitools/
 │   ├── sample.py         # CziSampleInfo
 │   └── add_metadata.py   # CziAddMetaData
 ├── read_tools/           # Functions for reading pixel data
-│   └── read_tools.py     # read_6darray, read_mdarray, etc.
+│   └── read_tools.py     # read_6darray, read_stacks, read_stacks_list, read_stacks_stacked
 ├── utils/                # Utility modules
 │   ├── logging_tools.py  # Logging configuration
 │   ├── box.py            # Box utilities for metadata

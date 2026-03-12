@@ -13,7 +13,6 @@
 #
 #################################################################
 
-from czitools.metadata_tools.czi_metadata import CziMetadata
 from czitools.read_tools import read_tools
 from pathlib import Path
 from magicgui import magicgui
@@ -26,7 +25,7 @@ from typing import Any, cast
 
 show_napari = False
 show_ndv = True
-use_mdtsack = False
+use_mdstack = True
 # option to toggle using a file open dialog or a hardcoded filename
 use_dialog = True
 
@@ -71,7 +70,7 @@ elif not use_dialog:
     filepath = str(defaultdir / "CellDivision_T10_Z15_CH2_DCV_small.czi")
 
 
-if not use_mdtsack:
+if not use_mdstack:
     # return a xarray with dimension order STCZYX(A)
     # when no planes are specified the complete dataset
     # when planes are specified the metadata will be adapted accordingly for SizeS, SizeT, SizeC and SizeZ
@@ -79,9 +78,9 @@ if not use_mdtsack:
         filepath,
         zoom=1.0,
         # planes={"S": (0, 0), "T": (0, 2), "C": (0, 0), "Z": (0, 4)},
-        adapt_metadata=True,
-        use_dask=False,
-        use_xarray=True,
+        adapt_metadata=True,  # adapt metadata according to the planes specified (SizeS, SizeT, SizeC, SizeZ)
+        use_dask=False,  # use lazy dask arrays (data read only when accessed)
+        use_xarray=True,  # return xarray DataArray with labeled dimensions (STCZYX(A))
     )
 
     if array6d is None:
@@ -100,15 +99,15 @@ if not use_mdtsack:
         for k, v in attrs.items():
             print(f"{k} :  {v}")
 
-elif use_mdtsack:
-
-    mdata = CziMetadata(filepath)
-
-    result, dims, num_stacks = read_tools.read_stacks(
+elif use_mdstack:
+    result, dims, num_stacks, mdata = read_tools.read_stacks(
         filepath,
-        use_dask=False,
-        use_xarray=True,
-        stack_scenes=True,
+        zoom=1.0,
+        planes={"S": (0, 0), "T": (0, 30), "C": (0, 0)},
+        use_dask=True,  # use lazy dask arrays (data read only when accessed)
+        use_xarray=True,  # return xarray DataArray with labeled dimensions (STCZYX(A))
+        stack_scenes=True,  # stack scenes with the same shape into one array (if False, return a list of arrays)
+        adapt_metadata=True,  # adapt metadata according to the planes specified (SizeS, SizeT, SizeC, SizeZ)
     )
 
     print("\n=== Results ===")
