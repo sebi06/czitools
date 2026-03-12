@@ -28,9 +28,9 @@ jobs:
                 python-version: ["3.13"]
 
         steps:
-                        - uses: actions/checkout@v6
+            - uses: actions/checkout@v6
             - name: Set up Python ${{ matrix.python-version }}
-                            uses: actions/setup-python@v6
+              uses: actions/setup-python@v6
               with:
                   python-version: ${{ matrix.python-version }}
             # - name: Upload coverage reports to Codecov with GitHub Action
@@ -54,7 +54,7 @@ jobs:
                   PLATFORM: ${{ matrix.platform }}
 
             - name: Upload coverage reports to Codecov with GitHub Action
-                            uses: codecov/codecov-action@v5
+              uses: codecov/codecov-action@v5
               env:
                   CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
@@ -66,9 +66,9 @@ jobs:
         runs-on: ubuntu-latest
         if: contains(github.ref, 'tags')
         steps:
-                        - uses: actions/checkout@v6
+            - uses: actions/checkout@v6
             - name: Set up Python
-                            uses: actions/setup-python@v6
+              uses: actions/setup-python@v6
               with:
                   python-version: "3.13"
                   allow-prereleases: true
@@ -91,4 +91,4 @@ jobs:
               uses: pypa/gh-action-pypi-publish@release/v1
               with:
                   password: ${{ secrets.TWINE_TESTPYPI_TOKEN }}
-                  repository_url: https://test.pypi.org/legacy/
+                  repository-url: https://test.pypi.org/legacy/

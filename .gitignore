@@ -194,3 +194,4 @@ data/Tumor_HE_RGB_disp.czi
 /demo/omezarr_testing/3_simple_dask.ipynb
 /demo/notebooks/_experimental
 /.github/pr_descriptions
+/.tools
