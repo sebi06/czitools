@@ -29,6 +29,9 @@ use_mdstack = True
 # option to toggle using a file open dialog or a hardcoded filename
 use_dialog = True
 
+# option to show the link to the dash dashboarad when using dask (only relevant if use_mdstack=True)
+show_dask = False
+
 # adapt to your needs
 defaultdir = Path(Path(__file__).resolve().parents[2]) / "data"
 
@@ -103,12 +106,21 @@ elif use_mdstack:
     result, dims, num_stacks, mdata = read_tools.read_stacks(
         filepath,
         zoom=1.0,
-        planes={"S": (0, 0), "T": (0, 30), "C": (0, 0)},
+        # planes={"S": (0, 0), "T": (0, 30), "C": (0, 0)},
         use_dask=True,  # use lazy dask arrays (data read only when accessed)
         use_xarray=True,  # return xarray DataArray with labeled dimensions (STCZYX(A))
         stack_scenes=True,  # stack scenes with the same shape into one array (if False, return a list of arrays)
         adapt_metadata=True,  # adapt metadata according to the planes specified (SizeS, SizeT, SizeC, SizeZ)
     )
+
+    from dask.distributed import Client, LocalCluster
+
+    if show_dask:
+        # On Windows, process workers re-import this module and can re-open the file dialog.
+        # Use threads in a single process to keep dashboard support without re-running top-level code.
+        cluster = LocalCluster(processes=False)
+        client = Client(cluster)
+        print(f"Link to Dask dashboard: {client.dashboard_link}")
 
     print("\n=== Results ===")
     print(f"Number of stacks: {num_stacks}")
@@ -153,5 +165,8 @@ if show_ndv:
     if viewer_data is None:
         raise RuntimeError("No data available for NDV display.")
 
+    # create luts for NDV based on the metadata (e.g. channel names, colors, etc.)
     luts: Any = create_luts_ndv(cast(Any, mdata))
+
+    # display in NDV (viewer_data can be a single xarray DataArray or a list of DataArrays)
     viewer = ndv.imshow(viewer_data, channel_mode="composite", luts=luts)
