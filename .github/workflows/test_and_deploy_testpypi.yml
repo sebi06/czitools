@@ -25,7 +25,7 @@ jobs:
         strategy:
             matrix:
                 platform: [ubuntu-latest, windows-latest, macos-latest]
-                python-version: ["3.13"]
+                python-version: ["3.11", "3.12", "3.13"]
 
         steps:
             - uses: actions/checkout@v6
@@ -71,7 +71,6 @@ jobs:
               uses: actions/setup-python@v6
               with:
                   python-version: "3.13"
-                  allow-prereleases: true
             - name: Install pypa/build
               run: >-
                   python -m
