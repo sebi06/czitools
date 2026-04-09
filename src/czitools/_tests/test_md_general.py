@@ -98,7 +98,7 @@ def test_dimorder():
     filepath = basedir / r"data/S2_3x3_CH2.czi"
     md = czimd.CziMetadata(filepath)
 
-    assert md.aics_dim_order == {
+    assert md.sb_dim_order == {
         "R": -1,
         "I": -1,
         "M": 5,
@@ -113,8 +113,8 @@ def test_dimorder():
         "X": 7,
         "A": -1,
     }
-    assert md.aics_dim_index == [-1, -1, 5, 0, -1, -1, 1, 2, 3, 4, 6, 7, -1]
-    assert md.aics_dim_valid == 8
+    assert md.sb_dim_index == [-1, -1, 5, 0, -1, -1, 1, 2, 3, 4, 6, 7, -1]
+    assert md.sb_dim_valid == 8
 
 
 @pytest.mark.parametrize(

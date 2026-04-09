@@ -56,14 +56,14 @@ class CziMetadata:
         user_name (Optional[str]): Name of the user who created the image.
         czi_box (Optional[Box]): Metadata box of the CZI file.
         pyczi_dims (Optional[Dict[str, tuple]]): Dimensions of the CZI file.
-        aics_dimstring (Optional[str]): Dimension string from aicspylibczi.
-        aics_dims_shape (Optional[List[Dict[str, tuple]]]): Dimension shapes from aicspylibczi.
-        aics_size (Optional[Tuple[int]]): Size of the CZI file from aicspylibczi.
-        aics_ismosaic (Optional[bool]): Indicates if the CZI file is a mosaic.
-        aics_dim_order (Optional[Dict[str, int]]): Dimension order from aicspylibczi.
-        aics_dim_index (Optional[List[int]]): Dimension indices from aicspylibczi.
-        aics_dim_valid (Optional[int]): Number of valid dimensions from aicspylibczi.
-        aics_posC (Optional[int]): Position of the 'C' dimension from aicspylibczi.
+        sb_dimstring (Optional[str]): Dimension string derived from czifile subblocks.
+        sb_dims_shape (Optional[List[Dict[str, tuple]]]): Per-scene dimension ranges derived from czifile subblocks.
+        sb_size (Optional[Tuple[int]]): Size of the CZI file derived from czifile subblocks.
+        sb_ismosaic (Optional[bool]): Indicates if the CZI file is a mosaic.
+        sb_dim_order (Optional[Dict[str, int]]): Dimension order derived from czifile subblocks.
+        sb_dim_index (Optional[List[int]]): Dimension indices derived from czifile subblocks.
+        sb_dim_valid (Optional[int]): Number of valid dimensions derived from czifile subblocks.
+        sb_posC (Optional[int]): Position of the 'C' dimension in the dimension string.
         pixeltypes (Optional[Dict[int, str]]): Pixel types for all channels.
         consistent_pixeltypes (Optional[bool]): Indicates if pixel types are consistent across channels.
         isRGB (Optional[Dict[int, bool]]): Indicates if the image is RGB.
@@ -100,14 +100,14 @@ class CziMetadata:
     user_name: Optional[str] = field(init=False, default=None)
     czi_box: Optional[Box] = field(init=False, default=None)
     pyczi_dims: Optional[Dict[str, tuple]] = field(init=False, default_factory=lambda: {})
-    aics_dimstring: Optional[str] = field(init=False, default=None)
-    aics_dims_shape: Optional[List[Dict[str, tuple]]] = field(init=False, default_factory=lambda: [])
-    aics_size: Optional[Tuple[int]] = field(init=False, default_factory=lambda: ())
-    aics_ismosaic: Optional[bool] = field(init=False, default=None)
-    aics_dim_order: Optional[Dict[str, int]] = field(init=False, default_factory=lambda: {})
-    aics_dim_index: Optional[List[int]] = field(init=False, default_factory=lambda: [])
-    aics_dim_valid: Optional[int] = field(init=False, default=None)
-    aics_posC: Optional[int] = field(init=False, default=None)
+    sb_dimstring: Optional[str] = field(init=False, default=None)
+    sb_dims_shape: Optional[List[Dict[str, tuple]]] = field(init=False, default_factory=lambda: [])
+    sb_size: Optional[Tuple[int]] = field(init=False, default_factory=lambda: ())
+    sb_ismosaic: Optional[bool] = field(init=False, default=None)
+    sb_dim_order: Optional[Dict[str, int]] = field(init=False, default_factory=lambda: {})
+    sb_dim_index: Optional[List[int]] = field(init=False, default_factory=lambda: [])
+    sb_dim_valid: Optional[int] = field(init=False, default=None)
+    sb_posC: Optional[int] = field(init=False, default=None)
     pixeltypes: Optional[Dict[int, str]] = field(init=False, default_factory=lambda: {})
     consistent_pixeltypes: Optional[bool] = field(init=False, default=None)
     isRGB: Optional[Dict[int, bool]] = field(init=False, default_factory=lambda: {})
@@ -212,7 +212,7 @@ class CziMetadata:
                             m = de.mosaic_index if de.mosaic_index >= 0 else 0
                             mosaic_counts[s] = max(mosaic_counts.get(s, 0), m + 1)
 
-                        self.aics_ismosaic = any(v > 1 for v in mosaic_counts.values())
+                        self.sb_ismosaic = any(v > 1 for v in mosaic_counts.values())
 
                         # Get X/Y shape from first subblock
                         de0 = subblocks[0].directory_entry
@@ -220,17 +220,17 @@ class CziMetadata:
                         y_shape = de0.shape[de0.dims.index("Y")] if "Y" in de0.dims else 0
 
                         # Build per-scene dims_shape list
-                        self.aics_dims_shape = []
+                        self.sb_dims_shape = []
                         for s in sorted(all_dims.keys()):
                             shape_dict: Dict[str, Tuple[int, int]] = {}
                             shape_dict["X"] = (0, x_shape)
                             shape_dict["Y"] = (0, y_shape)
                             for dim_char, (lo, hi) in all_dims[s].items():
                                 shape_dict[dim_char] = (lo, hi)
-                            if self.aics_ismosaic:
+                            if self.sb_ismosaic:
                                 shape_dict["M"] = (0, mosaic_counts.get(s, 1))
                             shape_dict["S"] = (s, s + 1)
-                            self.aics_dims_shape.append(shape_dict)
+                            self.sb_dims_shape.append(shape_dict)
 
                         # Build dimension string (consistent ordering)
                         dim_chars = set()
@@ -239,21 +239,21 @@ class CziMetadata:
                         # Remove pixel dims; add M if mosaic
                         dim_chars.discard("X")
                         dim_chars.discard("Y")
-                        if self.aics_ismosaic:
+                        if self.sb_ismosaic:
                             dim_chars.add("M")
                         # Standard order: H/B, S, T, C, Z, M, Y, X
                         dim_order_ref = ["H", "B", "S", "T", "C", "Z", "M", "Y", "X"]
                         ordered = [d for d in dim_order_ref if d in dim_chars]
                         ordered.extend(["Y", "X"])
-                        self.aics_dimstring = "".join(ordered)
+                        self.sb_dimstring = "".join(ordered)
 
                         # Derive dim_order, dim_index, dim_valid using existing utility
                         (
-                            self.aics_dim_order,
-                            self.aics_dim_index,
-                            self.aics_dim_valid,
-                        ) = pixels.get_dimorder(self.aics_dimstring)
-                        self.aics_posC = self.aics_dim_order.get("C")
+                            self.sb_dim_order,
+                            self.sb_dim_index,
+                            self.sb_dim_valid,
+                        ) = pixels.get_dimorder(self.sb_dimstring)
+                        self.sb_posC = self.sb_dim_order.get("C")
 
             except ImportError:
                 logger.warning("Package czifile not found. Using fallback values for dimension info.")
