@@ -10,8 +10,6 @@
 #################################################################
 
 from typing import Dict, Tuple, Optional, Union, List, Any, cast
-import gc
-import warnings
 import itertools
 import os
 
@@ -25,7 +23,7 @@ except ImportError:
     HAS_PROGRESSBAR = False
 
 from pylibCZIrw import czi as pyczi
-from aicspylibczi import CziFile
+import czifile as czifile_module
 from czitools.metadata_tools import czi_metadata as czimd
 from czitools.utils import misc
 import numpy as np
@@ -493,48 +491,26 @@ def read_attachments(
         return None, None
 
 
-def _read_tiles_impl(filepath: CziPath, scene: int, tile: int, **kwargs) -> Tuple[np.ndarray, List]:
-    """
-    Internal implementation of read_tiles().
+def _sb_dim_start(de: Any, dim: str, default: int = 0) -> int:
+    """Return the start index of *dim* from a czifile directory_entry."""
+    if dim in de.dims:
+        return de.start[de.dims.index(dim)]
+    return default
 
-    This function performs the actual tile reading using aicspylibczi.
-    It should not be called directly - use read_tiles() instead.
-    """
-    filepath = str(filepath)
 
-    valid_args = ["T", "Z", "C"]
-    for k, v in kwargs.items():
-        if k not in valid_args:
-            raise ValueError(f"Invalid keyword argument: {k}")
-
-    # Suppress ResourceWarning for aicspylibczi file handling
-    with warnings.catch_warnings():
-        warnings.filterwarnings("ignore", category=ResourceWarning, message=".*CziFile.*")
-        warnings.filterwarnings("ignore", category=ResourceWarning, message=".*BufferedReader.*")
-
-        czi = CziFile(filepath)
-
-    try:
-        logger.info(f"Reading File: {filepath} Scene: {scene} - Tile {tile}")
-        logger.info(f"Dimensions Shape: {czi.get_dims_shape()}")
-
-        if czi.is_mosaic():
-            tile_stack, size = czi.read_image(S=scene, M=tile, **kwargs)
-            tile_stack = np.squeeze(tile_stack, axis=czi.dims.find("M"))
-            size.remove(("M", 1))
-        elif not czi.is_mosaic():
-            logger.warning("CZI file is not a mosaic. No M-Dimension found.")
-            tile_stack, size = czi.read_image(S=scene, **kwargs)
-
-        return tile_stack, size
-    finally:
-        del czi
-        gc.collect()
+def _sb_dim_shape(de: Any, dim: str, default: int = 0) -> int:
+    """Return the shape (size) of *dim* from a czifile directory_entry."""
+    if dim in de.dims:
+        return de.shape[de.dims.index(dim)]
+    return default
 
 
 def read_tiles(filepath: CziPath, scene: int, tile: int, **kwargs) -> Tuple[np.ndarray, List]:
     """
-    Reads a specific tile from a CZI file with thread-safe locking.
+    Reads a specific tile from a CZI file.
+
+    Uses czifile to iterate subblocks and assemble the requested tile data.
+    Thread-safe and compatible with Napari on all platforms.
 
     Parameters:
     -----------
@@ -560,49 +536,146 @@ def read_tiles(filepath: CziPath, scene: int, tile: int, **kwargs) -> Tuple[np.n
     Raises:
     -------
     ValueError
-        If an invalid keyword argument is provided in **kwargs.
-    RuntimeError
-        If CZITOOLS_DISABLE_AICSPYLIBCZI=1 is set (safe mode).
-
-    Notes:
-    ------
-    **Thread-Safety for Napari on Linux:**
-
-    This function uses `aicspylibczi` which can have threading conflicts with PyQt/Napari on Linux.
-
-    **Solution 1 (Safest)**: Disable aicspylibczi entirely:
-    ```python
-    import os
-    os.environ["CZITOOLS_DISABLE_AICSPYLIBCZI"] = "1"
-    # Use read_6darray() instead of read_tiles()
-    ```
-
-    **Solution 2**: Use thread-locked version (current default):
-    - Uses a global lock to serialize aicspylibczi access
-    - Provides basic thread-safety
-    - May still have PyQt conflicts on Linux - test carefully!
-
-    If crashes persist with Napari, use Solution 1 and read_6darray().
+        If an invalid keyword argument is provided in **kwargs, or if
+        the requested scene/tile is not found.
     """
     filepath = str(filepath)
 
-    # Check if aicspylibczi is disabled
-    if os.environ.get("CZITOOLS_DISABLE_AICSPYLIBCZI", "0") == "1":
-        raise RuntimeError(
-            "read_tiles() requires aicspylibczi, but it is disabled via CZITOOLS_DISABLE_AICSPYLIBCZI. "
-            "Use read_6darray() with use_dask=True as an alternative."
-        )
+    valid_args = ["T", "Z", "C"]
+    for k in kwargs:
+        if k not in valid_args:
+            raise ValueError(f"Invalid keyword argument: {k}")
 
-    # Warn about potential Napari conflicts on Linux
-    from czitools.utils.threading_helpers import warn_if_unsafe_for_napari
+    with czifile_module.CziFile(filepath) as czi:
+        # Only consider non-pyramidal subblocks (scale 1.0)
+        subblocks = [sb for sb in czi.subblocks() if not sb.directory_entry.is_pyramid]
 
-    warn_if_unsafe_for_napari()
+        if not subblocks:
+            raise ValueError("No non-pyramidal subblocks found in CZI file")
 
-    # Call implementation with thread lock
-    from czitools.utils.threading_helpers import with_aics_lock
+        # Determine which dimensions exist from the first subblock
+        file_dims = set(subblocks[0].directory_entry.dims)
+        has_h = "H" in file_dims
+        has_b = "B" in file_dims
+        has_t = "T" in file_dims
+        has_c = "C" in file_dims
+        has_z = "Z" in file_dims
 
-    locked_impl = with_aics_lock(_read_tiles_impl)
-    return locked_impl(filepath, scene, tile, **kwargs)
+        # Group subblocks by (scene_index, mosaic_index)
+        # scene_index and mosaic_index are -1 when not applicable
+        scene_tiles: Dict[int, Dict[int, List]] = {}
+        for sb in subblocks:
+            de = sb.directory_entry
+            s = de.scene_index if de.scene_index >= 0 else 0
+            m = de.mosaic_index if de.mosaic_index >= 0 else 0
+            scene_tiles.setdefault(s, {}).setdefault(m, []).append(sb)
+
+        has_multi_scenes = len(scene_tiles) > 1
+        req_scene = scene
+        if req_scene not in scene_tiles:
+            req_scene = 0
+        if req_scene not in scene_tiles:
+            raise ValueError(f"Scene {scene} not found in CZI file")
+
+        tile_indices = sorted(scene_tiles[req_scene].keys())
+        is_mosaic = len(tile_indices) > 1
+
+        logger.info(f"Reading File: {filepath} Scene: {scene} - Tile {tile}")
+
+        if not is_mosaic:
+            logger.warning("CZI file is not a mosaic. No M-Dimension found.")
+
+        if tile not in scene_tiles[req_scene]:
+            raise ValueError(f"Tile {tile} not found in scene {scene}")
+
+        target_sbs = scene_tiles[req_scene][tile]
+
+        # Build lookup: (t, c, z) -> subblock
+        sb_lookup: Dict[Tuple[int, int, int], Any] = {}
+        for sb in target_sbs:
+            de = sb.directory_entry
+            t_val = _sb_dim_start(de, "T") if has_t else 0
+            c_val = _sb_dim_start(de, "C") if has_c else 0
+            z_val = _sb_dim_start(de, "Z") if has_z else 0
+            sb_lookup[(t_val, c_val, z_val)] = sb
+
+        # Determine value ranges and apply kwargs filters
+        all_t = sorted({k[0] for k in sb_lookup}) if has_t else [0]
+        all_c = sorted({k[1] for k in sb_lookup}) if has_c else [0]
+        all_z = sorted({k[2] for k in sb_lookup}) if has_z else [0]
+
+        out_t = [kwargs["T"]] if "T" in kwargs else all_t
+        out_c = [kwargs["C"]] if "C" in kwargs else all_c
+        out_z = [kwargs["Z"]] if "Z" in kwargs else all_z
+
+        # Get pixel dimensions and dtype from first available matching subblock
+        first_key = (out_t[0], out_c[0], out_z[0])
+        if first_key not in sb_lookup:
+            first_key = next(iter(sb_lookup))
+        sample_de = sb_lookup[first_key].directory_entry
+        size_y = _sb_dim_shape(sample_de, "Y")
+        size_x = _sb_dim_shape(sample_de, "X")
+        dtype = sb_lookup[first_key].data().dtype
+
+        # Build output dimension ordering following aicspylibczi convention:
+        # Include H/B (if present), S (if multi-scene), then T/C/Z only if
+        # they exist in the file's dimension entries, and always Y, X.
+        out_dims: List[Tuple[str, int]] = []
+        if has_h:
+            out_dims.append(("H", 1))
+        elif has_b:
+            out_dims.append(("B", 1))
+        if has_multi_scenes:
+            out_dims.append(("S", 1))
+        if has_t:
+            out_dims.append(("T", len(out_t)))
+        out_dims.append(("C", len(out_c)))
+        if has_z:
+            out_dims.append(("Z", len(out_z)))
+        out_dims.append(("Y", size_y))
+        out_dims.append(("X", size_x))
+
+        out_shape = tuple(s for _, s in out_dims)
+        size_list = list(out_dims)
+        dim_names = [d[0] for d in out_dims]
+
+        # Allocate and fill output array
+        tile_stack = np.zeros(out_shape, dtype=dtype)
+
+        for ti, t_val in enumerate(out_t):
+            for ci, c_val in enumerate(out_c):
+                for zi, z_val in enumerate(out_z):
+                    key = (t_val, c_val, z_val)
+                    if key not in sb_lookup:
+                        continue
+
+                    sb = sb_lookup[key]
+                    pixel_data = sb.data()
+
+                    # Extract the 2D (Y, X) plane from the full-dimensioned subblock array
+                    de = sb.directory_entry
+                    slicer = [0] * len(de.dims)
+                    slicer[de.dims.index("Y")] = slice(None)
+                    slicer[de.dims.index("X")] = slice(None)
+                    plane = pixel_data[tuple(slicer)]
+
+                    # Build the index into the output array
+                    idx: List = []
+                    for dim_name in dim_names:
+                        if dim_name in ("H", "B", "S"):
+                            idx.append(0)
+                        elif dim_name == "T":
+                            idx.append(ti)
+                        elif dim_name == "C":
+                            idx.append(ci)
+                        elif dim_name == "Z":
+                            idx.append(zi)
+                        elif dim_name in ("Y", "X"):
+                            idx.append(slice(None))
+
+                    tile_stack[tuple(idx)] = plane
+
+    return tile_stack, size_list
 
 
 @dask_delayed

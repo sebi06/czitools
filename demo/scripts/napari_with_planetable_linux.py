@@ -1,20 +1,18 @@
 #!/usr/bin/env python3
 """
-Safe pattern for using get_planetable() with Napari on Linux.
+Example: Using get_planetable() with Napari.
 
-The key: Extract planetable BEFORE starting Napari's event loop.
-This avoids threading conflicts between aicspylibczi and PyQt.
+Demonstrates extracting a planetable and viewing image data in Napari.
 """
 
 from pathlib import Path
 from czitools.utils.planetable import get_planetable
 from czitools.read_tools import read_tools
 
-# Step 1: Extract planetable FIRST (before Napari)
+# Step 1: Extract planetable
 print("Extracting planetable...")
 czi_file = Path("data/CellDivision_T3_Z5_CH2_X240_Y170.czi")
 
-# Get planetable - aicspylibczi runs here, before Napari
 df_planetable, csv_path = get_planetable(czi_file, norm_time=True, save_table=False)
 
 print(f"✅ Planetable extracted: {len(df_planetable)} rows")

@@ -276,56 +276,19 @@ The basic usage can be inferred from this sample notebook:&nbsp;
 
 ## Remarks
 
-### ⚠️ Important: Using czitools with Napari on Linux
+### Using czitools with Napari
 
-If you use **Napari** on **Linux** and need `get_planetable()` or `read_tiles()`:
-
-📖 **[Linux + Napari + Planetable Guide](https://github.com/sebi06/czitools/blob/main/_notes/LINUX_NAPARI_PLANETABLE.md)** ⭐ **READ THIS**
-
-#### The Solution: Sequential Execution Pattern
-
-Extract planetable **BEFORE** starting Napari to avoid threading conflicts:
+For optimal Napari integration, use `read_6darray()` with dask and xarray:
 
 ```python
-# Step 1: Get planetable FIRST (before Napari)
-from czitools.utils.planetable import get_planetable
-df, _ = get_planetable("file.czi")
-
-# Step 2: Load image (thread-safe)
 from czitools.read_tools import read_tools
-array, _ = read_tools.read_6darray("file.czi", use_dask=True)
+from czitools.utils.napari_helpers import get_recommended_read_params
 
-# Step 3: NOW start Napari (safe - no conflicts!)
+params = get_recommended_read_params()
+array, mdata = read_tools.read_6darray("file.czi", **params)
+
 import napari
 viewer = napari.Viewer()
 viewer.add_image(array)
 napari.run()
 ```
-
-✅ **Full planetable functionality on Linux**  
-✅ **No crashes**  
-✅ **No performance loss**
-
-**Alternative: Safe Mode** (simpler, but no planetable/tiles):
-
-```python
-import os
-os.environ["CZITOOLS_DISABLE_AICSPYLIBCZI"] = "1"
-
-from czitools.read_tools import read_tools
-# Use read_6darray() instead of read_tiles()
-array, mdata = read_tools.read_6darray("file.czi", use_dask=True)
-```
-
-**Why?** `aicspylibczi` has threading conflicts with PyQt on Linux.  
-**Solution:** Extract planetable before PyQt event loop starts (sequential execution).
-
-📄 **Documentation:**
-
-* [Linux + Napari + Planetable Guide](https://github.com/sebi06/czitools/blob/main/_notes/LINUX_NAPARI_PLANETABLE.md) - Complete examples
-* [Threading Considerations](https://github.com/sebi06/czitools/blob/main/_notes/threading_considerations.md) - Technical details
-* [Quick Fix Guide](https://github.com/sebi06/czitools/blob/main/_notes/NAPARI_FIX.md) - Emergency fixes
-
----
-
-See [demo/scripts/napari_with_process_isolation.py](https://github.com/sebi06/czitools/blob/main/demo/scripts/napari_with_process_isolation.py) for complete examples and [threading_considerations.md](https://github.com/sebi06/czitools/blob/main/_notes/threading_considerations.md) for detailed information.

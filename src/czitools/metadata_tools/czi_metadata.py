@@ -12,8 +12,6 @@
 # from __future__ import annotations
 from typing import List, Dict, Tuple, Optional, Any, Union
 import os
-import gc
-import warnings
 import xml.etree.ElementTree as ET
 from pylibCZIrw import czi as pyczi
 from czitools.utils import logging_tools, misc, pixels
@@ -183,51 +181,84 @@ class CziMetadata:
             self.scene_shape_is_consistent = pixels.check_scenes_shape(czidoc, size_s=self.image.SizeS)
 
         if not self.is_url:
-            # get some additional metadata_tools using aicspylibczi
-            # WARNING: aicspylibczi has known threading issues when used with Napari/PyQt on Linux
-            # If you experience crashes, set the environment variable CZITOOLS_DISABLE_AICSPYLIBCZI=1
-            use_aicspylibczi = os.environ.get("CZITOOLS_DISABLE_AICSPYLIBCZI", "0") != "1"
+            # get additional dimension info using czifile (replaces aicspylibczi)
+            try:
+                import czifile as czifile_module
 
-            if use_aicspylibczi:
-                # Suppress ResourceWarning as we explicitly clean up the CziFile object
-                # aicspylibczi.CziFile doesn't provide a close() method, so Python may warn about unclosed file
-                with warnings.catch_warnings():
-                    warnings.filterwarnings("ignore", category=ResourceWarning, message=".*CziFile.*")
-                    warnings.filterwarnings("ignore", category=ResourceWarning, message=".*BufferedReader.*")
+                with czifile_module.CziFile(self.filepath) as czi:
+                    subblocks = [sb for sb in czi.subblocks() if not sb.directory_entry.is_pyramid]
 
-                    try:
-                        from aicspylibczi import CziFile
+                    if subblocks:
+                        # Build dimension string and shapes from non-pyramid subblocks
+                        all_dims: Dict[str, Dict[int, Tuple[int, int]]] = {}
+                        for sb in subblocks:
+                            de = sb.directory_entry
+                            s = de.scene_index if de.scene_index >= 0 else 0
+                            for dim_char, start_val, shape_val in zip(de.dims, de.start, de.shape):
+                                if dim_char in ("X", "Y"):
+                                    continue
+                                scene_dims = all_dims.setdefault(s, {})
+                                if dim_char not in scene_dims:
+                                    scene_dims[dim_char] = (start_val, start_val + shape_val)
+                                else:
+                                    lo, hi = scene_dims[dim_char]
+                                    scene_dims[dim_char] = (min(lo, start_val), max(hi, start_val + shape_val))
 
-                        # get the general CZI object using aicspylibczi
-                        aicsczi = CziFile(self.filepath)
+                        # Mosaic detection: any subblock with mosaic_index >= 1
+                        mosaic_counts: Dict[int, int] = {}
+                        for sb in subblocks:
+                            de = sb.directory_entry
+                            s = de.scene_index if de.scene_index >= 0 else 0
+                            m = de.mosaic_index if de.mosaic_index >= 0 else 0
+                            mosaic_counts[s] = max(mosaic_counts.get(s, 0), m + 1)
 
-                        self.aics_dimstring = aicsczi.dims
-                        self.aics_dims_shape = aicsczi.get_dims_shape()
-                        self.aics_size = aicsczi.size
-                        self.aics_ismosaic = aicsczi.is_mosaic()
+                        self.aics_ismosaic = any(v > 1 for v in mosaic_counts.values())
+
+                        # Get X/Y shape from first subblock
+                        de0 = subblocks[0].directory_entry
+                        x_shape = de0.shape[de0.dims.index("X")] if "X" in de0.dims else 0
+                        y_shape = de0.shape[de0.dims.index("Y")] if "Y" in de0.dims else 0
+
+                        # Build per-scene dims_shape list
+                        self.aics_dims_shape = []
+                        for s in sorted(all_dims.keys()):
+                            shape_dict: Dict[str, Tuple[int, int]] = {}
+                            shape_dict["X"] = (0, x_shape)
+                            shape_dict["Y"] = (0, y_shape)
+                            for dim_char, (lo, hi) in all_dims[s].items():
+                                shape_dict[dim_char] = (lo, hi)
+                            if self.aics_ismosaic:
+                                shape_dict["M"] = (0, mosaic_counts.get(s, 1))
+                            shape_dict["S"] = (s, s + 1)
+                            self.aics_dims_shape.append(shape_dict)
+
+                        # Build dimension string (consistent ordering)
+                        dim_chars = set()
+                        for sb in subblocks:
+                            dim_chars.update(sb.directory_entry.dims)
+                        # Remove pixel dims; add M if mosaic
+                        dim_chars.discard("X")
+                        dim_chars.discard("Y")
+                        if self.aics_ismosaic:
+                            dim_chars.add("M")
+                        # Standard order: H/B, S, T, C, Z, M, Y, X
+                        dim_order_ref = ["H", "B", "S", "T", "C", "Z", "M", "Y", "X"]
+                        ordered = [d for d in dim_order_ref if d in dim_chars]
+                        ordered.extend(["Y", "X"])
+                        self.aics_dimstring = "".join(ordered)
+
+                        # Derive dim_order, dim_index, dim_valid using existing utility
                         (
                             self.aics_dim_order,
                             self.aics_dim_index,
                             self.aics_dim_valid,
-                        ) = pixels.get_dimorder(aicsczi.dims)
-                        self.aics_posC = self.aics_dim_order["C"]
+                        ) = pixels.get_dimorder(self.aics_dimstring)
+                        self.aics_posC = self.aics_dim_order.get("C")
 
-                        # Explicitly delete the CziFile object to close underlying file handle
-                        # aicspylibczi.CziFile doesn't provide a close() method, so we rely on deletion
-                        # and explicit garbage collection to ensure the file handle is released
-                        del aicsczi
-                        gc.collect()
-
-                    except ImportError as e:
-                        logger.warning(f"{e}: Package aicspylibczi not found. Using fallback values.")
-                    except Exception as e:
-                        logger.warning(
-                            f"aicspylibczi failed (possibly due to threading conflict): {e}. "
-                            "Set CZITOOLS_DISABLE_AICSPYLIBCZI=1 to disable. Using fallback values."
-                        )
-            else:
-                if self.verbose:
-                    logger.info("aicspylibczi disabled via CZITOOLS_DISABLE_AICSPYLIBCZI environment variable")
+            except ImportError:
+                logger.warning("Package czifile not found. Using fallback values for dimension info.")
+            except Exception as e:
+                logger.warning(f"czifile dimension extraction failed: {e}. Using fallback values.")
         self.npdtype_list = []
         self.maxvalue_list = []
 

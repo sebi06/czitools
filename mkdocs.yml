@@ -63,8 +63,6 @@ theme:
 
 extra_css:
   - css/material.css
-  #- css/ndv.css
-  #- css/install-table.css
 
 
 markdown_extensions:
