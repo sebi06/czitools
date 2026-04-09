@@ -1,3 +1,9 @@
+"""CZI attachment metadata utilities.
+
+Provides `CziAttachments`, which inspects a CZI file for known attachment
+types (label, preview, prescan) using `pylibCZIrw`.
+"""
+
 from typing import Optional, Union, List
 from dataclasses import dataclass, field
 from box import Box

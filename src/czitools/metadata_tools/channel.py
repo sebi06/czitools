@@ -6,6 +6,11 @@
 #
 #################################################################
 
+"""Channel metadata utilities for CZI files.
+
+Provides `CziChannelInfo`, which extracts per-channel properties such as
+names, colours, dye names, pixel types and RGB status from CZI metadata.
+"""
 from typing import Union, List, Dict, Optional
 from dataclasses import dataclass, field
 from box import Box, BoxList

@@ -1,3 +1,9 @@
+"""Objective and tube-lens metadata utilities for CZI files.
+
+Provides `CziObjectives`, which collects objective and tubelens properties
+(NA, magnification, immersion, manufacturer, model, id) from CZI metadata.
+"""
+
 from typing import Union, Optional, List
 from dataclasses import dataclass, field
 from box import Box, BoxList

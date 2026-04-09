@@ -1,3 +1,9 @@
+"""Logging configuration helpers for czitools.
+
+Provides `set_logging`, a factory function that returns a configured
+`logging.Logger` with optional colorised output via `colorlog`.
+"""
+
 import sys
 import logging
 
@@ -9,7 +15,7 @@ except ImportError:
     HAS_COLORLOG = False
 
 
-def set_logging(level=logging.INFO, format_string=None, colorize=True):
+def set_logging(level: int = logging.INFO, format_string: str | None = None, colorize: bool = True) -> logging.Logger:
     """
     Configures a standard Python logger with customizable level and format.
 

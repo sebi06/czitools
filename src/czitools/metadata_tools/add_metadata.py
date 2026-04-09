@@ -1,3 +1,10 @@
+"""Additional (auxiliary) metadata blocks for CZI files.
+
+Provides `CziAddMetaData`, a dataclass that extracts optional metadata blocks
+such as Experiment, HardwareSetting, CustomAttributes, DisplaySetting and
+Layers from a CZI file.
+"""
+
 from typing import Union, Optional
 from dataclasses import dataclass, field
 from box import Box

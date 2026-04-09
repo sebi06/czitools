@@ -1,3 +1,9 @@
+"""Microscope metadata utilities for CZI files.
+
+Provides `CziMicroscope`, which extracts the microscope system name and
+identifier from CZI metadata.
+"""
+
 from typing import Union, Optional
 from dataclasses import dataclass, field
 from box import Box
@@ -51,12 +57,6 @@ class CziMicroscope:
             logger.info("No Microscope information found.")
 
         else:
-            self.Id = (
-                czi_box.ImageDocument.Metadata.Information.Instrument.Microscopes.Microscope.Id
-            )
-            self.Name = (
-                czi_box.ImageDocument.Metadata.Information.Instrument.Microscopes.Microscope.Name
-            )
-            self.System = (
-                czi_box.ImageDocument.Metadata.Information.Instrument.Microscopes.Microscope.System
-            )
+            self.Id = czi_box.ImageDocument.Metadata.Information.Instrument.Microscopes.Microscope.Id
+            self.Name = czi_box.ImageDocument.Metadata.Information.Instrument.Microscopes.Microscope.Name
+            self.System = czi_box.ImageDocument.Metadata.Information.Instrument.Microscopes.Microscope.System

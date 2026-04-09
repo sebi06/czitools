@@ -1,3 +1,9 @@
+"""Detector metadata utilities for CZI files.
+
+Provides `CziDetector`, which collects detector properties (manufacturer,
+model, type, pixel size, id) from CZI metadata.
+"""
+
 from typing import Union, List, Optional
 import os
 from dataclasses import dataclass, field

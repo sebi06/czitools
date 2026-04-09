@@ -1,3 +1,9 @@
+"""Image dimension metadata for CZI files.
+
+Provides `CziDimensions`, a validated Pydantic dataclass that reads all
+STCZYX(A) image-dimension sizes from CZI metadata.
+"""
+
 from typing import Tuple, Optional, Union, List
 from dataclasses import field, fields, Field
 from box import Box

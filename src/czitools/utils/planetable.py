@@ -9,6 +9,11 @@
 #
 #################################################################
 
+"""Plane-table (stage position) utilities for CZI files.
+
+Provides functions to extract per-plane stage-position data from CZI
+metadata and return it as a `pandas.DataFrame`.
+"""
 import os
 import xml.etree.ElementTree as ET
 import pandas as pd

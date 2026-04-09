@@ -116,8 +116,22 @@ plugins:
             - https://psygnal.readthedocs.io/en/latest/objects.inv
           options:
             docstring_section_style: list
-            docstring_style: "numpy"
+            docstring_style: "google"
             filters: ["!^_"]
+            heading_level: 1
+            inherited_members: true
+            merge_init_into_class: true
+            parameter_headings: true
+            relative_crossrefs: true
+            scoped_crossrefs: true
+            separate_signature: true
+            show_root_heading: true
+            show_signature_annotations: true
+            show_symbol_type_heading: true
+            show_symbol_type_toc: true
+            signature_crossrefs: true
+            summary: true
+            unwrap_annotated: true
             heading_level: 1
             inherited_members: true
             merge_init_into_class: true

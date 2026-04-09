@@ -9,6 +9,12 @@
 #
 #################################################################
 
+"""Top-level CZI metadata aggregator.
+
+Provides `CziMetadata`, an aggregating dataclass that composes all individual
+metadata classes (dimensions, scaling, channels, bounding box, etc.) into a
+single object. Also exposes `writexml` to dump the raw CZI XML to disk.
+"""
 # from __future__ import annotations
 from typing import List, Dict, Tuple, Optional, Any, Union
 import os

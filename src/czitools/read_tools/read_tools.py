@@ -9,6 +9,12 @@
 #
 #################################################################
 
+"""CZI pixel-data reading utilities.
+
+Provides `read_6darray`, `read_stacks`, `read_stacks_list` and
+`read_stacks_stacked` for reading CZI image files as NumPy, Dask or
+xarray arrays with dimension order STCZYX(A).
+"""
 from typing import Dict, Tuple, Optional, Union, List, Any, cast
 import itertools
 import os

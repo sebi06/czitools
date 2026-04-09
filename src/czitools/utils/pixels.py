@@ -9,6 +9,11 @@
 #
 #################################################################
 
+"""Pixel-type utilities for CZI images.
+
+Maps `pylibCZIrw` pixel-type enumerations to NumPy dtypes and provides
+helpers to determine bits-per-pixel and channel counts.
+"""
 from pylibCZIrw import czi as pyczi
 import numpy as np
 from typing import List, Dict, Tuple, Optional, Union
