@@ -654,7 +654,7 @@ def read_tiles(filepath: CziPath, scene: int, tile: int, **kwargs) -> Tuple[np.n
 
                     # Extract the 2D (Y, X) plane from the full-dimensioned subblock array
                     de = sb.directory_entry
-                    slicer = [0] * len(de.dims)
+                    slicer: List[Any] = [0] * len(de.dims)
                     slicer[de.dims.index("Y")] = slice(None)
                     slicer[de.dims.index("X")] = slice(None)
                     plane = pixel_data[tuple(slicer)]

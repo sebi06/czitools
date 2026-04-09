@@ -93,7 +93,7 @@ class CziObjectives:
 
         # Compute total magnification combinations (Cartesian product)
         if self.objmag and self.tubelensmag:
-            self.totalmag = [o * t for o in self.objmag for t in self.tubelensmag]
+            self.totalmag = [o * t for o in self.objmag for t in self.tubelensmag if o is not None and t is not None]
         elif self.objmag and not self.tubelensmag:
             self.totalmag = list(self.objmag)
 

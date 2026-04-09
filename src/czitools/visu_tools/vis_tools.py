@@ -12,6 +12,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib import cm
+from matplotlib.figure import Figure as MplFigure
 import plotly.graph_objects as go
 import pandas as pd
 from typing import Tuple
@@ -31,7 +32,7 @@ def scatterplot_mpl(
     fig1savename: str = "zsurface2d.png",
     fig2savename: str = "zsurface3d.png",
     msz3d: int = 20,
-) -> Tuple[plt.Figure, plt.Figure]:
+) -> Tuple[MplFigure, MplFigure]:
     """
     Generates 2D and 3D scatter plots of XYZ positions from a given table and saves them as PNG files.
     Parameters:
@@ -117,7 +118,7 @@ def scatterplot_mpl(
         marker="s",
         c=zpos,
         s=msz2d,
-        facecolor=cm.coolwarm,
+        facecolor=getattr(cm, "coolwarm"),
         edgecolor="black",
     )
 
@@ -150,11 +151,11 @@ def scatterplot_mpl(
     sc2 = ax2.scatter(
         xpos,
         ypos,
-        zpos,
+        zpos,  # type: ignore[arg-type]
         marker=".",
         s=msz3d,
         c=zpos,
-        facecolor=cm.coolwarm,
+        facecolor=getattr(cm, "coolwarm"),
         depthshade=False,
     )
 

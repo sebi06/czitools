@@ -28,7 +28,7 @@ class CziAttachments:
     has_label: Optional[bool] = field(init=False, default=False)
     has_preview: Optional[bool] = field(init=False, default=False)
     has_prescan: Optional[bool] = field(init=False, default=False)
-    names: Optional[List[str]] = field(init=False, default_factory=lambda: [])
+    names: List[str] = field(init=False, default_factory=lambda: [])
     verbose: bool = False
 
     def __post_init__(self):
@@ -39,19 +39,18 @@ class CziAttachments:
             import czifile
 
             if isinstance(self.czisource, Path):
-                # convert to string
                 self.czisource = str(self.czisource)
             elif isinstance(self.czisource, Box):
-                self.czisource = self.czisource.filepath
+                self.czisource = str(self.czisource.filepath)
 
-            if validators.url(self.czisource):
+            czisource_str: str = str(self.czisource)
+
+            if validators.url(czisource_str):
                 if self.verbose:
-                    logger.warning(
-                        "Reading Attachments from CZI via a link is not supported."
-                    )
+                    logger.warning("Reading Attachments from CZI via a link is not supported.")
             else:
                 # create CZI-object using czifile library
-                with czifile.CziFile(self.czisource) as cz:
+                with czifile.CziFile(czisource_str) as cz:
                     # iterate over attachments
                     for att in cz.attachments():
                         self.names.append(att.attachment_entry.name)
@@ -71,6 +70,4 @@ class CziAttachments:
 
         except ImportError as e:
             if self.verbose:
-                logger.warning(
-                    f"{e}: Package czifile not found. Cannot extract information about attached images."
-                )
+                logger.warning(f"{e}: Package czifile not found. Cannot extract information about attached images.")

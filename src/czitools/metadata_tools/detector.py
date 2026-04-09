@@ -48,14 +48,15 @@ class CziDetector:
             if self.verbose:
                 logger.info("No Detector(s) information found in Instrument block.")
             # Keep historical single-None placeholders
-            placeholder = [None]
+            placeholder: List[Optional[str]] = [None]
             self.model = placeholder.copy()
             self.name = placeholder.copy()
             self.Id = placeholder.copy()
             self.modeltype = placeholder.copy()
-            self.gain = placeholder.copy()
-            self.zoom = placeholder.copy()
-            self.amplificationgain = placeholder.copy()
+            gain_placeholder: List[Optional[float]] = [None]
+            self.gain = gain_placeholder.copy()
+            self.zoom = gain_placeholder.copy()
+            self.amplificationgain = gain_placeholder.copy()
             return
 
         # Get Detectors.Detector which can be a Box (single) or BoxList (multiple)

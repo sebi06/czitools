@@ -14,7 +14,6 @@ from typing import Union, List, Dict, Optional
 from dataclasses import dataclass, field
 from box import Box, BoxList
 import os
-import numpy as np
 from collections import Counter
 from czitools.utils import logging_tools
 from czitools.utils.box import get_czimd_box
@@ -216,8 +215,8 @@ class CziSampleInfo:
             try:
                 sx = well.CenterPosition.split(",")[0]
                 sy = well.CenterPosition.split(",")[1]
-                self.scene_stageX.append(np.double(sx))
-                self.scene_stageY.append(np.double(sy))
+                self.scene_stageX.append(float(sx))
+                self.scene_stageY.append(float(sy))
             except Exception:
                 if self.verbose:
                     logger.warning("Malformed CenterPosition value; using 0.0 for scene stage XY.")

@@ -80,12 +80,8 @@ class CziDimensions:
     czisource: Union[str, os.PathLike[str], Box]
     SizeX: Optional[int] = field(init=False, default=None)  # total size X including scenes
     SizeY: Optional[int] = field(init=False, default=None)  # total size Y including scenes
-    SizeX_scene: Optional[List[int]] = field(
-        init=False, default_factory=lambda: []
-    )  # size X per scene (if equal scene sizes)
-    SizeY_scene: Optional[List[int]] = field(
-        init=False, default_factory=lambda: []
-    )  # size Y per scene (if equal scene sizes)
+    SizeX_scene: Optional[int] = field(init=False, default=None)  # size X per scene (if equal scene sizes)
+    SizeY_scene: Optional[int] = field(init=False, default=None)  # size Y per scene (if equal scene sizes)
     SizeS: Optional[int] = field(init=False, default=None)
     SizeT: Optional[int] = field(init=False, default=None)
     SizeZ: Optional[int] = field(init=False, default=None)
@@ -173,7 +169,7 @@ class CziDimensions:
                 with pyczi.open_czi(czi_box.filepath, czi_box.czi_open_arg) as czidoc:
                     self.SizeX_scene = czidoc.scenes_bounding_rectangle_no_pyramid[0].w
                     self.SizeY_scene = czidoc.scenes_bounding_rectangle_no_pyramid[0].h
-            except KeyError as e:
+            except KeyError:
                 self.SizeX_scene = None
                 self.SizeY_scene = None
                 if self.verbose:
