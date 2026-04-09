@@ -656,13 +656,24 @@ def read_tiles(filepath: CziPath, scene: int, tile: int, **kwargs) -> Tuple[np.n
                     sb = sb_lookup[key]
                     pixel_data = sb.data()
 
-                    # Extract the 2D (Y, X) plane from the full-dimensioned subblock array
+                    # Extract the 2D (Y, X) plane from the subblock pixel data.
+                    # New czifile: de.dims gives the physical storage dimension order
+                    #   (e.g. ('C','Y','X','S')) and pixel_data shape matches it.
+                    # Old czifile: de.dims does not exist; data() returns (Y, X) or
+                    #   (Y, X, bytes_per_sample) — squeeze trailing size-1 dims.
                     de = sb.directory_entry
-                    de_dims = misc._de_dim_chars(de)
-                    slicer: List[Any] = [0] * len(de_dims)
-                    slicer[list(de_dims).index("Y")] = slice(None)
-                    slicer[list(de_dims).index("X")] = slice(None)
-                    plane = pixel_data[tuple(slicer)]
+                    raw_dims = getattr(de, "dims", None)
+                    if raw_dims is not None:
+                        de_dims_list = list(raw_dims)
+                        slicer: List[Any] = [0] * len(de_dims_list)
+                        slicer[de_dims_list.index("Y")] = slice(None)
+                        slicer[de_dims_list.index("X")] = slice(None)
+                        plane = pixel_data[tuple(slicer)]
+                    else:
+                        # Old czifile returns (Y, X[, 1]); squeeze trailing size-1 dims
+                        plane = pixel_data
+                        while plane.ndim > 2 and plane.shape[-1] == 1:
+                            plane = plane[..., 0]
 
                     # Build the index into the output array
                     idx: List = []

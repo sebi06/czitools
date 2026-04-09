@@ -438,11 +438,25 @@ def _de_dim_start(de: Any, dim: str, default: int = 0) -> int:
     Compatible with both old czifile (``DirectoryEntryDV`` with
     ``dimension_entries``) and new czifile (``CziDirectoryEntryDV`` with
     ``dims``/``start`` tuples in ``__slots__``).
+
+    Note: For old czifile, ``dimension_entries["S"].start`` holds the *global*
+    scene index (0..N-1), whereas new czifile stores that in ``scene_index``
+    and ``de.start[S_pos]`` is always 0 (an intra-scene offset).  To keep
+    consistent behaviour across both API versions, "S" and "M" are *not*
+    read from old-API ``dimension_entries`` here; use ``_de_scene_idx`` /
+    ``_de_mosaic_idx`` for that purpose.
     """
     dims = getattr(de, "dims", None)
     if dims is not None:
         if dim in dims:
             return de.start[dims.index(dim)]
+        return default
+    # Old czifile fallback via dimension_entries.
+    # Skip S and M: their start values carry the global scene/mosaic index
+    # (0..N-1), unlike new czifile where start[S]=0 is always an offset.
+    # Callers that need the actual scene/mosaic index should use
+    # _de_scene_idx / _de_mosaic_idx.
+    if dim in ("S", "M"):
         return default
     for d in getattr(de, "dimension_entries", []):
         if getattr(d, "dimension", None) == dim:
