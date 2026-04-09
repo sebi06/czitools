@@ -102,7 +102,7 @@ class CziMetadata:
     pyczi_dims: Optional[Dict[str, tuple]] = field(init=False, default_factory=lambda: {})
     sb_dimstring: Optional[str] = field(init=False, default=None)
     sb_dims_shape: Optional[List[Dict[str, tuple]]] = field(init=False, default_factory=lambda: [])
-    sb_size: Optional[Tuple[int]] = field(init=False, default_factory=lambda: ())
+    sb_size: Optional[Tuple[int, ...]] = field(init=False, default_factory=lambda: ())
     sb_ismosaic: Optional[bool] = field(init=False, default=None)
     sb_dim_order: Optional[Dict[str, int]] = field(init=False, default_factory=lambda: {})
     sb_dim_index: Optional[List[int]] = field(init=False, default_factory=lambda: [])
@@ -126,7 +126,7 @@ class CziMetadata:
     microscope: Optional[CziMicroscope] = field(init=False, default=None)
     sample: Optional[CziSampleInfo] = field(init=False, default=None)
     add_metadata: Optional[CziAddMetaData] = field(init=False, default=None)
-    scene_size_consistent: Optional[Tuple[int]] = field(init=False, default_factory=lambda: ())
+    scene_size_consistent: Optional[Tuple[int, ...]] = field(init=False, default_factory=lambda: ())
     array6d_size: Optional[Tuple[int, ...]] = field(init=False, default=None)
     verbose: bool = False
 
@@ -169,7 +169,7 @@ class CziMetadata:
         self.image = CziDimensions(self.czi_box, verbose=self.verbose)
 
         # get metadata_tools using pylibCZIrw
-        with pyczi.open_czi(self.filepath, self.pyczi_readertype) as czidoc:
+        with pyczi.open_czi(str(self.filepath), self.pyczi_readertype) as czidoc:
             # get dimensions
             self.pyczi_dims = czidoc.total_bounding_box
 
@@ -190,7 +190,7 @@ class CziMetadata:
 
                     if subblocks:
                         # Build dimension string and shapes from non-pyramid subblocks
-                        all_dims: Dict[str, Dict[int, Tuple[int, int]]] = {}
+                        all_dims: Dict[int, Dict[str, Tuple[int, int]]] = {}
                         for sb in subblocks:
                             de = sb.directory_entry
                             s = de.scene_index if de.scene_index >= 0 else 0
@@ -265,7 +265,8 @@ class CziMetadata:
         for ch, px in self.pixeltypes.items():
             npdtype, maxvalue = pixels.get_dtype_fromstring(px)
             self.npdtype_list.append(npdtype)
-            self.maxvalue_list.append(maxvalue)
+            if maxvalue is not None:
+                self.maxvalue_list.append(maxvalue)
 
         # try to guess if the CZI is a mosaic file
         if self.image.SizeM is None or self.image.SizeM == 1:
@@ -340,9 +341,7 @@ def get_metadata_as_object(filepath: Union[str, os.PathLike[str]]) -> DictObj:
         DictObj: An object containing the metadata extracted from the CZI file.
     """
 
-    if isinstance(filepath, Path):
-        # convert to string
-        filepath = str(filepath)
+    filepath = str(filepath)
 
     # get metadata_tools dictionary using pylibCZIrw
     with pyczi.open_czi(filepath) as czidoc:
@@ -407,9 +406,7 @@ def writexml(filepath: Union[str, os.PathLike[str]], xmlsuffix: str = "_CZI_Meta
         str: filename of the XML file
     """
 
-    if isinstance(filepath, Path):
-        # convert to string
-        filepath = str(filepath)
+    filepath = str(filepath)
 
     # get the raw metadata_tools as XML or dictionary
     with pyczi.open_czi(filepath) as czidoc:
@@ -439,6 +436,14 @@ def create_md_dict_red(metadata: CziMetadata, sort: bool = True, remove_none: bo
     Returns: dictionary with the metadata_tools
 
     """
+
+    assert metadata.image is not None
+    assert metadata.attachments is not None
+    assert metadata.objective is not None
+    assert metadata.scale is not None
+    assert metadata.channelinfo is not None
+    assert metadata.sample is not None
+    assert metadata.bbox is not None
 
     # create a dictionary with the metadata_tools
     md_dict = {
@@ -529,6 +534,13 @@ def create_md_dict_nested(metadata: CziMetadata, sort: bool = True, remove_none:
     Returns:
         Dict: Nested dictionary with reduced set of metadata_tools
     """
+
+    assert metadata.image is not None
+    assert metadata.scale is not None
+    assert metadata.sample is not None
+    assert metadata.objective is not None
+    assert metadata.channelinfo is not None
+    assert metadata.bbox is not None
 
     md_box_image = Box(asdict(metadata.image))
     del md_box_image.czisource
