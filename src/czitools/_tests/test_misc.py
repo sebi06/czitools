@@ -254,7 +254,7 @@ def test_get_planetable_columns(czifile: str, planes: dict[str, int], expected_c
         (
             "WP96_4Pos_B4-10_DAPI.czi",
             {"scene": 0, "time": 0, "channel": 0, "zplane": 0},
-            (1, 14),  # Example shape based on expected data
+            (28, 14),  # 28 tiles at scene=0, time=0, channel=0, zplane=0
         ),
     ],
 )

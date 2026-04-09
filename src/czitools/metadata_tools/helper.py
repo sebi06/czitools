@@ -1,3 +1,9 @@
+"""Shared helper types for czitools metadata classes.
+
+Provides lightweight dataclasses and enumerations used across the
+metadata_tools package, such as `ValueRange` and `AttachmentType`.
+"""
+
 from dataclasses import dataclass
 from enum import Enum
 from typing import Any, Dict

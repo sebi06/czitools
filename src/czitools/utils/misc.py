@@ -9,6 +9,11 @@
 #
 #################################################################
 
+"""Miscellaneous utility functions for czitools.
+
+Contains helpers for path normalisation, zoom validation, zarr/dask
+array utilities, and other small cross-cutting concerns.
+"""
 import os
 import zarr
 import pandas as pd

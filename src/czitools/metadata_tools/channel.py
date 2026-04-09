@@ -6,7 +6,12 @@
 #
 #################################################################
 
-from typing import Union, List, Dict
+"""Channel metadata utilities for CZI files.
+
+Provides `CziChannelInfo`, which extracts per-channel properties such as
+names, colours, dye names, pixel types and RGB status from CZI metadata.
+"""
+from typing import Union, List, Dict, Optional
 from dataclasses import dataclass, field
 from box import Box, BoxList
 import os
@@ -46,7 +51,7 @@ class CziChannelInfo:
     gamma: List[float] = field(init=False, default_factory=lambda: [])
     pixeltypes: Dict[int, str] = field(init=False, default_factory=lambda: {})
     isRGB: Dict[int, bool] = field(init=False, default_factory=lambda: {})
-    consistent_pixeltypes: bool = field(init=False, default=None)
+    consistent_pixeltypes: Optional[bool] = field(init=False, default=None)
     czi_disp_settings: Dict[int, pyczi.ChannelDisplaySettingsDataClass] = field(init=False, default_factory=lambda: {})
     verbose: bool = False
 

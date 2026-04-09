@@ -32,7 +32,6 @@ environments:
       - conda: https://conda.anaconda.org/conda-forge/linux-64/tk-8.6.13-noxft_h366c992_103.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/tzdata-2025c-hc9c84f9_1.conda
       - conda: https://conda.anaconda.org/conda-forge/linux-64/zstd-1.5.7-hb78ec9c_6.conda
-      - pypi: https://files.pythonhosted.org/packages/42/19/ec14b688e0e3bbd5152f24fc8ea064b12d8c0252d4ce498b948a5c50e8f7/aicspylibczi-3.3.1-cp313-cp313-manylinux_2_17_x86_64.manylinux2014_x86_64.whl
       - pypi: https://files.pythonhosted.org/packages/78/b6/6307fbef88d9b5ee7421e68d78a9f162e0da4900bc5f5793f6d3d0e34fb8/annotated_types-0.7.0-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/64/b4/17d4b0b2a2dc85a6df63d1157e028ed19f90d4cd97c36717afef2bc2f395/attrs-26.1.0-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/1a/39/47f9197bdd44df24d67ac8893641e16f386c984a0619ef2ee4c51fbbc019/beautifulsoup4-4.14.3-py3-none-any.whl
@@ -142,7 +141,6 @@ environments:
       - conda: https://conda.anaconda.org/conda-forge/osx-64/readline-8.3-h68b038d_0.conda
       - conda: https://conda.anaconda.org/conda-forge/osx-64/tk-8.6.13-h7142dee_3.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/tzdata-2025c-hc9c84f9_1.conda
-      - pypi: https://files.pythonhosted.org/packages/dc/79/bf8113c52c75cbea0f01ba8e0a3f1dfd55ccbbcdc7b80ae065528adf7c71/aicspylibczi-3.3.1-cp313-cp313-macosx_10_13_x86_64.whl
       - pypi: https://files.pythonhosted.org/packages/78/b6/6307fbef88d9b5ee7421e68d78a9f162e0da4900bc5f5793f6d3d0e34fb8/annotated_types-0.7.0-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/64/b4/17d4b0b2a2dc85a6df63d1157e028ed19f90d4cd97c36717afef2bc2f395/attrs-26.1.0-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/1a/39/47f9197bdd44df24d67ac8893641e16f386c984a0619ef2ee4c51fbbc019/beautifulsoup4-4.14.3-py3-none-any.whl
@@ -254,7 +252,6 @@ environments:
       - conda: https://conda.anaconda.org/conda-forge/win-64/vc-14.3-h41ae7f8_34.conda
       - conda: https://conda.anaconda.org/conda-forge/win-64/vc14_runtime-14.44.35208-h818238b_34.conda
       - conda: https://conda.anaconda.org/conda-forge/win-64/vcomp14-14.44.35208-h818238b_34.conda
-      - pypi: https://files.pythonhosted.org/packages/56/9b/661854e4f86be0c851552fe2805655236590c846f53143ec8e53d3f11156/aicspylibczi-3.3.1-cp313-cp313-win_amd64.whl
       - pypi: https://files.pythonhosted.org/packages/78/b6/6307fbef88d9b5ee7421e68d78a9f162e0da4900bc5f5793f6d3d0e34fb8/annotated_types-0.7.0-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/64/b4/17d4b0b2a2dc85a6df63d1157e028ed19f90d4cd97c36717afef2bc2f395/attrs-26.1.0-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/1a/39/47f9197bdd44df24d67ac8893641e16f386c984a0619ef2ee4c51fbbc019/beautifulsoup4-4.14.3-py3-none-any.whl
@@ -366,177 +363,6 @@ packages:
   purls: []
   size: 28948
   timestamp: 1770939786096
-- pypi: https://files.pythonhosted.org/packages/42/19/ec14b688e0e3bbd5152f24fc8ea064b12d8c0252d4ce498b948a5c50e8f7/aicspylibczi-3.3.1-cp313-cp313-manylinux_2_17_x86_64.manylinux2014_x86_64.whl
-  name: aicspylibczi
-  version: 3.3.1
-  sha256: 0aa611540f0b3ce463aa4f8194217fdc5ba12d807cdd408fd10637695fd50dfe
-  requires_dist:
-  - numpy>=1.14.1
-  - flake8 ; extra == 'test'
-  - pytest ; extra == 'test'
-  - pytest-cov ; extra == 'test'
-  - pytest-raises ; extra == 'test'
-  - bump2version>=1.0.1 ; extra == 'dev'
-  - coverage>=5.0a4 ; extra == 'dev'
-  - flake8>=3.7.7 ; extra == 'dev'
-  - ipython>=7.5.0 ; extra == 'dev'
-  - myst-parser>=4.0.0 ; extra == 'dev'
-  - pytest>=4.3.0 ; extra == 'dev'
-  - pytest-cov==2.6.1 ; extra == 'dev'
-  - pytest-raises>=0.10 ; extra == 'dev'
-  - pytest-runner>=4.4 ; extra == 'dev'
-  - sphinx ; extra == 'dev'
-  - sphinx-rtd-theme>=0.1.2 ; extra == 'dev'
-  - breathe ; extra == 'dev'
-  - tox>=3.5.2 ; extra == 'dev'
-  - twine>=1.13.0 ; extra == 'dev'
-  - wheel>=0.33.1 ; extra == 'dev'
-  - cmake ; extra == 'dev'
-  - pytest-runner ; extra == 'setup'
-  - altair ; extra == 'interactive'
-  - jupyterlab ; extra == 'interactive'
-  - matplotlib ; extra == 'interactive'
-  - pillow ; extra == 'interactive'
-  - numpy>=1.14.1 ; extra == 'all'
-  - flake8 ; extra == 'all'
-  - pytest ; extra == 'all'
-  - pytest-cov ; extra == 'all'
-  - pytest-raises ; extra == 'all'
-  - pytest-runner ; extra == 'all'
-  - bump2version>=1.0.1 ; extra == 'all'
-  - coverage>=5.0a4 ; extra == 'all'
-  - flake8>=3.7.7 ; extra == 'all'
-  - ipython>=7.5.0 ; extra == 'all'
-  - myst-parser>=4.0.0 ; extra == 'all'
-  - pytest>=4.3.0 ; extra == 'all'
-  - pytest-cov==2.6.1 ; extra == 'all'
-  - pytest-raises>=0.10 ; extra == 'all'
-  - pytest-runner>=4.4 ; extra == 'all'
-  - sphinx ; extra == 'all'
-  - sphinx-rtd-theme>=0.1.2 ; extra == 'all'
-  - breathe ; extra == 'all'
-  - tox>=3.5.2 ; extra == 'all'
-  - twine>=1.13.0 ; extra == 'all'
-  - wheel>=0.33.1 ; extra == 'all'
-  - cmake ; extra == 'all'
-  - altair ; extra == 'all'
-  - jupyterlab ; extra == 'all'
-  - matplotlib ; extra == 'all'
-  - pillow ; extra == 'all'
-- pypi: https://files.pythonhosted.org/packages/56/9b/661854e4f86be0c851552fe2805655236590c846f53143ec8e53d3f11156/aicspylibczi-3.3.1-cp313-cp313-win_amd64.whl
-  name: aicspylibczi
-  version: 3.3.1
-  sha256: b53991e2d993962593f2cc9ad64d235d86a4531dae23b9467e4e02002bdc3ea1
-  requires_dist:
-  - numpy>=1.14.1
-  - flake8 ; extra == 'test'
-  - pytest ; extra == 'test'
-  - pytest-cov ; extra == 'test'
-  - pytest-raises ; extra == 'test'
-  - bump2version>=1.0.1 ; extra == 'dev'
-  - coverage>=5.0a4 ; extra == 'dev'
-  - flake8>=3.7.7 ; extra == 'dev'
-  - ipython>=7.5.0 ; extra == 'dev'
-  - myst-parser>=4.0.0 ; extra == 'dev'
-  - pytest>=4.3.0 ; extra == 'dev'
-  - pytest-cov==2.6.1 ; extra == 'dev'
-  - pytest-raises>=0.10 ; extra == 'dev'
-  - pytest-runner>=4.4 ; extra == 'dev'
-  - sphinx ; extra == 'dev'
-  - sphinx-rtd-theme>=0.1.2 ; extra == 'dev'
-  - breathe ; extra == 'dev'
-  - tox>=3.5.2 ; extra == 'dev'
-  - twine>=1.13.0 ; extra == 'dev'
-  - wheel>=0.33.1 ; extra == 'dev'
-  - cmake ; extra == 'dev'
-  - pytest-runner ; extra == 'setup'
-  - altair ; extra == 'interactive'
-  - jupyterlab ; extra == 'interactive'
-  - matplotlib ; extra == 'interactive'
-  - pillow ; extra == 'interactive'
-  - numpy>=1.14.1 ; extra == 'all'
-  - flake8 ; extra == 'all'
-  - pytest ; extra == 'all'
-  - pytest-cov ; extra == 'all'
-  - pytest-raises ; extra == 'all'
-  - pytest-runner ; extra == 'all'
-  - bump2version>=1.0.1 ; extra == 'all'
-  - coverage>=5.0a4 ; extra == 'all'
-  - flake8>=3.7.7 ; extra == 'all'
-  - ipython>=7.5.0 ; extra == 'all'
-  - myst-parser>=4.0.0 ; extra == 'all'
-  - pytest>=4.3.0 ; extra == 'all'
-  - pytest-cov==2.6.1 ; extra == 'all'
-  - pytest-raises>=0.10 ; extra == 'all'
-  - pytest-runner>=4.4 ; extra == 'all'
-  - sphinx ; extra == 'all'
-  - sphinx-rtd-theme>=0.1.2 ; extra == 'all'
-  - breathe ; extra == 'all'
-  - tox>=3.5.2 ; extra == 'all'
-  - twine>=1.13.0 ; extra == 'all'
-  - wheel>=0.33.1 ; extra == 'all'
-  - cmake ; extra == 'all'
-  - altair ; extra == 'all'
-  - jupyterlab ; extra == 'all'
-  - matplotlib ; extra == 'all'
-  - pillow ; extra == 'all'
-- pypi: https://files.pythonhosted.org/packages/dc/79/bf8113c52c75cbea0f01ba8e0a3f1dfd55ccbbcdc7b80ae065528adf7c71/aicspylibczi-3.3.1-cp313-cp313-macosx_10_13_x86_64.whl
-  name: aicspylibczi
-  version: 3.3.1
-  sha256: 03c5b0375e6cbccbff15c8fe7a00e65fbded3140bb6ad0c15538d1a9344112d5
-  requires_dist:
-  - numpy>=1.14.1
-  - flake8 ; extra == 'test'
-  - pytest ; extra == 'test'
-  - pytest-cov ; extra == 'test'
-  - pytest-raises ; extra == 'test'
-  - bump2version>=1.0.1 ; extra == 'dev'
-  - coverage>=5.0a4 ; extra == 'dev'
-  - flake8>=3.7.7 ; extra == 'dev'
-  - ipython>=7.5.0 ; extra == 'dev'
-  - myst-parser>=4.0.0 ; extra == 'dev'
-  - pytest>=4.3.0 ; extra == 'dev'
-  - pytest-cov==2.6.1 ; extra == 'dev'
-  - pytest-raises>=0.10 ; extra == 'dev'
-  - pytest-runner>=4.4 ; extra == 'dev'
-  - sphinx ; extra == 'dev'
-  - sphinx-rtd-theme>=0.1.2 ; extra == 'dev'
-  - breathe ; extra == 'dev'
-  - tox>=3.5.2 ; extra == 'dev'
-  - twine>=1.13.0 ; extra == 'dev'
-  - wheel>=0.33.1 ; extra == 'dev'
-  - cmake ; extra == 'dev'
-  - pytest-runner ; extra == 'setup'
-  - altair ; extra == 'interactive'
-  - jupyterlab ; extra == 'interactive'
-  - matplotlib ; extra == 'interactive'
-  - pillow ; extra == 'interactive'
-  - numpy>=1.14.1 ; extra == 'all'
-  - flake8 ; extra == 'all'
-  - pytest ; extra == 'all'
-  - pytest-cov ; extra == 'all'
-  - pytest-raises ; extra == 'all'
-  - pytest-runner ; extra == 'all'
-  - bump2version>=1.0.1 ; extra == 'all'
-  - coverage>=5.0a4 ; extra == 'all'
-  - flake8>=3.7.7 ; extra == 'all'
-  - ipython>=7.5.0 ; extra == 'all'
-  - myst-parser>=4.0.0 ; extra == 'all'
-  - pytest>=4.3.0 ; extra == 'all'
-  - pytest-cov==2.6.1 ; extra == 'all'
-  - pytest-raises>=0.10 ; extra == 'all'
-  - pytest-runner>=4.4 ; extra == 'all'
-  - sphinx ; extra == 'all'
-  - sphinx-rtd-theme>=0.1.2 ; extra == 'all'
-  - breathe ; extra == 'all'
-  - tox>=3.5.2 ; extra == 'all'
-  - twine>=1.13.0 ; extra == 'all'
-  - wheel>=0.33.1 ; extra == 'all'
-  - cmake ; extra == 'all'
-  - altair ; extra == 'all'
-  - jupyterlab ; extra == 'all'
-  - matplotlib ; extra == 'all'
-  - pillow ; extra == 'all'
 - pypi: https://files.pythonhosted.org/packages/78/b6/6307fbef88d9b5ee7421e68d78a9f162e0da4900bc5f5793f6d3d0e34fb8/annotated_types-0.7.0-py3-none-any.whl
   name: annotated-types
   version: 0.7.0
@@ -944,11 +770,10 @@ packages:
   requires_python: '>=3.12'
 - pypi: ./
   name: czitools
-  version: 0.15.1
-  sha256: b4a9437de935ffb5d3e85aff967832417718d3c058a65902ed68f1417dfaf8ab
+  version: 0.16.0
+  sha256: 2bb0dc507d71d56395f4093e075e0099c3cd770cd85fe7a29b454fc66193ee91
   requires_dist:
   - pylibczirw>=5
-  - aicspylibczi>=3.3.1
   - progressbar2
   - pandas
   - python-dateutil
@@ -971,6 +796,19 @@ packages:
   - bioio-czi ; extra == 'all'
   - bioio-ome-zarr ; extra == 'all'
   - ndv[pyqt,vispy] ; extra == 'all'
+  - mkdocs-material ; extra == 'docs'
+  - mkdocs-autorefs ; extra == 'docs'
+  - mkdocs-spellcheck ; extra == 'docs'
+  - mkdocs-api-autonav ; extra == 'docs'
+  - pymdown-extensions ; extra == 'docs'
+  - mkdocs>=1.6.1 ; extra == 'docs'
+  - mkdocs-api-autonav>=0.1.2 ; extra == 'docs'
+  - mkdocs-material>=9.5.49 ; extra == 'docs'
+  - mkdocs-minify-plugin>=0.8.0 ; extra == 'docs'
+  - mkdocs-spellcheck[codespell]==1.1.0 ; extra == 'docs'
+  - mkdocstrings-python>=1.13.0 ; extra == 'docs'
+  - mike>=2.1.3 ; extra == 'docs'
+  - ruff>=0.9.4 ; extra == 'docs'
   requires_python: '>=3.10,<3.14'
 - pypi: https://files.pythonhosted.org/packages/4a/f3/00bb1e867fba351e2d784170955713bee200c43ea306c59f30bd7e748192/dask-2026.3.0-py3-none-any.whl
   name: dask

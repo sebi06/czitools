@@ -112,7 +112,7 @@ class CziBoundingBox:
 
             try:
                 self.total_bounding_box_no_pyramid = czidoc.total_bounding_box_no_pyramid
-            except Exception as e:
+            except Exception:
                 self.total_bounding_box_no_pyramid = None
                 if self.verbose:
                     logger.info("Total Bounding Box no Pyramid not found.")

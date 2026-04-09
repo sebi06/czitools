@@ -1,3 +1,11 @@
+"""Utilities for loading CZI metadata as a `python-box` `Box` object.
+
+Provides `get_czimd_box`, which opens a CZI file (local path or URL) and
+returns its XML metadata as an attribute-accessible `Box` together with a set
+of convenience boolean flags (e.g. `has_channels`, `has_scenes`) that indicate
+which metadata sections are present.
+"""
+
 from __future__ import annotations
 from typing import Union
 import os
@@ -89,10 +97,7 @@ def get_czimd_box(filepath: Union[str, os.PathLike[str]]) -> Box:
             if "Dimensions" in czimd_box.ImageDocument.Metadata.Information.Image:
                 czimd_box.has_dims = True
 
-                if (
-                    "Channels"
-                    in czimd_box.ImageDocument.Metadata.Information.Image.Dimensions
-                ):
+                if "Channels" in czimd_box.ImageDocument.Metadata.Information.Image.Dimensions:
                     # if "C" in total_bounding_box_no_pyramid.keys():
                     czimd_box.has_channels = True
 

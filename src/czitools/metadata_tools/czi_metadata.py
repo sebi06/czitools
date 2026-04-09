@@ -9,11 +9,15 @@
 #
 #################################################################
 
+"""Top-level CZI metadata aggregator.
+
+Provides `CziMetadata`, an aggregating dataclass that composes all individual
+metadata classes (dimensions, scaling, channels, bounding box, etc.) into a
+single object. Also exposes `writexml` to dump the raw CZI XML to disk.
+"""
 # from __future__ import annotations
 from typing import List, Dict, Tuple, Optional, Any, Union
 import os
-import gc
-import warnings
 import xml.etree.ElementTree as ET
 from pylibCZIrw import czi as pyczi
 from czitools.utils import logging_tools, misc, pixels
@@ -58,14 +62,14 @@ class CziMetadata:
         user_name (Optional[str]): Name of the user who created the image.
         czi_box (Optional[Box]): Metadata box of the CZI file.
         pyczi_dims (Optional[Dict[str, tuple]]): Dimensions of the CZI file.
-        aics_dimstring (Optional[str]): Dimension string from aicspylibczi.
-        aics_dims_shape (Optional[List[Dict[str, tuple]]]): Dimension shapes from aicspylibczi.
-        aics_size (Optional[Tuple[int]]): Size of the CZI file from aicspylibczi.
-        aics_ismosaic (Optional[bool]): Indicates if the CZI file is a mosaic.
-        aics_dim_order (Optional[Dict[str, int]]): Dimension order from aicspylibczi.
-        aics_dim_index (Optional[List[int]]): Dimension indices from aicspylibczi.
-        aics_dim_valid (Optional[int]): Number of valid dimensions from aicspylibczi.
-        aics_posC (Optional[int]): Position of the 'C' dimension from aicspylibczi.
+        sb_dimstring (Optional[str]): Dimension string derived from czifile subblocks.
+        sb_dims_shape (Optional[List[Dict[str, tuple]]]): Per-scene dimension ranges derived from czifile subblocks.
+        sb_size (Optional[Tuple[int]]): Size of the CZI file derived from czifile subblocks.
+        sb_ismosaic (Optional[bool]): Indicates if the CZI file is a mosaic.
+        sb_dim_order (Optional[Dict[str, int]]): Dimension order derived from czifile subblocks.
+        sb_dim_index (Optional[List[int]]): Dimension indices derived from czifile subblocks.
+        sb_dim_valid (Optional[int]): Number of valid dimensions derived from czifile subblocks.
+        sb_posC (Optional[int]): Position of the 'C' dimension in the dimension string.
         pixeltypes (Optional[Dict[int, str]]): Pixel types for all channels.
         consistent_pixeltypes (Optional[bool]): Indicates if pixel types are consistent across channels.
         isRGB (Optional[Dict[int, bool]]): Indicates if the image is RGB.
@@ -102,14 +106,14 @@ class CziMetadata:
     user_name: Optional[str] = field(init=False, default=None)
     czi_box: Optional[Box] = field(init=False, default=None)
     pyczi_dims: Optional[Dict[str, tuple]] = field(init=False, default_factory=lambda: {})
-    aics_dimstring: Optional[str] = field(init=False, default=None)
-    aics_dims_shape: Optional[List[Dict[str, tuple]]] = field(init=False, default_factory=lambda: [])
-    aics_size: Optional[Tuple[int]] = field(init=False, default_factory=lambda: ())
-    aics_ismosaic: Optional[bool] = field(init=False, default=None)
-    aics_dim_order: Optional[Dict[str, int]] = field(init=False, default_factory=lambda: {})
-    aics_dim_index: Optional[List[int]] = field(init=False, default_factory=lambda: [])
-    aics_dim_valid: Optional[int] = field(init=False, default=None)
-    aics_posC: Optional[int] = field(init=False, default=None)
+    sb_dimstring: Optional[str] = field(init=False, default=None)
+    sb_dims_shape: Optional[List[Dict[str, tuple]]] = field(init=False, default_factory=lambda: [])
+    sb_size: Optional[Tuple[int, ...]] = field(init=False, default_factory=lambda: ())
+    sb_ismosaic: Optional[bool] = field(init=False, default=None)
+    sb_dim_order: Optional[Dict[str, int]] = field(init=False, default_factory=lambda: {})
+    sb_dim_index: Optional[List[int]] = field(init=False, default_factory=lambda: [])
+    sb_dim_valid: Optional[int] = field(init=False, default=None)
+    sb_posC: Optional[int] = field(init=False, default=None)
     pixeltypes: Optional[Dict[int, str]] = field(init=False, default_factory=lambda: {})
     consistent_pixeltypes: Optional[bool] = field(init=False, default=None)
     isRGB: Optional[Dict[int, bool]] = field(init=False, default_factory=lambda: {})
@@ -128,7 +132,7 @@ class CziMetadata:
     microscope: Optional[CziMicroscope] = field(init=False, default=None)
     sample: Optional[CziSampleInfo] = field(init=False, default=None)
     add_metadata: Optional[CziAddMetaData] = field(init=False, default=None)
-    scene_size_consistent: Optional[Tuple[int]] = field(init=False, default_factory=lambda: ())
+    scene_size_consistent: Optional[Tuple[int, ...]] = field(init=False, default_factory=lambda: ())
     array6d_size: Optional[Tuple[int, ...]] = field(init=False, default=None)
     verbose: bool = False
 
@@ -171,7 +175,7 @@ class CziMetadata:
         self.image = CziDimensions(self.czi_box, verbose=self.verbose)
 
         # get metadata_tools using pylibCZIrw
-        with pyczi.open_czi(self.filepath, self.pyczi_readertype) as czidoc:
+        with pyczi.open_czi(str(self.filepath), self.pyczi_readertype) as czidoc:
             # get dimensions
             self.pyczi_dims = czidoc.total_bounding_box
 
@@ -183,58 +187,92 @@ class CziMetadata:
             self.scene_shape_is_consistent = pixels.check_scenes_shape(czidoc, size_s=self.image.SizeS)
 
         if not self.is_url:
-            # get some additional metadata_tools using aicspylibczi
-            # WARNING: aicspylibczi has known threading issues when used with Napari/PyQt on Linux
-            # If you experience crashes, set the environment variable CZITOOLS_DISABLE_AICSPYLIBCZI=1
-            use_aicspylibczi = os.environ.get("CZITOOLS_DISABLE_AICSPYLIBCZI", "0") != "1"
+            # get additional dimension info using czifile (replaces aicspylibczi)
+            try:
+                import czifile as czifile_module
 
-            if use_aicspylibczi:
-                # Suppress ResourceWarning as we explicitly clean up the CziFile object
-                # aicspylibczi.CziFile doesn't provide a close() method, so Python may warn about unclosed file
-                with warnings.catch_warnings():
-                    warnings.filterwarnings("ignore", category=ResourceWarning, message=".*CziFile.*")
-                    warnings.filterwarnings("ignore", category=ResourceWarning, message=".*BufferedReader.*")
+                with czifile_module.CziFile(self.filepath) as czi:
+                    subblocks = [sb for sb in czi.subblocks() if not sb.directory_entry.is_pyramid]
 
-                    try:
-                        from aicspylibczi import CziFile
+                    if subblocks:
+                        # Build dimension string and shapes from non-pyramid subblocks
+                        all_dims: Dict[int, Dict[str, Tuple[int, int]]] = {}
+                        for sb in subblocks:
+                            de = sb.directory_entry
+                            s = de.scene_index if de.scene_index >= 0 else 0
+                            for dim_char, start_val, shape_val in zip(de.dims, de.start, de.shape):
+                                if dim_char in ("X", "Y"):
+                                    continue
+                                scene_dims = all_dims.setdefault(s, {})
+                                if dim_char not in scene_dims:
+                                    scene_dims[dim_char] = (start_val, start_val + shape_val)
+                                else:
+                                    lo, hi = scene_dims[dim_char]
+                                    scene_dims[dim_char] = (min(lo, start_val), max(hi, start_val + shape_val))
 
-                        # get the general CZI object using aicspylibczi
-                        aicsczi = CziFile(self.filepath)
+                        # Mosaic detection: any subblock with mosaic_index >= 1
+                        mosaic_counts: Dict[int, int] = {}
+                        for sb in subblocks:
+                            de = sb.directory_entry
+                            s = de.scene_index if de.scene_index >= 0 else 0
+                            m = de.mosaic_index if de.mosaic_index >= 0 else 0
+                            mosaic_counts[s] = max(mosaic_counts.get(s, 0), m + 1)
 
-                        self.aics_dimstring = aicsczi.dims
-                        self.aics_dims_shape = aicsczi.get_dims_shape()
-                        self.aics_size = aicsczi.size
-                        self.aics_ismosaic = aicsczi.is_mosaic()
+                        self.sb_ismosaic = any(v > 1 for v in mosaic_counts.values())
+
+                        # Get X/Y shape from first subblock
+                        de0 = subblocks[0].directory_entry
+                        x_shape = de0.shape[de0.dims.index("X")] if "X" in de0.dims else 0
+                        y_shape = de0.shape[de0.dims.index("Y")] if "Y" in de0.dims else 0
+
+                        # Build per-scene dims_shape list
+                        self.sb_dims_shape = []
+                        for s in sorted(all_dims.keys()):
+                            shape_dict: Dict[str, Tuple[int, int]] = {}
+                            shape_dict["X"] = (0, x_shape)
+                            shape_dict["Y"] = (0, y_shape)
+                            for dim_char, (lo, hi) in all_dims[s].items():
+                                shape_dict[dim_char] = (lo, hi)
+                            if self.sb_ismosaic:
+                                shape_dict["M"] = (0, mosaic_counts.get(s, 1))
+                            shape_dict["S"] = (s, s + 1)
+                            self.sb_dims_shape.append(shape_dict)
+
+                        # Build dimension string (consistent ordering)
+                        dim_chars = set()
+                        for sb in subblocks:
+                            dim_chars.update(sb.directory_entry.dims)
+                        # Remove pixel dims; add M if mosaic
+                        dim_chars.discard("X")
+                        dim_chars.discard("Y")
+                        if self.sb_ismosaic:
+                            dim_chars.add("M")
+                        # Standard order: H/B, S, T, C, Z, M, Y, X
+                        dim_order_ref = ["H", "B", "S", "T", "C", "Z", "M", "Y", "X"]
+                        ordered = [d for d in dim_order_ref if d in dim_chars]
+                        ordered.extend(["Y", "X"])
+                        self.sb_dimstring = "".join(ordered)
+
+                        # Derive dim_order, dim_index, dim_valid using existing utility
                         (
-                            self.aics_dim_order,
-                            self.aics_dim_index,
-                            self.aics_dim_valid,
-                        ) = pixels.get_dimorder(aicsczi.dims)
-                        self.aics_posC = self.aics_dim_order["C"]
+                            self.sb_dim_order,
+                            self.sb_dim_index,
+                            self.sb_dim_valid,
+                        ) = pixels.get_dimorder(self.sb_dimstring)
+                        self.sb_posC = self.sb_dim_order.get("C")
 
-                        # Explicitly delete the CziFile object to close underlying file handle
-                        # aicspylibczi.CziFile doesn't provide a close() method, so we rely on deletion
-                        # and explicit garbage collection to ensure the file handle is released
-                        del aicsczi
-                        gc.collect()
-
-                    except ImportError as e:
-                        logger.warning(f"{e}: Package aicspylibczi not found. Using fallback values.")
-                    except Exception as e:
-                        logger.warning(
-                            f"aicspylibczi failed (possibly due to threading conflict): {e}. "
-                            "Set CZITOOLS_DISABLE_AICSPYLIBCZI=1 to disable. Using fallback values."
-                        )
-            else:
-                if self.verbose:
-                    logger.info("aicspylibczi disabled via CZITOOLS_DISABLE_AICSPYLIBCZI environment variable")
+            except ImportError:
+                logger.warning("Package czifile not found. Using fallback values for dimension info.")
+            except Exception as e:
+                logger.warning(f"czifile dimension extraction failed: {e}. Using fallback values.")
         self.npdtype_list = []
         self.maxvalue_list = []
 
         for ch, px in self.pixeltypes.items():
             npdtype, maxvalue = pixels.get_dtype_fromstring(px)
             self.npdtype_list.append(npdtype)
-            self.maxvalue_list.append(maxvalue)
+            if maxvalue is not None:
+                self.maxvalue_list.append(maxvalue)
 
         # try to guess if the CZI is a mosaic file
         if self.image.SizeM is None or self.image.SizeM == 1:
@@ -309,9 +347,7 @@ def get_metadata_as_object(filepath: Union[str, os.PathLike[str]]) -> DictObj:
         DictObj: An object containing the metadata extracted from the CZI file.
     """
 
-    if isinstance(filepath, Path):
-        # convert to string
-        filepath = str(filepath)
+    filepath = str(filepath)
 
     # get metadata_tools dictionary using pylibCZIrw
     with pyczi.open_czi(filepath) as czidoc:
@@ -376,9 +412,7 @@ def writexml(filepath: Union[str, os.PathLike[str]], xmlsuffix: str = "_CZI_Meta
         str: filename of the XML file
     """
 
-    if isinstance(filepath, Path):
-        # convert to string
-        filepath = str(filepath)
+    filepath = str(filepath)
 
     # get the raw metadata_tools as XML or dictionary
     with pyczi.open_czi(filepath) as czidoc:
@@ -408,6 +442,14 @@ def create_md_dict_red(metadata: CziMetadata, sort: bool = True, remove_none: bo
     Returns: dictionary with the metadata_tools
 
     """
+
+    assert metadata.image is not None
+    assert metadata.attachments is not None
+    assert metadata.objective is not None
+    assert metadata.scale is not None
+    assert metadata.channelinfo is not None
+    assert metadata.sample is not None
+    assert metadata.bbox is not None
 
     # create a dictionary with the metadata_tools
     md_dict = {
@@ -498,6 +540,13 @@ def create_md_dict_nested(metadata: CziMetadata, sort: bool = True, remove_none:
     Returns:
         Dict: Nested dictionary with reduced set of metadata_tools
     """
+
+    assert metadata.image is not None
+    assert metadata.scale is not None
+    assert metadata.sample is not None
+    assert metadata.objective is not None
+    assert metadata.channelinfo is not None
+    assert metadata.bbox is not None
 
     md_box_image = Box(asdict(metadata.image))
     del md_box_image.czisource

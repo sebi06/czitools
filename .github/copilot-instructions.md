@@ -8,7 +8,7 @@ This document provides guidelines for GitHub Copilot when working with the czito
 
 ### Key Dependencies
 - `pylibCZIrw` - Core library for reading/writing CZI files
-- `aicspylibczi` - Additional CZI functionality
+- `czifile` - Additional CZI functionality (subblock-level access)
 - `numpy` - Array operations
 - `dask` - Lazy/delayed array operations
 - `xarray` - Labeled multi-dimensional arrays

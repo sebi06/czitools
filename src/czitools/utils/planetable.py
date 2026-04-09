@@ -9,17 +9,20 @@
 #
 #################################################################
 
+"""Plane-table (stage position) utilities for CZI files.
+
+Provides functions to extract per-plane stage-position data from CZI
+metadata and return it as a `pandas.DataFrame`.
+"""
 import os
-import gc
-import warnings
+import xml.etree.ElementTree as ET
 import pandas as pd
 import numpy as np
 from pathlib import Path
 import dateutil.parser as dt
 from typing import Dict, Tuple, Any, Union, Optional
 import validators
-from itertools import product
-from aicspylibczi import CziFile
+import czifile as czifile_module
 from czitools.utils import logging_tools
 
 # Import progressbar2
@@ -33,55 +36,24 @@ except ImportError:
 logger = logging_tools.set_logging()
 
 
-def _get_planetable_impl(
-    czifile: Union[str, os.PathLike[str]],
-    norm_time: Optional[bool] = True,
-    save_table: Optional[bool] = False,
-    table_separator: Optional[str] = ";",
-    table_index: Optional[bool] = True,
-    planes: Optional[Dict[str, int]] = None,
-) -> Tuple[pd.DataFrame, Optional[str]]:
-    """
-    Internal implementation of get_planetable().
+def _get_dim_start(de: Any, dim: str, default: int = 0) -> int:
+    """Return the start index of a dimension from a czifile directory_entry, or default if absent."""
+    if dim in de.dims:
+        return de.start[de.dims.index(dim)]
+    return default
 
-    This function performs the actual planetable extraction using aicspylibczi.
-    It should not be called directly - use get_planetable() instead.
-    """
-    if isinstance(czifile, Path):
-        czifile = str(czifile)
 
-    if validators.url(czifile):
-        logger.warning("Reading PlaneTable from CZI via a link is not supported yet.")
-        return pd.DataFrame(), None
-
-    df_czi = _initialize_planetable_dataframe()
-
-    with warnings.catch_warnings():
-        warnings.filterwarnings("ignore", category=ResourceWarning, message=".*CziFile.*")
-        warnings.filterwarnings("ignore", category=ResourceWarning, message=".*BufferedReader.*")
-
-        aicsczi = CziFile(czifile)
-        dims = aicsczi.get_dims_shape()
-
-    try:
-        dim_info = _extract_dimension_info(dims)
-        iteration_ranges = _calculate_iteration_ranges(dim_info, planes)
-        df_czi = _process_subblocks(aicsczi, dim_info, iteration_ranges, df_czi)
-
-        if norm_time:
-            df_czi = norm_columns(df_czi, colname="Time[s]", mode="min")
-
-        if save_table:
-            return _save_planetable_if_requested(df_czi, czifile, table_separator, table_index)
-
-        return df_czi, None
-    finally:
-        del aicsczi
-        gc.collect()
+def _get_bbox(de: Any) -> Tuple[int, int, int, int]:
+    """Extract (xstart, ystart, width, height) from a czifile directory_entry."""
+    xstart = _get_dim_start(de, "X")
+    ystart = _get_dim_start(de, "Y")
+    width = de.shape[de.dims.index("X")] if "X" in de.dims else 0
+    height = de.shape[de.dims.index("Y")] if "Y" in de.dims else 0
+    return xstart, ystart, width, height
 
 
 def get_planetable(
-    czifile: Union[str, os.PathLike[str]],
+    czipath: Union[str, os.PathLike[str]],
     norm_time: Optional[bool] = True,
     save_table: Optional[bool] = False,
     table_separator: Optional[str] = ";",
@@ -89,10 +61,14 @@ def get_planetable(
     planes: Optional[Dict[str, int]] = None,
 ) -> Tuple[pd.DataFrame, Optional[str]]:
     """
-    Extracts the plane table from the individual subblocks of a CZI file with thread-safe locking.
+    Extracts the plane table from the individual subblocks of a CZI file.
+
+    Iterates all subblocks directly from the CZI file, extracting per-plane
+    position, timing, and bounding-box data.  Mosaic tile indices (M) are
+    derived by counting subblocks sharing the same (S, T, C, Z) combination.
 
     Args:
-        czifile (Union[str, os.PathLike[str]]): The path to the CZI image file.
+        czipath (Union[str, os.PathLike[str]]): The path to the CZI image file.
         norm_time (Optional[bool]): Whether to normalize the timestamps. Defaults to True.
         save_table (Optional[bool]): Whether to save the plane table to a CSV file. Defaults to False.
         table_separator (Optional[str]): The separator for the CSV file. Defaults to ";".
@@ -103,85 +79,163 @@ def get_planetable(
     Returns:
         Tuple[pd.DataFrame, Optional[str]]: A tuple containing:
             - A Pandas DataFrame representing the plane table.
-            - The file path of the saved CSV file, if `save_table` is True; otherwise, None.
-
-    Notes:
-        **Thread-Safety for Napari on Linux:**
-
-        This function uses `aicspylibczi` which can have threading conflicts with PyQt/Napari on Linux.
-
-        **Solution 1 (Safest)**: Disable aicspylibczi entirely:
-        ```python
-        import os
-        os.environ["CZITOOLS_DISABLE_AICSPYLIBCZI"] = "1"
-        # get_planetable() will return empty DataFrame
-        ```
-
-        **Solution 2**: Use thread-locked version (current default):
-        - Uses a global lock to serialize aicspylibczi access
-        - Provides basic thread-safety
-        - May still have PyQt conflicts on Linux - test carefully!
-
-        If crashes persist with Napari, use Solution 1.
+            - The file path of the saved CSV file, if ``save_table`` is True; otherwise, None.
     """
-    if isinstance(czifile, Path):
-        czifile = str(czifile)
+    if isinstance(czipath, Path):
+        czipath = str(czipath)
 
-    # Check if aicspylibczi is disabled
-    if os.environ.get("CZITOOLS_DISABLE_AICSPYLIBCZI", "0") == "1":
-        logger.warning(
-            "get_planetable() requires aicspylibczi, but it is disabled via CZITOOLS_DISABLE_AICSPYLIBCZI. "
-            "Planetable extraction is not available in safe mode."
-        )
+    if validators.url(czipath):
+        logger.warning("Reading PlaneTable from CZI via a link is not supported yet.")
         return pd.DataFrame(), None
 
-    # Warn about potential Napari conflicts on Linux
-    from czitools.utils.threading_helpers import warn_if_unsafe_for_napari
+    rows = []
+    # Mosaic tile counter: maps (S, T, C, Z) → next M index
+    tile_counters: Dict[Tuple[int, int, int, int], int] = {}
 
-    warn_if_unsafe_for_napari()
+    with czifile_module.CziFile(czipath) as czi:
+        subblocks = list(czi.subblocks())
 
-    # Call implementation with thread lock
-    from czitools.utils.threading_helpers import with_aics_lock
+        if HAS_PROGRESSBAR:
+            widgets = [
+                progressbar.Percentage(),
+                " ",
+                progressbar.Bar(),
+                " ",
+                progressbar.ETA(),
+                " ",
+                progressbar.SimpleProgress(),
+            ]
+            iterator = progressbar.progressbar(
+                enumerate(subblocks),
+                widgets=widgets,
+                max_value=len(subblocks),
+                term_width=80,
+            )
+        else:
+            iterator = enumerate(subblocks)
 
-    locked_impl = with_aics_lock(_get_planetable_impl)
-    return locked_impl(czifile, norm_time, save_table, table_separator, table_index, planes)
+        for sbcount, sb in iterator:
+            de = sb.directory_entry
+
+            s = _get_dim_start(de, "S")
+            t = _get_dim_start(de, "T")
+            c = _get_dim_start(de, "C")
+            z = _get_dim_start(de, "Z")
+
+            # Derive mosaic tile (M) index by counting subblocks per (S, T, C, Z) group
+            key = (s, t, c, z)
+            m = tile_counters.get(key, 0)
+            tile_counters[key] = m + 1
+
+            xstart, ystart, width, height = _get_bbox(de)
+
+            # Parse subblock metadata (czifile returns XML as a string)
+            md_raw = sb.metadata()
+            if isinstance(md_raw, str):
+                try:
+                    md_xml = ET.fromstring(md_raw)
+                except ET.ParseError:
+                    md_xml = None
+            else:
+                md_xml = md_raw
+
+            timestamp, xpos, ypos, zpos = _getsbinfo(md_xml)
+
+            rows.append(
+                {
+                    "Subblock": sbcount,
+                    "S": s,
+                    "M": m,
+                    "T": t,
+                    "C": c,
+                    "Z": z,
+                    "X[micron]": xpos,
+                    "Y[micron]": ypos,
+                    "Z[micron]": zpos,
+                    "Time[s]": timestamp,
+                    "xstart": xstart,
+                    "ystart": ystart,
+                    "width": width,
+                    "height": height,
+                }
+            )
+
+    df_czi = _initialize_planetable_dataframe()
+    if rows:
+        df_czi = pd.concat([df_czi, pd.DataFrame(rows)], ignore_index=True)
+
+    # Sort by dimension indices to produce the same ordered output as the old
+    # nested-loop implementation, then renumber Subblock sequentially.
+    df_czi = df_czi.sort_values(["S", "M", "T", "C", "Z"]).reset_index(drop=True)
+
+    # Apply planes filter
+    if planes is not None:
+        df_czi = filter_planetable(df_czi, planes)
+        df_czi = df_czi.reset_index(drop=True)
+
+    # Sequential Subblock numbering (0-based) on the final ordered, filtered set
+    df_czi["Subblock"] = np.arange(len(df_czi), dtype="int32")
+
+    # Enforce column dtypes
+    df_czi = df_czi.astype(
+        {
+            "Subblock": "int32",
+            "S": "int32",
+            "M": "int32",
+            "T": "int32",
+            "C": "int32",
+            "Z": "int32",
+            "xstart": "int32",
+            "ystart": "int32",
+            "width": "int32",
+            "height": "int32",
+        },
+        errors="ignore",
+    )
+
+    if norm_time:
+        df_czi = norm_columns(df_czi, colname="Time[s]", mode="min")
+
+    if save_table:
+        return _save_planetable_if_requested(df_czi, czipath, table_separator, table_index)
+
+    return df_czi, None
 
 
-def _getsbinfo(subblock: Any) -> Tuple[float, float, float, float]:
+def _getsbinfo(subblock: Optional[Any]) -> Tuple[float, float, float, float]:
     """
-    Extracts metadata information from a given subblock element.
-    This function retrieves the acquisition timestamp, stage X position,
-    stage Y position, and focus position from the provided subblock.
-    If any of the elements are missing, their corresponding values are
-    set to 0.0.
+    Extracts metadata information from a parsed subblock XML element.
+
     Args:
-        subblock (Any): The subblock element containing metadata information.
+        subblock: An ``xml.etree.ElementTree.Element`` parsed from subblock
+            metadata, or ``None`` if parsing failed.
+
     Returns:
-        Tuple[float, float, float, float]: A tuple containing:
-            - timestamp (float): The acquisition time in seconds since the epoch.
-            - xpos (float): The stage X position.
-            - ypos (float): The stage Y position.
-            - zpos (float): The focus position.
+        Tuple[float, float, float, float]: timestamp, xpos, ypos, zpos.
+        All values default to 0.0 when the corresponding XML element is absent.
     """
+    if subblock is None:
+        return 0.0, 0.0, 0.0, 0.0
+
     try:
-        time = subblock.findall(".//AcquisitionTime")[0].text
-        timestamp = dt.parse(time).timestamp()
-    except IndexError:
+        time_text = subblock.findtext(".//AcquisitionTime")
+        timestamp = dt.parse(time_text).timestamp() if time_text else 0.0
+    except (ValueError, OverflowError):
         timestamp = 0.0
 
     try:
-        xpos = np.double(subblock.findall(".//StageXPosition")[0].text)
-    except IndexError:
+        xpos = float(np.double(subblock.findtext(".//StageXPosition") or "0"))
+    except (ValueError, TypeError):
         xpos = 0.0
 
     try:
-        ypos = np.double(subblock.findall(".//StageYPosition")[0].text)
-    except IndexError:
+        ypos = float(np.double(subblock.findtext(".//StageYPosition") or "0"))
+    except (ValueError, TypeError):
         ypos = 0.0
 
     try:
-        zpos = np.double(subblock.findall(".//FocusPosition")[0].text)
-    except IndexError:
+        zpos = float(np.double(subblock.findtext(".//FocusPosition") or "0"))
+    except (ValueError, TypeError):
         zpos = 0.0
 
     return timestamp, xpos, ypos, zpos
@@ -244,32 +298,34 @@ def filter_planetable(planetable: pd.DataFrame, planes: Optional[Dict[str, int]]
     """
 
     # Define valid keys for filtering
-    valid_args = ["scene", "time", "zplane", "channel"]
+    valid_args = ["scene", "tile", "time", "zplane", "channel"]
 
     # If no filtering criteria are provided, return the unfiltered planetable
     if planes is None:
         return planetable
-    elif planes is not None:
-        # Check for invalid keys in the `planes` dictionary
-        for k, v in planes.items():
-            if k not in valid_args:
-                raise ValueError(f"Invalid keyword argument: {k}")
 
-        # Apply filtering for each valid key if it exists in `planes`
-        if "scene" in planes:
-            planetable = planetable[planetable["S"] == planes["scene"]]
+    # Check for invalid keys in the `planes` dictionary
+    for k in planes:
+        if k not in valid_args:
+            raise ValueError(f"Invalid keyword argument: {k}")
 
-        if "time" in planes:
-            planetable = planetable[planetable["T"] == planes["time"]]
+    # Apply filtering for each valid key if it exists in `planes`
+    if "scene" in planes:
+        planetable = planetable[planetable["S"] == planes["scene"]]
 
-        if "zplane" in planes:
-            planetable = planetable[planetable["Z"] == planes["zplane"]]
+    if "tile" in planes:
+        planetable = planetable[planetable["M"] == planes["tile"]]
 
-        if "channel" in planes:
-            planetable = planetable[planetable["C"] == planes["channel"]]
+    if "time" in planes:
+        planetable = planetable[planetable["T"] == planes["time"]]
 
-        # Return the filtered planetable
-        return planetable
+    if "zplane" in planes:
+        planetable = planetable[planetable["Z"] == planes["zplane"]]
+
+    if "channel" in planes:
+        planetable = planetable[planetable["C"] == planes["channel"]]
+
+    return planetable
 
 
 def save_planetable(df: pd.DataFrame, filepath: str, separator: str = ",", index: bool = True) -> str:
@@ -341,238 +397,6 @@ def _initialize_planetable_dataframe() -> pd.DataFrame:
     )
 
     return df_czi
-
-
-def _extract_dimension_info(dims: list) -> Dict[str, Dict[str, Union[int, bool]]]:
-    """
-    Extract dimension information from CZI file dimensions in a structured way.
-
-    Args:
-        dims (list): Dimension information from CZI file.
-
-    Returns:
-        Dict[str, Dict[str, Union[int, bool]]]: Dictionary containing size and presence info for each dimension.
-    """
-    dimensions = ["S", "M", "T", "C", "Z"]
-    dim_info = {}
-
-    for dim in dimensions:
-        if dim in dims[0].keys():
-            # Dimension exists in the CZI file
-            dim_info[dim] = {"size": dims[0][dim][1], "present": True}
-        else:
-            # Dimension doesn't exist, set default values
-            dim_info[dim] = {"size": 1, "present": False}
-
-    logger.info(f"CZI dimensions found: {[dim for dim in dimensions if dim_info[dim]['present']]}")
-
-    return dim_info
-
-
-def _calculate_iteration_ranges(
-    dim_info: Dict[str, Dict[str, Union[int, bool]]],
-    planes: Optional[Dict[str, int]] = None,
-) -> Dict[str, Tuple[int, int]]:
-    """
-    Calculate the iteration ranges for each dimension based on user input and available dimensions.
-
-    Args:
-        dim_info (Dict): Dimension information with size and presence data.
-        planes (Optional[Dict[str, int]]): User-specified plane constraints.
-
-    Returns:
-        Dict[str, Tuple[int, int]]: Dictionary with start and end indices for each dimension.
-    """
-    # Mapping between user-friendly names and internal dimension names
-    plane_mapping = {
-        "scene": ("S", "size_s"),
-        "tile": ("M", "size_m"),
-        "time": ("T", "size_t"),
-        "channel": ("C", "size_c"),
-        "zplane": ("Z", "size_z"),
-    }
-
-    ranges = {}
-
-    for user_key, (dim_key, _) in plane_mapping.items():
-        max_size = dim_info[dim_key]["size"]
-
-        if planes is not None and user_key in planes:
-            # User specified a specific index for this dimension
-            start_idx = planes[user_key]
-            end_idx = start_idx + 1
-
-            # Validate that the specified index is within bounds
-            if start_idx >= max_size:
-                logger.warning(f"Specified {user_key} index {start_idx} exceeds maximum {max_size-1}. Using maximum.")
-                start_idx = max_size - 1
-                end_idx = max_size
-        else:
-            # Use full range for this dimension
-            start_idx = 0
-            end_idx = max_size
-
-        ranges[dim_key] = (start_idx, end_idx)
-
-    return ranges
-
-
-def _process_subblocks(
-    aicsczi: CziFile,
-    dim_info: Dict[str, Dict[str, Union[int, bool]]],
-    ranges: Dict[str, Tuple[int, int]],
-    df_czi: pd.DataFrame,
-) -> pd.DataFrame:
-    """
-    Process all subblocks and extract plane information.
-
-    Args:
-        aicsczi (CziFile): The opened CZI file object.
-        dim_info (Dict): Dimension information.
-        ranges (Dict): Iteration ranges for each dimension.
-        df_czi (pd.DataFrame): The DataFrame to populate.
-
-    Returns:
-        pd.DataFrame: Populated DataFrame with plane information.
-    """
-    sbcount = -1  # Subblock counter
-
-    # Extract ranges for cleaner code
-    s_start, s_end = ranges["S"]
-    m_start, m_end = ranges["M"]
-    t_start, t_end = ranges["T"]
-    c_start, c_end = ranges["C"]
-    z_start, z_end = ranges["Z"]
-
-    # Calculate total number of planes for progress bar
-    total_planes = (s_end - s_start) * (m_end - m_start) * (t_end - t_start) * (c_end - c_start) * (z_end - z_start)
-
-    # Create the product iterator
-    plane_iterator = product(
-        enumerate(range(s_start, s_end)),
-        enumerate(range(m_start, m_end)),
-        enumerate(range(t_start, t_end)),
-        enumerate(range(c_start, c_end)),
-        enumerate(range(z_start, z_end)),
-    )
-
-    # Wrap with progress bar if available
-    if HAS_PROGRESSBAR:
-        widgets = [
-            progressbar.Percentage(),
-            " ",
-            progressbar.Bar(),
-            " ",
-            progressbar.ETA(),
-            " ",
-            progressbar.SimpleProgress(),
-        ]
-        plane_iterator = progressbar.progressbar(
-            plane_iterator,
-            widgets=widgets,
-            max_value=total_planes,
-            term_width=80,
-        )
-
-    # Iterate through all combinations of dimensions
-    for s, m, t, c, z in plane_iterator:
-        sbcount += 1
-
-        # Prepare arguments for CZI file reading, including only present dimensions
-        args = _prepare_czi_args(dim_info, s[1], m[1], t[1], c[1], z[1])
-
-        # Read bounding box and subblock metadata
-        bbox, sb = _read_subblock_data(aicsczi, dim_info["M"]["present"], args, s[1], m[1], t[1], c[1], z[1])
-
-        # Extract information from subblock metadata
-        timestamp, xpos, ypos, zpos = _getsbinfo(sb)
-
-        # Create plane data dictionary
-        plane_data = {
-            "Subblock": sbcount,
-            "S": s[1],
-            "M": m[1],
-            "T": t[1],
-            "C": c[1],
-            "Z": z[1],
-            "X[micron]": xpos,
-            "Y[micron]": ypos,
-            "Z[micron]": zpos,
-            "Time[s]": timestamp,
-            "xstart": bbox.x,
-            "ystart": bbox.y,
-            "width": bbox.w,
-            "height": bbox.h,
-        }
-
-        # Add plane to DataFrame
-        df_czi = pd.concat([df_czi, pd.DataFrame([plane_data])], ignore_index=True)
-
-    return df_czi
-
-
-def _prepare_czi_args(
-    dim_info: Dict[str, Dict[str, Union[int, bool]]],
-    s: int,
-    m: int,
-    t: int,
-    c: int,
-    z: int,
-) -> Dict[str, int]:
-    """
-    Prepare arguments for CZI file reading, including only dimensions that are present.
-
-    Args:
-        dim_info (Dict): Dimension information.
-        s, m, t, c, z (int): Dimension indices.
-
-    Returns:
-        Dict[str, int]: Arguments dictionary with only present dimensions.
-    """
-    args = {"S": s, "M": m, "T": t, "Z": z, "C": c}
-
-    # Remove dimensions that are not present in the CZI file
-    dimensions_to_check = ["T", "Z", "S", "M", "C"]
-
-    for dim_name in dimensions_to_check:
-        if not dim_info[dim_name]["present"]:
-            args.pop(dim_name, None)
-
-    return args
-
-
-def _read_subblock_data(
-    aicsczi: CziFile,
-    has_m: bool,
-    args: Dict[str, int],
-    s: int,
-    m: int,
-    t: int,
-    c: int,
-    z: int,
-) -> Tuple[Any, Any]:
-    """
-    Read bounding box and subblock metadata from CZI file.
-
-    Args:
-        aicsczi (CziFile): The opened CZI file object.
-        has_m (bool): Whether the M dimension (mosaic/tile) is present.
-        args (Dict[str, int]): Arguments for CZI reading functions.
-        s, m, t, c, z (int): Dimension indices.
-
-    Returns:
-        Tuple[Any, Any]: Bounding box and subblock metadata.
-    """
-    if has_m:
-        # Handle mosaic/tile data
-        bbox = aicsczi.get_mosaic_tile_bounding_box(**args)
-        sb = aicsczi.read_subblock_metadata(unified_xml=True, B=0, S=s, M=m, T=t, Z=z, C=c)
-    else:
-        # Handle regular (non-mosaic) data
-        bbox = aicsczi.get_tile_bounding_box(**args)
-        sb = aicsczi.read_subblock_metadata(unified_xml=True, B=0, S=s, T=t, Z=z, C=c)
-
-    return bbox, sb
 
 
 def _save_planetable_if_requested(

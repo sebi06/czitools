@@ -1,3 +1,9 @@
+"""Objective and tube-lens metadata utilities for CZI files.
+
+Provides `CziObjectives`, which collects objective and tubelens properties
+(NA, magnification, immersion, manufacturer, model, id) from CZI metadata.
+"""
+
 from typing import Union, Optional, List
 from dataclasses import dataclass, field
 from box import Box, BoxList
@@ -93,7 +99,7 @@ class CziObjectives:
 
         # Compute total magnification combinations (Cartesian product)
         if self.objmag and self.tubelensmag:
-            self.totalmag = [o * t for o in self.objmag for t in self.tubelensmag]
+            self.totalmag = [o * t for o in self.objmag for t in self.tubelensmag if o is not None and t is not None]
         elif self.objmag and not self.tubelensmag:
             self.totalmag = list(self.objmag)
 

@@ -8,7 +8,9 @@ color/scale handling and keeps demo scripts small.
 from typing import Any, Mapping, Sequence
 
 
-def _add_xarray_to_viewer(viewer, array6d, mdata, subset_planes_map: Mapping[str, Any], layer_prefix: str = ""):
+def _add_xarray_to_viewer(
+    viewer: Any, array6d: Any, mdata: Any, subset_planes_map: Mapping[str, Any], layer_prefix: str = ""
+) -> None:
     """Add one xarray stack to an existing napari viewer."""
 
     # Loop channels and add to viewer
@@ -67,7 +69,7 @@ def _add_xarray_to_viewer(viewer, array6d, mdata, subset_planes_map: Mapping[str
         viewer.dims.axis_labels = sub_array.dims
 
 
-def display_xarray_in_napari(array6d, mdata, subset_planes: Mapping[str, Any] | None = None):
+def display_xarray_in_napari(array6d: Any, mdata: Any, subset_planes: Mapping[str, Any] | None = None) -> None:
     """Display an xarray DataArray (STCZYX[A]) in Napari.
 
     Args:
@@ -102,9 +104,9 @@ def display_xarray_in_napari(array6d, mdata, subset_planes: Mapping[str, Any] | 
 
 def display_xarray_list_in_napari(
     arrays: Sequence[Any],
-    mdata,
+    mdata: Any,
     subset_planes_list: Sequence[Mapping[str, Any]] | None = None,
-):
+) -> None:
     """Display a list of xarray stacks in one Napari viewer.
 
     This supports stacks with different spatial shapes by adding each stack as

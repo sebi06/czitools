@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "czitools"
-version = "0.15.1"
+version = "0.16.0"
 description = "Tools to simplify reading and CZI (Carl Zeiss Image) meta and pixel data"
 readme = "README.md"
 license = {text = "GNU General Public License v3 (GPLv3)"}
@@ -25,10 +25,10 @@ classifiers = [
     "Programming Language :: Python :: 3.13",
     "Operating System :: Unix",
     "Operating System :: Microsoft :: Windows",
+    "Operating System :: MacOS",
 ]
 dependencies = [
     "pylibCZIrw>=5",
-    "aicspylibczi>=3.3.1",
     "progressbar2",
     "pandas",
     "python-dateutil",
@@ -55,6 +55,21 @@ all = [
     "bioio-czi",
     "bioio-ome-zarr",
     "ndv[pyqt,vispy]",
+]
+docs = [
+    "mkdocs-material",
+    "mkdocs-autorefs",
+    "mkdocs-spellcheck",
+    "mkdocs-api-autonav",
+    "pymdown-extensions",
+    "mkdocs >=1.6.1",
+    "mkdocs-api-autonav >=0.1.2",
+    "mkdocs-material >=9.5.49",
+    "mkdocs-minify-plugin >=0.8.0",
+    "mkdocs-spellcheck[codespell] ==1.1.0",
+    "mkdocstrings-python >=1.13.0",
+    "mike >=2.1.3",
+    "ruff>=0.9.4",
 ]
 
 [project.urls]

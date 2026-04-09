@@ -1,3 +1,10 @@
+"""NDV viewer helpers for czitools.
+
+Provides `create_luts_ndv` and `create_scales_ndv` to build channel LUT
+mappings and axis scale dictionaries from `CziMetadata`, ready for use
+with the NDV array viewer.
+"""
+
 from __future__ import annotations
 
 from typing import Protocol, Sequence, TypeAlias

@@ -21,7 +21,7 @@ dependencies:
   - coverage
 
   - pip:
-      - czitools
+      - czitools[docs]
 
 
 # Create an environment
