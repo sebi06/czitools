@@ -127,14 +127,17 @@ def get_planetable(
 
             xstart, ystart, width, height = _get_bbox(de)
 
-            # Parse subblock metadata (czifile returns XML as a string)
+            # Parse subblock metadata.
+            # New czifile (2024+): returns an XML string.
+            # Old czifile: may return a bytes object or a dict.
             md_raw = sb.metadata()
-            if isinstance(md_raw, str):
+            if isinstance(md_raw, (str, bytes)):
                 try:
                     md_xml = ET.fromstring(md_raw)
                 except ET.ParseError:
                     md_xml = None
             else:
+                # old czifile returns a dict; pass through as-is
                 md_xml = md_raw
 
             timestamp, xpos, ypos, zpos = _getsbinfo(md_xml)
@@ -200,20 +203,53 @@ def get_planetable(
     return df_czi, None
 
 
+def _getsbinfo_from_dict(tags: dict) -> Tuple[float, float, float, float]:
+    """Extract (timestamp, xpos, ypos, zpos) from the Tags dict returned by old czifile."""
+    try:
+        time_text = str(tags.get("AcquisitionTime") or "")
+        timestamp = dt.parse(time_text).timestamp() if time_text else 0.0
+    except (ValueError, OverflowError):
+        timestamp = 0.0
+
+    try:
+        xpos = float(np.double(tags.get("StageXPosition") or 0))
+    except (ValueError, TypeError):
+        xpos = 0.0
+
+    try:
+        ypos = float(np.double(tags.get("StageYPosition") or 0))
+    except (ValueError, TypeError):
+        ypos = 0.0
+
+    try:
+        zpos = float(np.double(tags.get("FocusPosition") or 0))
+    except (ValueError, TypeError):
+        zpos = 0.0
+
+    return timestamp, xpos, ypos, zpos
+
+
 def _getsbinfo(subblock: Optional[Any]) -> Tuple[float, float, float, float]:
     """
-    Extracts metadata information from a parsed subblock XML element.
+    Extracts metadata information from a subblock metadata object.
 
     Args:
-        subblock: An ``xml.etree.ElementTree.Element`` parsed from subblock
-            metadata, or ``None`` if parsing failed.
+        subblock: Either an ``xml.etree.ElementTree.Element`` (new czifile), a
+            ``dict`` (old czifile), or ``None`` if parsing failed.
 
     Returns:
         Tuple[float, float, float, float]: timestamp, xpos, ypos, zpos.
-        All values default to 0.0 when the corresponding XML element is absent.
+        All values default to 0.0 when the corresponding element/key is absent.
     """
     if subblock is None:
         return 0.0, 0.0, 0.0, 0.0
+
+    # Old czifile returns a dict with a 'Tags' sub-dict
+    if isinstance(subblock, dict):
+        tags = subblock.get("Tags") or {}
+        if not isinstance(tags, dict):
+            tags = {}
+        return _getsbinfo_from_dict(tags)
 
     try:
         time_text = subblock.findtext(".//AcquisitionTime")
