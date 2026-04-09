@@ -1,0 +1,60 @@
+# Build and publish MkDocs documentation to GitHub Pages.
+# Triggered on every push to main (uses mike to maintain versioned docs).
+# Requires the repo's GitHub Pages source to be set to the gh-pages branch.
+
+name: docs
+
+on:
+    push:
+        branches:
+            - main
+        tags:
+            - "v*"
+    workflow_dispatch:
+
+permissions:
+    contents: write
+
+jobs:
+    deploy:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
+              with:
+                  # Full history is required so mike can read/write the gh-pages branch
+                  fetch-depth: 0
+
+            - name: Configure Git credentials
+              run: |
+                  git config user.name "github-actions[bot]"
+                  git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+            - uses: actions/setup-python@v5
+              with:
+                  python-version: "3.x"
+
+            # Cache the pip/mkdocs-material download cache (keyed by ISO week number)
+            - run: echo "cache_id=$(date --utc '+%V')" >> $GITHUB_ENV
+
+            - uses: actions/cache@v4
+              with:
+                  key: mkdocs-material-${{ env.cache_id }}
+                  path: ~/.cache
+                  restore-keys: |
+                      mkdocs-material-
+
+            - name: Install docs dependencies
+              run: pip install ".[docs]"
+
+            # On a version tag (e.g. v0.16.0) → deploy that version AND update the
+            # "latest" alias so the canonical URL always points at the newest release.
+            # On a plain push to main → deploy/update the "dev" alias.
+            - name: Deploy docs with mike
+              run: |
+                  if [[ "${{ github.ref }}" == refs/tags/v* ]]; then
+                    VERSION="${{ github.ref_name }}"
+                    mike deploy --push --update-aliases "$VERSION" latest
+                    mike set-default --push latest
+                  else
+                    mike deploy --push dev
+                  fi

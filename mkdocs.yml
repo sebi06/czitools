@@ -161,6 +161,6 @@ extra:
   dev_build: !ENV ["DOCS_DEV", false]
   social:
     - icon: fontawesome/brands/github
-      link: https://github.com/pyapp-kit
+      link: https://github.com/sebi06
     - icon: fontawesome/brands/python
       link: https://pypi.org/project/ndv/

@@ -31,11 +31,11 @@ array6d, mdata = read_tools.read_6darray("path/to/file.czi", use_dask=True, use_
 For installation options (PyPI, editable, conda) see the [Installation docs](https://sebi06.github.io/czitools/install/).
 For detailed usage examples see the [Usage docs](https://sebi06.github.io/czitools/usage/).
 
-## CZI inside NDV
+**CZI inside NDV**
 
 ![5D CZI inside NDV](https://github.com/sebi06/czitools/raw/main/_images/czi_ndv1.png)
 
-## CZI inside Napari
+**CZI inside Napari**
 
 ![5D CZI inside Napari](https://github.com/sebi06/czitools/raw/main/_images/czi_napari2.png)
 
