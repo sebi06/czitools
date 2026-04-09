@@ -192,17 +192,20 @@ class CziMetadata:
                 import czifile as czifile_module
 
                 with czifile_module.CziFile(self.filepath) as czi:
-                    subblocks = [sb for sb in czi.subblocks() if not sb.directory_entry.is_pyramid]
+                    subblocks = [sb for sb in czi.subblocks() if not getattr(sb.directory_entry, "is_pyramid", False)]
 
                     if subblocks:
                         # Build dimension string and shapes from non-pyramid subblocks
                         all_dims: Dict[int, Dict[str, Tuple[int, int]]] = {}
                         for sb in subblocks:
                             de = sb.directory_entry
-                            s = de.scene_index if de.scene_index >= 0 else 0
-                            for dim_char, start_val, shape_val in zip(de.dims, de.start, de.shape):
+                            _si = misc._de_scene_idx(de)
+                            s = _si if _si >= 0 else 0
+                            for dim_char in misc._de_dim_chars(de):
                                 if dim_char in ("X", "Y"):
                                     continue
+                                start_val = misc._de_dim_start(de, dim_char)
+                                shape_val = misc._de_dim_size(de, dim_char)
                                 scene_dims = all_dims.setdefault(s, {})
                                 if dim_char not in scene_dims:
                                     scene_dims[dim_char] = (start_val, start_val + shape_val)
@@ -214,16 +217,18 @@ class CziMetadata:
                         mosaic_counts: Dict[int, int] = {}
                         for sb in subblocks:
                             de = sb.directory_entry
-                            s = de.scene_index if de.scene_index >= 0 else 0
-                            m = de.mosaic_index if de.mosaic_index >= 0 else 0
+                            _si = misc._de_scene_idx(de)
+                            s = _si if _si >= 0 else 0
+                            _mi = misc._de_mosaic_idx(de)
+                            m = _mi if _mi >= 0 else 0
                             mosaic_counts[s] = max(mosaic_counts.get(s, 0), m + 1)
 
                         self.sb_ismosaic = any(v > 1 for v in mosaic_counts.values())
 
                         # Get X/Y shape from first subblock
                         de0 = subblocks[0].directory_entry
-                        x_shape = de0.shape[de0.dims.index("X")] if "X" in de0.dims else 0
-                        y_shape = de0.shape[de0.dims.index("Y")] if "Y" in de0.dims else 0
+                        x_shape = misc._de_dim_size(de0, "X")
+                        y_shape = misc._de_dim_size(de0, "Y")
 
                         # Build per-scene dims_shape list
                         self.sb_dims_shape = []
@@ -241,7 +246,7 @@ class CziMetadata:
                         # Build dimension string (consistent ordering)
                         dim_chars = set()
                         for sb in subblocks:
-                            dim_chars.update(sb.directory_entry.dims)
+                            dim_chars.update(misc._de_dim_chars(sb.directory_entry))
                         # Remove pixel dims; add M if mosaic
                         dim_chars.discard("X")
                         dim_chars.discard("Y")

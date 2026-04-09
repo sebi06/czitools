@@ -23,7 +23,7 @@ import dateutil.parser as dt
 from typing import Dict, Tuple, Any, Union, Optional
 import validators
 import czifile as czifile_module
-from czitools.utils import logging_tools
+from czitools.utils import logging_tools, misc
 
 # Import progressbar2
 try:
@@ -38,17 +38,15 @@ logger = logging_tools.set_logging()
 
 def _get_dim_start(de: Any, dim: str, default: int = 0) -> int:
     """Return the start index of a dimension from a czifile directory_entry, or default if absent."""
-    if dim in de.dims:
-        return de.start[de.dims.index(dim)]
-    return default
+    return misc._de_dim_start(de, dim, default)
 
 
 def _get_bbox(de: Any) -> Tuple[int, int, int, int]:
     """Extract (xstart, ystart, width, height) from a czifile directory_entry."""
-    xstart = _get_dim_start(de, "X")
-    ystart = _get_dim_start(de, "Y")
-    width = de.shape[de.dims.index("X")] if "X" in de.dims else 0
-    height = de.shape[de.dims.index("Y")] if "Y" in de.dims else 0
+    xstart = misc._de_dim_start(de, "X")
+    ystart = misc._de_dim_start(de, "Y")
+    width = misc._de_dim_size(de, "X")
+    height = misc._de_dim_size(de, "Y")
     return xstart, ystart, width, height
 
 

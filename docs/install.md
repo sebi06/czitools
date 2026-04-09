@@ -6,10 +6,10 @@
 
 ## Requirements
 
-| Requirement      | Details                |
-| ---------------- | ---------------------- |
-| Python           | 3.10, 3.11, 3.12, 3.13 |
-| Operating System | Windows, Linux, macOS  |
+| Requirement      | Details               |
+| ---------------- | --------------------- |
+| Python           | 3.11, 3.12, 3.13      |
+| Operating System | Windows, Linux, macOS |
 
 ## Install from PyPI
 

@@ -417,3 +417,93 @@ def is_valid_czi_url(myurl: str) -> Tuple[bool, str]:
             return False, f"File not accessible, HTTP status code: {response.status_code}"
     except requests.RequestException as e:
         return False, f"Error during HTTP request: {e}"
+
+
+# ---------------------------------------------------------------------------
+# czifile directory-entry compatibility helpers
+# ---------------------------------------------------------------------------
+# The czifile library has undergone major refactoring across versions.
+# Old versions expose `DirectoryEntryDV` (pre-2024) whose subblock
+# dimensions are stored in a `dimension_entries` list, while the new
+# `CziDirectoryEntryDV` (2024+) stores pre-parsed tuples in `__slots__`
+# under `dims`, `start`, `shape`, `scene_index`, `mosaic_index`, and
+# `is_pyramid`.  These helpers provide a unified access layer that works
+# with both APIs so that the rest of the codebase does not need to
+# branch on the installed czifile version.
+
+
+def _de_dim_start(de: Any, dim: str, default: int = 0) -> int:
+    """Return the start index for *dim* from a czifile directory entry.
+
+    Compatible with both old czifile (``DirectoryEntryDV`` with
+    ``dimension_entries``) and new czifile (``CziDirectoryEntryDV`` with
+    ``dims``/``start`` tuples in ``__slots__``).
+    """
+    dims = getattr(de, "dims", None)
+    if dims is not None:
+        if dim in dims:
+            return de.start[dims.index(dim)]
+        return default
+    for d in getattr(de, "dimension_entries", []):
+        if getattr(d, "dimension", None) == dim:
+            return d.start
+    return default
+
+
+def _de_dim_size(de: Any, dim: str, default: int = 0) -> int:
+    """Return the size (shape) of *dim* from a czifile directory entry.
+
+    Compatible with both old and new czifile API.
+    """
+    dims = getattr(de, "dims", None)
+    if dims is not None:
+        if dim in dims:
+            return de.shape[dims.index(dim)]
+        return default
+    for d in getattr(de, "dimension_entries", []):
+        if getattr(d, "dimension", None) == dim:
+            return d.size
+    return default
+
+
+def _de_dim_chars(de: Any) -> tuple:
+    """Return all dimension names as a tuple from a czifile directory entry.
+
+    Compatible with both old and new czifile API.
+    """
+    dims = getattr(de, "dims", None)
+    if dims is not None:
+        return tuple(dims)
+    return tuple(
+        d.dimension
+        for d in getattr(de, "dimension_entries", [])
+        if getattr(d, "dimension", "\x00") not in ("\x00", "", " ")
+    )
+
+
+def _de_scene_idx(de: Any) -> int:
+    """Return the scene index from a czifile directory entry, or -1 if absent.
+
+    Compatible with both old and new czifile API.
+    """
+    scene = getattr(de, "scene_index", None)
+    if scene is not None:
+        return int(scene)
+    for d in getattr(de, "dimension_entries", []):
+        if getattr(d, "dimension", None) == "S":
+            return d.start
+    return -1
+
+
+def _de_mosaic_idx(de: Any) -> int:
+    """Return the mosaic (tile) index from a czifile directory entry, or -1 if absent.
+
+    Compatible with both old and new czifile API.
+    """
+    mosaic = getattr(de, "mosaic_index", None)
+    if mosaic is not None:
+        return int(mosaic)
+    for d in getattr(de, "dimension_entries", []):
+        if getattr(d, "dimension", None) == "M":
+            return d.start
+    return -1

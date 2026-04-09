@@ -499,16 +499,12 @@ def read_attachments(
 
 def _sb_dim_start(de: Any, dim: str, default: int = 0) -> int:
     """Return the start index of *dim* from a czifile directory_entry."""
-    if dim in de.dims:
-        return de.start[de.dims.index(dim)]
-    return default
+    return misc._de_dim_start(de, dim, default)
 
 
 def _sb_dim_shape(de: Any, dim: str, default: int = 0) -> int:
     """Return the shape (size) of *dim* from a czifile directory_entry."""
-    if dim in de.dims:
-        return de.shape[de.dims.index(dim)]
-    return default
+    return misc._de_dim_size(de, dim, default)
 
 
 def read_tiles(filepath: CziPath, scene: int, tile: int, **kwargs) -> Tuple[np.ndarray, List]:
@@ -554,13 +550,13 @@ def read_tiles(filepath: CziPath, scene: int, tile: int, **kwargs) -> Tuple[np.n
 
     with czifile_module.CziFile(filepath) as czi:
         # Only consider non-pyramidal subblocks (scale 1.0)
-        subblocks = [sb for sb in czi.subblocks() if not sb.directory_entry.is_pyramid]
+        subblocks = [sb for sb in czi.subblocks() if not getattr(sb.directory_entry, "is_pyramid", False)]
 
         if not subblocks:
             raise ValueError("No non-pyramidal subblocks found in CZI file")
 
         # Determine which dimensions exist from the first subblock
-        file_dims = set(subblocks[0].directory_entry.dims)
+        file_dims = set(misc._de_dim_chars(subblocks[0].directory_entry))
         has_h = "H" in file_dims
         has_b = "B" in file_dims
         has_t = "T" in file_dims
@@ -572,8 +568,10 @@ def read_tiles(filepath: CziPath, scene: int, tile: int, **kwargs) -> Tuple[np.n
         scene_tiles: Dict[int, Dict[int, List]] = {}
         for sb in subblocks:
             de = sb.directory_entry
-            s = de.scene_index if de.scene_index >= 0 else 0
-            m = de.mosaic_index if de.mosaic_index >= 0 else 0
+            _si = misc._de_scene_idx(de)
+            s = _si if _si >= 0 else 0
+            _mi = misc._de_mosaic_idx(de)
+            m = _mi if _mi >= 0 else 0
             scene_tiles.setdefault(s, {}).setdefault(m, []).append(sb)
 
         has_multi_scenes = len(scene_tiles) > 1
@@ -660,9 +658,10 @@ def read_tiles(filepath: CziPath, scene: int, tile: int, **kwargs) -> Tuple[np.n
 
                     # Extract the 2D (Y, X) plane from the full-dimensioned subblock array
                     de = sb.directory_entry
-                    slicer: List[Any] = [0] * len(de.dims)
-                    slicer[de.dims.index("Y")] = slice(None)
-                    slicer[de.dims.index("X")] = slice(None)
+                    de_dims = misc._de_dim_chars(de)
+                    slicer: List[Any] = [0] * len(de_dims)
+                    slicer[list(de_dims).index("Y")] = slice(None)
+                    slicer[list(de_dims).index("X")] = slice(None)
                     plane = pixel_data[tuple(slicer)]
 
                     # Build the index into the output array
