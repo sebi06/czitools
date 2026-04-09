@@ -240,8 +240,7 @@ scales = create_scales_ndv(mdata)
 
 These helpers are used by `demo/scripts/use_ndv.py` and keep color/scale conversion logic in one place.
 
-
-![5D CZI inside Napari](https://github.com/sebi06/czitools/raw/main/images/czi_napari2.png)
+![5D CZI inside Napari](https://github.com/sebi06/czitools/raw/main/_images/czi_napari2.png)
 
 ## Colab Notebooks
 
@@ -281,7 +280,7 @@ The basic usage can be inferred from this sample notebook:&nbsp;
 
 If you use **Napari** on **Linux** and need `get_planetable()` or `read_tiles()`:
 
-📖 **[Linux + Napari + Planetable Guide](docs/LINUX_NAPARI_PLANETABLE.md)** ⭐ **READ THIS**
+📖 **[Linux + Napari + Planetable Guide](https://github.com/sebi06/czitools/blob/main/_notes/LINUX_NAPARI_PLANETABLE.md)** ⭐ **READ THIS**
 
 #### The Solution: Sequential Execution Pattern
 
@@ -323,10 +322,10 @@ array, mdata = read_tools.read_6darray("file.czi", use_dask=True)
 
 📄 **Documentation:**
 
-* [Linux + Napari + Planetable Guide](docs/LINUX_NAPARI_PLANETABLE.md) - Complete examples
-* [Threading Considerations](docs/threading_considerations.md) - Technical details
-* [Quick Fix Guide](docs/NAPARI_FIX.md) - Emergency fixes
+* [Linux + Napari + Planetable Guide](https://github.com/sebi06/czitools/blob/main/_notes/LINUX_NAPARI_PLANETABLE.md) - Complete examples
+* [Threading Considerations](https://github.com/sebi06/czitools/blob/main/_notes/threading_considerations.md) - Technical details
+* [Quick Fix Guide](https://github.com/sebi06/czitools/blob/main/_notes/NAPARI_FIX.md) - Emergency fixes
 
 ---
 
-See [demo/scripts/napari_with_process_isolation.py](demo/scripts/napari_with_process_isolation.py) for complete examples and [docs/threading_considerations.md](docs/threading_considerations.md) for detailed information.
+See [demo/scripts/napari_with_process_isolation.py](https://github.com/sebi06/czitools/blob/main/demo/scripts/napari_with_process_isolation.py) for complete examples and [threading_considerations.md](https://github.com/sebi06/czitools/blob/main/_notes/threading_considerations.md) for detailed information.
