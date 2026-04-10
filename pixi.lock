@@ -771,7 +771,7 @@ packages:
 - pypi: ./
   name: czitools
   version: 0.16.0
-  sha256: 339ab63cfe144ad13921e259170d81a7b8e3aa42dac79bbe3eb5f09832a4bf8d
+  sha256: 3a9aba6e506582e1fb4fcebf1cfa38cdee68a77f208cbf06ae9360237547de4e
   requires_dist:
   - pylibczirw>=5
   - progressbar2
@@ -813,7 +813,7 @@ packages:
   - ndv ; extra == 'docs'
   - matplotlib ; extra == 'docs'
   - plotly ; extra == 'docs'
-  requires_python: '>=3.11,<3.14'
+  requires_python: '>=3.12,<3.14'
 - pypi: https://files.pythonhosted.org/packages/4a/f3/00bb1e867fba351e2d784170955713bee200c43ea306c59f30bd7e748192/dask-2026.3.0-py3-none-any.whl
   name: dask
   version: 2026.3.0

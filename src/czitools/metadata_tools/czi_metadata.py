@@ -192,7 +192,7 @@ class CziMetadata:
                 import czifile as czifile_module
 
                 with czifile_module.CziFile(self.filepath) as czi:
-                    subblocks = [sb for sb in czi.subblocks() if not getattr(sb.directory_entry, "is_pyramid", False)]
+                    subblocks = [sb for sb in czi.subblocks() if not sb.directory_entry.is_pyramid]
 
                     if subblocks:
                         # Build dimension string and shapes from non-pyramid subblocks

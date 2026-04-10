@@ -550,7 +550,7 @@ def read_tiles(filepath: CziPath, scene: int, tile: int, **kwargs) -> Tuple[np.n
 
     with czifile_module.CziFile(filepath) as czi:
         # Only consider non-pyramidal subblocks (scale 1.0)
-        subblocks = [sb for sb in czi.subblocks() if not getattr(sb.directory_entry, "is_pyramid", False)]
+        subblocks = [sb for sb in czi.subblocks() if not sb.directory_entry.is_pyramid]
 
         if not subblocks:
             raise ValueError("No non-pyramidal subblocks found in CZI file")
@@ -613,28 +613,17 @@ def read_tiles(filepath: CziPath, scene: int, tile: int, **kwargs) -> Tuple[np.n
         out_z = [kwargs["Z"]] if "Z" in kwargs else all_z
 
         # Get pixel dimensions and dtype from the actual decoded pixel data of
-        # the first available subblock.  Reading from de.shape is unreliable
-        # across czifile versions: new czifile stores *logical* sizes (which for
-        # mosaic tiles can be global-extent values), while old czifile stores
-        # stored sizes — so we use sb.data() as the ground truth in both cases.
+        # the first available subblock.  de.stored_shape holds the stored tile
+        # size; we use sb.data() to get the actual decoded array shape.
         first_key = (out_t[0], out_c[0], out_z[0])
         if first_key not in sb_lookup:
             first_key = next(iter(sb_lookup))
         first_sb = sb_lookup[first_key]
         first_data = first_sb.data()
         sample_de = first_sb.directory_entry
-        raw_dims = getattr(sample_de, "dims", None)
-        if raw_dims is not None:
-            # New czifile: de.dims gives the physical storage order of first_data
-            rdl = list(raw_dims)
-            size_y = first_data.shape[rdl.index("Y")] if "Y" in rdl else first_data.shape[-2]
-            size_x = first_data.shape[rdl.index("X")] if "X" in rdl else first_data.shape[-1]
-        else:
-            # Old czifile: data is (Y, X) or (Y, X, 1[, …]); squeeze trailing 1s
-            d = first_data
-            while d.ndim > 2 and d.shape[-1] == 1:
-                d = d[..., 0]
-            size_y, size_x = d.shape[-2], d.shape[-1]
+        rdl = list(sample_de.dims)
+        size_y = first_data.shape[rdl.index("Y")] if "Y" in rdl else first_data.shape[-2]
+        size_x = first_data.shape[rdl.index("X")] if "X" in rdl else first_data.shape[-1]
         dtype = first_data.dtype
 
         # Build output dimension ordering following aicspylibczi convention:
@@ -673,23 +662,14 @@ def read_tiles(filepath: CziPath, scene: int, tile: int, **kwargs) -> Tuple[np.n
                     pixel_data = sb.data()
 
                     # Extract the 2D (Y, X) plane from the subblock pixel data.
-                    # New czifile: de.dims gives the physical storage dimension order
-                    #   (e.g. ('C','Y','X','S')) and pixel_data shape matches it.
-                    # Old czifile: de.dims does not exist; data() returns (Y, X) or
-                    #   (Y, X, bytes_per_sample) — squeeze trailing size-1 dims.
+                    # de.dims gives the physical storage dimension order
+                    # (e.g. ('C','Y','X','S')) and pixel_data shape matches it.
                     de = sb.directory_entry
-                    raw_dims = getattr(de, "dims", None)
-                    if raw_dims is not None:
-                        de_dims_list = list(raw_dims)
-                        slicer: List[Any] = [0] * len(de_dims_list)
-                        slicer[de_dims_list.index("Y")] = slice(None)
-                        slicer[de_dims_list.index("X")] = slice(None)
-                        plane = pixel_data[tuple(slicer)]
-                    else:
-                        # Old czifile returns (Y, X[, 1]); squeeze trailing size-1 dims
-                        plane = pixel_data
-                        while plane.ndim > 2 and plane.shape[-1] == 1:
-                            plane = plane[..., 0]
+                    de_dims_list = list(de.dims)
+                    slicer: List[Any] = [0] * len(de_dims_list)
+                    slicer[de_dims_list.index("Y")] = slice(None)
+                    slicer[de_dims_list.index("X")] = slice(None)
+                    plane = pixel_data[tuple(slicer)]
 
                     # Build the index into the output array
                     idx: List = []

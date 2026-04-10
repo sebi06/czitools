@@ -18,7 +18,7 @@ This document provides guidelines for GitHub Copilot when working with the czito
 - `loguru` / `colorlog` - Logging
 
 ### Supported Python Versions
-- Python 3.11, 3.12, 3.13
+- Python 3.12, 3.13
 
 ### Supported Operating Systems
 - Windows
@@ -65,7 +65,7 @@ src/czitools/
   - Dependency inversion principle (DIP)
 
 ### Python Style
-- Use Python 3.11+ syntax and type hints
+- Use Python 3.12+ syntax and type hints
 - Follow PEP 8 style guidelines
 - Use `dataclass` for metadata classes with `@dataclass` decorator
 - Use `field(init=False, default=None)` for computed fields in dataclasses

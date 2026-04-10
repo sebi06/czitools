@@ -420,104 +420,36 @@ def is_valid_czi_url(myurl: str) -> Tuple[bool, str]:
 
 
 # ---------------------------------------------------------------------------
-# czifile directory-entry compatibility helpers
+# czifile directory-entry helpers (czifile >= 2026, Python >= 3.12)
 # ---------------------------------------------------------------------------
-# The czifile library has undergone major refactoring across versions.
-# Old versions expose `DirectoryEntryDV` (pre-2024) whose subblock
-# dimensions are stored in a `dimension_entries` list, while the new
-# `CziDirectoryEntryDV` (2024+) stores pre-parsed tuples in `__slots__`
-# under `dims`, `start`, `shape`, `scene_index`, `mosaic_index`, and
-# `is_pyramid`.  These helpers provide a unified access layer that works
-# with both APIs so that the rest of the codebase does not need to
-# branch on the installed czifile version.
+# czifile's CziDirectoryEntryDV exposes: dims, start, shape, stored_shape,
+# scene_index, mosaic_index, is_pyramid.
 
 
 def _de_dim_start(de: Any, dim: str, default: int = 0) -> int:
-    """Return the start index for *dim* from a czifile directory entry.
-
-    Compatible with both old czifile (``DirectoryEntryDV`` with
-    ``dimension_entries``) and new czifile (``CziDirectoryEntryDV`` with
-    ``dims``/``start`` tuples in ``__slots__``).
-
-    Note: For old czifile, ``dimension_entries["S"].start`` holds the *global*
-    scene index (0..N-1), whereas new czifile stores that in ``scene_index``
-    and ``de.start[S_pos]`` is always 0 (an intra-scene offset).  To keep
-    consistent behaviour across both API versions, "S" and "M" are *not*
-    read from old-API ``dimension_entries`` here; use ``_de_scene_idx`` /
-    ``_de_mosaic_idx`` for that purpose.
-    """
-    dims = getattr(de, "dims", None)
-    if dims is not None:
-        if dim in dims:
-            return de.start[dims.index(dim)]
-        return default
-    # Old czifile fallback via dimension_entries.
-    # Skip S and M: their start values carry the global scene/mosaic index
-    # (0..N-1), unlike new czifile where start[S]=0 is always an offset.
-    # Callers that need the actual scene/mosaic index should use
-    # _de_scene_idx / _de_mosaic_idx.
-    if dim in ("S", "M"):
-        return default
-    for d in getattr(de, "dimension_entries", []):
-        if getattr(d, "dimension", None) == dim:
-            return d.start
+    """Return the start index for *dim* from a czifile directory entry."""
+    if dim in de.dims:
+        return de.start[de.dims.index(dim)]
     return default
 
 
 def _de_dim_size(de: Any, dim: str, default: int = 0) -> int:
-    """Return the size (shape) of *dim* from a czifile directory entry.
-
-    Compatible with both old and new czifile API.
-    """
-    dims = getattr(de, "dims", None)
-    if dims is not None:
-        if dim in dims:
-            return de.shape[dims.index(dim)]
-        return default
-    for d in getattr(de, "dimension_entries", []):
-        if getattr(d, "dimension", None) == dim:
-            return d.size
+    """Return the size (shape) of *dim* from a czifile directory entry."""
+    if dim in de.dims:
+        return de.shape[de.dims.index(dim)]
     return default
 
 
 def _de_dim_chars(de: Any) -> tuple:
-    """Return all dimension names as a tuple from a czifile directory entry.
-
-    Compatible with both old and new czifile API.
-    """
-    dims = getattr(de, "dims", None)
-    if dims is not None:
-        return tuple(dims)
-    return tuple(
-        d.dimension
-        for d in getattr(de, "dimension_entries", [])
-        if getattr(d, "dimension", "\x00") not in ("\x00", "", " ")
-    )
+    """Return all dimension names as a tuple from a czifile directory entry."""
+    return tuple(de.dims)
 
 
 def _de_scene_idx(de: Any) -> int:
-    """Return the scene index from a czifile directory entry, or -1 if absent.
-
-    Compatible with both old and new czifile API.
-    """
-    scene = getattr(de, "scene_index", None)
-    if scene is not None:
-        return int(scene)
-    for d in getattr(de, "dimension_entries", []):
-        if getattr(d, "dimension", None) == "S":
-            return d.start
-    return -1
+    """Return the scene index from a czifile directory entry, or -1 if absent."""
+    return int(de.scene_index)
 
 
 def _de_mosaic_idx(de: Any) -> int:
-    """Return the mosaic (tile) index from a czifile directory entry, or -1 if absent.
-
-    Compatible with both old and new czifile API.
-    """
-    mosaic = getattr(de, "mosaic_index", None)
-    if mosaic is not None:
-        return int(mosaic)
-    for d in getattr(de, "dimension_entries", []):
-        if getattr(d, "dimension", None) == "M":
-            return d.start
-    return -1
+    """Return the mosaic (tile) index from a czifile directory entry, or -1 if absent."""
+    return int(de.mosaic_index)
