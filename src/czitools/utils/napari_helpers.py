@@ -13,8 +13,10 @@
 Helper functions for Napari integration with czitools.
 """
 
+# TODO is this really still needed?
 
-def get_recommended_read_params() -> dict:
+
+def _get_recommended_read_params() -> dict:
     """
     Get recommended parameters for reading CZI files in Napari.
 
@@ -23,8 +25,8 @@ def get_recommended_read_params() -> dict:
 
     Example:
         >>> from czitools.read_tools import read_tools
-        >>> from czitools.utils.napari_helpers import get_recommended_read_params
-        >>> params = get_recommended_read_params()
+        >>> from czitools.utils.napari_helpers import _get_recommended_read_params
+        >>> params = _get_recommended_read_params()
         >>> array, mdata = read_tools.read_6darray(filepath, **params)
     """
     return {

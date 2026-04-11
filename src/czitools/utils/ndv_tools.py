@@ -11,7 +11,6 @@ from typing import Protocol, Sequence, TypeAlias
 
 from cmap import Colormap
 
-
 NDVLutEntry: TypeAlias = dict[str, Colormap]
 NDVLutMapping: TypeAlias = dict[int, NDVLutEntry]
 
@@ -67,7 +66,7 @@ class NDVMetadataLike(Protocol):
     def scale(self) -> _ScaleLike: ...
 
 
-def normalize_luts(luts_like: NDVLutMapping | Sequence[Colormap]) -> NDVLutMapping:
+def _normalize_luts(luts_like: NDVLutMapping | Sequence[Colormap]) -> NDVLutMapping:
     """Normalize LUT definitions to NDV's channel-indexed mapping format.
 
     NDV expects LUTs in the shape ``{channel_index: {"cmap": Colormap}}``.
@@ -109,7 +108,7 @@ def _to_rgb_hex_from_argb(color_argb: str) -> str:
     return "#00FF00"
 
 
-def create_luts_ndv(mdata: NDVMetadataLike) -> NDVLutMapping:
+def _create_luts_ndv(mdata: NDVMetadataLike) -> NDVLutMapping:
     """Create per-channel NDV LUT definitions from CZI metadata.
 
     For each channel, this function builds a two-stop colormap from black to
@@ -134,10 +133,10 @@ def create_luts_ndv(mdata: NDVMetadataLike) -> NDVLutMapping:
         rgb = _to_rgb_hex_from_argb(color_argb)
         luts[ch_index] = {"cmap": Colormap(["#000000", rgb], name="cm_" + chname)}
 
-    return normalize_luts(luts)
+    return _normalize_luts(luts)
 
 
-def create_scales_ndv(mdata: NDVMetadataLike) -> dict[str, float]:
+def _create_scales_ndv(mdata: NDVMetadataLike) -> dict[str, float]:
     """Create NDV scale mapping for the spatial dimensions (Z, Y, X).
 
     NDV expects plain floats for dimension scaling. Missing or ``None`` values

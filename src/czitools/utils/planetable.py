@@ -14,15 +14,18 @@
 Provides functions to extract per-plane stage-position data from CZI
 metadata and return it as a `pandas.DataFrame`.
 """
+
 import os
 import xml.etree.ElementTree as ET
-import pandas as pd
-import numpy as np
 from pathlib import Path
-import dateutil.parser as dt
-from typing import Dict, Tuple, Any, Union, Optional
-import validators
+from typing import Any, Dict, Optional, Tuple, Union
+
 import czifile as czifile_module
+import dateutil.parser as dt
+import numpy as np
+import pandas as pd
+import validators
+
 from czitools.utils import logging_tools, misc
 
 # Import progressbar2
@@ -189,10 +192,12 @@ def get_planetable(
     )
 
     if norm_time:
-        df_czi = norm_columns(df_czi, colname="Time[s]", mode="min")
+        df_czi = _norm_columns(df_czi, colname="Time[s]", mode="min")
 
     if save_table:
-        return _save_planetable_if_requested(df_czi, czipath, table_separator, table_index)
+        return _save_planetable_if_requested(
+            df_czi, czipath, table_separator, table_index
+        )
 
     return df_czi, None
 
@@ -235,7 +240,9 @@ def _getsbinfo(subblock: Optional[Any]) -> Tuple[float, float, float, float]:
     return timestamp, xpos, ypos, zpos
 
 
-def norm_columns(df: pd.DataFrame, colname: str = "Time [s]", mode: str = "min") -> pd.DataFrame:
+def _norm_columns(
+    df: pd.DataFrame, colname: str = "Time [s]", mode: str = "min"
+) -> pd.DataFrame:
     """Normalize a specific column inside a Pandas dataframe
     Args:
         df: DataFrame
@@ -258,7 +265,9 @@ def norm_columns(df: pd.DataFrame, colname: str = "Time [s]", mode: str = "min")
     return df
 
 
-def filter_planetable(planetable: pd.DataFrame, planes: Optional[Dict[str, int]] = None) -> pd.DataFrame:
+def filter_planetable(
+    planetable: pd.DataFrame, planes: Optional[Dict[str, int]] = None
+) -> pd.DataFrame:
     """
     Filters the input planetable DataFrame based on specified dimension entries.
 
@@ -322,7 +331,9 @@ def filter_planetable(planetable: pd.DataFrame, planes: Optional[Dict[str, int]]
     return planetable
 
 
-def save_planetable(df: pd.DataFrame, filepath: str, separator: str = ",", index: bool = True) -> str:
+def save_planetable(
+    df: pd.DataFrame, filepath: str, separator: str = ",", index: bool = True
+) -> str:
     """Saves a pandas dataframe as a CSV file.
 
     Args:
@@ -409,7 +420,9 @@ def _save_planetable_if_requested(
         Tuple[pd.DataFrame, Optional[str]]: DataFrame and path to saved CSV file.
     """
     try:
-        planetable_savepath = save_planetable(df_czi, czifile, separator=table_separator, index=table_index)
+        planetable_savepath = save_planetable(
+            df_czi, czifile, separator=table_separator, index=table_index
+        )
         logger.info(f"Planetable saved successfully at: {planetable_savepath}")
         return df_czi, planetable_savepath
     except Exception as e:

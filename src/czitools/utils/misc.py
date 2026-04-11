@@ -14,25 +14,30 @@
 Contains helpers for path normalisation, zoom validation, zarr/dask
 array utilities, and other small cross-cutting concerns.
 """
+
 import os
-import zarr
-import pandas as pd
+import time
+import tracemalloc
+from pathlib import Path
+from typing import Annotated, Any, Dict, Tuple, Union
+
 import dask.array as da
 import numpy as np
-import time
-from pathlib import Path
-from typing import Dict, Tuple, Any, Union, Annotated
+import pandas as pd
+import requests
 import validators
+import zarr
+from pylibCZIrw import czi as pyczi
+
 from czitools.metadata_tools.helper import ValueRange
 from czitools.utils import logging_tools
-import requests
-import tracemalloc
-from pylibCZIrw import czi as pyczi
 
 logger = logging_tools.set_logging()
 
 
-def get_pyczi_readertype(filepath: Union[str, os.PathLike[str]]) -> Tuple[pyczi.ReaderFileInputTypes, bool]:
+def get_pyczi_readertype(
+    filepath: Union[str, os.PathLike[str]],
+) -> Tuple[pyczi.ReaderFileInputTypes, bool]:
     """Determine the appropriate pylibCZIrw reader type for a CZI file path.
 
     This utility function checks whether the filepath is a URL or a local file
@@ -57,7 +62,9 @@ def get_pyczi_readertype(filepath: Union[str, os.PathLike[str]]) -> Tuple[pyczi.
         return pyczi.ReaderFileInputTypes.Standard, False
 
 
-def slicedim(array: Union[np.ndarray, da.Array, zarr.Array], dimindex: int, posdim: int) -> np.ndarray:
+def _slicedim(
+    array: Union[np.ndarray, da.Array, zarr.Array], dimindex: int, posdim: int
+) -> np.ndarray:
     """Slice out a specific dimension without (!) dropping the dimension
     of the array to conserve the dimorder string
     This works for Numpy.Array, Dask and ZARR.
@@ -78,6 +85,8 @@ def slicedim(array: Union[np.ndarray, da.Array, zarr.Array], dimindex: int, posd
         Sliced array.
 
     """
+
+    # TODO: explian this function much better
 
     idl_all = [slice(None, None, None)] * (len(array.shape) - 2)
     idl_all[posdim] = slice(dimindex, dimindex + 1, None)
@@ -132,7 +141,9 @@ def calc_scaling(
     return minvalue, maxvalue
 
 
-def md2dataframe(md_dict: Dict, paramcol: str = "Parameter", keycol: str = "Value") -> pd.DataFrame:
+def md2dataframe(
+    md_dict: Dict, paramcol: str = "Parameter", keycol: str = "Value"
+) -> pd.DataFrame:
     """Converts the given metadata_tools dictionary to a Pandas DataFrame.
 
     Args:
@@ -153,7 +164,7 @@ def md2dataframe(md_dict: Dict, paramcol: str = "Parameter", keycol: str = "Valu
     return mdframe
 
 
-def sort_dict_by_key(unsorted_dict: Dict) -> Dict:
+def _sort_dict_by_key(unsorted_dict: Dict) -> Dict:
     """Sort a dictionary by key names
 
     Args:
@@ -171,7 +182,7 @@ def sort_dict_by_key(unsorted_dict: Dict) -> Dict:
     return sorted_dict
 
 
-def addzeros(number: int) -> str:
+def _addzeros(number: int) -> str:
     """Convert a number into a string and add leading zeros.
     Typically used to construct filenames with equal lengths.
 
@@ -221,7 +232,9 @@ def get_fname_woext(filepath: Union[str, os.PathLike[str]]) -> str:
     return filepath_woext
 
 
-def check_dimsize(mdata_entry: Union[Any, None], set2value: Any = 1) -> Union[Any, None]:
+def _check_dimsize(
+    mdata_entry: Union[Any, None], set2value: Any = 1
+) -> Union[Any, None]:
     """Check the entries for None.
 
     Args:
@@ -238,7 +251,7 @@ def check_dimsize(mdata_entry: Union[Any, None], set2value: Any = 1) -> Union[An
         return mdata_entry
 
 
-def clean_dict(d: Dict[Any, Any]) -> Dict[Any, Any]:
+def _clean_dict(d: Dict[Any, Any]) -> Dict[Any, Any]:
     """
     Recursively cleans a dictionary by removing keys with values that are None, empty lists, empty dictionaries,
     or empty NumPy arrays.
@@ -273,8 +286,10 @@ def clean_dict(d: Dict[Any, Any]) -> Dict[Any, Any]:
 
         # Recursively clean nested dictionaries
         if isinstance(value, dict):
-            nested_cleaned = clean_dict(value)
-            if nested_cleaned:  # Only include if the cleaned nested dictionary is not empty
+            nested_cleaned = _clean_dict(value)
+            if (
+                nested_cleaned
+            ):  # Only include if the cleaned nested dictionary is not empty
                 cleaned[key] = nested_cleaned
         else:
             cleaned[key] = value
@@ -300,20 +315,24 @@ def download_zip(source_link: str) -> str:
     return compressed_data[:-4]
 
 
-def check_zoom(zoom: Annotated[float, ValueRange(0.01, 1.0)] = 1.0) -> float:
+def _check_zoom(zoom: Annotated[float, ValueRange(0.01, 1.0)] = 1.0) -> float:
 
     # check zoom factor
     if zoom > 1.0:
-        logger.warning(f"Zoom factor f{zoom} is not in valid range [0.01 - 1.0]. Using 1.0 instead.")
+        logger.warning(
+            f"Zoom factor f{zoom} is not in valid range [0.01 - 1.0]. Using 1.0 instead."
+        )
         zoom = 1.0
     if zoom < 0.01:
-        logger.warning(f"Zoom factor f{zoom} is not in valid range [0.01 - 1.0]. Using 0.01 instead.")
+        logger.warning(
+            f"Zoom factor f{zoom} is not in valid range [0.01 - 1.0]. Using 0.01 instead."
+        )
         zoom = 0.01
 
     return zoom
 
 
-def measure_memory_usage(target_function):
+def _measure_memory_usage(target_function):
     """
     A decorator that measures and logs the memory usage of the decorated function.
     This decorator uses the `tracemalloc` module to track memory allocations and logs
@@ -323,7 +342,7 @@ def measure_memory_usage(target_function):
     Returns:
         function: The wrapped function with memory usage measurement.
     Example:
-        @measure_memory_usage
+        @_measure_memory_usage
         def my_function():
             # Function implementation
             pass
@@ -356,7 +375,7 @@ def measure_memory_usage(target_function):
     return wrapper
 
 
-def measure_execution_time(func):
+def _measure_execution_time(func):
     """
     Decorator that measures the execution time of a function and logs it.
     Args:
@@ -364,7 +383,7 @@ def measure_execution_time(func):
     Returns:
         callable: The wrapped function with execution time measurement.
     Example:
-        @measure_execution_time
+        @_measure_execution_time
         def my_function():
             # Function implementation
             pass
@@ -414,7 +433,10 @@ def is_valid_czi_url(myurl: str) -> Tuple[bool, str]:
             else:
                 return True, "File exists but Content-Type is not specific to .czi"
         else:
-            return False, f"File not accessible, HTTP status code: {response.status_code}"
+            return (
+                False,
+                f"File not accessible, HTTP status code: {response.status_code}",
+            )
     except requests.RequestException as e:
         return False, f"Error during HTTP request: {e}"
 

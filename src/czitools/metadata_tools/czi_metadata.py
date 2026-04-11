@@ -15,32 +15,33 @@ Provides `CziMetadata`, an aggregating dataclass that composes all individual
 metadata classes (dimensions, scaling, channels, bounding box, etc.) into a
 single object. Also exposes `writexml` to dump the raw CZI XML to disk.
 """
+
 # from __future__ import annotations
-from typing import List, Dict, Tuple, Optional, Any, Union
+import contextlib
 import os
 import xml.etree.ElementTree as ET
-from pylibCZIrw import czi as pyczi
-from czitools.utils import logging_tools, misc, pixels
 
 # import numpy as np
-from dataclasses import dataclass, field
+from dataclasses import asdict, dataclass, field
 from pathlib import Path
-from box import Box
-from dataclasses import asdict
-from czitools.metadata_tools.dimension import CziDimensions
-from czitools.metadata_tools.boundingbox import CziBoundingBox
-from czitools.metadata_tools.attachment import CziAttachments
-from czitools.metadata_tools.channel import CziChannelInfo
-from czitools.metadata_tools.scaling import CziScaling
-from czitools.metadata_tools.sample import CziSampleInfo
-from czitools.metadata_tools.objective import CziObjectives
-from czitools.metadata_tools.microscope import CziMicroscope
-from czitools.metadata_tools.add_metadata import CziAddMetaData
-from czitools.metadata_tools.detector import CziDetector
-from czitools.utils.box import get_czimd_box
-from czitools.metadata_tools.helper import DictObj
+from typing import Any, Dict, List, Optional, Tuple, Union
 
-import contextlib
+from box import Box
+from pylibCZIrw import czi as pyczi
+
+from czitools.metadata_tools.add_metadata import CziAddMetaData
+from czitools.metadata_tools.attachment import CziAttachments
+from czitools.metadata_tools.boundingbox import CziBoundingBox
+from czitools.metadata_tools.channel import CziChannelInfo
+from czitools.metadata_tools.detector import CziDetector
+from czitools.metadata_tools.dimension import CziDimensions
+from czitools.metadata_tools.helper import DictObj
+from czitools.metadata_tools.microscope import CziMicroscope
+from czitools.metadata_tools.objective import CziObjectives
+from czitools.metadata_tools.sample import CziSampleInfo
+from czitools.metadata_tools.scaling import CziScaling
+from czitools.utils import logging_tools, misc, pixels
+from czitools.utils.box import get_czimd_box
 
 logger = logging_tools.set_logging()
 
@@ -105,12 +106,18 @@ class CziMetadata:
     creation_date: Optional[str] = field(init=False, default=None)
     user_name: Optional[str] = field(init=False, default=None)
     czi_box: Optional[Box] = field(init=False, default=None)
-    pyczi_dims: Optional[Dict[str, tuple]] = field(init=False, default_factory=lambda: {})
+    pyczi_dims: Optional[Dict[str, tuple]] = field(
+        init=False, default_factory=lambda: {}
+    )
     sb_dimstring: Optional[str] = field(init=False, default=None)
-    sb_dims_shape: Optional[List[Dict[str, tuple]]] = field(init=False, default_factory=lambda: [])
+    sb_dims_shape: Optional[List[Dict[str, tuple]]] = field(
+        init=False, default_factory=lambda: []
+    )
     sb_size: Optional[Tuple[int, ...]] = field(init=False, default_factory=lambda: ())
     sb_ismosaic: Optional[bool] = field(init=False, default=None)
-    sb_dim_order: Optional[Dict[str, int]] = field(init=False, default_factory=lambda: {})
+    sb_dim_order: Optional[Dict[str, int]] = field(
+        init=False, default_factory=lambda: {}
+    )
     sb_dim_index: Optional[List[int]] = field(init=False, default_factory=lambda: [])
     sb_dim_valid: Optional[int] = field(init=False, default=None)
     sb_posC: Optional[int] = field(init=False, default=None)
@@ -132,7 +139,9 @@ class CziMetadata:
     microscope: Optional[CziMicroscope] = field(init=False, default=None)
     sample: Optional[CziSampleInfo] = field(init=False, default=None)
     add_metadata: Optional[CziAddMetaData] = field(init=False, default=None)
-    scene_size_consistent: Optional[Tuple[int, ...]] = field(init=False, default_factory=lambda: ())
+    scene_size_consistent: Optional[Tuple[int, ...]] = field(
+        init=False, default_factory=lambda: ()
+    )
     array6d_size: Optional[Tuple[int, ...]] = field(init=False, default=None)
     verbose: bool = False
 
@@ -145,7 +154,9 @@ class CziMetadata:
         self.pyczi_readertype, self.is_url = misc.get_pyczi_readertype(self.filepath)
 
         if self.is_url and self.verbose:
-            logger.info("FilePath is a valid link. Only pylibCZIrw functionality is available.")
+            logger.info(
+                "FilePath is a valid link. Only pylibCZIrw functionality is available."
+            )
 
         # get directory and filename etc.
         self.dirname = str(Path(self.filepath).parent)
@@ -160,16 +171,24 @@ class CziMetadata:
         # get acquisition data and SW version
         if self.czi_box.ImageDocument.Metadata.Information.Application is not None:
             # Application provides both name and version; map them correctly
-            self.software_name = self.czi_box.ImageDocument.Metadata.Information.Application.Name
-            self.software_version = self.czi_box.ImageDocument.Metadata.Information.Application.Version
+            self.software_name = (
+                self.czi_box.ImageDocument.Metadata.Information.Application.Name
+            )
+            self.software_version = (
+                self.czi_box.ImageDocument.Metadata.Information.Application.Version
+            )
 
         if self.czi_box.ImageDocument.Metadata.Information.Image is not None:
             # Acquisition date/time (if available)
             self.acquisition_date = self.czi_box.ImageDocument.Metadata.Information.Image.AcquisitionDateAndTime
 
         if self.czi_box.ImageDocument.Metadata.Information.Document is not None:
-            self.creation_date = self.czi_box.ImageDocument.Metadata.Information.Document.CreationDate
-            self.user_name = self.czi_box.ImageDocument.Metadata.Information.Document.UserName
+            self.creation_date = (
+                self.czi_box.ImageDocument.Metadata.Information.Document.CreationDate
+            )
+            self.user_name = (
+                self.czi_box.ImageDocument.Metadata.Information.Document.UserName
+            )
 
         # get the dimensions and order
         self.image = CziDimensions(self.czi_box, verbose=self.verbose)
@@ -181,10 +200,14 @@ class CziMetadata:
 
             # get the pixel typed for all channels
             self.pixeltypes = czidoc.pixel_types
-            self.isRGB, self.consistent_pixeltypes = pixels.check_if_rgb(self.pixeltypes)
+            self.isRGB, self.consistent_pixeltypes = pixels.check_if_rgb(
+                self.pixeltypes
+            )
 
             # check for consistent scene shape
-            self.scene_shape_is_consistent = pixels.check_scenes_shape(czidoc, size_s=self.image.SizeS)
+            self.scene_shape_is_consistent = pixels.check_scenes_shape(
+                czidoc, size_s=self.image.SizeS
+            )
 
         if not self.is_url:
             # get additional dimension info using czifile (replaces aicspylibczi)
@@ -192,7 +215,11 @@ class CziMetadata:
                 import czifile as czifile_module
 
                 with czifile_module.CziFile(self.filepath) as czi:
-                    subblocks = [sb for sb in czi.subblocks() if not sb.directory_entry.is_pyramid]
+                    subblocks = [
+                        sb
+                        for sb in czi.subblocks()
+                        if not sb.directory_entry.is_pyramid
+                    ]
 
                     if subblocks:
                         # Build dimension string and shapes from non-pyramid subblocks
@@ -208,10 +235,16 @@ class CziMetadata:
                                 shape_val = misc._de_dim_size(de, dim_char)
                                 scene_dims = all_dims.setdefault(s, {})
                                 if dim_char not in scene_dims:
-                                    scene_dims[dim_char] = (start_val, start_val + shape_val)
+                                    scene_dims[dim_char] = (
+                                        start_val,
+                                        start_val + shape_val,
+                                    )
                                 else:
                                     lo, hi = scene_dims[dim_char]
-                                    scene_dims[dim_char] = (min(lo, start_val), max(hi, start_val + shape_val))
+                                    scene_dims[dim_char] = (
+                                        min(lo, start_val),
+                                        max(hi, start_val + shape_val),
+                                    )
 
                         # Mosaic detection: any subblock with mosaic_index >= 1
                         mosaic_counts: Dict[int, int] = {}
@@ -267,9 +300,13 @@ class CziMetadata:
                         self.sb_posC = self.sb_dim_order.get("C")
 
             except ImportError:
-                logger.warning("Package czifile not found. Using fallback values for dimension info.")
+                logger.warning(
+                    "Package czifile not found. Using fallback values for dimension info."
+                )
             except Exception as e:
-                logger.warning(f"czifile dimension extraction failed: {e}. Using fallback values.")
+                logger.warning(
+                    f"czifile dimension extraction failed: {e}. Using fallback values."
+                )
         self.npdtype_list = []
         self.maxvalue_list = []
 
@@ -361,7 +398,7 @@ def get_metadata_as_object(filepath: Union[str, os.PathLike[str]]) -> DictObj:
     return DictObj(md_dict)
 
 
-def obj2dict(obj: Any, sort: bool = True) -> Dict[str, Any]:
+def _obj2dict(obj: Any, sort: bool = True) -> Dict[str, Any]:
     """
     obj2dict: Convert a class attributes and their values to a dictionary
 
@@ -388,9 +425,9 @@ def obj2dict(obj: Any, sort: bool = True) -> Dict[str, Any]:
 
         if isinstance(val, list):
             for item in val:
-                element.append(obj2dict(item))
+                element.append(_obj2dict(item))
         else:
-            element = obj2dict(val)
+            element = _obj2dict(val)
 
         result[key] = element
 
@@ -405,7 +442,9 @@ def obj2dict(obj: Any, sort: bool = True) -> Dict[str, Any]:
         return result
 
 
-def writexml(filepath: Union[str, os.PathLike[str]], xmlsuffix: str = "_CZI_MetaData.xml") -> str:
+def writexml(
+    filepath: Union[str, os.PathLike[str]], xmlsuffix: str = "_CZI_MetaData.xml"
+) -> str:
     """
     writexml: Write XML information of CZI to disk
 
@@ -435,7 +474,9 @@ def writexml(filepath: Union[str, os.PathLike[str]], xmlsuffix: str = "_CZI_Meta
     return xmlfile
 
 
-def create_md_dict_red(metadata: CziMetadata, sort: bool = True, remove_none: bool = True) -> Dict:
+def create_md_dict_red(
+    metadata: CziMetadata, sort: bool = True, remove_none: bool = True
+) -> Dict:
     """
     create_mdict_red: Created a reduced metadata_tools dictionary
 
@@ -512,7 +553,7 @@ def create_md_dict_red(metadata: CziMetadata, sort: bool = True, remove_none: bo
 
     # Convert all numpy values to native Python types for better display
     with contextlib.suppress(Exception):  # Catch any conversion errors
-        md_dict = convert_numpy_types(md_dict)
+        md_dict = _convert_numpy_types(md_dict)
 
     # check for extra entries when reading mosaic file with a scale factor
     if hasattr(metadata.image, "SizeX_sf"):
@@ -533,7 +574,9 @@ def create_md_dict_red(metadata: CziMetadata, sort: bool = True, remove_none: bo
         return md_dict
 
 
-def create_md_dict_nested(metadata: CziMetadata, sort: bool = True, remove_none: bool = True) -> Dict:
+def create_md_dict_nested(
+    metadata: CziMetadata, sort: bool = True, remove_none: bool = True
+) -> Dict:
     """
     Create nested dictionary from metadata_tools
 
@@ -627,7 +670,7 @@ def create_md_dict_nested(metadata: CziMetadata, sort: bool = True, remove_none:
     return md_dict
 
 
-def convert_numpy_types(obj: Any) -> Any:
+def _convert_numpy_types(obj: Any) -> Any:
     """
     Recursively convert numpy types to native Python types.
 
@@ -648,8 +691,8 @@ def convert_numpy_types(obj: Any) -> Any:
         else:
             return obj.tolist()  # Convert array to list
     elif isinstance(obj, dict):
-        return {key: convert_numpy_types(value) for key, value in obj.items()}
+        return {key: _convert_numpy_types(value) for key, value in obj.items()}
     elif isinstance(obj, (list, tuple)):
-        return type(obj)(convert_numpy_types(item) for item in obj)
+        return type(obj)(__package__(item) for item in obj)
     else:
         return obj

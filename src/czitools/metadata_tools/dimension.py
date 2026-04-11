@@ -4,21 +4,22 @@ Provides `CziDimensions`, a validated Pydantic dataclass that reads all
 STCZYX(A) image-dimension sizes from CZI metadata.
 """
 
-from typing import Tuple, Optional, Union, List
-from dataclasses import field, fields, Field
-from box import Box
 import os
-from czitools.utils import logging_tools
-from czitools.utils.box import get_czimd_box
+from dataclasses import Field, field, fields
+from typing import List, Optional, Tuple, Union
+
+from box import Box
+from pydantic import ConfigDict
+from pydantic.dataclasses import dataclass
 from pylibCZIrw import czi as pyczi
 
-from pydantic.dataclasses import dataclass
-from pydantic import ConfigDict
+from czitools.utils import logging_tools
+from czitools.utils.box import get_czimd_box
 
 logger = logging_tools.set_logging()
 
 
-def string_to_float_list(string: str) -> List[float]:
+def _string_to_float_list(string: str) -> List[float]:
     """Converts a space-separated string of numbers into a list of floats.
 
     Args:
@@ -84,10 +85,18 @@ class CziDimensions:
     """
 
     czisource: Union[str, os.PathLike[str], Box]
-    SizeX: Optional[int] = field(init=False, default=None)  # total size X including scenes
-    SizeY: Optional[int] = field(init=False, default=None)  # total size Y including scenes
-    SizeX_scene: Optional[int] = field(init=False, default=None)  # size X per scene (if equal scene sizes)
-    SizeY_scene: Optional[int] = field(init=False, default=None)  # size Y per scene (if equal scene sizes)
+    SizeX: Optional[int] = field(
+        init=False, default=None
+    )  # total size X including scenes
+    SizeY: Optional[int] = field(
+        init=False, default=None
+    )  # total size Y including scenes
+    SizeX_scene: Optional[int] = field(
+        init=False, default=None
+    )  # size X per scene (if equal scene sizes)
+    SizeY_scene: Optional[int] = field(
+        init=False, default=None
+    )  # size Y per scene (if equal scene sizes)
     SizeS: Optional[int] = field(init=False, default=None)
     SizeT: Optional[int] = field(init=False, default=None)
     SizeZ: Optional[int] = field(init=False, default=None)
@@ -179,39 +188,53 @@ class CziDimensions:
                 self.SizeX_scene = None
                 self.SizeY_scene = None
                 if self.verbose:
-                    logger.warning("Scenes Dimension detected but no bounding rectangle information found.")
+                    logger.warning(
+                        "Scenes Dimension detected but no bounding rectangle information found."
+                    )
 
         if czi_box.has_T:
             # check if there is a list with timepoints (is not in very CZI)
             if dimensions.Dimensions.T.Positions is not None:
                 if dimensions.Dimensions.T.Positions.List is not None:
                     try:
-                        self.posT = string_to_float_list(dimensions.Dimensions.T.Positions.List.Offsets)
+                        self.posT = _string_to_float_list(
+                            dimensions.Dimensions.T.Positions.List.Offsets
+                        )
                     except Exception as e:
                         if self.verbose:
                             logger.error(f"{e}")
                 else:
                     if self.verbose:
-                        logger.warning("No posT list found under 'dimensions.Dimensions.T.Positions.List'")
+                        logger.warning(
+                            "No posT list found under 'dimensions.Dimensions.T.Positions.List'"
+                        )
             else:
                 if self.verbose:
-                    logger.warning("No posT list found under 'dimensions.Dimensions.T.Positions'")
+                    logger.warning(
+                        "No posT list found under 'dimensions.Dimensions.T.Positions'"
+                    )
 
         if czi_box.has_Z:
             # check if there is a list with z-positions (is not in very CZI)
             if dimensions.Dimensions.Z.Positions is not None:
                 if dimensions.Dimensions.Z.Positions.List is not None:
                     try:
-                        self.posZ = string_to_float_list(dimensions.Dimensions.Z.Positions.List.Offsets)
+                        self.posZ = _string_to_float_list(
+                            dimensions.Dimensions.Z.Positions.List.Offsets
+                        )
                     except Exception as e:
                         if self.verbose:
                             logger.error(f"{e}")
                 else:
                     if self.verbose:
-                        logger.warning("No posZ list found under 'dimensions.Dimensions.Z.Positions.List'")
+                        logger.warning(
+                            "No posZ list found under 'dimensions.Dimensions.Z.Positions.List'"
+                        )
             else:
                 if self.verbose:
-                    logger.warning("No posZ list found under 'dimensions.Dimensions.Z.Positions'")
+                    logger.warning(
+                        "No posZ list found under 'dimensions.Dimensions.Z.Positions'"
+                    )
 
     # # THIS IS STILL EXPERIMENTAL AND NOT USED YET
     # def set_dimensions_adv(self):

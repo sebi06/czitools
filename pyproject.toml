@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "czitools"
-version = "0.16.0"
+version = "0.17.0"
 description = "Tools to simplify reading and CZI (Carl Zeiss Image) meta and pixel data"
 readme = "README.md"
 license = {text = "GNU General Public License v3 (GPLv3)"}

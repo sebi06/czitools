@@ -14,12 +14,14 @@
 Maps `pylibCZIrw` pixel-type enumerations to NumPy dtypes and provides
 helpers to determine bits-per-pixel and channel counts.
 """
-from pylibCZIrw import czi as pyczi
+
+from typing import Dict, List, Optional, Tuple, Union
+
 import numpy as np
-from typing import List, Dict, Tuple, Optional, Union
+from pylibCZIrw import czi as pyczi
 
 
-def check_if_rgb(pixeltypes: Dict) -> Tuple[Dict[int, bool], bool]:
+def _check_if_rgb(pixeltypes: Dict) -> Tuple[Dict[int, bool], bool]:
     """
     Check if the pixel types are RGB and if they are consistent.
     Args:
@@ -49,7 +51,7 @@ def check_if_rgb(pixeltypes: Dict) -> Tuple[Dict[int, bool], bool]:
     return is_rgb, is_consistent
 
 
-def get_dtype_fromstring(
+def _get_dtype_fromstring(
     pixeltype: str,
 ) -> Tuple[Optional[np.dtype], Optional[int]]:
     """
@@ -121,7 +123,7 @@ def check_scenes_shape(czidoc: pyczi.CziReader, size_s: Union[int, None]) -> boo
     return scene_shape_is_consistent
 
 
-def get_dimorder(dim_string: str) -> Tuple[Dict, List, int]:
+def _get_dimorder(dim_string: str) -> Tuple[Dict, List, int]:
     """
     Extracts the order and indices of dimensions from a given dimension string.
     Args:
