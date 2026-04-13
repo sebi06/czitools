@@ -20,7 +20,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib import cm
 from matplotlib.figure import Figure as MplFigure
-import plotly.graph_objects as go
 import pandas as pd
 from typing import Tuple
 from czitools.utils import logging_tools
@@ -192,7 +191,7 @@ def scatterplot_plotly(
     fig1savename: str = "zsurface2d.html",
     fig2savename: str = "zsurface3d.html",
     msz3d: int = 20,
-) -> Tuple[go.Figure, go.Figure]:
+) -> Tuple["go.Figure", "go.Figure"]:
     """
     Generates 2D and 3D scatter plots using Plotly and saves them as HTML files.
     Parameters:
@@ -224,6 +223,8 @@ def scatterplot_plotly(
     fig2 : plotly.graph_objs._figure.Figure
         The generated 3D scatter plot figure.
     """
+
+    import plotly.graph_objects as go
 
     # extract XYZ position for the selected channel
     try:
