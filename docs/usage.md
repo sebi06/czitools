@@ -150,9 +150,9 @@ display_xarray_in_napari(result_list[idx], mdata, subset_planes)
 ### Recommended Parameters Helper
 
 ```python
-from czitools.utils.napari_helpers import get_recommended_read_params
+from czitools.utils.napari_helpers import _get_recommended_read_params
 
-params = get_recommended_read_params()
+params = _get_recommended_read_params()
 array6d, mdata = read_tools.read_6darray(filepath, **params)
 ```
 
@@ -160,11 +160,11 @@ array6d, mdata = read_tools.read_6darray(filepath, **params)
 
 ```python
 from czitools.metadata_tools.czi_metadata import CziMetadata
-from czitools.utils.ndv_tools import create_luts_ndv, create_scales_ndv
+from czitools.utils.ndv_tools import _create_luts_ndv, _create_scales_ndv
 
 mdata = CziMetadata(filepath)
-luts = create_luts_ndv(mdata)
-scales = create_scales_ndv(mdata)
+luts = _create_luts_ndv(mdata)
+scales = _create_scales_ndv(mdata)
 ```
 
 ## Array Dimension Order
