@@ -20,7 +20,7 @@ import numpy as np
     ],
 )
 def test_get_dtype_fromstring(pixeltype, expected_dtype, expected_maxvalue):
-    dtype, maxvalue = pixels.get_dtype_fromstring(pixeltype)
+    dtype, maxvalue = pixels._get_dtype_fromstring(pixeltype)
     assert dtype == expected_dtype
     assert maxvalue == expected_maxvalue
 
@@ -56,7 +56,7 @@ def test_get_dtype_fromstring(pixeltype, expected_dtype, expected_maxvalue):
     ],
 )
 def test_check_if_rgb(pixeltypes, expected_is_rgb, expected_is_consistent):
-    is_rgb, is_consistent = pixels.check_if_rgb(pixeltypes)
+    is_rgb, is_consistent = pixels._check_if_rgb(pixeltypes)
     assert is_rgb == expected_is_rgb
     assert is_consistent == expected_is_consistent
 
@@ -146,10 +146,8 @@ def test_check_if_rgb(pixeltypes, expected_is_rgb, expected_is_consistent):
         ),
     ],
 )
-def test_get_dimorder(
-    dim_string, expected_dims_dict, expected_dimindex_list, expected_numvalid_dims
-):
-    dims_dict, dimindex_list, numvalid_dims = pixels.get_dimorder(dim_string)
+def test_get_dimorder(dim_string, expected_dims_dict, expected_dimindex_list, expected_numvalid_dims):
+    dims_dict, dimindex_list, numvalid_dims = pixels._get_dimorder(dim_string)
     assert dims_dict == expected_dims_dict
     assert dimindex_list == expected_dimindex_list
     assert numvalid_dims == expected_numvalid_dims

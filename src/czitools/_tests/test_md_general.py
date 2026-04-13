@@ -87,7 +87,7 @@ def test_pixeltypes_1(czifile: str, px: Dict, is_rgb: bool, maxvalue: int) -> No
 )
 def test_pixeltypes_2(pts: str, dts: np.dtype, mvs: int) -> None:
 
-    out = czimd.pixels.get_dtype_fromstring(pts)
+    out = czimd.pixels._get_dtype_fromstring(pts)
     assert out[0] == dts
     assert out[1] == mvs
 

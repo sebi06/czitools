@@ -106,18 +106,12 @@ class CziMetadata:
     creation_date: Optional[str] = field(init=False, default=None)
     user_name: Optional[str] = field(init=False, default=None)
     czi_box: Optional[Box] = field(init=False, default=None)
-    pyczi_dims: Optional[Dict[str, tuple]] = field(
-        init=False, default_factory=lambda: {}
-    )
+    pyczi_dims: Optional[Dict[str, tuple]] = field(init=False, default_factory=lambda: {})
     sb_dimstring: Optional[str] = field(init=False, default=None)
-    sb_dims_shape: Optional[List[Dict[str, tuple]]] = field(
-        init=False, default_factory=lambda: []
-    )
+    sb_dims_shape: Optional[List[Dict[str, tuple]]] = field(init=False, default_factory=lambda: [])
     sb_size: Optional[Tuple[int, ...]] = field(init=False, default_factory=lambda: ())
     sb_ismosaic: Optional[bool] = field(init=False, default=None)
-    sb_dim_order: Optional[Dict[str, int]] = field(
-        init=False, default_factory=lambda: {}
-    )
+    sb_dim_order: Optional[Dict[str, int]] = field(init=False, default_factory=lambda: {})
     sb_dim_index: Optional[List[int]] = field(init=False, default_factory=lambda: [])
     sb_dim_valid: Optional[int] = field(init=False, default=None)
     sb_posC: Optional[int] = field(init=False, default=None)
@@ -139,9 +133,7 @@ class CziMetadata:
     microscope: Optional[CziMicroscope] = field(init=False, default=None)
     sample: Optional[CziSampleInfo] = field(init=False, default=None)
     add_metadata: Optional[CziAddMetaData] = field(init=False, default=None)
-    scene_size_consistent: Optional[Tuple[int, ...]] = field(
-        init=False, default_factory=lambda: ()
-    )
+    scene_size_consistent: Optional[Tuple[int, ...]] = field(init=False, default_factory=lambda: ())
     array6d_size: Optional[Tuple[int, ...]] = field(init=False, default=None)
     verbose: bool = False
 
@@ -154,9 +146,7 @@ class CziMetadata:
         self.pyczi_readertype, self.is_url = misc.get_pyczi_readertype(self.filepath)
 
         if self.is_url and self.verbose:
-            logger.info(
-                "FilePath is a valid link. Only pylibCZIrw functionality is available."
-            )
+            logger.info("FilePath is a valid link. Only pylibCZIrw functionality is available.")
 
         # get directory and filename etc.
         self.dirname = str(Path(self.filepath).parent)
@@ -171,24 +161,16 @@ class CziMetadata:
         # get acquisition data and SW version
         if self.czi_box.ImageDocument.Metadata.Information.Application is not None:
             # Application provides both name and version; map them correctly
-            self.software_name = (
-                self.czi_box.ImageDocument.Metadata.Information.Application.Name
-            )
-            self.software_version = (
-                self.czi_box.ImageDocument.Metadata.Information.Application.Version
-            )
+            self.software_name = self.czi_box.ImageDocument.Metadata.Information.Application.Name
+            self.software_version = self.czi_box.ImageDocument.Metadata.Information.Application.Version
 
         if self.czi_box.ImageDocument.Metadata.Information.Image is not None:
             # Acquisition date/time (if available)
             self.acquisition_date = self.czi_box.ImageDocument.Metadata.Information.Image.AcquisitionDateAndTime
 
         if self.czi_box.ImageDocument.Metadata.Information.Document is not None:
-            self.creation_date = (
-                self.czi_box.ImageDocument.Metadata.Information.Document.CreationDate
-            )
-            self.user_name = (
-                self.czi_box.ImageDocument.Metadata.Information.Document.UserName
-            )
+            self.creation_date = self.czi_box.ImageDocument.Metadata.Information.Document.CreationDate
+            self.user_name = self.czi_box.ImageDocument.Metadata.Information.Document.UserName
 
         # get the dimensions and order
         self.image = CziDimensions(self.czi_box, verbose=self.verbose)
@@ -200,14 +182,10 @@ class CziMetadata:
 
             # get the pixel typed for all channels
             self.pixeltypes = czidoc.pixel_types
-            self.isRGB, self.consistent_pixeltypes = pixels.check_if_rgb(
-                self.pixeltypes
-            )
+            self.isRGB, self.consistent_pixeltypes = pixels._check_if_rgb(self.pixeltypes)
 
             # check for consistent scene shape
-            self.scene_shape_is_consistent = pixels.check_scenes_shape(
-                czidoc, size_s=self.image.SizeS
-            )
+            self.scene_shape_is_consistent = pixels.check_scenes_shape(czidoc, size_s=self.image.SizeS)
 
         if not self.is_url:
             # get additional dimension info using czifile (replaces aicspylibczi)
@@ -215,11 +193,7 @@ class CziMetadata:
                 import czifile as czifile_module
 
                 with czifile_module.CziFile(self.filepath) as czi:
-                    subblocks = [
-                        sb
-                        for sb in czi.subblocks()
-                        if not sb.directory_entry.is_pyramid
-                    ]
+                    subblocks = [sb for sb in czi.subblocks() if not sb.directory_entry.is_pyramid]
 
                     if subblocks:
                         # Build dimension string and shapes from non-pyramid subblocks
@@ -296,22 +270,18 @@ class CziMetadata:
                             self.sb_dim_order,
                             self.sb_dim_index,
                             self.sb_dim_valid,
-                        ) = pixels.get_dimorder(self.sb_dimstring)
+                        ) = pixels._get_dimorder(self.sb_dimstring)
                         self.sb_posC = self.sb_dim_order.get("C")
 
             except ImportError:
-                logger.warning(
-                    "Package czifile not found. Using fallback values for dimension info."
-                )
+                logger.warning("Package czifile not found. Using fallback values for dimension info.")
             except Exception as e:
-                logger.warning(
-                    f"czifile dimension extraction failed: {e}. Using fallback values."
-                )
+                logger.warning(f"czifile dimension extraction failed: {e}. Using fallback values.")
         self.npdtype_list = []
         self.maxvalue_list = []
 
         for ch, px in self.pixeltypes.items():
-            npdtype, maxvalue = pixels.get_dtype_fromstring(px)
+            npdtype, maxvalue = pixels._get_dtype_fromstring(px)
             self.npdtype_list.append(npdtype)
             if maxvalue is not None:
                 self.maxvalue_list.append(maxvalue)
@@ -436,15 +406,13 @@ def _obj2dict(obj: Any, sort: bool = True) -> Dict[str, Any]:
         del result["czisource"]
 
     if sort:
-        return misc.sort_dict_by_key(result)
+        return misc._sort_dict_by_key(result)
 
     elif not sort:
         return result
 
 
-def writexml(
-    filepath: Union[str, os.PathLike[str]], xmlsuffix: str = "_CZI_MetaData.xml"
-) -> str:
+def writexml(filepath: Union[str, os.PathLike[str]], xmlsuffix: str = "_CZI_MetaData.xml") -> str:
     """
     writexml: Write XML information of CZI to disk
 
@@ -474,9 +442,7 @@ def writexml(
     return xmlfile
 
 
-def create_md_dict_red(
-    metadata: CziMetadata, sort: bool = True, remove_none: bool = True
-) -> Dict:
+def create_md_dict_red(metadata: CziMetadata, sort: bool = True, remove_none: bool = True) -> Dict:
     """
     create_mdict_red: Created a reduced metadata_tools dictionary
 
@@ -566,17 +532,15 @@ def create_md_dict_red(
 
     if remove_none:
         # md_dict = misc.remove_none_from_dict(md_dict)
-        md_dict = misc.clean_dict(md_dict)
+        md_dict = misc._clean_dict(md_dict)
 
     if sort:
-        return misc.sort_dict_by_key(md_dict)
+        return misc._sort_dict_by_key(md_dict)
     if not sort:
         return md_dict
 
 
-def create_md_dict_nested(
-    metadata: CziMetadata, sort: bool = True, remove_none: bool = True
-) -> Dict:
+def create_md_dict_nested(metadata: CziMetadata, sort: bool = True, remove_none: bool = True) -> Dict:
     """
     Create nested dictionary from metadata_tools
 
@@ -660,10 +624,10 @@ def create_md_dict_nested(
 
     if remove_none:
         # md_dict = misc.remove_none_from_dict(md_dict)
-        md_dict = misc.clean_dict(md_dict)
+        md_dict = misc._clean_dict(md_dict)
 
     if sort:
-        return misc.sort_dict_by_key(md_dict)
+        return misc._sort_dict_by_key(md_dict)
     if not sort:
         return md_dict
 
@@ -693,6 +657,6 @@ def _convert_numpy_types(obj: Any) -> Any:
     elif isinstance(obj, dict):
         return {key: _convert_numpy_types(value) for key, value in obj.items()}
     elif isinstance(obj, (list, tuple)):
-        return type(obj)(__package__(item) for item in obj)
+        return type(obj)(_convert_numpy_types(item) for item in obj)
     else:
         return obj

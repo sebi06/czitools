@@ -13,7 +13,7 @@ basedir = Path(__file__).resolve().parents[3]
 
 def test_get_recommended_read_params():
     """Test that recommended parameters are returned correctly."""
-    from czitools.utils.napari_helpers import get_recommended_read_params
+    from czitools.utils.napari_helpers import _get_recommended_read_params as get_recommended_read_params
 
     params = get_recommended_read_params()
 

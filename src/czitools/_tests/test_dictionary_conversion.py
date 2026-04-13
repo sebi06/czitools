@@ -1,5 +1,5 @@
 import numpy as np
-from czitools.metadata_tools.czi_metadata import convert_numpy_types
+from czitools.metadata_tools.czi_metadata import _convert_numpy_types as convert_numpy_types
 
 
 def test_convert_numpy_scalar():

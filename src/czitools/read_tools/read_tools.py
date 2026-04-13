@@ -163,7 +163,7 @@ def read_6darray(
     filepath = str(filepath)
 
     # check zoom factor for valid range
-    zoom = misc.check_zoom(zoom=zoom)
+    zoom = misc._check_zoom(zoom=zoom)
 
     # define used dimensions
     dims = ("S", "T", "C", "Z", "Y", "X", "A")
@@ -248,10 +248,10 @@ def read_6darray(
     with pyczi.open_czi(filepath, mdata.pyczi_readertype) as czidoc:
 
         # check if dimensions are None (because they do not exist for that image)
-        size_c = _as_int(misc.check_dimsize(image.SizeC, set2value=1), 1)
-        size_z = _as_int(misc.check_dimsize(image.SizeZ, set2value=1), 1)
-        size_t = _as_int(misc.check_dimsize(image.SizeT, set2value=1), 1)
-        size_s = _as_int(misc.check_dimsize(image.SizeS, set2value=1), 1)
+        size_c = _as_int(misc._check_dimsize(image.SizeC, set2value=1), 1)
+        size_z = _as_int(misc._check_dimsize(image.SizeZ, set2value=1), 1)
+        size_t = _as_int(misc._check_dimsize(image.SizeT, set2value=1), 1)
+        size_s = _as_int(misc._check_dimsize(image.SizeS, set2value=1), 1)
 
         s_start = 0
         s_end = size_s
@@ -858,7 +858,7 @@ def read_stacks(
     filepath = str(filepath)
 
     # check zoom factor for valid range
-    zoom = misc.check_zoom(zoom=zoom)
+    zoom = misc._check_zoom(zoom=zoom)
 
     # Determine reader type for URL or local file support
     readertype, is_url = misc.get_pyczi_readertype(filepath)

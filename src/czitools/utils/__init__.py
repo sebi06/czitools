@@ -1,5 +1,5 @@
 from .box import get_czimd_box
-from .logging_tools import setup_logging
+from .logging_tools import set_logging
 from .misc import (
     calc_scaling,
     download_zip,
@@ -14,7 +14,7 @@ from .planetable import filter_planetable, get_planetable, save_planetable
 
 __all__ = [
     "get_czimd_box",
-    "setup_logging",
+    "set_logging",
     "calc_scaling",
     "download_zip",
     "get_fname_woext",

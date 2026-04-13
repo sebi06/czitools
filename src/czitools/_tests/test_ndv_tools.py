@@ -3,7 +3,11 @@ from dataclasses import dataclass
 import pytest
 from cmap import Colormap
 
-from czitools.utils.ndv_tools import create_luts_ndv, create_scales_ndv, normalize_luts
+from czitools.utils.ndv_tools import (
+    _create_luts_ndv as create_luts_ndv,
+    _create_scales_ndv as create_scales_ndv,
+    _normalize_luts as normalize_luts,
+)
 
 
 @dataclass

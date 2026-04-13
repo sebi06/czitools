@@ -34,7 +34,7 @@ def test_slicedim(czifile: str, dimindex: int, posdim: int, shape: Tuple[int]) -
     # mdarray, mdata, dimstring = read_tools.read_6darray(filepath, output_order="STCZYX")
     mdarray, mdata = read_tools.read_6darray(filepath)
 
-    dim_array = misc.slicedim(mdarray, dimindex, posdim)
+    dim_array = misc._slicedim(mdarray, dimindex, posdim)
     assert dim_array.shape == shape
 
 
@@ -130,7 +130,7 @@ def test_check_dimsize(entry: Optional[int], set2value: int, result: int) -> Non
     Returns: None.
     """
 
-    assert misc.check_dimsize(entry, set2value=set2value) == result
+    assert misc._check_dimsize(entry, set2value=set2value) == result
 
 
 @pytest.mark.parametrize(
@@ -167,13 +167,13 @@ def test_calc_scaling(
 
 
 def test_norm_columns_min(df):
-    result = plt_tools.norm_columns(df, colname="Time [s]", mode="min")
+    result = plt_tools._norm_columns(df, colname="Time [s]", mode="min")
     expected = pd.DataFrame({"Time [s]": [0, 1, 2, 3], "Value": [10, 20, 30, 40]})
     pd.testing.assert_frame_equal(result, expected)
 
 
 def test_norm_columns_max(df):
-    result = plt_tools.norm_columns(df, colname="Time [s]", mode="max")
+    result = plt_tools._norm_columns(df, colname="Time [s]", mode="max")
     expected = pd.DataFrame({"Time [s]": [-3, -2, -1, 0], "Value": [10, 20, 30, 40]})
     pd.testing.assert_frame_equal(result, expected)
 
@@ -212,7 +212,7 @@ def test_filter_planetable(planetable):
     ],
 )
 def test_clean_dict(input_dict: Dict, expected_dict: Dict) -> None:
-    result = misc.clean_dict(input_dict)
+    result = misc._clean_dict(input_dict)
     assert result == expected_dict
 
 

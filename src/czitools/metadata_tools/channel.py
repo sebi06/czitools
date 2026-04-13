@@ -86,7 +86,7 @@ class CziChannelInfo:
 
                     # get the pixel types for all channels
                     self.pixeltypes = czidoc.pixel_types
-                    self.isRGB, self.consistent_pixeltypes = pixels.check_if_rgb(self.pixeltypes)
+                    self.isRGB, self.consistent_pixeltypes = pixels._check_if_rgb(self.pixeltypes)
 
             except AttributeError:
                 channels = None
