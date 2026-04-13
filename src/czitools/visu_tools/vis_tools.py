@@ -9,6 +9,13 @@
 #
 #################################################################
 
+"""Scatter-plot visualisation utilities for CZI planetable data.
+
+Provides `scatterplot_mpl` and `scatterplot_plotly` for visualising
+per-plane stage-position data from a CZI planetable DataFrame using
+Matplotlib or Plotly respectively.
+"""
+
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib import cm

@@ -9,8 +9,10 @@
 #
 #################################################################
 
-"""
-Helper functions for Napari integration with czitools.
+"""Napari integration helpers for czitools.
+
+Provides recommended default parameters for loading CZI files into Napari
+via the czitools reader plugin.
 """
 
 # TODO is this really still needed?
