@@ -1,3 +1,9 @@
+"""Utility helpers for czitools.
+
+Contains tools for logging configuration, metadata boxing, array scaling,
+planetable generation, pixel type inspection, and napari display helpers.
+"""
+
 from .box import get_czimd_box
 from .logging_tools import set_logging
 from .misc import (

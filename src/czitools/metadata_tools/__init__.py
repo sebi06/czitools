@@ -1,3 +1,18 @@
+"""Tools for extracting and working with CZI metadata.
+
+Provides dataclasses for reading all major metadata sections from a CZI file,
+including dimensions, scaling, channel info, bounding boxes, objectives,
+detectors, microscope info, sample info, and attachment metadata.
+
+Typical usage:
+
+```python
+from czitools.metadata_tools import CziMetadata
+
+mdata = CziMetadata("my_image.czi")
+```
+"""
+
 from .add_metadata import CziAddMetaData
 from .attachment import CziAttachments
 from .boundingbox import CziBoundingBox
