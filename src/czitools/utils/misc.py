@@ -19,7 +19,10 @@ import os
 import time
 import tracemalloc
 from pathlib import Path
-from typing import Annotated, Any, Dict, Tuple, Union
+from typing import TYPE_CHECKING, Annotated, Any, Dict, Tuple, Union
+
+if TYPE_CHECKING:
+    from czitools.metadata_tools.czi_metadata import CziMetadata
 
 import dask.array as da
 import numpy as np
@@ -62,9 +65,7 @@ def get_pyczi_readertype(
         return pyczi.ReaderFileInputTypes.Standard, False
 
 
-def _slicedim(
-    array: Union[np.ndarray, da.Array, zarr.Array], dimindex: int, posdim: int
-) -> np.ndarray:
+def _slicedim(array: Union[np.ndarray, da.Array, zarr.Array], dimindex: int, posdim: int) -> np.ndarray:
     """Slice out a specific dimension without (!) dropping the dimension
     of the array to conserve the dimorder string
     This works for Numpy.Array, Dask and ZARR.
@@ -96,7 +97,7 @@ def _slicedim(
 
 
 def calc_scaling(
-    data: Union[np.ndarray, da.array],
+    data: Union[np.ndarray, da.Array, zarr.Array],
     corr_min: float = 1.0,
     offset_min: int = 0,
     corr_max: float = 0.85,
@@ -123,7 +124,9 @@ def calc_scaling(
 
     # get min-max values for initial scaling
     if isinstance(data, zarr.Array):
-        minvalue, maxvalue = np.min(data), np.max(data)
+        # zarr reduces chunk-by-chunk without loading the full array into memory;
+        # type: ignore suppresses a false-positive from incomplete zarr type stubs
+        minvalue, maxvalue = data.min(), data.max()  # type: ignore[union-attr]
     elif isinstance(data, da.Array):
         # compute only once since this is faster
         minvalue, maxvalue = da.compute(data.min(), data.max())
@@ -142,22 +145,38 @@ def calc_scaling(
 
 
 def md2dataframe(
-    md_dict: Dict, paramcol: str = "Parameter", keycol: str = "Value"
+    mdata: "CziMetadata", reduced_params: bool = True, paramcol: str = "Parameter", keycol: str = "Value"
 ) -> pd.DataFrame:
-    """Converts the given metadata_tools dictionary to a Pandas DataFrame.
+    """Convert a CziMetadata object into a two-column pandas DataFrame.
+
+    Flattens the metadata object into a key-value dictionary and represents
+    each entry as a row in the returned DataFrame.
 
     Args:
-        md_dict (dict): A dictionary containing metadata_tools.
-        paramcol (str, optional): The name of the column for metadata_tools parameters. Defaults to "Parameter".
-        keycol (str, optional): The name of the column for metadata_tools values. Defaults to "Value".
+        mdata: The CziMetadata instance to convert.
+        reduced_params: If True, only include a subset of key metadata parameters.
+        paramcol: Column name for the parameter (key) column. Defaults to "Parameter".
+        keycol: Column name for the value column. Defaults to "Value".
 
     Returns:
-        pd.DataFrame: A Pandas DataFrame containing all the metadata_tools.
+        DataFrame with one row per metadata entry and columns ``paramcol`` / ``keycol``.
     """
+    # Deferred import to avoid circular dependency between utils and metadata_tools
+    from czitools.metadata_tools.czi_metadata import _obj2dict  # noqa: PLC0415
+    from czitools.metadata_tools.czi_metadata import create_md_dict_red  # noqa: PLC0415
+
+    if reduced_params:
+        md_dict = create_md_dict_red(mdata)
+    else:
+        # Flatten the CziMetadata object into a plain key-value dictionary
+        md_dict = _obj2dict(mdata)
+
+    # Initialise an empty DataFrame with the desired column names
     mdframe = pd.DataFrame(columns=[paramcol, keycol])
 
     for k in md_dict.keys():
-        d = {"Parameter": k, "Value": md_dict[k]}
+        # Build a single-row DataFrame for each metadata entry and append it
+        d = {paramcol: k, keycol: md_dict[k]}
         df = pd.DataFrame([d], index=[0])
         mdframe = pd.concat([mdframe, df], ignore_index=True)
 
@@ -232,9 +251,7 @@ def get_fname_woext(filepath: Union[str, os.PathLike[str]]) -> str:
     return filepath_woext
 
 
-def _check_dimsize(
-    mdata_entry: Union[Any, None], set2value: Any = 1
-) -> Union[Any, None]:
+def _check_dimsize(mdata_entry: Union[Any, None], set2value: Any = 1) -> Union[Any, None]:
     """Check the entries for None.
 
     Args:
@@ -287,9 +304,7 @@ def _clean_dict(d: Dict[Any, Any]) -> Dict[Any, Any]:
         # Recursively clean nested dictionaries
         if isinstance(value, dict):
             nested_cleaned = _clean_dict(value)
-            if (
-                nested_cleaned
-            ):  # Only include if the cleaned nested dictionary is not empty
+            if nested_cleaned:  # Only include if the cleaned nested dictionary is not empty
                 cleaned[key] = nested_cleaned
         else:
             cleaned[key] = value
@@ -319,14 +334,10 @@ def _check_zoom(zoom: Annotated[float, ValueRange(0.01, 1.0)] = 1.0) -> float:
 
     # check zoom factor
     if zoom > 1.0:
-        logger.warning(
-            f"Zoom factor f{zoom} is not in valid range [0.01 - 1.0]. Using 1.0 instead."
-        )
+        logger.warning(f"Zoom factor f{zoom} is not in valid range [0.01 - 1.0]. Using 1.0 instead.")
         zoom = 1.0
     if zoom < 0.01:
-        logger.warning(
-            f"Zoom factor f{zoom} is not in valid range [0.01 - 1.0]. Using 0.01 instead."
-        )
+        logger.warning(f"Zoom factor f{zoom} is not in valid range [0.01 - 1.0]. Using 0.01 instead.")
         zoom = 0.01
 
     return zoom

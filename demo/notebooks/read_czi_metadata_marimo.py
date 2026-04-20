@@ -1,6 +1,6 @@
 import marimo
 
-__generated_with = "0.14.17"
+__generated_with = "0.23.1"
 app = marimo.App()
 
 
@@ -48,20 +48,20 @@ def _(czimd, filepath, misc, mo):
     # get the complete metadata at once as one big class
     mdata = czimd.CziMetadata(filepath)
 
-    # get the CZI metadata dictionary directly from filename
-    mdict = czimd.create_md_dict_red(mdata, sort=False, remove_none=True)
-
     # convert metadata dictionary to a pandas dataframe
-    mdframe = misc.md2dataframe(mdict)
+    mdframe = misc.md2dataframe(mdata, reduced_params=True)
 
     mo.vstack([mo.ui.table(mdframe)])
     return
 
 
 @app.cell
-def _(filepath, misc, mo, planetable):
+def _(filepath, mo, planetable):
     # get the planetable for the CZI file
-    pt, savepath = planetable.get_planetable(filepath, norm_time=True, save_table=True, time=0, channel=0, zplane=0)
+    pt, savepath = planetable.get_planetable(filepath,
+                                             norm_time=True,
+                                             save_table=False,
+                                             planes={"time": 0, "channel": 0, "zplane": 0})
 
     mo.vstack([mo.ui.table(pt)])
     return

@@ -17,7 +17,7 @@ from bioio import BioImage
 import bioio_czi
 from typing import Dict, Tuple, Optional, Any, Callable, cast
 import numpy as np
-from czitools.utils.ndv_tools import create_luts_ndv
+from czitools.utils.ndv_tools import _create_luts_ndv
 import ndv
 
 
@@ -345,5 +345,5 @@ if __name__ == "__main__":
 
             selected_mdata = CziMetadata(filepath)
 
-        luts: Any = create_luts_ndv(cast(Any, selected_mdata))
+        luts: Any = _create_luts_ndv(cast(Any, selected_mdata))
         viewer = ndv.imshow(viewer_data, channel_mode="composite", luts=luts)

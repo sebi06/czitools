@@ -377,7 +377,7 @@ def _obj2dict(obj: Any, sort: bool = True) -> Dict[str, Any]:
         sort (bool, optional): Sort the resulting dictionary by key names. Defaults to True.
 
     Returns:
-        Dict[str, Any]: The resulting disctionary.
+        Dict[str, Any]: The resulting dictionary.
     """
 
     # https://stackoverflow.com/questions/7963762/what-is-the-most-economical-way-to-convert-nested-python-objects-to-dictionaries

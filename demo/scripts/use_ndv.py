@@ -18,7 +18,7 @@ from pathlib import Path
 from magicgui import magicgui
 from magicgui.types import FileDialogMode
 from czitools.utils.napari_tools import display_xarray_in_napari
-from czitools.utils.ndv_tools import create_luts_ndv
+from czitools.utils.ndv_tools import _create_luts_ndv
 import ndv
 import xarray as xr
 from typing import Any, cast
@@ -29,7 +29,7 @@ use_mdstack = True
 # option to toggle using a file open dialog or a hardcoded filename
 use_dialog = True
 
-# option to show the link to the dash dashboarad when using dask (only relevant if use_mdstack=True)
+# option to show the link to the dash dashboard when using dask (only relevant if use_mdstack=True)
 show_dask = False
 
 # adapt to your needs
@@ -166,7 +166,7 @@ if show_ndv:
         raise RuntimeError("No data available for NDV display.")
 
     # create luts for NDV based on the metadata (e.g. channel names, colors, etc.)
-    luts: Any = create_luts_ndv(cast(Any, mdata))
+    luts: Any = _create_luts_ndv(cast(Any, mdata))
 
     # display in NDV (viewer_data can be a single xarray DataArray or a list of DataArrays)
     viewer = ndv.imshow(viewer_data, channel_mode="composite", luts=luts)

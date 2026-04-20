@@ -1,6 +1,6 @@
 import marimo
 
-__generated_with = "0.14.11"
+__generated_with = "0.23.1"
 app = marimo.App()
 
 
@@ -14,12 +14,12 @@ def _():
     from matplotlib import pyplot as plt
     from matplotlib.colors import LinearSegmentedColormap
 
-    return LinearSegmentedColormap, czimd, czird, da, misc, mo, plt
+    return LinearSegmentedColormap, czird, da, misc, mo, plt
 
 
 @app.cell
 def _(mo):
-    file_browser = mo.ui.file_browser(multiple=False, filetypes=[".czi"], restrict_navigation=False, initial_path=None)
+    file_browser = mo.ui.file_browser(multiple=False, filetypes=[".czi"], restrict_navigation=False)
 
     # Display the file browser
     mo.vstack([file_browser])
@@ -72,12 +72,10 @@ def _(LinearSegmentedColormap, czird, da, filepath):
 
 
 @app.cell
-def _(czimd, mdata, misc, mo):
-    # get the CZI metadata dictionary directly from filename
-    mdict = czimd.create_md_dict_red(mdata, sort=False, remove_none=True)
-
+def _(mdata, misc, mo):
     # convert metadata dictionary to a pandas dataframe
-    mdframe = misc.md2dataframe(mdict)
+    mdframe = misc.md2dataframe(mdata, reduced_params=True)
+
     # convert values to str -->x PyArrow can handle that
     mdframe["Value"] = mdframe["Value"].astype(str)
 
