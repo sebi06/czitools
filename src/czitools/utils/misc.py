@@ -124,9 +124,10 @@ def calc_scaling(
 
     # get min-max values for initial scaling
     if isinstance(data, zarr.Array):
-        # zarr reduces chunk-by-chunk without loading the full array into memory;
-        # type: ignore suppresses a false-positive from incomplete zarr type stubs
-        minvalue, maxvalue = data.min(), data.max()  # type: ignore[union-attr]
+        # Wrap in dask so reduction is done chunk-by-chunk without loading the
+        # full array into memory; also avoids zarr version API differences
+        _dask_view = da.from_zarr(data)
+        minvalue, maxvalue = da.compute(_dask_view.min(), _dask_view.max())
     elif isinstance(data, da.Array):
         # compute only once since this is faster
         minvalue, maxvalue = da.compute(data.min(), data.max())
