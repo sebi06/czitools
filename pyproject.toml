@@ -123,3 +123,8 @@ platforms = ["linux-64", "osx-64", "win-64"]
 czitools = {path = ".", editable = true}
 
 [tool.pixi.tasks]
+
+[tool.pixi.environments]
+# Crucial: "default" (the feature) refers to [project.dependencies]
+# "all" and "docs" refer to [project.optional-dependencies]
+default = { features = ["all", "docs", "default"], solve-group = "default" }

@@ -197,3 +197,6 @@ data/Tumor_HE_RGB_disp.czi
 /.tools
 /_notes
 data/WP96_4Pos_B4-10_DAPI_planetable.csv
+# pixi environments
+.pixi/*
+!.pixi/config.toml

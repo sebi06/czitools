@@ -1,0 +1,14 @@
+[workspace]
+channels = ["conda-forge"]
+name = "czitools"
+platforms = ["linux-64"]
+version = "0.1.0"
+
+[tasks]
+
+[dependencies]
+python = ">=3.12,<3.14"
+pip = ">=26.1.1,<27"
+
+[pypi-dependencies]
+magicgui = ">=0.10.2, <0.11"
