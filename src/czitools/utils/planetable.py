@@ -116,47 +116,51 @@ def get_planetable(
             iterator = enumerate(subblocks)
 
         for sbcount, sb in iterator:
+
             de = sb.directory_entry
 
-            s = _get_dim_start(de, "S")
-            t = _get_dim_start(de, "T")
-            c = _get_dim_start(de, "C")
-            z = _get_dim_start(de, "Z")
+            # only consider subblocks at full resolution (no pyramids)
+            if not de.is_pyramid:
 
-            # Derive mosaic tile (M) index by counting subblocks per (S, T, C, Z) group
-            key = (s, t, c, z)
-            m = tile_counters.get(key, 0)
-            tile_counters[key] = m + 1
+                s = _get_dim_start(de, "S")
+                t = _get_dim_start(de, "T")
+                c = _get_dim_start(de, "C")
+                z = _get_dim_start(de, "Z")
 
-            xstart, ystart, width, height = _get_bbox(de)
+                # Derive mosaic tile (M) index by counting subblocks per (S, T, C, Z) group
+                key = (s, t, c, z)
+                m = tile_counters.get(key, 0)
+                tile_counters[key] = m + 1
 
-            # sb.metadata() returns an XML string in czifile >= 2026.
-            md_raw = sb.metadata()
-            try:
-                md_xml = ET.fromstring(md_raw) if md_raw else None
-            except ET.ParseError:
-                md_xml = None
+                xstart, ystart, width, height = _get_bbox(de)
 
-            timestamp, xpos, ypos, zpos = _getsbinfo(md_xml)
+                # sb.metadata() returns an XML string in czifile >= 2026.
+                md_raw = sb.metadata()
+                try:
+                    md_xml = ET.fromstring(md_raw) if md_raw else None
+                except ET.ParseError:
+                    md_xml = None
 
-            rows.append(
-                {
-                    "Subblock": sbcount,
-                    "S": s,
-                    "M": m,
-                    "T": t,
-                    "C": c,
-                    "Z": z,
-                    "X[micron]": xpos,
-                    "Y[micron]": ypos,
-                    "Z[micron]": zpos,
-                    "Time[s]": timestamp,
-                    "xstart": xstart,
-                    "ystart": ystart,
-                    "width": width,
-                    "height": height,
-                }
-            )
+                timestamp, xpos, ypos, zpos = _getsbinfo(md_xml)
+
+                rows.append(
+                    {
+                        "Subblock": sbcount,
+                        "S": s,
+                        "M": m,
+                        "T": t,
+                        "C": c,
+                        "Z": z,
+                        "X[micron]": xpos,
+                        "Y[micron]": ypos,
+                        "Z[micron]": zpos,
+                        "Time[s]": timestamp,
+                        "xstart": xstart,
+                        "ystart": ystart,
+                        "width": width,
+                        "height": height,
+                    }
+                )
 
     df_czi = _initialize_planetable_dataframe()
     if rows:
@@ -195,9 +199,7 @@ def get_planetable(
         df_czi = _norm_columns(df_czi, colname="Time[s]", mode="min")
 
     if save_table:
-        return _save_planetable_if_requested(
-            df_czi, czipath, table_separator, table_index
-        )
+        return _save_planetable_if_requested(df_czi, czipath, table_separator, table_index)
 
     return df_czi, None
 
@@ -240,9 +242,7 @@ def _getsbinfo(subblock: Optional[Any]) -> Tuple[float, float, float, float]:
     return timestamp, xpos, ypos, zpos
 
 
-def _norm_columns(
-    df: pd.DataFrame, colname: str = "Time [s]", mode: str = "min"
-) -> pd.DataFrame:
+def _norm_columns(df: pd.DataFrame, colname: str = "Time [s]", mode: str = "min") -> pd.DataFrame:
     """Normalize a specific column inside a Pandas dataframe
     Args:
         df: DataFrame
@@ -265,9 +265,7 @@ def _norm_columns(
     return df
 
 
-def filter_planetable(
-    planetable: pd.DataFrame, planes: Optional[Dict[str, int]] = None
-) -> pd.DataFrame:
+def filter_planetable(planetable: pd.DataFrame, planes: Optional[Dict[str, int]] = None) -> pd.DataFrame:
     """
     Filters the input planetable DataFrame based on specified dimension entries.
 
@@ -331,9 +329,7 @@ def filter_planetable(
     return planetable
 
 
-def save_planetable(
-    df: pd.DataFrame, filepath: str, separator: str = ",", index: bool = True
-) -> str:
+def save_planetable(df: pd.DataFrame, filepath: str, separator: str = ",", index: bool = True) -> str:
     """Saves a pandas dataframe as a CSV file.
 
     Args:
@@ -420,9 +416,7 @@ def _save_planetable_if_requested(
         Tuple[pd.DataFrame, Optional[str]]: DataFrame and path to saved CSV file.
     """
     try:
-        planetable_savepath = save_planetable(
-            df_czi, czifile, separator=table_separator, index=table_index
-        )
+        planetable_savepath = save_planetable(df_czi, czifile, separator=table_separator, index=table_index)
         logger.info(f"Planetable saved successfully at: {planetable_savepath}")
         return df_czi, planetable_savepath
     except Exception as e:
