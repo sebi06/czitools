@@ -48,8 +48,7 @@ logger = logging_tools.set_logging()
 
 @dataclass
 class CziMetadata:
-    """
-    CziMetadata class for handling metadata of CZI image files.
+    """CziMetadata class for handling metadata of CZI image files.
 
     Attributes:
         filepath (Union[str, os.PathLike[str]]): Path to the CZI image file.
@@ -91,9 +90,6 @@ class CziMetadata:
         add_metadata (Optional[CziAddMetaData]): Additional metadata.
         scene_size_consistent (Optional[Tuple[int]]): Consistency of scene sizes.
         verbose (bool): Verbose output for logging.
-
-    Methods:
-        __post_init__(): Initializes the CziMetadata object after dataclass initialization.
     """
 
     filepath: Union[str, os.PathLike[str]]
@@ -443,16 +439,15 @@ def writexml(filepath: Union[str, os.PathLike[str]], xmlsuffix: str = "_CZI_Meta
 
 
 def create_md_dict_red(metadata: CziMetadata, sort: bool = True, remove_none: bool = True) -> Dict:
-    """
-    create_mdict_red: Created a reduced metadata_tools dictionary
+    """Create a reduced metadata dictionary.
 
     Args:
-        metadata: CziMetadata class
-        sort: sort the dictionary
-        remove_none: Remove None values from dictionary
+        metadata (CziMetadata): CziMetadata class.
+        sort (bool): Sort the dictionary.
+        remove_none (bool): Remove None values from dictionary.
 
-    Returns: dictionary with the metadata_tools
-
+    Returns:
+        Dict: Dictionary with the metadata.
     """
 
     assert metadata.image is not None
@@ -541,16 +536,15 @@ def create_md_dict_red(metadata: CziMetadata, sort: bool = True, remove_none: bo
 
 
 def create_md_dict_nested(metadata: CziMetadata, sort: bool = True, remove_none: bool = True) -> Dict:
-    """
-    Create nested dictionary from metadata_tools
+    """Create nested dictionary from metadata.
 
     Args:
-        metadata (CziMetadata): CzIMetaData object_
-        sort (bool, optional): Sort the dictionary_. Defaults to True.
-        remove_none (bool, optional): Remove None values from dictionary. Defaults to True.
+        metadata (CziMetadata): CziMetadata object.
+        sort (bool): Sort the dictionary. Defaults to True.
+        remove_none (bool): Remove None values from dictionary. Defaults to True.
 
     Returns:
-        Dict: Nested dictionary with reduced set of metadata_tools
+        Dict: Nested dictionary with reduced set of metadata.
     """
 
     assert metadata.image is not None

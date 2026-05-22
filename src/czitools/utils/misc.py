@@ -204,12 +204,14 @@ def _sort_dict_by_key(unsorted_dict: Dict) -> Dict:
 
 def _addzeros(number: int) -> str:
     """Convert a number into a string and add leading zeros.
+
     Typically used to construct filenames with equal lengths.
 
-    :param number: the number
-    :type number: int
-    :return: zerostring - string with leading zeros
-    :rtype: str
+    Args:
+        number (int): The number.
+
+    Returns:
+        str: String with leading zeros.
     """
 
     zerostring = None

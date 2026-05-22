@@ -54,15 +54,17 @@ def _check_if_rgb(pixeltypes: Dict) -> Tuple[Dict[int, bool], bool]:
 def _get_dtype_fromstring(
     pixeltype: str,
 ) -> Tuple[Optional[np.dtype], Optional[int]]:
-    """
-    Determine the numpy data type and maximum value based on the given pixel type string.
-    Parameters:
-    pixeltype (str): The pixel type as a string. Possible values include "gray16", "Gray16",
-                     "gray8", "Gray8", "bgr48", "Bgr48", "bgr24", "Bgr24", "bgr96float", "Bgr96Float".
+    """Determine the numpy data type and maximum value based on the given pixel type string.
+
+    Args:
+        pixeltype (str): The pixel type as a string. Possible values include
+            "gray16", "Gray16", "gray8", "Gray8", "bgr48", "Bgr48",
+            "bgr24", "Bgr24", "bgr96float", "Bgr96Float".
+
     Returns:
-    Tuple[Optional[np.dtype], Optional[int]]: A tuple containing the numpy data type and the maximum value
-                                              for the given pixel type. If the pixel type is not recognized,
-                                              both elements of the tuple will be None.
+        Tuple[Optional[np.dtype], Optional[int]]: A tuple containing the numpy data type
+            and the maximum value for the given pixel type. If the pixel type is not
+            recognized, both elements of the tuple will be None.
     """
     dtype = None
     maxvalue = None

@@ -16,23 +16,14 @@ logger = logging_tools.set_logging()
 
 @dataclass
 class CziMicroscope:
-    """
-    A class to represent a microscope from CZI image data.
+    """A class to represent a microscope from CZI image data.
+
     Attributes:
-    ----------
-    czisource : Union[str, os.PathLike[str], Box]
-        The source of the CZI image data, which can be a file path or a Box object.
-    Id : Optional[str]
-        The identifier of the microscope. Initialized in __post_init__.
-    Name : Optional[str]
-        The name of the microscope. Initialized in __post_init__.
-    System : Optional[str]
-        The system of the microscope. Initialized in __post_init__.
-    verbose (bool): Flag to enable verbose logging. Initialized to False.
-    Methods:
-    -------
-    __post_init__():
-        Initializes the microscope information from the CZI image data.
+        czisource (Union[str, os.PathLike[str], Box]): The source of the CZI image data, which can be a file path or a Box object.
+        Id (Optional[str]): The identifier of the microscope.
+        Name (Optional[str]): The name of the microscope.
+        System (Optional[str]): The system of the microscope.
+        verbose (bool): Flag to enable verbose logging.
     """
 
     czisource: Union[str, os.PathLike[str], Box]

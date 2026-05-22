@@ -39,46 +39,35 @@ def scatterplot_mpl(
     fig2savename: str = "zsurface3d.png",
     msz3d: int = 20,
 ) -> Tuple[MplFigure, MplFigure]:
-    """
-    Generates 2D and 3D scatter plots of XYZ positions from a given table and saves them as PNG files.
-    Parameters:
-    -----------
-    planetable : pandas.DataFrame
-        DataFrame containing the XYZ positions with columns 'X[micron]', 'Y[micron]', and 'Z[micron]'.
-    s : int, optional
-        Unused parameter, default is 0.
-    t : int, optional
-        Time point, default is 0.
-    z : int, optional
-        Z position, default is 0.
-    c : int, optional
-        Channel, default is 0.
-    msz2d : int, optional
-        Marker size for the 2D scatter plot, default is 35.
-    normz : bool, optional
-        If True, normalize Z data by subtracting the minimum value, default is True.
-    fig1savename : str, optional
-        Filename for saving the 2D scatter plot, default is "zsurface2d.png".
-    fig2savename : str, optional
-        Filename for saving the 3D scatter plot, default is "zsurface3d.png".
-    msz3d : int, optional
-        Marker size for the 3D scatter plot, default is 20.
+    """Generates 2D and 3D scatter plots of XYZ positions from a given table and saves them as PNG files.
+
+    Args:
+        planetable (pandas.DataFrame): DataFrame containing the XYZ positions with columns
+            'X[micron]', 'Y[micron]', and 'Z[micron]'.
+        s (int): Unused parameter, default is 0.
+        t (int): Time point, default is 0.
+        z (int): Z position, default is 0.
+        c (int): Channel, default is 0.
+        msz2d (int): Marker size for the 2D scatter plot, default is 35.
+        normz (bool): If True, normalize Z data by subtracting the minimum value, default is True.
+        fig1savename (str): Filename for saving the 2D scatter plot, default is "zsurface2d.png".
+        fig2savename (str): Filename for saving the 3D scatter plot, default is "zsurface3d.png".
+        msz3d (int): Marker size for the 3D scatter plot, default is 20.
+
     Returns:
-    --------
-    fig1 : matplotlib.figure.Figure
-        The 2D scatter plot figure.
-    fig2 : matplotlib.figure.Figure
-        The 3D scatter plot figure.
+        Tuple[MplFigure, MplFigure]: A tuple containing:
+            - fig1: The 2D scatter plot figure.
+            - fig2: The 3D scatter plot figure.
+
     Raises:
-    -------
-    KeyError
-        If the required columns 'X[micron]', 'Y[micron]', or 'Z[micron]' are not found in the DataFrame.
+        KeyError: If the required columns 'X[micron]', 'Y[micron]', or 'Z[micron]'
+            are not found in the DataFrame.
+
     Notes:
-    ------
-    - The function attempts to find a "good" aspect ratio for the figures based on the data.
-    - The Y-axis is inverted to have the origin (0,0) at the top-left.
-    - The color of the scatter points represents the Z positions.
-    - The function logs the filenames of the saved figures.
+        - The function attempts to find a "good" aspect ratio for the figures based on the data.
+        - The Y-axis is inverted to have the origin (0,0) at the top-left.
+        - The color of the scatter points represents the Z positions.
+        - The function logs the filenames of the saved figures.
     """
 
     # extract XYZ positions
@@ -192,36 +181,24 @@ def scatterplot_plotly(
     fig2savename: str = "zsurface3d.html",
     msz3d: int = 20,
 ) -> Tuple["go.Figure", "go.Figure"]:
-    """
-    Generates 2D and 3D scatter plots using Plotly and saves them as HTML files.
-    Parameters:
-    -----------
-    planetable : pandas.DataFrame
-        DataFrame containing the XYZ positions and other relevant data.
-    s : int, optional
-        Placeholder parameter (default is 0).
-    t : int, optional
-        Placeholder parameter (default is 0).
-    z : int, optional
-        Placeholder parameter (default is 0).
-    c : int, optional
-        Placeholder parameter (default is 0).
-    msz2d : int, optional
-        Marker size for the 2D scatter plot (default is 35).
-    normz : bool, optional
-        If True, normalize the Z data by subtracting the minimum value (default is True).
-    fig1savename : str, optional
-        Filename for saving the 2D scatter plot HTML file (default is "zsurface2d.html").
-    fig2savename : str, optional
-        Filename for saving the 3D scatter plot HTML file (default is "zsurface3d.html").
-    msz3d : int, optional
-        Marker size for the 3D scatter plot (default is 20).
+    """Generates 2D and 3D scatter plots using Plotly and saves them as HTML files.
+
+    Args:
+        planetable (pandas.DataFrame): DataFrame containing the XYZ positions and other relevant data.
+        s (int): Placeholder parameter, default is 0.
+        t (int): Placeholder parameter, default is 0.
+        z (int): Placeholder parameter, default is 0.
+        c (int): Placeholder parameter, default is 0.
+        msz2d (int): Marker size for the 2D scatter plot, default is 35.
+        normz (bool): If True, normalize the Z data by subtracting the minimum value, default is True.
+        fig1savename (str): Filename for saving the 2D scatter plot HTML file, default is "zsurface2d.html".
+        fig2savename (str): Filename for saving the 3D scatter plot HTML file, default is "zsurface3d.html".
+        msz3d (int): Marker size for the 3D scatter plot, default is 20.
+
     Returns:
-    --------
-    fig1 : plotly.graph_objs._figure.Figure
-        The generated 2D scatter plot figure.
-    fig2 : plotly.graph_objs._figure.Figure
-        The generated 3D scatter plot figure.
+        Tuple[go.Figure, go.Figure]: A tuple containing:
+            - fig1: The generated 2D scatter plot figure.
+            - fig2: The generated 3D scatter plot figure.
     """
 
     import plotly.graph_objects as go

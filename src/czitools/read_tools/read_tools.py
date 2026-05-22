@@ -15,10 +15,10 @@ Provides `read_6darray`, `read_stacks`, `read_stacks_list` and
 `read_stacks_stacked` for reading CZI image files as NumPy, Dask or
 xarray arrays with dimension order STCZYX(A).
 """
+
 from typing import Dict, Tuple, Optional, Union, List, Any, cast
 import itertools
 import os
-
 
 # Import progressbar2
 try:
@@ -508,38 +508,26 @@ def _sb_dim_shape(de: Any, dim: str, default: int = 0) -> int:
 
 
 def read_tiles(filepath: CziPath, scene: int, tile: int, **kwargs) -> Tuple[np.ndarray, List]:
-    """
-    Reads a specific tile from a CZI file.
+    """Reads a specific tile from a CZI file.
 
     Uses czifile to iterate subblocks and assemble the requested tile data.
     Thread-safe and compatible with Napari on all platforms.
 
-    Parameters:
-    -----------
-    filepath : Union[str, os.PathLike[str]]
-        Path to the CZI file.
-    scene : int
-        The scene index to read from the CZI file.
-    tile : int
-        The tile index to read from the CZI file.
-    **kwargs : dict
-        Additional keyword arguments to specify substacks. Valid arguments are:
-        - 'T': Time dimension
-        - 'Z': Z-dimension (depth)
-        - 'C': Channel dimension
+    Args:
+        filepath (Union[str, os.PathLike[str]]): Path to the CZI file.
+        scene (int): The scene index to read from the CZI file.
+        tile (int): The tile index to read from the CZI file.
+        **kwargs (dict): Additional keyword arguments to specify substacks.
+            Valid arguments are: 'T' (Time), 'Z' (Z-dimension), 'C' (Channel).
 
     Returns:
-    --------
-    Tuple[np.ndarray, List]
-        A tuple containing:
-        - tile_stack (np.ndarray): The image data of the specified tile.
-        - size (List): A list of tuples representing the dimensions and their sizes.
+        Tuple[np.ndarray, List]: A tuple containing:
+            - tile_stack (np.ndarray): The image data of the specified tile.
+            - size (List): A list of tuples representing the dimensions and their sizes.
 
     Raises:
-    -------
-    ValueError
-        If an invalid keyword argument is provided in **kwargs, or if
-        the requested scene/tile is not found.
+        ValueError: If an invalid keyword argument is provided in **kwargs, or if
+            the requested scene/tile is not found.
     """
     filepath = str(filepath)
 

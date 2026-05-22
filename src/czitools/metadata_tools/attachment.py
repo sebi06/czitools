@@ -17,17 +17,15 @@ logger = logging_tools.set_logging()
 
 @dataclass
 class CziAttachments:
-    """
-    CziAttachments class for handling CZI image data attachments.
+    """CziAttachments class for handling CZI image data attachments.
+
     Attributes:
         czisource (Union[str, os.PathLike[str], Box]): Source of the CZI image data.
         has_label (Optional[bool]): Indicates if the CZI image has a label attachment.
         has_preview (Optional[bool]): Indicates if the CZI image has a preview attachment.
         has_prescan (Optional[bool]): Indicates if the CZI image has a prescan attachment.
         names (Optional[List[str]]): List of attachment names found in the CZI image.
-        verbose (bool): Flag to enable verbose logging. Initialized to False.
-    Methods:
-        __post_init__(): Initializes the CziAttachments object, reads attachment images from the CZI image data, and sets the appropriate flags for label, preview, and prescan attachments.
+        verbose (bool): Flag to enable verbose logging.
     """
 
     czisource: Union[str, os.PathLike[str], Box]

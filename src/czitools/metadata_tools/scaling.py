@@ -19,8 +19,8 @@ logger = logging_tools.set_logging()
 
 @dataclass
 class CziScaling:
-    """
-    A class to handle scaling information from CZI image data.
+    """A class to handle scaling information from CZI image data.
+
     Attributes:
         czisource (Union[str, os.PathLike[str], Box]): The source of the CZI image data.
         X (Optional[float]): The scaling value for the X dimension in microns.
@@ -32,9 +32,6 @@ class CziScaling:
         unit (Optional[str]): The unit of measurement for scaling, default is "micron".
         zoom (Annotated[float, ValueRange(0.01, 1.0)]): The zoom factor, default is 1.0.
         verbose (bool): Flag to enable verbose logging.
-    Methods:
-        __post_init__(): Initializes the scaling values from the CZI image data.
-        _safe_get_scale(dist: BoxList, idx: int) -> Optional[float]: Safely retrieves the scaling value for a given dimension.
     """
 
     czisource: Union[str, os.PathLike[str], Box]
