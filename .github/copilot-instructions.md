@@ -151,10 +151,18 @@ except (AttributeError, TypeError):
 ```
 
 ### Docstrings
-- Use Google-style docstrings
-- Include Args, Returns, and Raises sections
-- Document class attributes in class docstring
+- **Use Google-style docstrings** — this project uses `mkdocstrings` with `docstring_style: "google"`. Non-Google formats (NumPy, Sphinx/reST) will render as a single unformatted text block on the docs site.
+- Use `Args:` for parameters (never `Parameters:`).
+- Use `Attributes:` in class docstrings to document fields with `name (type): Description.` format.
+- Use `Returns:`, `Raises:`, `Notes:`, `Examples:` for other sections.
+- **Do NOT** add a `Methods:` section in class docstrings — mkdocstrings auto-discovers methods.
+- **Always** leave a blank line between the summary and the first section, and between sections.
+- **Always** put section content on the next line (indented), never on the same line as the header.
+- **Never** use dashed underlines (`------`) under section headers.
+- **Never** use Sphinx/reST style (`:param:`, `:type:`, `:return:`, `:rtype:`).
+- Include `(type)` in Args entries: `name (type): Description.`
 
+#### Function docstring example
 ```python
 def read_6darray(
     filepath: Union[str, os.PathLike[str]],
@@ -164,12 +172,27 @@ def read_6darray(
     """Read a CZI image file as 6D array.
 
     Args:
-        filepath: Path to the CZI image file.
-        use_dask: Option to use dask for delayed reading.
-        zoom: Downscale factor [0.01 - 1.0].
+        filepath (Union[str, os.PathLike[str]]): Path to the CZI image file.
+        use_dask (Optional[bool]): Option to use dask for delayed reading.
+        zoom (Optional[float]): Downscale factor [0.01 - 1.0].
 
     Returns:
-        Tuple of (array6d, metadata) where array6d may be None on error.
+        Tuple[Optional[np.ndarray], CziMetadata]: Tuple of (array6d, metadata)
+            where array6d may be None on error.
+    """
+```
+
+#### Dataclass docstring example
+```python
+@dataclass
+class CziScaling:
+    """A class to handle scaling information from CZI image data.
+
+    Attributes:
+        czisource (Union[str, os.PathLike[str], Box]): The source of the CZI image data.
+        X (Optional[float]): The scaling value for the X dimension in microns.
+        Y (Optional[float]): The scaling value for the Y dimension in microns.
+        verbose (bool): Flag to enable verbose logging.
     """
 ```
 

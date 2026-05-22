@@ -11,6 +11,7 @@
 Provides `CziChannelInfo`, which extracts per-channel properties such as
 names, colours, dye names, pixel types and RGB status from CZI metadata.
 """
+
 from typing import Union, List, Dict, Optional
 from dataclasses import dataclass, field
 from box import Box, BoxList
@@ -25,20 +26,26 @@ logger = logging_tools.set_logging()
 
 @dataclass
 class CziChannelInfo:
-    """
-    Small helper class that extracts and normalizes channel-related
-    metadata from a CZI (as a `Box` or file path). The object collects
-    channel names, dyes, display colors, intensity limits and builds
-    pylibCZIrw-compatible display settings.
+    """Extracts and normalizes channel-related metadata from a CZI file.
 
-    Attributes (selected):
-      - `czisource`: CZI filepath or metadata `Box`.
-      - `names`, `dyes`, `colors`, `clims`, `gamma`: per-channel lists.
-      - `pixeltypes`, `isRGB`: maps channel index -> pixel type / RGB flag.
-      - `czi_disp_settings`: mapping channel index -> pylibCZIrw display settings.
+    Collects channel names, dyes, display colors, intensity limits and builds
+    pylibCZIrw-compatible display settings. Focuses on data normalization and
+    does not open large image pixel arrays — it only reads lightweight metadata.
 
-    The class focuses on data normalization and does not open large image
-    pixel arrays — it only reads lightweight metadata from the CZI.
+    Attributes:
+        czisource (Union[str, os.PathLike[str], Box]): CZI filepath or metadata Box.
+        names (List[str]): Channel names.
+        dyes (List[str]): Dye names per channel.
+        dyes_short (List[str]): Short dye names per channel.
+        channel_descriptions (List[str]): Channel descriptions.
+        colors (List[str]): Display colors per channel (hex strings).
+        clims (List[List[float]]): Intensity limits [low, high] per channel.
+        gamma (List[float]): Gamma values per channel.
+        pixeltypes (Dict[int, str]): Maps channel index to pixel type string.
+        isRGB (Dict[int, bool]): Maps channel index to RGB flag.
+        consistent_pixeltypes (Optional[bool]): Whether pixel types are consistent across channels.
+        czi_disp_settings (Dict[int, pyczi.ChannelDisplaySettingsDataClass]): Mapping channel index to pylibCZIrw display settings.
+        verbose (bool): Flag to enable verbose logging.
     """
 
     czisource: Union[str, os.PathLike[str], Box]
@@ -223,12 +230,13 @@ class CziChannelInfo:
 
 
 def hex_to_rgb(hex_string: str) -> tuple[int, int, int]:
-    """
-    Convert a hexadecimal color string to an RGB tuple.
+    """Convert a hexadecimal color string to an RGB tuple.
+
     Args:
         hex_string (str): A string representing a color in hexadecimal format (e.g., '#RRGGBB').
+
     Returns:
-        tuple: A tuple containing the RGB values (r, g, b) as integers.
+        tuple[int, int, int]: A tuple containing the RGB values (r, g, b) as integers.
     """
 
     # Remove the '#' characters

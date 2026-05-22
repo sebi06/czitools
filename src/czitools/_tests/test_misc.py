@@ -119,15 +119,12 @@ def test_get_pyczi_readertype(
 
 @pytest.mark.parametrize("entry, set2value, result", [(0, 1, 0), (None, 1, 1), (-1, 2, -1), (None, 3, 3)])
 def test_check_dimsize(entry: Optional[int], set2value: int, result: int) -> None:
-    """
-    This function checks the dimension size of an entry against a set value
-    and compares it to a result.
+    """Check the dimension size of an entry against a set value.
 
-    Parameters:
-    entry (Optional[int]): The entry to be checked.
-    set2value (int): The set value to compare the entry against.
-    result (int): The expected result of the comparison.
-    Returns: None.
+    Args:
+        entry (Optional[int]): The entry to be checked.
+        set2value (int): The set value to compare the entry against.
+        result (int): The expected result of the comparison.
     """
 
     assert misc._check_dimsize(entry, set2value=set2value) == result

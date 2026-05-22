@@ -47,27 +47,18 @@ def test_read_tiles(
     substacks: Optional[Dict[str, int]],
     shape: Tuple[int],
 ) -> None:
-    """
-    filepath = basedir / "data" / czifile
+    """Test reading tiles from a CZI file.
 
-    if not filepath.exists():
-        pytest.fail(f"File not found: {filepath}")
-
-    tile_stack, size = read_tools.read_tiles(filepath, scene=scene, tile=tile, **substacks)
-    czifile (str): The name of the CZI file.
-    scene (int): The scene number to read.
-    tile (int): The tile number to read.
-    substacks (Optional[Dict[str, int]]): The substacks to read.
-    shape (Tuple[int]): The expected shape of the tile stack.
-
-    Returns:
-    None
+    Args:
+        czifile (str): The name of the CZI file.
+        scene (int): The scene number to read.
+        tile (int): The tile number to read.
+        substacks (Optional[Dict[str, int]]): The substacks to read.
+        shape (Tuple[int]): The expected shape of the tile stack.
     """
     # get the CZI filepath
     filepath = basedir / "data" / czifile
 
-    tile_stack, size = read_tools.read_tiles(
-        filepath, scene=scene, tile=tile, **substacks
-    )
+    tile_stack, size = read_tools.read_tiles(filepath, scene=scene, tile=tile, **substacks)
 
     assert tile_stack.shape == shape
