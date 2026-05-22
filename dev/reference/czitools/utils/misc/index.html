@@ -99,9 +99,7 @@
 </span><span id=__span-0-144>
 </span><span id=__span-0-145>    <span class=k>return</span> <span class=n>minvalue</span><span class=p>,</span> <span class=n>maxvalue</span>
 </span></code></pre></div></td></tr></table></div> </details> </div> </div> <div class="doc doc-object doc-function"> <h2 id=czitools.utils.misc.get_fname_woext class="doc doc-heading"> <code class="doc-symbol doc-symbol-heading doc-symbol-function"></code> <span class="doc doc-object-name doc-function-name">get_fname_woext</span> <a href=#czitools.utils.misc.get_fname_woext class=headerlink title="Permanent link">#</a></h2> <div class="language-python doc-signature highlight"><pre><span></span><code><span id=__span-0-1><span class=nf>get_fname_woext</span><span class=p>(</span><span class=n><a class="autorefs autorefs-internal" title="filepath (czitools.utils.misc.get_fname_woext(filepath))" href=#czitools.utils.misc.get_fname_woext(filepath)>filepath</a></span><span class=p>:</span> <span class=n><a class="autorefs autorefs-external" title=typing.Union href=https://docs.python.org/3/library/typing.html#typing.Union>Union</a></span><span class=p>[</span><span class=n><a class="autorefs autorefs-external" href=https://docs.python.org/3/library/stdtypes.html#str>str</a></span><span class=p>,</span> <span class=n><a class="autorefs autorefs-external" title=os.PathLike href=https://docs.python.org/3/library/os.html#os.PathLike>PathLike</a></span><span class=p>[</span><span class=n><a class="autorefs autorefs-external" href=https://docs.python.org/3/library/stdtypes.html#str>str</a></span><span class=p>]])</span> <span class=o>-&gt;</span> <span class=n><a class="autorefs autorefs-external" href=https://docs.python.org/3/library/stdtypes.html#str>str</a></span>
-</span></code></pre></div> <div class="doc doc-contents "> <p>Extracts the filename without its extension from a given file path. It also works for extensions like myfile.abc.xyz The output will be: myfile</p> <p><span class=doc-section-title>Parameters:</span></p> <ul> <li class="doc-section-item field-body"> <h3 id=czitools.utils.misc.get_fname_woext(filepath) class="doc doc-heading doc-heading-parameter"> <b><code>filepath</code></b> <a href=#czitools.utils.misc.get_fname_woext(filepath) class=headerlink title="Permanent link">#</a></h3> (<code><a class="autorefs autorefs-external" title=typing.Union href=https://docs.python.org/3/library/typing.html#typing.Union>Union</a>[<a class="autorefs autorefs-external" href=https://docs.python.org/3/library/stdtypes.html#str>str</a>, <a class="autorefs autorefs-external" title=os.PathLike href=https://docs.python.org/3/library/os.html#os.PathLike>PathLike</a>[<a class="autorefs autorefs-external" href=https://docs.python.org/3/library/stdtypes.html#str>str</a>]]</code>) – <div class=doc-md-description> <p>The path to the file.</p> </div> </li> </ul> <p>Returns: str: The filename without its extension.</p> <details class=mkdocstrings-source> <summary>Source code in <code>czitools/utils/misc.py</code></summary> <div class="language-python highlight"><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal>229</span>
-<span class=normal>230</span>
-<span class=normal>231</span>
+</span></code></pre></div> <div class="doc doc-contents "> <p>Extracts the filename without its extension from a given file path. It also works for extensions like myfile.abc.xyz The output will be: myfile</p> <p><span class=doc-section-title>Parameters:</span></p> <ul> <li class="doc-section-item field-body"> <h3 id=czitools.utils.misc.get_fname_woext(filepath) class="doc doc-heading doc-heading-parameter"> <b><code>filepath</code></b> <a href=#czitools.utils.misc.get_fname_woext(filepath) class=headerlink title="Permanent link">#</a></h3> (<code><a class="autorefs autorefs-external" title=typing.Union href=https://docs.python.org/3/library/typing.html#typing.Union>Union</a>[<a class="autorefs autorefs-external" href=https://docs.python.org/3/library/stdtypes.html#str>str</a>, <a class="autorefs autorefs-external" title=os.PathLike href=https://docs.python.org/3/library/os.html#os.PathLike>PathLike</a>[<a class="autorefs autorefs-external" href=https://docs.python.org/3/library/stdtypes.html#str>str</a>]]</code>) – <div class=doc-md-description> <p>The path to the file.</p> </div> </li> </ul> <p>Returns: str: The filename without its extension.</p> <details class=mkdocstrings-source> <summary>Source code in <code>czitools/utils/misc.py</code></summary> <div class="language-python highlight"><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal>231</span>
 <span class=normal>232</span>
 <span class=normal>233</span>
 <span class=normal>234</span>
@@ -122,30 +120,32 @@
 <span class=normal>249</span>
 <span class=normal>250</span>
 <span class=normal>251</span>
-<span class=normal>252</span></pre></div></td><td class=code><div><pre><span></span><code><span id=__span-0-229><span class=k>def</span><span class=w> </span><span class=nf>get_fname_woext</span><span class=p>(</span><span class=n>filepath</span><span class=p>:</span> <span class=n>Union</span><span class=p>[</span><span class=nb>str</span><span class=p>,</span> <span class=n>os</span><span class=o>.</span><span class=n>PathLike</span><span class=p>[</span><span class=nb>str</span><span class=p>]])</span> <span class=o>-&gt;</span> <span class=nb>str</span><span class=p>:</span>
-</span><span id=__span-0-230><span class=w>    </span><span class=sd>&quot;&quot;&quot;</span>
-</span><span id=__span-0-231><span class=sd>    Extracts the filename without its extension from a given file path.</span>
-</span><span id=__span-0-232><span class=sd>    It also works for extensions like myfile.abc.xyz</span>
-</span><span id=__span-0-233><span class=sd>    The output will be: myfile</span>
-</span><span id=__span-0-234>
-</span><span id=__span-0-235><span class=sd>    Args:</span>
-</span><span id=__span-0-236><span class=sd>        filepath (Union[str, os.PathLike[str]]): The path to the file.</span>
-</span><span id=__span-0-237><span class=sd>    Returns:</span>
-</span><span id=__span-0-238><span class=sd>        str: The filename without its extension.</span>
-</span><span id=__span-0-239><span class=sd>    &quot;&quot;&quot;</span>
-</span><span id=__span-0-240>
-</span><span id=__span-0-241>    <span class=c1># create empty string</span>
-</span><span id=__span-0-242>    <span class=n>real_extension</span> <span class=o>=</span> <span class=s2>&quot;&quot;</span>
-</span><span id=__span-0-243>
-</span><span id=__span-0-244>    <span class=c1># get all part of the file extension</span>
-</span><span id=__span-0-245>    <span class=n>sufs</span> <span class=o>=</span> <span class=n>Path</span><span class=p>(</span><span class=n>filepath</span><span class=p>)</span><span class=o>.</span><span class=n>suffixes</span>
-</span><span id=__span-0-246>    <span class=k>for</span> <span class=n>s</span> <span class=ow>in</span> <span class=n>sufs</span><span class=p>:</span>
-</span><span id=__span-0-247>        <span class=n>real_extension</span> <span class=o>=</span> <span class=n>real_extension</span> <span class=o>+</span> <span class=n>s</span>
-</span><span id=__span-0-248>
-</span><span id=__span-0-249>    <span class=c1># remove real extension from filepath</span>
-</span><span id=__span-0-250>    <span class=n>filepath_woext</span> <span class=o>=</span> <span class=n>filepath</span><span class=o>.</span><span class=n>replace</span><span class=p>(</span><span class=n>real_extension</span><span class=p>,</span> <span class=s2>&quot;&quot;</span><span class=p>)</span>
-</span><span id=__span-0-251>
-</span><span id=__span-0-252>    <span class=k>return</span> <span class=n>filepath_woext</span>
+<span class=normal>252</span>
+<span class=normal>253</span>
+<span class=normal>254</span></pre></div></td><td class=code><div><pre><span></span><code><span id=__span-0-231><span class=k>def</span><span class=w> </span><span class=nf>get_fname_woext</span><span class=p>(</span><span class=n>filepath</span><span class=p>:</span> <span class=n>Union</span><span class=p>[</span><span class=nb>str</span><span class=p>,</span> <span class=n>os</span><span class=o>.</span><span class=n>PathLike</span><span class=p>[</span><span class=nb>str</span><span class=p>]])</span> <span class=o>-&gt;</span> <span class=nb>str</span><span class=p>:</span>
+</span><span id=__span-0-232><span class=w>    </span><span class=sd>&quot;&quot;&quot;</span>
+</span><span id=__span-0-233><span class=sd>    Extracts the filename without its extension from a given file path.</span>
+</span><span id=__span-0-234><span class=sd>    It also works for extensions like myfile.abc.xyz</span>
+</span><span id=__span-0-235><span class=sd>    The output will be: myfile</span>
+</span><span id=__span-0-236>
+</span><span id=__span-0-237><span class=sd>    Args:</span>
+</span><span id=__span-0-238><span class=sd>        filepath (Union[str, os.PathLike[str]]): The path to the file.</span>
+</span><span id=__span-0-239><span class=sd>    Returns:</span>
+</span><span id=__span-0-240><span class=sd>        str: The filename without its extension.</span>
+</span><span id=__span-0-241><span class=sd>    &quot;&quot;&quot;</span>
+</span><span id=__span-0-242>
+</span><span id=__span-0-243>    <span class=c1># create empty string</span>
+</span><span id=__span-0-244>    <span class=n>real_extension</span> <span class=o>=</span> <span class=s2>&quot;&quot;</span>
+</span><span id=__span-0-245>
+</span><span id=__span-0-246>    <span class=c1># get all part of the file extension</span>
+</span><span id=__span-0-247>    <span class=n>sufs</span> <span class=o>=</span> <span class=n>Path</span><span class=p>(</span><span class=n>filepath</span><span class=p>)</span><span class=o>.</span><span class=n>suffixes</span>
+</span><span id=__span-0-248>    <span class=k>for</span> <span class=n>s</span> <span class=ow>in</span> <span class=n>sufs</span><span class=p>:</span>
+</span><span id=__span-0-249>        <span class=n>real_extension</span> <span class=o>=</span> <span class=n>real_extension</span> <span class=o>+</span> <span class=n>s</span>
+</span><span id=__span-0-250>
+</span><span id=__span-0-251>    <span class=c1># remove real extension from filepath</span>
+</span><span id=__span-0-252>    <span class=n>filepath_woext</span> <span class=o>=</span> <span class=n>filepath</span><span class=o>.</span><span class=n>replace</span><span class=p>(</span><span class=n>real_extension</span><span class=p>,</span> <span class=s2>&quot;&quot;</span><span class=p>)</span>
+</span><span id=__span-0-253>
+</span><span id=__span-0-254>    <span class=k>return</span> <span class=n>filepath_woext</span>
 </span></code></pre></div></td></tr></table></div> </details> </div> </div> <div class="doc doc-object doc-function"> <h2 id=czitools.utils.misc.get_pyczi_readertype class="doc doc-heading"> <code class="doc-symbol doc-symbol-heading doc-symbol-function"></code> <span class="doc doc-object-name doc-function-name">get_pyczi_readertype</span> <a href=#czitools.utils.misc.get_pyczi_readertype class=headerlink title="Permanent link">#</a></h2> <div class="language-python doc-signature highlight"><pre><span></span><code><span id=__span-0-1><span class=nf>get_pyczi_readertype</span><span class=p>(</span>
 </span><span id=__span-0-2>    <span class=n><a class="autorefs autorefs-internal" title="filepath (czitools.utils.misc.get_pyczi_readertype(filepath))" href=#czitools.utils.misc.get_pyczi_readertype(filepath)>filepath</a></span><span class=p>:</span> <span class=n><a class="autorefs autorefs-external" title=typing.Union href=https://docs.python.org/3/library/typing.html#typing.Union>Union</a></span><span class=p>[</span><span class=n><a class="autorefs autorefs-external" href=https://docs.python.org/3/library/stdtypes.html#str>str</a></span><span class=p>,</span> <span class=n><a class="autorefs autorefs-external" title=os.PathLike href=https://docs.python.org/3/library/os.html#os.PathLike>PathLike</a></span><span class=p>[</span><span class=n><a class="autorefs autorefs-external" href=https://docs.python.org/3/library/stdtypes.html#str>str</a></span><span class=p>]],</span>
 </span><span id=__span-0-3><span class=p>)</span> <span class=o>-&gt;</span> <span class=n><a class="autorefs autorefs-external" title=typing.Tuple href=https://docs.python.org/3/library/typing.html#typing.Tuple>Tuple</a></span><span class=p>[</span><span class=n><span title=pylibCZIrw.czi.ReaderFileInputTypes>ReaderFileInputTypes</span></span><span class=p>,</span> <span class=n><a class="autorefs autorefs-external" href=https://docs.python.org/3/library/functions.html#bool>bool</a></span><span class=p>]</span>
@@ -199,9 +199,7 @@
 </span><span id=__span-0-64>    <span class=k>else</span><span class=p>:</span>
 </span><span id=__span-0-65>        <span class=k>return</span> <span class=n>pyczi</span><span class=o>.</span><span class=n>ReaderFileInputTypes</span><span class=o>.</span><span class=n>Standard</span><span class=p>,</span> <span class=kc>False</span>
 </span></code></pre></div></td></tr></table></div> </details> </div> </div> <div class="doc doc-object doc-function"> <h2 id=czitools.utils.misc.is_valid_czi_url class="doc doc-heading"> <code class="doc-symbol doc-symbol-heading doc-symbol-function"></code> <span class="doc doc-object-name doc-function-name">is_valid_czi_url</span> <a href=#czitools.utils.misc.is_valid_czi_url class=headerlink title="Permanent link">#</a></h2> <div class="language-python doc-signature highlight"><pre><span></span><code><span id=__span-0-1><span class=nf>is_valid_czi_url</span><span class=p>(</span><span class=n><span title=czitools.utils.misc.is_valid_czi_url(myurl)>myurl</span></span><span class=p>:</span> <span class=n><a class="autorefs autorefs-external" href=https://docs.python.org/3/library/stdtypes.html#str>str</a></span><span class=p>)</span> <span class=o>-&gt;</span> <span class=n><a class="autorefs autorefs-external" title=typing.Tuple href=https://docs.python.org/3/library/typing.html#typing.Tuple>Tuple</a></span><span class=p>[</span><span class=n><a class="autorefs autorefs-external" href=https://docs.python.org/3/library/functions.html#bool>bool</a></span><span class=p>,</span> <span class=n><a class="autorefs autorefs-external" href=https://docs.python.org/3/library/stdtypes.html#str>str</a></span><span class=p>]</span>
-</span></code></pre></div> <div class="doc doc-contents "> <p>Validates whether a given URL points to a valid .czi file. Args: myurl (str): The URL to validate. Returns: tuple: - bool: True if the URL is valid and points to a .czi file, False otherwise. - str: A message providing details about the validation result. Validation Steps: 1. Checks if the URL has a valid format using a URL validator. 2. Ensures the URL ends with the '.czi' file extension. 3. Sends an HTTP HEAD request to verify the file's existence and accessibility. - If accessible, optionally checks the Content-Type header for additional validation. Raises: None: Any exceptions during the HTTP request are caught and included in the return message.</p> <details class=mkdocstrings-source> <summary>Source code in <code>czitools/utils/misc.py</code></summary> <div class="language-python highlight"><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal>416</span>
-<span class=normal>417</span>
-<span class=normal>418</span>
+</span></code></pre></div> <div class="doc doc-contents "> <p>Validates whether a given URL points to a valid .czi file. Args: myurl (str): The URL to validate. Returns: tuple: - bool: True if the URL is valid and points to a .czi file, False otherwise. - str: A message providing details about the validation result. Validation Steps: 1. Checks if the URL has a valid format using a URL validator. 2. Ensures the URL ends with the '.czi' file extension. 3. Sends an HTTP HEAD request to verify the file's existence and accessibility. - If accessible, optionally checks the Content-Type header for additional validation. Raises: None: Any exceptions during the HTTP request are caught and included in the return message.</p> <details class=mkdocstrings-source> <summary>Source code in <code>czitools/utils/misc.py</code></summary> <div class="language-python highlight"><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal>418</span>
 <span class=normal>419</span>
 <span class=normal>420</span>
 <span class=normal>421</span>
@@ -236,44 +234,46 @@
 <span class=normal>450</span>
 <span class=normal>451</span>
 <span class=normal>452</span>
-<span class=normal>453</span></pre></div></td><td class=code><div><pre><span></span><code><span id=__span-0-416><span class=k>def</span><span class=w> </span><span class=nf>is_valid_czi_url</span><span class=p>(</span><span class=n>myurl</span><span class=p>:</span> <span class=nb>str</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=n>Tuple</span><span class=p>[</span><span class=nb>bool</span><span class=p>,</span> <span class=nb>str</span><span class=p>]:</span>
-</span><span id=__span-0-417><span class=w>    </span><span class=sd>&quot;&quot;&quot;</span>
-</span><span id=__span-0-418><span class=sd>    Validates whether a given URL points to a valid .czi file.</span>
-</span><span id=__span-0-419><span class=sd>    Args:</span>
-</span><span id=__span-0-420><span class=sd>        myurl (str): The URL to validate.</span>
-</span><span id=__span-0-421><span class=sd>    Returns:</span>
-</span><span id=__span-0-422><span class=sd>        tuple:</span>
-</span><span id=__span-0-423><span class=sd>            - bool: True if the URL is valid and points to a .czi file, False otherwise.</span>
-</span><span id=__span-0-424><span class=sd>            - str: A message providing details about the validation result.</span>
-</span><span id=__span-0-425><span class=sd>    Validation Steps:</span>
-</span><span id=__span-0-426><span class=sd>        1. Checks if the URL has a valid format using a URL validator.</span>
-</span><span id=__span-0-427><span class=sd>        2. Ensures the URL ends with the &#39;.czi&#39; file extension.</span>
-</span><span id=__span-0-428><span class=sd>        3. Sends an HTTP HEAD request to verify the file&#39;s existence and accessibility.</span>
-</span><span id=__span-0-429><span class=sd>           - If accessible, optionally checks the Content-Type header for additional validation.</span>
-</span><span id=__span-0-430><span class=sd>    Raises:</span>
-</span><span id=__span-0-431><span class=sd>        None: Any exceptions during the HTTP request are caught and included in the return message.</span>
-</span><span id=__span-0-432><span class=sd>    &quot;&quot;&quot;</span>
-</span><span id=__span-0-433>    <span class=c1># Step 1: Validate the URL format</span>
-</span><span id=__span-0-434>    <span class=k>if</span> <span class=ow>not</span> <span class=n>validators</span><span class=o>.</span><span class=n>url</span><span class=p>(</span><span class=n>myurl</span><span class=p>):</span>
-</span><span id=__span-0-435>        <span class=k>return</span> <span class=kc>False</span><span class=p>,</span> <span class=s2>&quot;Invalid URL format&quot;</span>
-</span><span id=__span-0-436>
-</span><span id=__span-0-437>    <span class=c1># Step 3: Verify the file exists by making a HEAD request</span>
-</span><span id=__span-0-438>    <span class=k>try</span><span class=p>:</span>
-</span><span id=__span-0-439>        <span class=n>response</span> <span class=o>=</span> <span class=n>requests</span><span class=o>.</span><span class=n>head</span><span class=p>(</span><span class=n>myurl</span><span class=p>,</span> <span class=n>allow_redirects</span><span class=o>=</span><span class=kc>True</span><span class=p>)</span>
-</span><span id=__span-0-440>        <span class=k>if</span> <span class=n>response</span><span class=o>.</span><span class=n>status_code</span> <span class=o>==</span> <span class=mi>200</span><span class=p>:</span>
-</span><span id=__span-0-441>            <span class=c1># Optionally, check the Content-Type header for additional validation</span>
-</span><span id=__span-0-442>            <span class=n>content_type</span> <span class=o>=</span> <span class=n>response</span><span class=o>.</span><span class=n>headers</span><span class=o>.</span><span class=n>get</span><span class=p>(</span><span class=s2>&quot;Content-Type&quot;</span><span class=p>,</span> <span class=s2>&quot;&quot;</span><span class=p>)</span>
-</span><span id=__span-0-443>            <span class=k>if</span> <span class=s2>&quot;application/octet-stream&quot;</span> <span class=ow>in</span> <span class=n>content_type</span> <span class=ow>or</span> <span class=s2>&quot;czi&quot;</span> <span class=ow>in</span> <span class=n>content_type</span><span class=p>:</span>
-</span><span id=__span-0-444>                <span class=k>return</span> <span class=kc>True</span><span class=p>,</span> <span class=s2>&quot;Valid .czi file URL&quot;</span>
-</span><span id=__span-0-445>            <span class=k>else</span><span class=p>:</span>
-</span><span id=__span-0-446>                <span class=k>return</span> <span class=kc>True</span><span class=p>,</span> <span class=s2>&quot;File exists but Content-Type is not specific to .czi&quot;</span>
-</span><span id=__span-0-447>        <span class=k>else</span><span class=p>:</span>
-</span><span id=__span-0-448>            <span class=k>return</span> <span class=p>(</span>
-</span><span id=__span-0-449>                <span class=kc>False</span><span class=p>,</span>
-</span><span id=__span-0-450>                <span class=sa>f</span><span class=s2>&quot;File not accessible, HTTP status code: </span><span class=si>{</span><span class=n>response</span><span class=o>.</span><span class=n>status_code</span><span class=si>}</span><span class=s2>&quot;</span><span class=p>,</span>
-</span><span id=__span-0-451>            <span class=p>)</span>
-</span><span id=__span-0-452>    <span class=k>except</span> <span class=n>requests</span><span class=o>.</span><span class=n>RequestException</span> <span class=k>as</span> <span class=n>e</span><span class=p>:</span>
-</span><span id=__span-0-453>        <span class=k>return</span> <span class=kc>False</span><span class=p>,</span> <span class=sa>f</span><span class=s2>&quot;Error during HTTP request: </span><span class=si>{</span><span class=n>e</span><span class=si>}</span><span class=s2>&quot;</span>
+<span class=normal>453</span>
+<span class=normal>454</span>
+<span class=normal>455</span></pre></div></td><td class=code><div><pre><span></span><code><span id=__span-0-418><span class=k>def</span><span class=w> </span><span class=nf>is_valid_czi_url</span><span class=p>(</span><span class=n>myurl</span><span class=p>:</span> <span class=nb>str</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=n>Tuple</span><span class=p>[</span><span class=nb>bool</span><span class=p>,</span> <span class=nb>str</span><span class=p>]:</span>
+</span><span id=__span-0-419><span class=w>    </span><span class=sd>&quot;&quot;&quot;</span>
+</span><span id=__span-0-420><span class=sd>    Validates whether a given URL points to a valid .czi file.</span>
+</span><span id=__span-0-421><span class=sd>    Args:</span>
+</span><span id=__span-0-422><span class=sd>        myurl (str): The URL to validate.</span>
+</span><span id=__span-0-423><span class=sd>    Returns:</span>
+</span><span id=__span-0-424><span class=sd>        tuple:</span>
+</span><span id=__span-0-425><span class=sd>            - bool: True if the URL is valid and points to a .czi file, False otherwise.</span>
+</span><span id=__span-0-426><span class=sd>            - str: A message providing details about the validation result.</span>
+</span><span id=__span-0-427><span class=sd>    Validation Steps:</span>
+</span><span id=__span-0-428><span class=sd>        1. Checks if the URL has a valid format using a URL validator.</span>
+</span><span id=__span-0-429><span class=sd>        2. Ensures the URL ends with the &#39;.czi&#39; file extension.</span>
+</span><span id=__span-0-430><span class=sd>        3. Sends an HTTP HEAD request to verify the file&#39;s existence and accessibility.</span>
+</span><span id=__span-0-431><span class=sd>           - If accessible, optionally checks the Content-Type header for additional validation.</span>
+</span><span id=__span-0-432><span class=sd>    Raises:</span>
+</span><span id=__span-0-433><span class=sd>        None: Any exceptions during the HTTP request are caught and included in the return message.</span>
+</span><span id=__span-0-434><span class=sd>    &quot;&quot;&quot;</span>
+</span><span id=__span-0-435>    <span class=c1># Step 1: Validate the URL format</span>
+</span><span id=__span-0-436>    <span class=k>if</span> <span class=ow>not</span> <span class=n>validators</span><span class=o>.</span><span class=n>url</span><span class=p>(</span><span class=n>myurl</span><span class=p>):</span>
+</span><span id=__span-0-437>        <span class=k>return</span> <span class=kc>False</span><span class=p>,</span> <span class=s2>&quot;Invalid URL format&quot;</span>
+</span><span id=__span-0-438>
+</span><span id=__span-0-439>    <span class=c1># Step 3: Verify the file exists by making a HEAD request</span>
+</span><span id=__span-0-440>    <span class=k>try</span><span class=p>:</span>
+</span><span id=__span-0-441>        <span class=n>response</span> <span class=o>=</span> <span class=n>requests</span><span class=o>.</span><span class=n>head</span><span class=p>(</span><span class=n>myurl</span><span class=p>,</span> <span class=n>allow_redirects</span><span class=o>=</span><span class=kc>True</span><span class=p>)</span>
+</span><span id=__span-0-442>        <span class=k>if</span> <span class=n>response</span><span class=o>.</span><span class=n>status_code</span> <span class=o>==</span> <span class=mi>200</span><span class=p>:</span>
+</span><span id=__span-0-443>            <span class=c1># Optionally, check the Content-Type header for additional validation</span>
+</span><span id=__span-0-444>            <span class=n>content_type</span> <span class=o>=</span> <span class=n>response</span><span class=o>.</span><span class=n>headers</span><span class=o>.</span><span class=n>get</span><span class=p>(</span><span class=s2>&quot;Content-Type&quot;</span><span class=p>,</span> <span class=s2>&quot;&quot;</span><span class=p>)</span>
+</span><span id=__span-0-445>            <span class=k>if</span> <span class=s2>&quot;application/octet-stream&quot;</span> <span class=ow>in</span> <span class=n>content_type</span> <span class=ow>or</span> <span class=s2>&quot;czi&quot;</span> <span class=ow>in</span> <span class=n>content_type</span><span class=p>:</span>
+</span><span id=__span-0-446>                <span class=k>return</span> <span class=kc>True</span><span class=p>,</span> <span class=s2>&quot;Valid .czi file URL&quot;</span>
+</span><span id=__span-0-447>            <span class=k>else</span><span class=p>:</span>
+</span><span id=__span-0-448>                <span class=k>return</span> <span class=kc>True</span><span class=p>,</span> <span class=s2>&quot;File exists but Content-Type is not specific to .czi&quot;</span>
+</span><span id=__span-0-449>        <span class=k>else</span><span class=p>:</span>
+</span><span id=__span-0-450>            <span class=k>return</span> <span class=p>(</span>
+</span><span id=__span-0-451>                <span class=kc>False</span><span class=p>,</span>
+</span><span id=__span-0-452>                <span class=sa>f</span><span class=s2>&quot;File not accessible, HTTP status code: </span><span class=si>{</span><span class=n>response</span><span class=o>.</span><span class=n>status_code</span><span class=si>}</span><span class=s2>&quot;</span><span class=p>,</span>
+</span><span id=__span-0-453>            <span class=p>)</span>
+</span><span id=__span-0-454>    <span class=k>except</span> <span class=n>requests</span><span class=o>.</span><span class=n>RequestException</span> <span class=k>as</span> <span class=n>e</span><span class=p>:</span>
+</span><span id=__span-0-455>        <span class=k>return</span> <span class=kc>False</span><span class=p>,</span> <span class=sa>f</span><span class=s2>&quot;Error during HTTP request: </span><span class=si>{</span><span class=n>e</span><span class=si>}</span><span class=s2>&quot;</span>
 </span></code></pre></div></td></tr></table></div> </details> </div> </div> <div class="doc doc-object doc-function"> <h2 id=czitools.utils.misc.md2dataframe class="doc doc-heading"> <code class="doc-symbol doc-symbol-heading doc-symbol-function"></code> <span class="doc doc-object-name doc-function-name">md2dataframe</span> <a href=#czitools.utils.misc.md2dataframe class=headerlink title="Permanent link">#</a></h2> <div class="language-python doc-signature highlight"><pre><span></span><code><span id=__span-0-1><span class=nf>md2dataframe</span><span class=p>(</span>
 </span><span id=__span-0-2>    <span class=n><a class="autorefs autorefs-internal" title="mdata (czitools.utils.misc.md2dataframe(mdata))" href=#czitools.utils.misc.md2dataframe(mdata)>mdata</a></span><span class=p>:</span> <span class=n><a class="autorefs autorefs-internal" title="            CziMetadata
 
