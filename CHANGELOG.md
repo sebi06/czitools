@@ -6,6 +6,25 @@ and the project adheres to [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [0.17.2] — 2026-05-22
+
+### Fixed
+
+- Converted all docstrings across the entire `src/` tree to Google-style format, fixing
+  incorrect rendering with `mkdocstrings` (`docstring_style: "google"` in `mkdocs.yml`).
+- Fixed 15 files across `metadata_tools/`, `read_tools/`, `utils/`, `visu_tools/`, and `_tests/`:
+  removed NumPy-style dashed underlines, replaced `Parameters:` with `Args:`, removed
+  non-standard `Methods:` sections, fixed malformed `Attributes:` headers, and added
+  missing blank lines between docstring sections.
+
+### Changed
+
+- `.github/copilot-instructions.md`: expanded Docstrings section with comprehensive
+  Google-style rules, function and dataclass examples, and explicit anti-patterns.
+- Version bumped to `0.17.2` in `pyproject.toml` and `src/czitools/__init__.py`.
+
+---
+
 ## [0.17.1] — 2026-05-18
 
 ### Fixed
