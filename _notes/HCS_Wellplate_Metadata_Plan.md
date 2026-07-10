@@ -115,13 +115,32 @@ are needed before implementation:
 
 ### Stage 0 — Fix `sample.py` correctness (no new features)
 
-- [ ] Move all fallback `.append(...)` calls out of `if self.verbose:` so lists stay index-aligned regardless of verbosity.
-- [ ] Add `well_unique_number = len(self.well_counter)`; introduce `scene_count`; deprecate the ambiguous `well_total_number` while preserving it for compatibility.
-- [ ] Add `field_centerX/Y` as the preferred names, retaining `scene_stageX/Y` as deprecated aliases. Record units and source (`Scene.CenterPosition`).
-- [ ] Extract `Scene.RegionId` into `well_region_ids: List[Optional[str]]` (aligned with the other per-scene lists); keep it as a string to avoid numeric-ID assumptions.
-- [ ] Use `None` in new/normalized fields for missing values. If legacy lists retain defaults, add a documented migration path rather than silently changing their types.
-- [ ] Compute counters and `multipos_per_well` once after all scenes are parsed, not after every append.
-- [ ] Add XML/`Box` unit fixtures for missing and malformed fields at both verbosity settings, plus an integration test using the included wellplate CZI. Assert equal per-scene list lengths and correct `RegionId` extraction.
+- [x] Move all fallback `.append(...)` calls out of `if self.verbose:` so lists stay index-aligned regardless of verbosity.
+- [x] Add `well_unique_number = len(self.well_counter)`; introduce `scene_count`; deprecate the ambiguous `well_total_number` while preserving it for compatibility.
+- [x] Add `field_centerX/Y` as the preferred names, retaining `scene_stageX/Y` as deprecated aliases. Record units and source (`Scene.CenterPosition`).
+- [x] Extract `Scene.RegionId` into `well_region_ids: List[Optional[str]]` (aligned with the other per-scene lists); keep it as a string to avoid numeric-ID assumptions.
+- [x] Use `None` in new/normalized fields for missing values. If legacy lists retain defaults, add a documented migration path rather than silently changing their types.
+- [x] Compute counters and `multipos_per_well` once after all scenes are parsed, not after every append.
+- [x] Add XML/`Box` unit fixtures for missing and malformed fields at both verbosity settings, plus an integration test using the included wellplate CZI. Assert equal per-scene list lengths and correct `RegionId` extraction.
+
+**Stage 0 implementation notes (2026-07-10):**
+
+- `field_centerX/Y` are the lossless fields: missing or malformed centers are
+  `None`, their unit is micrometers, and their source is `Scene.CenterPosition`.
+  Deprecated `scene_stageX/Y` compatibility properties still expose missing values
+  as `0.0`, matching the previous API. This deliberately avoids changing existing
+  callers while giving new code an unambiguous missing-value representation.
+- Existing `well_indices`, position-name, and row/column lists retain their historical
+  defaults (`1`, `"P1"`, and `0`) for compatibility, but appends are now independent
+  of logging verbosity. Stage 1 must use normalized optional values rather than copy
+  those legacy sentinels into the HCS model.
+- A scene without a usable well name receives an empty legacy name so every per-scene
+  list remains aligned; empty names are excluded from well counts and grouping.
+- `well_total_number` remains readable and now consistently mirrors `scene_count`.
+  New code should use `scene_count` or `well_unique_number`, depending on intent.
+- Tests in `test_sample.py` cover both verbosity modes, missing/malformed values,
+  compatibility properties, aggregate calculation, string-preserved `RegionId`, and
+  the included `WP96_4Pos_B4-10_DAPI.czi` fixture (28 scenes across 7 wells).
 
 ### Stage 1 — Explicit, OME-aligned data model
 
