@@ -41,7 +41,10 @@ class CziSampleInfo:
         well_unique_number (int): Number of unique, non-empty well names.
         well_total_number (Optional[int]): Deprecated alias for scene count.
         field_centerX (List[Optional[float]]): Scene center X values in micrometers.
+            A real metadata value of ``0.0`` remains ``0.0``; missing or malformed
+            metadata is represented as ``None`` so the two cases remain distinguishable.
         field_centerY (List[Optional[float]]): Scene center Y values in micrometers.
+            It follows the same missing-value behavior as ``field_centerX``.
         well_region_ids (List[Optional[str]]): Source-scoped CZI RegionId values.
         image_stageX (Optional[float]): X coordinate of the image stage.
         image_stageY (Optional[float]): Y coordinate of the image stage.
@@ -142,14 +145,20 @@ class CziSampleInfo:
 
         Missing values remain represented as ``0.0`` here, matching the legacy
         API. New code should use ``field_centerX``, where missing values are
-        represented by ``None``.
+        represented by ``None``. Consequently, this compatibility view cannot
+        distinguish an explicit coordinate of ``0.0`` from unavailable metadata.
         """
 
         return [0.0 if value is None else value for value in self.field_centerX]
 
     @property
     def scene_stageY(self) -> List[float]:
-        """Deprecated compatibility view of :attr:`field_centerY`."""
+        """Deprecated compatibility view of :attr:`field_centerY`.
+
+        As with :attr:`scene_stageX`, both a real zero coordinate and a missing
+        coordinate appear as ``0.0``. Use ``field_centerY`` when that distinction
+        matters.
+        """
 
         return [0.0 if value is None else value for value in self.field_centerY]
 

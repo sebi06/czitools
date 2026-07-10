@@ -1,5 +1,11 @@
 """Demonstrate the Stage 0 sample/scene metadata improvements.
 
+The preferred ``field_centerX/Y`` fields preserve missing-value information:
+an explicit coordinate of ``0.0`` remains ``0.0``, while absent or malformed
+``Scene.CenterPosition`` metadata becomes ``None``. The deprecated
+``scene_stageX/Y`` compatibility properties convert ``None`` to ``0.0`` and
+therefore cannot distinguish those two cases.
+
 Run from the repository root:
 
     python demo/scripts/hcs_stage0_sample_metadata.py
@@ -54,7 +60,7 @@ def show_sample_metadata(filepath: Path) -> None:
         print(f"  well: {sample.well_array_names[0] or '<missing>'}")
         print(f"  RegionId: {sample.well_region_ids[0]}")
         print(
-            "  lossless center: "
+            "  scene center (preserves missing values): "
             f"({sample.field_centerX[0]}, {sample.field_centerY[0]}) micrometers"
         )
         print(
@@ -63,8 +69,9 @@ def show_sample_metadata(filepath: Path) -> None:
         )
 
     print("\nMissing-value behavior:")
-    print("  field_centerX/Y use None when Scene.CenterPosition is absent or malformed.")
-    print("  scene_stageX/Y remain compatibility properties and expose such values as 0.0.")
+    print("  field_centerX/Y keep a real 0.0 coordinate as 0.0.")
+    print("  They use None when Scene.CenterPosition is absent or malformed.")
+    print("  Legacy scene_stageX/Y convert None to 0.0, so that distinction is lost.")
 
 
 def main() -> None:
