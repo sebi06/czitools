@@ -144,13 +144,40 @@ are needed before implementation:
 
 ### Stage 1 — Explicit, OME-aligned data model
 
-- [ ] New module (e.g. `metadata_tools/hcs.py`) with typed immutable/value-like models and explicit schema/version documentation. Avoid naming it fully OME-compliant unless serialization tests prove that claim.
-- [ ] `CziPlate`: optional declared rows/columns, naming convention, barcode/external identifier, plus separately derived observed row/column extents. Do not infer full plate size from occupied wells.
-- [ ] `CziWell`: canonical name/path, original source name, source row/column indices, normalized 0-based row/column indices, optional external ID, and fields.
-- [ ] `CziField`: deterministic source-scoped ID, well-local 0-based `field_index`, global 0-based `scene_index`, optional string `region_id`, scene-center X/Y with unit/provenance, and optional acquisition Z metadata.
-- [ ] Define deterministic ID and duplicate-handling rules (for example, source identity + `RegionId`, falling back to scene index); validate duplicate wells, regions, and scene indices.
-- [ ] Build the base hierarchy from scene XML only. Enrich it from the planetable in Stage 2, rather than making construction depend on an expensive full subblock scan.
-- [ ] Expose as `CziMetadata.hcs` when an unambiguous HCS mapping exists; add a detection/result status explaining why it is absent. `has_scenes` alone is insufficient because non-plate CZIs also have scenes.
+- [x] New module (e.g. `metadata_tools/hcs.py`) with typed immutable/value-like models and explicit schema/version documentation. Avoid naming it fully OME-compliant unless serialization tests prove that claim.
+- [x] `CziPlate`: optional declared rows/columns, naming convention, barcode/external identifier, plus separately derived observed row/column extents. Do not infer full plate size from occupied wells.
+- [x] `CziWell`: canonical name/path, original source name, source row/column indices, normalized 0-based row/column indices, optional external ID, and fields.
+- [x] `CziField`: deterministic source-scoped ID, well-local 0-based `field_index`, global 0-based `scene_index`, optional string `region_id`, scene-center X/Y with unit/provenance, and optional acquisition Z metadata.
+- [x] Define deterministic ID and duplicate-handling rules (for example, source identity + `RegionId`, falling back to scene index); validate duplicate wells, regions, and scene indices.
+- [x] Build the base hierarchy from scene XML only. Enrich it from the planetable in Stage 2, rather than making construction depend on an expensive full subblock scan.
+- [x] Expose as `CziMetadata.hcs` when an unambiguous HCS mapping exists; add a detection/result status explaining why it is absent. `has_scenes` alone is insufficient because non-plate CZIs also have scenes.
+
+**Stage 1 implementation notes (2026-07-10):**
+
+- `metadata_tools/hcs.py` defines frozen `CziPlate`, `CziWell`, `CziField`, and
+  `CziHcsResult` value models under internal schema version `1.0`. They are explicitly
+  OME/NGFF-oriented domain models, not OME-XML or NGFF serializers.
+- `build_hcs_metadata()` reads scene and plate-template XML directly. It does not use
+  planetable data or copy Stage 0's legacy sentinel values. Template `ShapeRows` and
+  `ShapeColumns` become optional declared dimensions; observed 0-based row and column
+  index sets are stored separately. Barcode and external IDs remain `None` when the CZI
+  does not provide a trustworthy value.
+- CZI `Shape.RowIndex/ColumnIndex` are retained as 1-based source indices and converted
+  to normalized 0-based indices. Well names are canonicalized (`B04` -> `B4`) and must
+  agree with the source indices. NGFF-style paths use `row/column`, for example `B/4`.
+- Field order is deterministic by global scene index. A field ID uses `field:<RegionId>`
+  when available and falls back to `scene:<scene_index>`; these IDs are source-scoped,
+  not globally persistent identifiers. Missing/malformed scene centers remain `None`,
+  with unit and XML provenance recorded on each field. Acquisition Z stays `None` until
+  the Stage 2 enrichment policy exists.
+- HCS detection rejects missing/invalid well names, non-positive or conflicting source
+  indices, duplicate scene indices, duplicate non-empty `RegionId` values, and wells
+  outside declared template bounds. `CziMetadata.hcs_status` always contains the result
+  and explanation; `CziMetadata.hcs` contains a plate only for a valid mapping.
+- The public metadata package exports the four models, builder, and well-name normalizer.
+  Tests in `test_hcs.py` cover normalization, immutability, deterministic IDs, missing
+  positions, rejection paths, the included 96-well CZI (7 wells/28 fields), and a
+  multi-scene non-plate rejection.
 
 ### Stage 2 — Position/coordinate clarity
 

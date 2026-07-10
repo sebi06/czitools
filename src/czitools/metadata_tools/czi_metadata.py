@@ -36,6 +36,7 @@ from czitools.metadata_tools.channel import CziChannelInfo
 from czitools.metadata_tools.detector import CziDetector
 from czitools.metadata_tools.dimension import CziDimensions
 from czitools.metadata_tools.helper import DictObj
+from czitools.metadata_tools.hcs import CziHcsResult, CziPlate, build_hcs_metadata
 from czitools.metadata_tools.microscope import CziMicroscope
 from czitools.metadata_tools.objective import CziObjectives
 from czitools.metadata_tools.sample import CziSampleInfo
@@ -87,6 +88,8 @@ class CziMetadata:
         detector (Optional[CziDetector]): Detector information.
         microscope (Optional[CziMicroscope]): Microscope information.
         sample (Optional[CziSampleInfo]): Sample information.
+        hcs (Optional[CziPlate]): Validated plate/well/field hierarchy, when detected.
+        hcs_status (CziHcsResult): HCS detection result and explanatory reason.
         add_metadata (Optional[CziAddMetaData]): Additional metadata.
         scene_size_consistent (Optional[Tuple[int]]): Consistency of scene sizes.
         verbose (bool): Verbose output for logging.
@@ -128,6 +131,10 @@ class CziMetadata:
     detector: Optional[CziDetector] = field(init=False, default=None)
     microscope: Optional[CziMicroscope] = field(init=False, default=None)
     sample: Optional[CziSampleInfo] = field(init=False, default=None)
+    hcs: Optional[CziPlate] = field(init=False, default=None)
+    hcs_status: CziHcsResult = field(
+        init=False, default_factory=lambda: CziHcsResult(False, "HCS detection has not run.")
+    )
     add_metadata: Optional[CziAddMetaData] = field(init=False, default=None)
     scene_size_consistent: Optional[Tuple[int, ...]] = field(init=False, default_factory=lambda: ())
     array6d_size: Optional[Tuple[int, ...]] = field(init=False, default=None)
@@ -308,6 +315,11 @@ class CziMetadata:
 
         # get information about sample carrier and wells etc.
         self.sample = CziSampleInfo(self.czi_box, verbose=self.verbose)
+
+        # Build the normalized HCS hierarchy from scene XML only. This does not
+        # scan subblocks or depend on the legacy sample-list sentinel values.
+        self.hcs_status = build_hcs_metadata(self.czi_box)
+        self.hcs = self.hcs_status.plate
 
         # get additional metainformation
         self.add_metadata = CziAddMetaData(self.czi_box, verbose=self.verbose)
