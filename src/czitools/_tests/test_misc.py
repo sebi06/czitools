@@ -250,8 +250,13 @@ def test_get_planetable_columns(czifile: str, planes: dict[str, int], expected_c
     [
         (
             "WP96_4Pos_B4-10_DAPI.czi",
+            {"time": 0, "channel": 0, "zplane": 0},
+            (28, 14),  # 28 scenes (fields), one subblock each at time=0, channel=0, zplane=0
+        ),
+        (
+            "WP96_4Pos_B4-10_DAPI.czi",
             {"scene": 0, "time": 0, "channel": 0, "zplane": 0},
-            (28, 14),  # 28 tiles at scene=0, time=0, channel=0, zplane=0
+            (1, 14),  # a single scene now yields exactly one subblock (S is per-scene)
         ),
     ],
 )
