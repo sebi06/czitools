@@ -120,6 +120,29 @@ result_list, dims, n, mdata = read_tools.read_stacks_list(filepath, ...)
 stacked, dims, n, mdata = read_tools.read_stacks_stacked(filepath, ...)
 ```
 
+## Reading by Well / Field (HCS Plates)
+
+For high-content-screening plates, wells and fields can be read directly by name
+without tracking scene indices. These reads use the canonical HCS model
+(`CziMetadata.hcs`) and reuse the single-scene read path.
+
+```python
+from czitools.read_tools import read_tools
+
+# Read a single field of a well (well names accept "B4", "b04" or "B/4").
+# `field` is the well-local 0-based index, or a source-scoped RegionId string.
+array, mdata = read_tools.read_field(filepath, well="B4", field=0)
+
+# Read all fields of a well as a list of per-field arrays (shapes may differ).
+arrays, mdata = read_tools.read_well(filepath, well="B4")
+
+# Stack the fields along the S axis (requires identical field shapes).
+stacked, mdata = read_tools.read_well(filepath, well="B4", stack=True)
+```
+
+If the CZI has no usable HCS plate metadata, both functions raise a `ValueError`
+explaining why (from `CziMetadata.hcs_status.reason`).
+
 ## Displaying in Napari
 
 ### Single Array
@@ -180,6 +203,70 @@ CZI arrays always follow the dimension order **STCZYX(A)**:
 | Y   | Y (height)                       |
 | X   | X (width)                        |
 | A   | Alpha / RGB component (optional) |
+
+## Exporting to OME-Zarr
+
+!!! note "Requires the `omezarr` extra"
+    OME-Zarr export lives in `czitools.export_tools` and needs the optional
+    dependencies: `pip install "czitools[omezarr]"` (or `"czitools[omezarr-gui]"`
+    for the GUI). See the [Installation docs](install.md).
+
+### HCS plate export
+
+```python
+from czitools.export_tools import (
+    convert_czi2hcs_ngff,      # ngff-zarr backend, OME-NGFF v0.5
+    convert_czi2hcs_omezarr,   # ome-zarr-py backend, OME-NGFF v0.4
+    validate_ome_zarr,
+)
+
+# Write an HCS plate (rows/wells/fields) with the ngff-zarr backend.
+out = convert_czi2hcs_ngff("path/to/plate.czi", overwrite=True)
+
+# Validate the result against the OME-NGFF v0.5 schema.
+assert validate_ome_zarr(out)
+```
+
+Both backends route through a canonical layout resolver that prefers the Stage 1
+HCS model (`CziMetadata.hcs`) and falls back to `CziSampleInfo` only when it is
+complete and unambiguous. Sparse plates and variable field counts per well are
+supported.
+
+### Single-image export
+
+```python
+import xarray as xr
+from czitools.read_tools import read_tools
+from czitools.export_tools import write_omezarr_ngff, write_omezarr
+
+array, mdata = read_tools.read_6darray("image.czi", planes={"S": (0, 0)}, use_xarray=True)
+array = array.squeeze("S")  # 6D -> 5D (T, C, Z, Y, X)
+
+# ngff-zarr backend (multi-scale pyramid, OME-NGFF v0.5)
+write_omezarr_ngff(array, "image_ngff.ome.zarr", mdata, scale_factors=[2, 4], overwrite=True)
+
+# ome-zarr-py backend (OME-NGFF v0.4)
+write_omezarr(array, zarr_path="image.ome.zarr", metadata=mdata, overwrite=True)
+```
+
+### Converter GUI
+
+Install the GUI extra (`pip install "czitools[omezarr-gui]"`) and launch it via the
+console script or the Python API:
+
+```bash
+czitools-omezarr-gui
+```
+
+```python
+# Launch standalone
+from czitools.export_tools import run_gui
+run_gui()
+
+# Or embed the widget in napari
+from czitools.export_tools import create_gui
+viewer.window.add_dock_widget(create_gui(), name="CZI Converter")
+```
 
 ## Colab Notebooks
 

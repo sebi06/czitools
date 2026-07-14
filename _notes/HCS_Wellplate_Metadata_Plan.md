@@ -12,6 +12,10 @@
 > Implementation 2026-07-14: Stages 2 and 3 implemented (planetable position
 > enrichment, well/field resolvers, `read_field`/`read_well`) with tests passing in the
 > `omezarr` environment. See the Stage 2/3 implementation notes below.
+> Implementation 2026-07-14: Stage 5 implemented — the `czi_omezarr_utils` conversion
+> core (plus the MagicGUI app) is vendored into `czitools.export_tools`, routed through
+> a canonical HCS layout resolver, with `omezarr`/`omezarr-gui` extras, example scripts,
+> and passing conversion+validation tests. Stage 4 (deskew) intentionally skipped.
 
 ---
 
@@ -301,52 +305,56 @@ Goal: incorporate the reusable conversion core into **czitools** as an optional 
 
 #### 5.0. Compatibility and scope spike (must precede vendoring)
 
-- [ ] Audit the existing `czi_omezarr_utils` package: public API (`__init__.py`), licenses, tests, private imports, GUI/plotting dependencies (`display.py`, `plotting.py`, `processing.py`), and actual callers.
-- [ ] Test a small matrix of `ngff-zarr`, `ome-zarr`, `zarr` v2/v3, Python 3.12/3.13, and validators; record the NGFF version each backend really writes. Reuse the package's known-good pins (`ngff-zarr>=0.34.0`, `dask>=2024.1,<2025.11`) as the starting point.
-- [ ] Choose one primary writer backend (ngff-zarr writes OME-NGFF v0.5; ome-zarr-py writes v0.4). Keep the second backend only if it provides a tested capability the primary one lacks.
-- [ ] Define the supported output contract (NGFF version, array axes, chunks, labels, overwrite/resume behavior) before declaring stable public functions.
+- [x] Audit the existing `czi_omezarr_utils` package: public API (`__init__.py`), licenses, tests, private imports, GUI/plotting dependencies (`display.py`, `plotting.py`, `processing.py`), and actual callers.
+- [~] Test a small matrix of `ngff-zarr`, `ome-zarr`, `zarr` v2/v3, Python 3.12/3.13, and validators; record the NGFF version each backend really writes. Reuse the package's known-good pins (`ngff-zarr>=0.34.0`, `dask>=2024.1,<2025.11`) as the starting point. (Validated on Python 3.13 + zarr v3 in the `omezarr` env; full v2/v3 × 3.12/3.13 matrix not yet formalized.)
+- [x] Choose one primary writer backend (ngff-zarr writes OME-NGFF v0.5; ome-zarr-py writes v0.4). Keep the second backend only if it provides a tested capability the primary one lacks. (Both retained: ngff-zarr is primary/v0.5; ome-zarr-py kept for v0.4 output.)
+- [x] Define the supported output contract (NGFF version, array axes, chunks, labels, overwrite/resume behavior) before declaring stable public functions.
 
 #### 5.1. Integration approach — vendor into czitools
 
-- [ ] **Vendor** the relevant `czi_omezarr_utils` modules into czitools (single-package UX; this is the chosen approach).
-- [ ] Define the new czitools namespace/package path (e.g. `czitools/export_tools/omezarr/` or `czitools/omezarr_tools/`).
-- [ ] Preserve prototype function names through temporary compatibility wrappers only where callers exist; define a smaller stable czitools API.
+- [x] **Vendor** the relevant `czi_omezarr_utils` modules into czitools (single-package UX; this is the chosen approach).
+- [x] Define the new czitools namespace/package path (e.g. `czitools/export_tools/omezarr/` or `czitools/omezarr_tools/`).
+- [x] Preserve prototype function names through temporary compatibility wrappers only where callers exist; define a smaller stable czitools API.
 - [ ] After vendoring, update `omezarr_playground` to re-export from czitools (or depend on the new czitools export API) to avoid code duplication.
 
 #### 5.2. Add optional dependencies (“extras”)
 
-- [ ] Add a focused `omezarr` optional-dependency group. Reconcile it with the existing `all` extra, which already contains unpinned `ngff-zarr` variants.
-- [ ] Pin compatible ranges only after the 5.0 spike; do not assume `zarr>=3` is compatible with both writers.
-- [ ] Keep plotting/GUI/analysis dependencies out of the export extra unless those helpers are intentionally shipped and tested.
-- [ ] Implement a consistent error message when the export API is used without extras installed (raise `ImportError` with install hint).
+- [x] Add a focused `omezarr` optional-dependency group. Reconcile it with the existing `all` extra, which already contains unpinned `ngff-zarr` variants.
+- [x] Pin compatible ranges only after the 5.0 spike; do not assume `zarr>=3` is compatible with both writers.
+- [x] Keep plotting/GUI/analysis dependencies out of the export extra unless those helpers are intentionally shipped and tested.
+- [x] Implement a consistent error message when the export API is used without extras installed (raise `ImportError` with install hint).
 
 #### 5.3. Vendor core export functions (from `czi_omezarr_utils.conversion`)
 
 These already exist with the stated names; vendor them into czitools rather than rewriting.
 
-- [ ] `convert_czi2hcs_ngff(...)` (ngff-zarr backend, OME-NGFF v0.5).
-- [ ] `convert_czi2hcs_omezarr(...)` (ome-zarr-py backend; note: writes OME-NGFF v0.4 in practice).
-- [ ] `write_omezarr_ngff(...)` (single image multiscales).
-- [ ] `write_omezarr(...)` (single image, ome-zarr-py).
+- [x] `convert_czi2hcs_ngff(...)` (ngff-zarr backend, OME-NGFF v0.5).
+- [x] `convert_czi2hcs_omezarr(...)` (ome-zarr-py backend; note: writes OME-NGFF v0.4 in practice).
+- [x] `write_omezarr_ngff(...)` (single image multiscales).
+- [x] `write_omezarr(...)` (single image, ome-zarr-py).
 
 #### 5.4. Vendor/merge supporting helpers
 
-- [ ] `extract_well_coordinates(...)` (from `czi_omezarr_utils.hcs`) — relocate to czitools metadata/HCS utilities so both metadata and export share a single well-path normalization. Reconcile its `pad_columns` behavior with the Stage 1 canonical path (`row/column`).
-- [ ] `create_channel_list(...)` + `get_display(...)` (from `czi_omezarr_utils.display`) — decide whether this belongs in czitools core (metadata-derived display settings) or stays export-specific.
-- [ ] `get_fieldimage(...)` (from `czi_omezarr_utils.display`) — decide whether to keep as an internal export helper (multiscales per field) or expose publicly.
-- [ ] `validate_ome_zarr(...)` (from `czi_omezarr_utils.validation`, OME-NGFF v0.5) — vendor as-is; it already exists, so no new implementation is required.
-- [ ] `convert_hcs_omezarr2ozx(...)` (from `czi_omezarr_utils.hcs`) — include the OZX conversion helper, including the Windows workaround described in `convert_czi2hcs_ngff`.
-- [ ] Explicitly exclude GUI/analysis-only helpers (`processing.py`, `plotting.py`, and Qt/napari code) from the export extra unless intentionally shipped and tested.
+- [x] `extract_well_coordinates(...)` (from `czi_omezarr_utils.hcs`) — vendored into `czitools.export_tools.plate`; the canonical well-path normalization is now driven by the resolver (Stage 5.5). Reconcile its `pad_columns` behavior with the Stage 1 canonical path (`row/column`).
+- [x] `create_channel_list(...)` + `get_display(...)` (from `czi_omezarr_utils.display`) — vendored into `czitools.export_tools.display` (export-specific for now).
+- [x] `get_fieldimage(...)` (from `czi_omezarr_utils.display`) — vendored as an export helper (multiscales per field).
+- [x] `validate_ome_zarr(...)` (from `czi_omezarr_utils.validation`, OME-NGFF v0.5) — vendored as-is; it already exists, so no new implementation is required.
+- [x] `convert_hcs_omezarr2ozx(...)` (from `czi_omezarr_utils.hcs`) — vendored, including the Windows workaround used by `convert_czi2hcs_ngff`.
+- [x] Explicitly exclude GUI/analysis-only helpers (`processing.py`, `plotting.py`, and Qt/napari code) from the export extra unless intentionally shipped and tested.
 
 #### 5.5. Align exporter with czitools HCS model (Stage 1) — with `CziSampleInfo` fallback
 
-- [ ] **Reconcile the two plate models.** `czi_omezarr_utils.hcs` has its own `PlateType`, `PlateConfiguration`, `define_plate`, and `define_plate_by_well_count`, which overlap and conflict with czitools' Stage 1 `CziPlate`/`CziWell`. Route the exporter through the Stage 1 canonical resolver and drop the playground's parallel plate abstraction rather than vendoring both.
-- [ ] Add one resolver that yields normalized well paths and per-well fields (`scene_index`, local `field_index`, optional `region_id`) from either source:
+- [x] **Reconcile the two plate models.** `czi_omezarr_utils.hcs` has its own `PlateType`, `PlateConfiguration`, `define_plate`, and `define_plate_by_well_count`, which overlap and conflict with czitools' Stage 1 `CziPlate`/`CziWell`. Route the exporter through the Stage 1 canonical resolver and drop the playground's parallel plate abstraction rather than vendoring both.
+- [x] Add one resolver that yields normalized well paths and per-well fields (`scene_index`, local `field_index`, optional `region_id`) from either source:
   - **Preferred:** the explicit HCS model (`CziMetadata.hcs`) when populated.
   - **Legacy adapter (conditional):** `CziSampleInfo` heuristics only when names, indices, and scene mapping are complete and unambiguous.
-- [ ] Route both `convert_czi2hcs_ngff` and `convert_czi2hcs_omezarr` through this resolver so neither backend hard-codes a metadata source.
-- [ ] Allow variable field counts per well (current exporter assumes a single `field_paths` length derived from the first well); the fallback path must handle this too.
+- [x] Route both `convert_czi2hcs_ngff` and `convert_czi2hcs_omezarr` through this resolver so neither backend hard-codes a metadata source.
+- [x] Allow variable field counts per well (current exporter assumes a single `field_paths` length derived from the first well); the fallback path must handle this too.
 - [ ] Preserve proven legacy outputs with golden tests. Reject ambiguous metadata explicitly instead of preserving accidental behavior such as blind leading-zero stripping.
+
+> Note: the `PlateType`/`PlateConfiguration`/`define_plate*` helpers were vendored into
+> `czitools.export_tools.plate` for API compatibility but are **not** used by the
+> conversion path, which builds plate metadata from the resolver output instead.
 
 #### 5.6. Performance & memory improvements for large plates
 
@@ -355,11 +363,11 @@ These already exist with the stated names; vendor them into czitools rather than
 
 #### 5.7. Tests and validation in czitools
 
-- [ ] Add tests that run a minimal HCS conversion on an included test CZI (e.g. `data/WP96_4Pos_B4-10_DAPI.czi`) and validate the output:
+- [x] Add tests that run a minimal HCS conversion on an included test CZI (e.g. `data/WP96_4Pos_B4-10_DAPI.czi`) and validate the output:
   - Use `validate_ome_zarr(...)` when extras are installed.
-- Mark tests to skip automatically when export extras are absent.
-- [ ] Add regression tests for:
-  - padded vs non-padded well columns
+- [x] Mark tests to skip automatically when export extras are absent.
+- [~] Add regression tests for:
+  - padded vs non-padded well columns (done)
   - variable fields per well
   - missing/duplicate `RegionId` and ambiguous well metadata
   - 1-based CZI source indices to 0-based normalized/NGFF indices
@@ -368,11 +376,43 @@ These already exist with the stated names; vendor them into czitools rather than
 
 #### 5.8. User-facing API and docs
 
-- [ ] Define a stable import path (e.g. `from czitools.export_tools import convert_czi2hcs_ngff`).
-- [ ] Add a short usage section in docs demonstrating:
+- [x] Define a stable import path (e.g. `from czitools.export_tools import convert_czi2hcs_ngff`).
+- [~] Add a short usage section in docs demonstrating:
   - CZI → HCS OME-Zarr
   - CZI → standard (non-HCS) OME-Zarr
   - validation step
+  (Example scripts added under `demo/scripts/`; mkdocs usage page still to be written.)
+
+**Stage 5 implementation notes (2026-07-14):**
+
+- The conversion core and the MagicGUI app are vendored into a new
+  [export_tools](../src/czitools/export_tools) package:
+  `_logging.py`, `plate.py`, `display.py`, `validation.py`, `resolver.py`,
+  `conversion.py`, and `gui.py`. Analysis-only helpers (`processing.py`,
+  `plotting.py`) were intentionally **not** vendored.
+- `czitools.export_tools.__init__` uses PEP 562 lazy imports so
+  `import czitools.export_tools` never hard-fails; accessing any symbol without
+  the extras raises `ImportError` with the hint
+  `pip install "czitools[omezarr]"` (or `[omezarr-gui]`).
+- Both HCS backends route through `resolver.resolve_hcs_layout`, which prefers
+  the Stage 1 model (`CziMetadata.hcs`) and falls back to `CziSampleInfo` only
+  when it is complete/unambiguous (otherwise raises `ValueError`). This fixes the
+  original exporter's rectangular-grid assumption and supports sparse plates and
+  variable field counts per well.
+- `pyproject.toml` adds `omezarr` (conversion + validation) and `omezarr-gui`
+  (adds `magicgui`, `qtpy`, `napari`, `napari-ome-zarr`) extras, reconciles the
+  `all` extra, and registers the `czitools-omezarr-gui` console script
+  (`czitools.export_tools.gui:run_gui`).
+- Example scripts: [omezarr_convert_hcs.py](../demo/scripts/omezarr_convert_hcs.py),
+  [omezarr_convert_single_scene.py](../demo/scripts/omezarr_convert_single_scene.py),
+  and the GUI launcher [run_omezarr_gui.py](../demo/scripts/run_omezarr_gui.py).
+- Verified in the `omezarr` env: HCS ngff (v0.5) and ome-zarr-py (v0.4) plate
+  conversions and a single-scene ngff image all convert and pass
+  `validate_ome_zarr`. Tests in `test_export_tools.py` (skip when extras absent)
+  cover the resolver (padded/unpadded) and a tmp-dir ngff conversion + validation.
+- Deferred: bounded-memory streaming (5.6), the full backend/version test matrix
+  and golden-output regressions (5.0/5.7), the mkdocs usage page (5.8), and
+  updating `omezarr_playground` to re-export from czitools (5.1).
 
 ### Suggested ordering & risk
 

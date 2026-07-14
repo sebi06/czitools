@@ -46,13 +46,36 @@ all = [
     "qtpy",
     "pyqtgraph",
     "colormap",
-    "ngff-zarr",
+    "ngff-zarr>=0.34.0",
     "ngff-zarr[validate]",
     "ngff-zarr[dask-image]",
+    "ome-zarr>=0.16.0",
+    "zarr>=3.0",
+    "ome-zarr-models>=1.7,<2",
+    "magicgui",
+    "napari>=0.7.0",
+    "napari-ome-zarr>=0.8.0",
     "bioio",
     "bioio-czi",
     "bioio-ome-zarr",
     "ndv[pyqt,vispy]",
+]
+# OME-Zarr / OME-NGFF export (czitools.export_tools): conversion + validation.
+omezarr = [
+    "ngff-zarr>=0.34.0",
+    "ngff-zarr[validate]",
+    "ngff-zarr[dask-image]",
+    "ome-zarr>=0.16.0",
+    "zarr>=3.0",
+    "ome-zarr-models>=1.7,<2",
+]
+# OME-Zarr export plus the MagicGUI converter application.
+omezarr-gui = [
+    "czitools[omezarr]",
+    "magicgui",
+    "qtpy",
+    "napari>=0.7.0",
+    "napari-ome-zarr>=0.8.0",
 ]
 docs = [
     "mkdocs-material",
@@ -72,6 +95,14 @@ docs = [
     "ndv",
     "matplotlib",
     "plotly",
+    # Installed so the auto-generated czitools.export_tools API pages resolve
+    # signature type references during the docs build.
+    "ngff-zarr>=0.34.0",
+    "ome-zarr>=0.16.0",
+    "zarr>=3.0",
+    "ome-zarr-models>=1.7,<2",
+    "magicgui",
+    "qtpy",
 ]
 
 [project.urls]
@@ -79,6 +110,9 @@ docs = [
 "Documentation" = "https://github.com/sebi06/czitools/#README.md"
 "Source Code" = "https://github.com/sebi06/czitools/"
 "User Support" = "https://github.com/sebi06/czitools/issues"
+
+[project.scripts]
+czitools-omezarr-gui = "czitools.export_tools.gui:run_gui"
 
 [tool.setuptools]
 package-dir = {"" = "src"}
