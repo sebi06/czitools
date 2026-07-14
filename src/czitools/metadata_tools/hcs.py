@@ -10,13 +10,15 @@ Schema version: ``1.0``.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
+import math
+import os
 import re
-from typing import Any, Optional
+from statistics import median
+from typing import Any, Optional, Union
 
 from box import Box, BoxList
-
 
 HCS_SCHEMA_VERSION = "1.0"
 _WELL_NAME = re.compile(r"^([A-Za-z]+)0*([1-9][0-9]*)$")
@@ -24,7 +26,38 @@ _WELL_NAME = re.compile(r"^([A-Za-z]+)0*([1-9][0-9]*)$")
 
 @dataclass(frozen=True)
 class CziField:
-    """One CZI scene interpreted as a field of view within a well."""
+    """One CZI scene interpreted as a field of view within a well.
+
+    Coordinate provenance is explicit and kept separate by source. The
+    ``scene_center_*`` values come from ``Scene.CenterPosition`` (a single
+    physical scene center declared in the scene XML). The ``stage_*`` and
+    ``acquisition_z`` values are aggregated per-subblock measurements from the
+    planetable and are only populated after :func:`enrich_hcs_with_planetable`
+    runs. The two sources are never merged.
+
+    Attributes:
+        id (str): Deterministic, source-scoped identifier.
+        field_index (int): Well-local 0-based field index.
+        scene_index (int): Global 0-based CZI scene index.
+        region_id (Optional[str]): Source-scoped CZI ``RegionId`` when present.
+        position_name (Optional[str]): Scene ``Name`` when present.
+        scene_center_x (Optional[float]): Scene-center X in ``position_unit``.
+        scene_center_y (Optional[float]): Scene-center Y in ``position_unit``.
+        position_unit (str): Unit of the scene-center coordinates.
+        position_source (str): Provenance of the scene-center coordinates.
+        acquisition_z (Optional[float]): Representative focus Z from subblocks.
+        stage_x (Optional[float]): Representative subblock stage X.
+        stage_y (Optional[float]): Representative subblock stage Y.
+        stage_x_range (Optional[tuple]): ``(min, max)`` of subblock stage X.
+        stage_y_range (Optional[tuple]): ``(min, max)`` of subblock stage Y.
+        acquisition_z_range (Optional[tuple]): ``(min, max)`` of focus Z.
+        stage_unit (str): Unit of the stage/focus coordinates.
+        stage_source (Optional[str]): Provenance of the stage/focus coordinates.
+        subblock_count (Optional[int]): Number of aggregated subblocks.
+        position_conflict (bool): True when any aggregated range exceeds the
+            configured tolerance, signalling that a single representative value
+            may be misleading.
+    """
 
     id: str
     field_index: int
@@ -36,6 +69,15 @@ class CziField:
     position_unit: str = "micrometer"
     position_source: str = "Scene.CenterPosition"
     acquisition_z: Optional[float] = None
+    stage_x: Optional[float] = None
+    stage_y: Optional[float] = None
+    stage_x_range: Optional[tuple[float, float]] = None
+    stage_y_range: Optional[tuple[float, float]] = None
+    acquisition_z_range: Optional[tuple[float, float]] = None
+    stage_unit: str = "micrometer"
+    stage_source: Optional[str] = None
+    subblock_count: Optional[int] = None
+    position_conflict: bool = False
 
 
 @dataclass(frozen=True)
@@ -298,3 +340,214 @@ def _row_label(row_index: int) -> str:
         value, remainder = divmod(value - 1, 26)
         label = chr(ord("A") + remainder) + label
     return label
+
+
+# ---------------------------------------------------------------------------
+# Stage 2 - planetable position enrichment (lazy / opt-in)
+# ---------------------------------------------------------------------------
+
+
+def enrich_hcs_with_planetable(
+    plate: CziPlate,
+    filepath: Union[str, os.PathLike[str]],
+    position_tolerance: float = 1.0,
+) -> CziPlate:
+    """Return a new plate whose fields carry aggregated subblock positions.
+
+    The base plate is built from scene XML only. This function is opt-in
+    because it scans subblock metadata (via the planetable) and is therefore
+    unavailable for URL sources. Fields are matched to planetable rows by the
+    ``S`` (scene index) column so enrichment never relies on row order.
+
+    All models are immutable, so this returns a **new** plate; the input is not
+    modified. For every field with matching subblocks the representative value
+    is the median across all ``M/T/C/Z`` subblocks of that scene, and the full
+    ``(min, max)`` range is preserved. ``position_conflict`` is set when any
+    range exceeds ``position_tolerance`` (in micrometers), signalling that a
+    single representative value may hide real variation.
+
+    Args:
+        plate (CziPlate): Plate built by :func:`build_hcs_metadata`.
+        filepath (Union[str, os.PathLike[str]]): Path to the CZI image file.
+        position_tolerance (float): Range (in micrometers) above which a field
+            is flagged as having conflicting subblock positions. Defaults to 1.0.
+
+    Returns:
+        CziPlate: A new plate with enriched fields, or the original plate
+            unchanged when no planetable positions are available.
+    """
+
+    # Lazy import keeps the heavy subblock/pandas dependency off the base
+    # metadata path and avoids any import cycle.
+    from czitools.utils.planetable import get_planetable
+
+    planetable, _ = get_planetable(filepath)
+    if planetable is None or planetable.empty:
+        # URL sources and files without subblock positions cannot be enriched.
+        return plate
+
+    groups = {int(scene): sub for scene, sub in planetable.groupby("S")}
+
+    new_wells: list[CziWell] = []
+    for well in plate.wells:
+        new_fields: list[CziField] = []
+        for field_value in well.fields:
+            group = groups.get(field_value.scene_index)
+            if group is None or group.empty:
+                new_fields.append(field_value)
+                continue
+
+            stage_x, range_x = _aggregate_positions(group["X[micron]"])
+            stage_y, range_y = _aggregate_positions(group["Y[micron]"])
+            stage_z, range_z = _aggregate_positions(group["Z[micron]"])
+            conflict = (
+                _exceeds_tolerance(range_x, position_tolerance)
+                or _exceeds_tolerance(range_y, position_tolerance)
+                or _exceeds_tolerance(range_z, position_tolerance)
+            )
+            new_fields.append(
+                replace(
+                    field_value,
+                    stage_x=stage_x,
+                    stage_y=stage_y,
+                    stage_x_range=range_x,
+                    stage_y_range=range_y,
+                    acquisition_z=stage_z,
+                    acquisition_z_range=range_z,
+                    stage_unit="micrometer",
+                    stage_source="planetable(StageXPosition,StageYPosition,FocusPosition)",
+                    subblock_count=int(len(group)),
+                    position_conflict=conflict,
+                )
+            )
+        new_wells.append(replace(well, fields=tuple(new_fields)))
+
+    return replace(plate, wells=tuple(new_wells))
+
+
+def _aggregate_positions(values: Any) -> tuple[Optional[float], Optional[tuple[float, float]]]:
+    """Return ``(median, (min, max))`` of numeric values, ignoring NaN/None."""
+
+    numeric = [float(value) for value in values if value is not None and not _is_nan(value)]
+    if not numeric:
+        return None, None
+    return float(median(numeric)), (min(numeric), max(numeric))
+
+
+def _exceeds_tolerance(value_range: Optional[tuple[float, float]], tolerance: float) -> bool:
+    if value_range is None:
+        return False
+    low, high = value_range
+    return (high - low) > tolerance
+
+
+def _is_nan(value: Any) -> bool:
+    try:
+        return math.isnan(float(value))
+    except (TypeError, ValueError):
+        return False
+
+
+def well_relative_field_positions(well: CziWell) -> Optional[dict[int, tuple[float, float]]]:
+    """Return each field's XY offset from the well's field centroid.
+
+    The origin is the centroid (arithmetic mean) of the well's field
+    scene-center positions (``Scene.CenterPosition``, micrometers, same axis
+    orientation as the source). Because a trustworthy plate/well origin is not
+    generally available from CZI metadata, this uses the well's own fields as a
+    well-relative reference frame. It returns ``None`` (an explicit "unavailable"
+    result) when any field lacks a scene center, since no origin can be derived.
+
+    Args:
+        well (CziWell): The well whose field offsets are requested.
+
+    Returns:
+        Optional[dict[int, tuple[float, float]]]: Mapping of ``field_index`` to
+            ``(dx, dy)`` offsets in micrometers, or ``None`` when unavailable.
+    """
+
+    centers = [(field_value.scene_center_x, field_value.scene_center_y) for field_value in well.fields]
+    if not centers or any(x is None or y is None for x, y in centers):
+        return None
+
+    mean_x = sum(float(x) for x, _ in centers) / len(centers)
+    mean_y = sum(float(y) for _, y in centers) / len(centers)
+    return {
+        field_value.field_index: (
+            float(field_value.scene_center_x) - mean_x,
+            float(field_value.scene_center_y) - mean_y,
+        )
+        for field_value in well.fields
+    }
+
+
+# ---------------------------------------------------------------------------
+# Stage 3 - pure resolvers keyed by plate/well/field
+# ---------------------------------------------------------------------------
+
+
+def resolve_well(plate: CziPlate, well: str) -> CziWell:
+    """Return the well matching ``well`` after name normalization.
+
+    Args:
+        plate (CziPlate): The plate to resolve against.
+        well (str): A well name such as ``"B4"``, ``"b04"`` or ``"B/4"``.
+
+    Returns:
+        CziWell: The matching well.
+
+    Raises:
+        KeyError: If no well or more than one well matches the name.
+        ValueError: If the name cannot be parsed as a well name.
+    """
+
+    return plate.get_well(_normalize_well_key(well))
+
+
+def resolve_field(plate: CziPlate, well: str, field: Union[int, str] = 0) -> CziField:
+    """Resolve one field within a well by local index or by ``RegionId``.
+
+    ``field`` is interpreted as a well-local 0-based field index when an ``int``
+    is given, and as a ``RegionId`` string otherwise.
+
+    Args:
+        plate (CziPlate): The plate to resolve against.
+        well (str): A well name (see :func:`resolve_well`).
+        field (Union[int, str]): Well-local field index or a ``RegionId``.
+
+    Returns:
+        CziField: The resolved field.
+
+    Raises:
+        IndexError: If an integer index is out of range.
+        KeyError: If a ``RegionId`` does not match exactly one field.
+        TypeError: If ``field`` is a bool.
+    """
+
+    target_well = resolve_well(plate, well)
+
+    # bool is a subtype of int; reject it explicitly to avoid silent surprises.
+    if isinstance(field, bool):
+        raise TypeError("field must be an int index or a RegionId string, not bool.")
+
+    if isinstance(field, int):
+        if field < 0 or field >= len(target_well.fields):
+            raise IndexError(
+                f"Field index {field} is out of range for well "
+                f"{target_well.canonical_name!r} with {len(target_well.fields)} field(s)."
+            )
+        return target_well.fields[field]
+
+    matches = [item for item in target_well.fields if item.region_id == field]
+    if len(matches) != 1:
+        raise KeyError(
+            f"Expected exactly one field with RegionId {field!r} in well "
+            f"{target_well.canonical_name!r}; found {len(matches)}."
+        )
+    return matches[0]
+
+
+def _normalize_well_key(well: str) -> str:
+    """Accept ``"B4"``, ``"b04"`` and NGFF-style ``"B/4"`` well identifiers."""
+
+    return well.replace("/", "") if isinstance(well, str) else well

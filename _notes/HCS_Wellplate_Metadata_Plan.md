@@ -1,9 +1,17 @@
 # czitools HCS / Wellplate Metadata — Capability Review & Improvement Plan
 
-> Source proposal: `_notes/HCS_Metadata_OME_CZI_Proposal_Balu.docx` (not in the repo anymore)
+> Source proposal: `_notes/HCS_Metadata_OME_CZI_Proposal_Balu.docx`
 > Status legend: `[ ]` not started · `[~]` in progress · `[x]` done
 > Reviewed against the repository on 2026-07-10. Changes made during the review
 > are explained in **Review decisions** below.
+> Follow-up review 2026-07-14: Stages 0 and 1 confirmed implemented and integrated
+> (`CziMetadata.hcs` / `hcs_status`). Stage 5 revised because `omezarr_playground` is
+> now an installable `czi_omezarr_utils` package, not loose scripts. Stage 2/3 notes
+> added for immutable enrichment, the planetable `S` join key, and the `hcs is None`
+> resolver guard.
+> Implementation 2026-07-14: Stages 2 and 3 implemented (planetable position
+> enrichment, well/field resolvers, `read_field`/`read_well`) with tests passing in the
+> `omezarr` environment. See the Stage 2/3 implementation notes below.
 
 ---
 
@@ -85,11 +93,16 @@ are needed before implementation:
    yields an unambiguous well mapping; otherwise HCS export should fail clearly instead
    of manufacturing a plate.
 6. **Add a dependency/API compatibility spike.** `pyproject.toml` already includes
-   `ngff-zarr` variants in the `all` extra, while the playground is currently a set of
-   scripts (`scripts_and_notebooks/ome_zarr_utils.py`), not the proposed
-   `czi_omezarr_utils` package. Backend versions, Zarr v2/v3 support, output NGFF
-   versions, and validation support must be verified before pinning dependencies or
-   promising preserved public names.
+   `ngff-zarr` variants in the `all` extra. The playground is now an installable
+   `czi_omezarr_utils` package (modules `conversion.py`, `hcs.py`, `display.py`,
+   `processing.py`, `plotting.py`, `validation.py`, `logging_utils.py`) — the older
+   `scripts_and_notebooks/ome_zarr_utils.py` no longer exists. Stage 5 is therefore a
+   *vendor + reconcile* effort, not a port of prototype scripts. Backend versions,
+   Zarr v2/v3 support, output NGFF versions, and validation support must still be
+   verified before pinning dependencies or promising preserved public names. The
+   package already carries known-good pins (`ngff-zarr>=0.34.0` because 0.29.0 shipped
+   null bytes; `dask>=2024.1,<2025.11` for ngio compatibility) that czitools should
+   adopt directly.
 7. **Deskew is independent and metadata-dependent.** It is not a prerequisite for HCS
    metadata or export. Implement it only after representative light-sheet metadata and
    expected transforms are available as fixtures.
@@ -98,16 +111,16 @@ are needed before implementation:
 
 ## 4. Gap analysis vs. the OME/HCS proposal
 
-| Proposal concept                                             | OME basis                | czitools today                     | Gap                                                        |
-| ------------------------------------------------------------ | ------------------------ | ---------------------------------- | ---------------------------------------------------------- |
-| **Experiment / Screen**                                      | `Screen`                 | none                               | Cross-plate/campaign context missing                       |
-| **Plate** (rows, cols, naming, barcode, origin)              | `Plate`                  | none                               | No plate entity; declared values may be absent             |
-| **PlateAcquisition** (run, start/end, max fields)            | `PlateAcquisition`       | times in planetable only           | No acquisition-run entity                                  |
-| **Well** (explicit ID, Row, Column, ExternalIdentifier)      | `Well`                   | inferred from ArrayName/Shape      | Source indices appear 1-based; normalized identity absent  |
-| **Field / FOV / WellSample** (source-scoped ID, local index) | `WellSample`             | Scene used implicitly              | No local FieldIndex or extracted `RegionId`                |
-| **Field position** (X/Y + coord system; optional source Z)   | `WellSample/PositionX/Y` | scene center + subblock positions  | Provenance, aggregation, units, and origin unclear         |
-| **Deskew / lightsheet geometry**                             | NGFF RFC-5 affine/shear  | none                               | No geometry, angle, shear axis, or affine matrix           |
-| **OME-Zarr HCS export** (`plate/A/1/0`)                      | OME-NGFF                 | none                               | No export/mapping path                                     |
+| Proposal concept                                             | OME basis                | czitools today                    | Gap                                                       |
+| ------------------------------------------------------------ | ------------------------ | --------------------------------- | --------------------------------------------------------- |
+| **Experiment / Screen**                                      | `Screen`                 | none                              | Cross-plate/campaign context missing                      |
+| **Plate** (rows, cols, naming, barcode, origin)              | `Plate`                  | none                              | No plate entity; declared values may be absent            |
+| **PlateAcquisition** (run, start/end, max fields)            | `PlateAcquisition`       | times in planetable only          | No acquisition-run entity                                 |
+| **Well** (explicit ID, Row, Column, ExternalIdentifier)      | `Well`                   | inferred from ArrayName/Shape     | Source indices appear 1-based; normalized identity absent |
+| **Field / FOV / WellSample** (source-scoped ID, local index) | `WellSample`             | Scene used implicitly             | No local FieldIndex or extracted `RegionId`               |
+| **Field position** (X/Y + coord system; optional source Z)   | `WellSample/PositionX/Y` | scene center + subblock positions | Provenance, aggregation, units, and origin unclear        |
+| **Deskew / lightsheet geometry**                             | NGFF RFC-5 affine/shear  | none                              | No geometry, angle, shear axis, or affine matrix          |
+| **OME-Zarr HCS export** (`plate/A/1/0`)                      | OME-NGFF                 | none                              | No export/mapping path                                    |
 
 ---
 
@@ -181,16 +194,84 @@ are needed before implementation:
 
 ### Stage 2 — Position/coordinate clarity
 
-- [ ] Join by explicit `S`/scene index and group all matching subblocks. Define representative-value and tolerance rules across `M/T/C/Z`; preserve ranges or report conflicts instead of selecting the first row silently.
-- [ ] Keep `Scene.CenterPosition`, subblock stage X/Y, and focus Z as separate sourced values until their relationship is verified on fixtures.
-- [ ] Document unit, axis direction, coordinate origin, and source for every coordinate. Add plate-absolute <-> well-relative conversion only when a trustworthy well origin/center is present; otherwise return an unavailable result.
-- [ ] Make planetable enrichment lazy/opt-in because it scans subblocks and is unavailable for URL sources.
+- [x] Join by explicit `S`/scene index and group all matching subblocks. Define representative-value and tolerance rules across `M/T/C/Z`; preserve ranges or report conflicts instead of selecting the first row silently.
+- [x] Use the planetable `S` DataFrame column as the join key (note: `get_planetable`'s `planes` dict uses different key names such as `scene`/`zplane`, but the returned columns are `S, M, T, C, Z`). Confirm each grouped `S` value aligns with `CziField.scene_index` before enriching.
+- [x] Keep `Scene.CenterPosition`, subblock stage X/Y, and focus Z as separate sourced values until their relationship is verified on fixtures.
+- [x] Enrich immutably. `CziField`/`CziWell`/`CziPlate` are `frozen=True` and `CziField.acquisition_z` is a reserved slot; enrichment must rebuild new instances (return a new plate), never mutate in place.
+- [x] Document unit, axis direction, coordinate origin, and source for every coordinate. Add plate-absolute <-> well-relative conversion only when a trustworthy well origin/center is present; otherwise return an unavailable result.
+- [x] Make planetable enrichment lazy/opt-in because it scans subblocks and is unavailable for URL sources.
+
+**Stage 2 implementation notes (2026-07-14):**
+
+- `enrich_hcs_with_planetable(plate, filepath, position_tolerance=1.0)` in
+  [hcs.py](../src/czitools/metadata_tools/hcs.py) returns a **new** `CziPlate`
+  (via `dataclasses.replace`); the input plate is never mutated. `get_planetable`
+  is imported lazily inside the function to keep the pandas/subblock cost off the
+  base metadata path and avoid import cycles.
+- Fields are matched to planetable rows by the `S` column (`groupby("S")`) against
+  each `CziField.scene_index`, never by row order. Scenes absent from the
+  planetable are left unenriched (`stage_* is None`).
+- The representative value for each of stage X, stage Y and focus Z is the
+  **median** across all `M/T/C/Z` subblocks of a scene; the full `(min, max)`
+  range is preserved in `stage_x_range`/`stage_y_range`/`acquisition_z_range`.
+  `position_conflict` is `True` when any range exceeds `position_tolerance`
+  (micrometers). `subblock_count` records how many subblocks were aggregated.
+- Provenance is explicit and kept separate by source: `scene_center_x/y`
+  (`Scene.CenterPosition`) vs. `stage_x/y` + `acquisition_z`
+  (`planetable(StageXPosition,StageYPosition,FocusPosition)`), each with a unit
+  attribute. The two sources are never merged.
+- URL sources and files without subblock positions return the plate unchanged
+  (empty planetable). `CziMetadata.enrich_hcs_positions(...)` is the opt-in
+  convenience entry point that replaces `self.hcs` with the enriched copy.
+- `well_relative_field_positions(well)` returns each field's XY offset from the
+  centroid of the well's field scene-centers, or `None` when any center is
+  missing (explicit "unavailable" result), since no trustworthy origin exists then.
+- Tests in `test_hcs.py` cover median/range aggregation, the conflict flag,
+  `subblock_count`, immutability of the source plate, unenriched absent scenes,
+  the empty-planetable (URL) path, and both well-relative outcomes.
+- Prerequisite fix: the planetable `S` column previously came from
+  `directory_entry.start[S]`, which is always `0` (each subblock spans a single
+  scene), so every subblock collapsed to scene 0. It now uses the authoritative
+  `directory_entry.scene_index` (see `_get_scene_index` in
+  [planetable.py](../src/czitools/utils/planetable.py)). This is what makes the
+  `S`-keyed join correct; the mosaic tile `M` counter now also resets per scene.
 
 ### Stage 3 — Convenience reads keyed by plate/well/field
 
-- [ ] First add pure resolvers (`resolve_well`, `resolve_field`) with normalization, duplicate, and out-of-range tests.
-- [ ] `read_field(filepath, well="A1", field=0)` should reuse the existing single-scene path and define whether `field` is the well-local index or a `RegionId`.
-- [ ] `read_well(filepath, well="A1")` should return a list/mapping when field shapes differ; stack only on explicit request after validating compatible shapes.
+- [x] First add pure resolvers (`resolve_well`, `resolve_field`) with normalization, duplicate, and out-of-range tests.
+- [x] Resolvers must fail clearly when `CziMetadata.hcs is None`. Only fall back to `CziSampleInfo` when it yields an unambiguous mapping (same rule as Stage 5.5); otherwise raise a precise error rather than manufacturing a plate.
+- [x] `read_field(filepath, well="A1", field=0)` should reuse the existing single-scene path (`read_6darray` with `planes={"S": (scene, scene)}`) and return the same `Tuple[array, CziMetadata]` shape. Define whether `field` is the well-local index or a `RegionId`.
+- [x] `read_well(filepath, well="A1")` should return a list/mapping when field shapes differ; stack only on explicit request after validating compatible shapes.
+
+**Stage 3 implementation notes (2026-07-14):**
+
+- `resolve_well(plate, well)` and `resolve_field(plate, well, field)` are pure
+  functions in [hcs.py](../src/czitools/metadata_tools/hcs.py). `resolve_well`
+  accepts `"B4"`, `"b04"` and NGFF-style `"B/4"` (the `/` is stripped before
+  normalization) and delegates duplicate/absent handling to `CziPlate.get_well`.
+- `resolve_field` treats an `int` as a well-local 0-based `field_index` (raises
+  `IndexError` out of range) and a `str` as a `RegionId` (raises `KeyError`
+  unless exactly one field matches). `bool` is rejected with `TypeError` because
+  it is an `int` subtype.
+- `read_field` / `read_well` in
+  [read_tools.py](../src/czitools/read_tools/read_tools.py) build `CziMetadata`,
+  call `_require_hcs_plate` (raises `ValueError` with the `hcs_status.reason`
+  when `mdata.hcs is None`), resolve the scene index, then reuse `read_6darray`
+  with `planes={"S": (scene, scene)}`. They return the same
+  `Tuple[array, CziMetadata]` shape as `read_6darray`. The `CziSampleInfo`
+  fallback is deferred to Stage 5.5 to keep a single resolver path.
+- `read_well` returns a **list** of per-field arrays by default (fields may have
+  different shapes); `stack=True` concatenates along the `S` axis and raises
+  `ValueError` if shapes differ. A `fields=[...]` selector accepts local indices
+  and/or `RegionId` strings. Unreadable fields are logged and skipped; an
+  all-empty result returns `(None, metadata)`.
+- New public names are exported from `czitools.read_tools`
+  (`read_field`, `read_well`) and `czitools.metadata_tools`
+  (`resolve_well`, `resolve_field`, `enrich_hcs_with_planetable`,
+  `well_relative_field_positions`).
+- Tests in `test_read_well.py` cover single-field reads, `RegionId` vs index
+  equivalence, the per-field list, `stack=True`, a field selector, and the
+  non-plate `ValueError` path, using the included `WP96_4Pos_B4-10_DAPI.czi`.
 
 ### Stage 4 — Deskew / lattice-lightsheet geometry
 
@@ -200,20 +281,29 @@ are needed before implementation:
 
 ### Stage 5 — OME-Zarr / OME-NGFF export (adapt from `omezarr_playground`)
 
-The local repository `omezarr_playground` contains prototype CZI → OME-Zarr scripts, primarily
-`scripts_and_notebooks/ome_zarr_utils.py`. Treat them as migration input, not yet as a packaged/stable API.
-That code currently depends on czitools for:
+The local repository `omezarr_playground` now ships an installable `czi_omezarr_utils`
+package (modules `conversion.py`, `hcs.py`, `display.py`, `processing.py`,
+`plotting.py`, `validation.py`, `logging_utils.py`). The older
+`scripts_and_notebooks/ome_zarr_utils.py` no longer exists. Treat the package as the
+migration source. Its conversion core depends on czitools for:
 
 - pixel reads: `czitools.read_tools.read_tools.read_6darray(..., use_xarray=True)`
 - metadata: `CziMetadata` including `mdata.scale`, `mdata.channelinfo`, and **plate-ish** metadata via `mdata.sample.*`
 
 Goal: incorporate the reusable conversion core into **czitools** as an optional feature. HCS export should use the canonical HCS layout resolver. The resolver may adapt legacy `CziSampleInfo` data when the mapping is complete and unambiguous; otherwise it must return a clear validation error.
 
+> **Note (2026-07-14):** Because the playground is already a structured package, Stage 5
+> is a *vendor + reconcile* effort, not a port of loose scripts. Most functions listed
+> below already exist with the stated names, `validate_ome_zarr(...)` already exists, and
+> known-good dependency pins are already declared in the package. The main new work is
+> reconciling the playground's own `PlateType`/`PlateConfiguration` plate model with
+> czitools' Stage 1 `CziPlate`/`CziWell` (see 5.5).
+
 #### 5.0. Compatibility and scope spike (must precede vendoring)
 
-- [ ] Inventory prototype functions, licenses, tests, private imports, GUI/plotting dependencies, and actual callers.
-- [ ] Test a small matrix of `ngff-zarr`, `ome-zarr`, `zarr` v2/v3, Python 3.12/3.13, and validators; record the NGFF version each backend really writes.
-- [ ] Choose one primary writer backend. Keep a second backend only if it provides a tested capability the primary one lacks.
+- [ ] Audit the existing `czi_omezarr_utils` package: public API (`__init__.py`), licenses, tests, private imports, GUI/plotting dependencies (`display.py`, `plotting.py`, `processing.py`), and actual callers.
+- [ ] Test a small matrix of `ngff-zarr`, `ome-zarr`, `zarr` v2/v3, Python 3.12/3.13, and validators; record the NGFF version each backend really writes. Reuse the package's known-good pins (`ngff-zarr>=0.34.0`, `dask>=2024.1,<2025.11`) as the starting point.
+- [ ] Choose one primary writer backend (ngff-zarr writes OME-NGFF v0.5; ome-zarr-py writes v0.4). Keep the second backend only if it provides a tested capability the primary one lacks.
 - [ ] Define the supported output contract (NGFF version, array axes, chunks, labels, overwrite/resume behavior) before declaring stable public functions.
 
 #### 5.1. Integration approach — vendor into czitools
@@ -230,23 +320,27 @@ Goal: incorporate the reusable conversion core into **czitools** as an optional 
 - [ ] Keep plotting/GUI/analysis dependencies out of the export extra unless those helpers are intentionally shipped and tested.
 - [ ] Implement a consistent error message when the export API is used without extras installed (raise `ImportError` with install hint).
 
-#### 5.3. Port core export functions (from `omezarr_playground/scripts_and_notebooks/ome_zarr_utils.py`)
+#### 5.3. Vendor core export functions (from `czi_omezarr_utils.conversion`)
+
+These already exist with the stated names; vendor them into czitools rather than rewriting.
 
 - [ ] `convert_czi2hcs_ngff(...)` (ngff-zarr backend, OME-NGFF v0.5).
 - [ ] `convert_czi2hcs_omezarr(...)` (ome-zarr-py backend; note: writes OME-NGFF v0.4 in practice).
 - [ ] `write_omezarr_ngff(...)` (single image multiscales).
 - [ ] `write_omezarr(...)` (single image, ome-zarr-py).
 
-#### 5.4. Port/merge supporting helpers
+#### 5.4. Vendor/merge supporting helpers
 
-- [ ] `extract_well_coordinates(...)` — consider relocating to czitools metadata/HCS utilities, so both metadata and export share a single well-path normalization.
-- [ ] `create_channel_list(...)` + `get_display(...)` — decide whether this belongs in czitools core (metadata-derived display settings) or stays export-specific.
-- [ ] `get_fieldimage(...)` — decide whether to keep as an internal export helper (multiscales per field) or expose publicly.
-- [ ] Add a new `validate_ome_zarr(...)` helper backed by the validator selected in the 5.0 spike; this function does not currently exist in the playground prototype.
-- [ ] `convert_hcs_omezarr2ozx(...)` — include the OZX conversion helper, including the Windows workaround described in `convert_czi2hcs_ngff`.
+- [ ] `extract_well_coordinates(...)` (from `czi_omezarr_utils.hcs`) — relocate to czitools metadata/HCS utilities so both metadata and export share a single well-path normalization. Reconcile its `pad_columns` behavior with the Stage 1 canonical path (`row/column`).
+- [ ] `create_channel_list(...)` + `get_display(...)` (from `czi_omezarr_utils.display`) — decide whether this belongs in czitools core (metadata-derived display settings) or stays export-specific.
+- [ ] `get_fieldimage(...)` (from `czi_omezarr_utils.display`) — decide whether to keep as an internal export helper (multiscales per field) or expose publicly.
+- [ ] `validate_ome_zarr(...)` (from `czi_omezarr_utils.validation`, OME-NGFF v0.5) — vendor as-is; it already exists, so no new implementation is required.
+- [ ] `convert_hcs_omezarr2ozx(...)` (from `czi_omezarr_utils.hcs`) — include the OZX conversion helper, including the Windows workaround described in `convert_czi2hcs_ngff`.
+- [ ] Explicitly exclude GUI/analysis-only helpers (`processing.py`, `plotting.py`, and Qt/napari code) from the export extra unless intentionally shipped and tested.
 
 #### 5.5. Align exporter with czitools HCS model (Stage 1) — with `CziSampleInfo` fallback
 
+- [ ] **Reconcile the two plate models.** `czi_omezarr_utils.hcs` has its own `PlateType`, `PlateConfiguration`, `define_plate`, and `define_plate_by_well_count`, which overlap and conflict with czitools' Stage 1 `CziPlate`/`CziWell`. Route the exporter through the Stage 1 canonical resolver and drop the playground's parallel plate abstraction rather than vendoring both.
 - [ ] Add one resolver that yields normalized well paths and per-well fields (`scene_index`, local `field_index`, optional `region_id`) from either source:
   - **Preferred:** the explicit HCS model (`CziMetadata.hcs`) when populated.
   - **Legacy adapter (conditional):** `CziSampleInfo` heuristics only when names, indices, and scene mapping are complete and unambiguous.

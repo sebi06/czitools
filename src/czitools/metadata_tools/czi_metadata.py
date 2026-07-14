@@ -36,7 +36,12 @@ from czitools.metadata_tools.channel import CziChannelInfo
 from czitools.metadata_tools.detector import CziDetector
 from czitools.metadata_tools.dimension import CziDimensions
 from czitools.metadata_tools.helper import DictObj
-from czitools.metadata_tools.hcs import CziHcsResult, CziPlate, build_hcs_metadata
+from czitools.metadata_tools.hcs import (
+    CziHcsResult,
+    CziPlate,
+    build_hcs_metadata,
+    enrich_hcs_with_planetable,
+)
 from czitools.metadata_tools.microscope import CziMicroscope
 from czitools.metadata_tools.objective import CziObjectives
 from czitools.metadata_tools.sample import CziSampleInfo
@@ -333,6 +338,27 @@ class CziMetadata:
         if value is None:
             raise RuntimeError(f"CziMetadata.{name} is not available.")
         return value
+
+    def enrich_hcs_positions(self, position_tolerance: float = 1.0) -> Optional[CziPlate]:
+        """Enrich the detected HCS plate with aggregated subblock positions.
+
+        This is opt-in because it scans subblock metadata (via the planetable)
+        and is unavailable for URL sources. On success it replaces
+        :attr:`hcs` with an enriched copy and returns it.
+
+        Args:
+            position_tolerance (float): Range (micrometers) above which a field
+                is flagged with ``position_conflict``. Defaults to 1.0.
+
+        Returns:
+            Optional[CziPlate]: The enriched plate, or ``None`` when no HCS
+                plate was detected.
+        """
+
+        if self.hcs is None:
+            return None
+        self.hcs = enrich_hcs_with_planetable(self.hcs, self.filepath, position_tolerance=position_tolerance)
+        return self.hcs
 
     @property
     def image_required(self) -> CziDimensions:
