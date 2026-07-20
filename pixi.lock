@@ -9287,7 +9287,6 @@ packages:
   - colorlog
   - pydantic
   - xarray
-  - xarray[complete]
   - seaborn ; extra == 'all'
   - plotly ; extra == 'all'
   - qtpy ; extra == 'all'
