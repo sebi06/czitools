@@ -1,8 +1,8 @@
-"""Demonstrate Stage 1 plate detection and Plate -> Well -> Field traversal.
+"""Demonstrate plate detection and Plate -> Well -> Field traversal.
 
 Run from the repository root:
 
-    python demo/scripts/hcs_stage1_plate_model.py
+    python demo/scripts/hcs_plate_model.py
 
 The model is immutable and retains both the original 1-based CZI well indices
 and normalized 0-based indices suitable for programmatic use.
@@ -14,7 +14,6 @@ import argparse
 from pathlib import Path
 
 from czitools.metadata_tools import CziMetadata
-
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_CZI = REPOSITORY_ROOT / "data" / "WP96_4Pos_B4-10_DAPI.czi"

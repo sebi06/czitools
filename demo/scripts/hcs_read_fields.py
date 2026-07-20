@@ -1,8 +1,8 @@
-"""Demonstrate Stage 3 convenience reads keyed by plate/well/field.
+"""Demonstrate convenience reads keyed by plate/well/field.
 
 Run from the repository root:
 
-    python demo/scripts/hcs_stage3_read_fields.py
+    python demo/scripts/hcs_read_fields.py
 
 The pure resolvers (`resolve_well`, `resolve_field`) turn well names and field
 selectors into concrete scenes, and `read_field` / `read_well` reuse the

@@ -481,6 +481,62 @@ def well_relative_field_positions(well: CziWell) -> Optional[dict[int, tuple[flo
     }
 
 
+def well_absolute_field_positions(
+    well: CziWell,
+    source: str = "stage",
+) -> Optional[dict[int, tuple[float, float]]]:
+    """Return each field's absolute XY position in the source coordinate frame.
+
+    Unlike :func:`well_relative_field_positions`, which expresses each field as an
+    offset from the well's field centroid, this returns the raw absolute
+    coordinates (micrometers, same axis orientation as the source) without any
+    origin subtraction. Two provenance-separated sources are supported and are
+    never mixed:
+
+    - ``"stage"`` uses the planetable-derived ``stage_x`` / ``stage_y`` values,
+      which are only populated after :func:`enrich_hcs_with_planetable` runs.
+    - ``"scene_center"`` uses ``Scene.CenterPosition`` (``scene_center_x`` /
+      ``scene_center_y``), available directly from scene XML.
+
+    It returns ``None`` (an explicit "unavailable" result) when any field lacks a
+    coordinate for the requested source, so a partial mapping is never returned.
+
+    Args:
+        well (CziWell): The well whose absolute field positions are requested.
+        source (str): Coordinate source to use, either ``"stage"`` (default) or
+            ``"scene_center"``.
+
+    Returns:
+        Optional[dict[int, tuple[float, float]]]: Mapping of ``field_index`` to
+            absolute ``(x, y)`` coordinates in micrometers, or ``None`` when the
+            requested source is unavailable for any field.
+
+    Raises:
+        ValueError: If ``source`` is not ``"stage"`` or ``"scene_center"``.
+
+    Notes:
+        ``"stage"`` positions only exist after :func:`enrich_hcs_with_planetable`
+        has run; calling this with ``source="stage"`` on a plate built from scene
+        XML alone returns ``None``. Before enrichment (or for URL sources that
+        cannot be enriched), use ``source="scene_center"`` for absolute values.
+    """
+
+    if source == "stage":
+        get_x, get_y = (lambda f: f.stage_x), (lambda f: f.stage_y)
+    elif source == "scene_center":
+        get_x, get_y = (lambda f: f.scene_center_x), (lambda f: f.scene_center_y)
+    else:
+        raise ValueError(f"Unsupported source {source!r}; expected 'stage' or 'scene_center'.")
+
+    positions = [(get_x(field_value), get_y(field_value)) for field_value in well.fields]
+    if not positions or any(x is None or y is None for x, y in positions):
+        return None
+
+    return {
+        field_value.field_index: (float(get_x(field_value)), float(get_y(field_value))) for field_value in well.fields
+    }
+
+
 # ---------------------------------------------------------------------------
 # Stage 3 - pure resolvers keyed by plate/well/field
 # ---------------------------------------------------------------------------

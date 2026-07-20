@@ -85,14 +85,14 @@ validators   = "*"
 czitools = { path = ".", editable = true }
 
 # --- czitools core (PyPI-only) -----------------------------------------------
-pylibCZIrw   = ">=5"
+pylibCZIrw   = ">=6"
 python-box   = { version = "*", extras = ["all"] }
 loguru       = "*"
 czifile      = "*"
 
 # --- Optional extras: [all] --------------------------------------------------
 plotly       = "*"
-napari       = ">=0.7.0"
+napari       = ">=0.8.0"
 magicgui     = "*"
 superqt      = "*"
 napari-ome-zarr = ">=0.8.0"

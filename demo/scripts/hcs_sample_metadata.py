@@ -1,4 +1,4 @@
-"""Demonstrate the Stage 0 sample/scene metadata improvements.
+"""Demonstrate the sample/scene metadata improvements.
 
 The preferred ``field_centerX/Y`` fields preserve missing-value information:
 an explicit coordinate of ``0.0`` remains ``0.0``, while absent or malformed
@@ -8,7 +8,7 @@ therefore cannot distinguish those two cases.
 
 Run from the repository root:
 
-    python demo/scripts/hcs_stage0_sample_metadata.py
+    python demo/scripts/hcs_sample_metadata.py
 
 Pass another CZI path as the first argument to inspect a different file.
 """
@@ -19,7 +19,6 @@ import argparse
 from pathlib import Path
 
 from czitools.metadata_tools import CziMetadata
-
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_CZI = REPOSITORY_ROOT / "data" / "WP96_4Pos_B4-10_DAPI.czi"
@@ -63,10 +62,7 @@ def show_sample_metadata(filepath: Path) -> None:
             "  scene center (preserves missing values): "
             f"({sample.field_centerX[0]}, {sample.field_centerY[0]}) micrometers"
         )
-        print(
-            "  legacy scene_stage view: "
-            f"({sample.scene_stageX[0]}, {sample.scene_stageY[0]})"
-        )
+        print("  legacy scene_stage view: " f"({sample.scene_stageX[0]}, {sample.scene_stageY[0]})")
 
     print("\nMissing-value behavior:")
     print("  field_centerX/Y keep a real 0.0 coordinate as 0.0.")
