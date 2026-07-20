@@ -36,6 +36,12 @@ from czitools.metadata_tools.channel import CziChannelInfo
 from czitools.metadata_tools.detector import CziDetector
 from czitools.metadata_tools.dimension import CziDimensions
 from czitools.metadata_tools.helper import DictObj
+from czitools.metadata_tools.hcs import (
+    CziHcsResult,
+    CziPlate,
+    build_hcs_metadata,
+    enrich_hcs_with_planetable,
+)
 from czitools.metadata_tools.microscope import CziMicroscope
 from czitools.metadata_tools.objective import CziObjectives
 from czitools.metadata_tools.sample import CziSampleInfo
@@ -87,6 +93,8 @@ class CziMetadata:
         detector (Optional[CziDetector]): Detector information.
         microscope (Optional[CziMicroscope]): Microscope information.
         sample (Optional[CziSampleInfo]): Sample information.
+        hcs (Optional[CziPlate]): Validated plate/well/field hierarchy, when detected.
+        hcs_status (CziHcsResult): HCS detection result and explanatory reason.
         add_metadata (Optional[CziAddMetaData]): Additional metadata.
         scene_size_consistent (Optional[Tuple[int]]): Consistency of scene sizes.
         verbose (bool): Verbose output for logging.
@@ -128,6 +136,10 @@ class CziMetadata:
     detector: Optional[CziDetector] = field(init=False, default=None)
     microscope: Optional[CziMicroscope] = field(init=False, default=None)
     sample: Optional[CziSampleInfo] = field(init=False, default=None)
+    hcs: Optional[CziPlate] = field(init=False, default=None)
+    hcs_status: CziHcsResult = field(
+        init=False, default_factory=lambda: CziHcsResult(False, "HCS detection has not run.")
+    )
     add_metadata: Optional[CziAddMetaData] = field(init=False, default=None)
     scene_size_consistent: Optional[Tuple[int, ...]] = field(init=False, default_factory=lambda: ())
     array6d_size: Optional[Tuple[int, ...]] = field(init=False, default=None)
@@ -309,6 +321,11 @@ class CziMetadata:
         # get information about sample carrier and wells etc.
         self.sample = CziSampleInfo(self.czi_box, verbose=self.verbose)
 
+        # Build the normalized HCS hierarchy from scene XML only. This does not
+        # scan subblocks or depend on the legacy sample-list sentinel values.
+        self.hcs_status = build_hcs_metadata(self.czi_box)
+        self.hcs = self.hcs_status.plate
+
         # get additional metainformation
         self.add_metadata = CziAddMetaData(self.czi_box, verbose=self.verbose)
 
@@ -321,6 +338,27 @@ class CziMetadata:
         if value is None:
             raise RuntimeError(f"CziMetadata.{name} is not available.")
         return value
+
+    def enrich_hcs_positions(self, position_tolerance: float = 1.0) -> Optional[CziPlate]:
+        """Enrich the detected HCS plate with aggregated subblock positions.
+
+        This is opt-in because it scans subblock metadata (via the planetable)
+        and is unavailable for URL sources. On success it replaces
+        :attr:`hcs` with an enriched copy and returns it.
+
+        Args:
+            position_tolerance (float): Range (micrometers) above which a field
+                is flagged with ``position_conflict``. Defaults to 1.0.
+
+        Returns:
+            Optional[CziPlate]: The enriched plate, or ``None`` when no HCS
+                plate was detected.
+        """
+
+        if self.hcs is None:
+            return None
+        self.hcs = enrich_hcs_with_planetable(self.hcs, self.filepath, position_tolerance=position_tolerance)
+        return self.hcs
 
     @property
     def image_required(self) -> CziDimensions:

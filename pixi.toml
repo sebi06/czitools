@@ -1,14 +1,126 @@
+# =============================================================================
+# czitools — standalone Pixi environment
+#
+# Creates a self-contained environment for developing and testing czitools
+# including all optional extras ([all], [omezarr], [omezarr-gui]).
+#
+# Usage:
+#   pixi install            – resolve & install everything
+#   pixi run test           – run the test suite
+#   pixi run test-no-net    – run tests excluding network-dependent ones
+#   pixi run start-napari   – open Napari
+# =============================================================================
+
 [workspace]
+authors = ["Rhode, Sebastian <sebrhode@gmail.com>"]
 channels = ["conda-forge"]
 name = "czitools"
-platforms = ["linux-64"]
-version = "0.1.0"
+platforms = ["win-64", "linux-64"]
+version = "0.17.2"
+description = "Tools to simplify reading CZI (Carl Zeiss Image) meta and pixel data."
 
-[tasks]
-
+# =============================================================================
+# CONDA-FORGE dependencies
+#
+# Prefer conda for packages that ship compiled C / Fortran extensions so that
+# ABI compatibility with the conda runtime is guaranteed.
+# =============================================================================
 [dependencies]
-python = ">=3.12,<3.14"
-pip = ">=26.1.1,<27"
+python = "3.12.*"
 
+# --- Scientific computing stack ----------------------------------------------
+numpy        = "*"
+scipy        = "*"
+dask         = "*"
+dask-image   = "*"
+xarray       = ">=2026.2.0"
+pandas       = "<3"
+scikit-image = ">=0.26.0"
+
+# --- Visualisation -----------------------------------------------------------
+matplotlib   = ">=3.7.0"
+seaborn      = ">=0.13.2"
+colormap     = "*"
+
+# --- Storage & I/O -----------------------------------------------------------
+zarr         = ">=3.0"
+fsspec       = "*"
+requests     = "*"
+
+# --- Qt bindings & widgets (conda-forge) -------------------------------------
+# MUST come from conda-forge to avoid DLL conflicts with PyPI Qt builds.
+# Exclude Qt 6.11.0/6.11.1 — broken DLLs on all platforms.
+pyqt6        = ">=6.7, !=6.11.0, !=6.11.1"
+qtpy         = "*"
+pyqtgraph    = "*"
+
+# --- Data validation ---------------------------------------------------------
+pydantic     = "*"
+ome-zarr-models = ">=1.7,<2"
+
+# --- Logging & progress ------------------------------------------------------
+colorlog     = "*"
+tqdm         = "*"
+progressbar2 = "*"
+python-dateutil = "*"
+
+# --- Dev / testing -----------------------------------------------------------
+ipykernel    = ">=5.2.0,<7"
+pytest       = "*"
+pytest-cov   = "*"
+setuptools   = "*"
+wheel        = "*"
+validators   = "*"
+
+# =============================================================================
+# PyPI dependencies
+#
+# Packages only available on PyPI or where the conda-forge version is
+# incompatible.  pixi reads pyproject.toml for the editable install and
+# skips packages already satisfied by conda above.
+# =============================================================================
 [pypi-dependencies]
-magicgui = ">=0.10.2, <0.11"
+
+# --- Self (editable install) -------------------------------------------------
+czitools = { path = ".", editable = true }
+
+# --- czitools core (PyPI-only) -----------------------------------------------
+pylibCZIrw   = ">=6"
+python-box   = { version = "*", extras = ["all"] }
+loguru       = "*"
+czifile      = "*"
+
+# --- Optional extras: [all] --------------------------------------------------
+plotly       = "*"
+napari       = ">=0.8.0"
+magicgui     = "*"
+superqt      = "*"
+napari-ome-zarr = ">=0.8.0"
+ndv          = { version = ">=0.5.0", extras = ["vispy", "pyqt"] }
+
+# --- Optional extras: [omezarr] ----------------------------------------------
+ngff-zarr    = ">=0.34.0"
+ome-zarr     = ">=0.16.0"
+
+# --- BioIO ecosystem ---------------------------------------------------------
+bioio        = "*"
+bioio-czi    = "*"
+bioio-ome-zarr = "*"
+aicspylibczi = ">=3.3.1"
+
+# --- Network / certificates --------------------------------------------------
+pip-system-certs = "*"
+
+# =============================================================================
+# Activation
+# =============================================================================
+[activation]
+env = { QT_API = "pyqt6", SSL_CERT_DIR = "" }
+
+# =============================================================================
+# Tasks
+# =============================================================================
+[tasks]
+test         = { cmd = "pytest src/czitools/_tests/ -v", description = "Run the full test suite" }
+test-no-net  = { cmd = "pytest src/czitools/_tests/ -v -m 'not network'", description = "Run tests excluding network-dependent ones" }
+start-napari = { cmd = "napari", description = "Open the Napari viewer" }

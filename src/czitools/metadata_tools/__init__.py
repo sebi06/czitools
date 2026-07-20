@@ -27,6 +27,18 @@ from .czi_metadata import (
 from .detector import CziDetector
 from .dimension import CziDimensions
 from .helper import AttachmentType, DictObj, ValueRange
+from .hcs import (
+    CziField,
+    CziHcsResult,
+    CziPlate,
+    CziWell,
+    build_hcs_metadata,
+    enrich_hcs_with_planetable,
+    normalize_well_name,
+    resolve_field,
+    resolve_well,
+    well_relative_field_positions,
+)
 from .microscope import CziMicroscope
 from .objective import CziObjectives
 from .sample import CziSampleInfo, get_scenes_for_well
@@ -49,6 +61,16 @@ __all__ = [
     "ValueRange",
     "AttachmentType",
     "DictObj",
+    "CziField",
+    "CziHcsResult",
+    "CziPlate",
+    "CziWell",
+    "build_hcs_metadata",
+    "enrich_hcs_with_planetable",
+    "normalize_well_name",
+    "resolve_field",
+    "resolve_well",
+    "well_relative_field_positions",
     "CziMicroscope",
     "CziObjectives",
     "CziSampleInfo",

@@ -195,8 +195,9 @@ data/Tumor_HE_RGB_disp.czi
 /demo/notebooks/_experimental
 /.github/pr_descriptions
 /.tools
-/_notes
 data/WP96_4Pos_B4-10_DAPI_planetable.csv
 # pixi environments
 .pixi/*
 !.pixi/config.toml
+/_notes/wellplate_improvments.md
+/_notes/HCS_Metadata_OME_CZI_Proposal_Balu.docx

@@ -44,6 +44,22 @@ def _get_dim_start(de: Any, dim: str, default: int = 0) -> int:
     return misc._de_dim_start(de, dim, default)
 
 
+def _get_scene_index(de: Any, default: int = 0) -> int:
+    """Return the scene index (S) for a czifile directory_entry.
+
+    czifile exposes the authoritative scene index via
+    ``directory_entry.scene_index``. The per-subblock ``start`` offset for the
+    ``S`` dimension is always 0 (each subblock spans a single scene), so it must
+    NOT be used as the scene index. Falls back to ``default`` when the scene
+    index is absent or negative (e.g. CZIs without scenes).
+    """
+    try:
+        idx = misc._de_scene_idx(de)
+    except (TypeError, ValueError, AttributeError):
+        return default
+    return idx if idx is not None and idx >= 0 else default
+
+
 def _get_bbox(de: Any) -> Tuple[int, int, int, int]:
     """Extract (xstart, ystart, width, height) from a czifile directory_entry."""
     xstart = misc._de_dim_start(de, "X")
@@ -122,7 +138,7 @@ def get_planetable(
             # only consider subblocks at full resolution (no pyramids)
             if not de.is_pyramid:
 
-                s = _get_dim_start(de, "S")
+                s = _get_scene_index(de)
                 t = _get_dim_start(de, "T")
                 c = _get_dim_start(de, "C")
                 z = _get_dim_start(de, "Z")
