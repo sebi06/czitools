@@ -36,7 +36,8 @@ dependencies = [
     "colorlog",
     "pydantic",
     "xarray",
-    "xarray[complete]",
+    # Note: xarray[complete] removed - extras don't work with conda-forge packages.
+    # When using pixi with conda-forge deps, conda installs the full package regardless.
 ]
 
 [project.optional-dependencies]
