@@ -212,7 +212,8 @@ def convert_czi2hcs_omezarr(
             do not yet support zarr v3.
 
     Returns:
-        Path: Output OME-Zarr HCS directory (``<stem>_HCSplate.ome.zarr``).
+        Path: Output OME-Zarr HCS directory (``<stem>_HCSplate_zarr2.ome.zarr`` or
+            ``<stem>_HCSplate_zarr3.ome.zarr``).
     """
     czi_path = Path(czi_filepath)
     if log_file_path is None:
@@ -227,7 +228,8 @@ def convert_czi2hcs_omezarr(
     logger.info("=" * 80)
     logger.info(f"Input CZI file: {czi_path.absolute()}")
 
-    zarr_output_path = czi_path.parent / f"{czi_path.stem}_HCSplate.ome.zarr"
+    zarr_suffix = "zarr2" if zarr_format == 2 else "zarr3"
+    zarr_output_path = czi_path.parent / f"{czi_path.stem}_HCSplate_{zarr_suffix}.ome.zarr"
 
     if zarr_output_path.exists():
         if overwrite:
@@ -412,6 +414,8 @@ def convert_czi2hcs_ngff(
         version=version,
     )
 
+    # TODO: check if this issue is actually already fixed with: https://github.com/fideus-labs/ngff-zarr/pull/518
+
     # On Windows, HCSPlateWriter.__exit__ zips while the temp store is still open,
     # causing a PermissionError (ngff-zarr issue #241). Workaround: write a .ome.zarr
     # directory first, then zip afterwards.
@@ -421,7 +425,7 @@ def convert_czi2hcs_ngff(
             "write_ozx_directly=True is not supported on Windows (ngff-zarr issue #241). "
             "Writing to .ome.zarr first, then converting to .ozx."
         )
-        write_path = base_dir / f"{stem}_ngff_plate.ome.zarr"
+        write_path = base_dir / f"{stem}_ngff_plate_zarr3.ome.zarr"
         if write_path.exists():
             shutil.rmtree(write_path)
             gc.collect()

@@ -270,8 +270,9 @@ def perform_conversion(
             logger.info("Array shape: %s, dtype: %s", array.shape, array.dtype)
 
             if package_choice == omezarr_package.OME_ZARR:
-                # Generate output path
-                zarr_output_path = Path(str(filepath)[:-4] + ".ome.zarr")
+                # Generate output path with zarr format suffix for ome-zarr-py backend
+                zarr_suffix = "zarr2" if zarr_format == 2 else "zarr3"
+                zarr_output_path = Path(str(filepath)[:-4] + f"_{zarr_suffix}.ome.zarr")
 
                 # Write OME-ZARR using ome-zarr-py backend
 
@@ -291,8 +292,8 @@ def perform_conversion(
                     # Generate output path with _ngff.ozx extension
                     zarr_output_path: Path = Path(str(filepath)[:-4] + "_ngff.ozx")
                 else:
-                    # Generate output path with _ngff.ome.zarr extension
-                    zarr_output_path: Path = Path(str(filepath)[:-4] + "_ngff.ome.zarr")
+                    # Generate output path with _ngff_zarr3.ome.zarr extension (ngff-zarr always writes v3)
+                    zarr_output_path: Path = Path(str(filepath)[:-4] + "_ngff_zarr3.ome.zarr")
 
                 # Write OME-ZARR using ngff-zarr backend.
                 # scale_factors=None -> size-aware, Y/X-only pyramid depth derived
