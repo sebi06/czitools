@@ -11,11 +11,62 @@ This repository provides a collection of tools to simplify reading CZI (Carl Zei
 
 For full documentation see **[sebi06.github.io/czitools](https://sebi06.github.io/czitools/)**.
 
-## Quick Start
+## Installation
+
+### Basic Installation
+
+Install the core package from PyPI:
 
 ```bash
 pip install czitools
 ```
+
+### Optional Features
+
+Install with additional functionality using optional extras:
+
+```bash
+# OME-ZARR export (conversion + validation)
+pip install czitools[omezarr]
+
+# OME-ZARR export with GUI converter application
+pip install czitools[omezarr-gui]
+
+# HCS plate analysis and visualization
+pip install czitools[analysis]
+
+# Everything (all optional dependencies)
+pip install czitools[all]
+```
+
+### Development Installation
+
+For development or to get the latest unreleased features:
+
+```bash
+# Clone the repository
+git clone https://github.com/sebi06/czitools.git
+cd czitools
+
+# Install in editable mode with all extras
+pip install -e .[all]
+```
+
+### Conda/Pixi Installation
+
+For conda users (recommended for complex scientific Python environments):
+
+```bash
+# Using conda
+conda install -c conda-forge czitools
+
+# Using pixi (modern conda alternative)
+pixi add czitools
+```
+
+For more details see the [Installation docs](https://sebi06.github.io/czitools/install/).
+
+## Quick Start
 
 ```python
 from czitools.metadata_tools.czi_metadata import CziMetadata
@@ -28,8 +79,30 @@ mdata = CziMetadata("path/to/file.czi")
 array6d, mdata = read_tools.read_6darray("path/to/file.czi", use_dask=True, use_xarray=True)
 ```
 
-For installation options (PyPI, editable, conda) see the [Installation docs](https://sebi06.github.io/czitools/install/).
 For detailed usage examples see the [Usage docs](https://sebi06.github.io/czitools/usage/).
+
+## Features
+
+### Analysis Tools
+
+The `analysis_tools` package provides image processing and HCS plate analysis utilities:
+
+```python
+from czitools.analysis_tools import ArrayProcessor, process_hcs_omezarr, create_well_plate_heatmap
+
+# Process 2D images with filters and object detection
+proc = ArrayProcessor(image_2d)
+filtered = proc.apply_gaussian_filter(sigma=2).apply_threshold(value=100)
+labelled, count, props = proc.label_objects(min_size=50, measure_params=True)
+
+# Analyze HCS OME-ZARR plates
+results = process_hcs_omezarr("plate.ome.zarr", channel2analyze=0)
+
+# Visualize results as heatmap
+fig = create_well_plate_heatmap(results, num_rows=8, num_cols=12)
+```
+
+**Requires:** `pip install czitools[analysis]`
 
 **CZI inside NDV**
 

@@ -60,6 +60,8 @@ all = [
     "bioio-czi",
     "bioio-ome-zarr",
     "ndv[pyqt,vispy]",
+    "scikit-image",
+    "matplotlib",
 ]
 # OME-Zarr / OME-NGFF export (czitools.export_tools): conversion + validation.
 omezarr = [
@@ -77,6 +79,14 @@ omezarr-gui = [
     "qtpy",
     "napari>=0.7.0",
     "napari-ome-zarr>=0.8.0",
+]
+# HCS analysis + plate visualization (czitools.analysis_tools).
+#   process_hcs_omezarr reads HCS OME-Zarr via ngff-zarr (hence czitools[omezarr]).
+analysis = [
+    "czitools[omezarr]",
+    "scikit-image",
+    "seaborn",
+    "matplotlib",
 ]
 docs = [
     "mkdocs-material",
