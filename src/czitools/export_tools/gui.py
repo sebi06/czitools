@@ -359,7 +359,7 @@ def perform_conversion(
     },
     package_choice={
         "label": "OME-ZARR Package",
-        "choices": [("ngff-zarr", omezarr_package.NGFF_ZARR), ("ome-zarr-py", omezarr_package.OME_ZARR)],
+        "choices": [("ome-zarr-py", omezarr_package.OME_ZARR), ("ngff-zarr", omezarr_package.NGFF_ZARR)],
         "tooltip": "Choose the backend library for OME-ZARR writing",
     },
     write_hcs={
@@ -406,7 +406,7 @@ def perform_conversion(
 )
 def czi_to_omezarr_converter(
     czi_file: Path = Path(),
-    package_choice: omezarr_package = omezarr_package.NGFF_ZARR,
+    package_choice: omezarr_package = omezarr_package.OME_ZARR,
     write_hcs: bool = False,
     use_ozx_format: bool = False,
     use_ozx_write_directly: bool = False,
