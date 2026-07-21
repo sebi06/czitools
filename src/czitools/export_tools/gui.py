@@ -34,6 +34,7 @@ from .conversion import (
     write_omezarr_ngff,
 )
 from .plate import convert_hcs_omezarr2ozx
+from .validation import validate_ome_zarr
 
 from czitools.read_tools import read_tools
 import xarray as xr
@@ -284,6 +285,25 @@ def perform_conversion(
                 logger.info("OME-ZARR created: %s", output_path)
 
         # Note: napari viewer will be opened on main thread after conversion completes
+
+        # ========== Validate the generated OME-ZARR ==========
+        if output_path is not None:
+            logger.info("-" * 80)
+            if str(output_path).lower().endswith(".ozx"):
+                # .ozx is a zipped single-file archive; the OME-NGFF validator opens
+                # directory/zip stores via zarr.open_group and does not support the
+                # .ozx layout directly, so validation is skipped for these outputs.
+                logger.info("Validation skipped: .ozx archives are not validated (%s)", output_path)
+            else:
+                logger.info("Validating OME-ZARR output against OME-NGFF v0.5...")
+                try:
+                    is_valid = validate_ome_zarr(output_path)
+                    if is_valid:
+                        logger.info("Validation result: VALID ✅")
+                    else:
+                        logger.warning("Validation result: INVALID ❌ (see messages above)")
+                except Exception as ve:
+                    logger.error("Validation raised an error: %s", ve, exc_info=True)
 
         logger.info("=" * 80)
         logger.info("Conversion completed successfully!")
