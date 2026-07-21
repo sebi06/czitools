@@ -76,6 +76,77 @@ def _to_ome_zarr_image(array: Union[np.ndarray, xr.DataArray, da.Array]) -> Unio
     return array
 
 
+def _retry_io(func, *args, _attempts: int = 5, _base_delay: float = 0.2, **kwargs):
+    """Run a file-writing callable, retrying on transient Windows ``PermissionError``.
+
+    Windows can raise ``PermissionError`` (WinError 5, "Access is denied") during
+    zarr's atomic rename (``os.replace`` of a ``.partial`` file onto the target
+    ``.zgroup`` / ``.zattrs`` / chunk file) when antivirus or the search indexer
+    briefly holds a handle to the just-written file. These locks clear within
+    milliseconds, so a short exponential backoff makes the write robust. The
+    wrapped operations here are idempotent (metadata attrs and chunk writes are
+    overwrites), so retrying is safe.
+
+    Args:
+        func: The file-writing callable to invoke.
+        *args: Positional arguments forwarded to ``func``.
+        _attempts (int): Maximum number of attempts before giving up.
+        _base_delay (float): Base delay (seconds) for exponential backoff.
+        **kwargs: Keyword arguments forwarded to ``func``.
+
+    Returns:
+        Any: The return value of ``func``.
+
+    Raises:
+        PermissionError: If all attempts fail.
+    """
+    last_exc: Optional[PermissionError] = None
+    for attempt in range(_attempts):
+        try:
+            return func(*args, **kwargs)
+        except PermissionError as exc:
+            last_exc = exc
+            if attempt == _attempts - 1:
+                break
+            delay = _base_delay * (2**attempt)
+            logger.warning(
+                "Transient file lock (%s); retrying in %.2fs (attempt %d/%d)...",
+                exc,
+                delay,
+                attempt + 1,
+                _attempts,
+            )
+            gc.collect()
+            time.sleep(delay)
+    assert last_exc is not None
+    raise last_exc
+
+
+def _read_single_scene(czi_path: Union[str, os.PathLike, Path], scene_index: int) -> xr.DataArray:
+    """Read a single CZI scene as a 6D (S=1, T, C, Z, Y, X) xarray DataArray.
+
+    HCS plates frequently have scenes (wells/fields) with slightly different Y/X
+    sizes. :func:`czitools.read_tools.read_6darray` returns ``None`` when asked to
+    read a whole plate with inconsistent scene shapes, so each scene must be read
+    on its own via the ``planes={"S": (i, i)}`` selection. This also bounds peak
+    memory to a single scene rather than the entire plate.
+
+    Args:
+        czi_path (Union[str, os.PathLike, Path]): Path to the input CZI file.
+        scene_index (int): Zero-based scene index to read.
+
+    Returns:
+        xr.DataArray: 6D array with a length-1 ``S`` dimension for the scene.
+
+    Raises:
+        ValueError: If the scene could not be read as an xarray DataArray.
+    """
+    array6d, _ = read_tools.read_6darray(str(czi_path), planes={"S": (scene_index, scene_index)}, use_xarray=True)
+    if not isinstance(array6d, xr.DataArray):
+        raise ValueError(f"Failed to read scene {scene_index} from {czi_path} as an xarray DataArray")
+    return array6d
+
+
 def _write_image_delayed(image, group, axes: str, chunks: tuple, fmt) -> list:
     """Schedule an ome-zarr-py image write as parallel (dask) chunk-write tasks.
 
@@ -97,7 +168,8 @@ def _write_image_delayed(image, group, axes: str, chunks: tuple, fmt) -> list:
     """
     if not isinstance(image, da.Array):
         image = da.from_array(image, chunks=chunks)
-    delayed = ome_zarr.writer.write_image(
+    delayed = _retry_io(
+        ome_zarr.writer.write_image,
         image=image,
         group=group,
         axes=axes,
@@ -126,7 +198,7 @@ def _ensure_plate_version_metadata(zarr_path: Union[str, os.PathLike, Path], ver
     plate_attrs["version"] = version
     ome_attrs["plate"] = plate_attrs
     attrs["ome"] = ome_attrs
-    root.attrs.update(attrs)
+    _retry_io(root.attrs.update, attrs)
 
 
 def _normalize_multiscale_level_names_v2(store_path: Union[str, os.PathLike, Path]) -> None:
@@ -239,8 +311,10 @@ def convert_czi2hcs_omezarr(
             logger.info(f"File exists at {zarr_output_path}. Set overwrite=True to remove.")
             return zarr_output_path
 
-    array6d, mdata = read_tools.read_6darray(str(czi_path), use_xarray=True)
-    assert isinstance(array6d, xr.DataArray), "Expected xarray DataArray from read_6darray with use_xarray=True"
+    # Read metadata once; scenes are read individually in the field loop below so
+    # plates with inconsistent scene shapes (variable well/field sizes) are
+    # supported -- reading the whole plate at once returns None in that case.
+    mdata = CziMetadata(str(czi_path))
 
     layout = resolve_hcs_layout(mdata, pad_columns=pad_columns)
     logger.info(f"Resolved plate layout from '{layout.source}': {len(layout.wells)} well(s)")
@@ -257,18 +331,17 @@ def convert_czi2hcs_omezarr(
     root = zarr.group(store=parsed.store)
 
     well_paths = [w.path for w in layout.wells]
-    write_plate_metadata(root, layout.row_names, layout.col_names, well_paths, fmt=_fmt)  # type: ignore[arg-type]
+    _retry_io(write_plate_metadata, root, layout.row_names, layout.col_names, well_paths, fmt=_fmt)  # type: ignore[arg-type]
 
     plate_attrs = root.attrs.asdict()
     plate_attrs["rows"] = [{"name": r} for r in sorted(layout.row_names)]
     plate_attrs["columns"] = [{"name": c} for c in sorted(layout.col_names, key=int)]
-    root.attrs.update(plate_attrs)
+    _retry_io(root.attrs.update, plate_attrs)
 
     # OMERO channel metadata is written on every field image so that readers such
     # as ngio / napari-ome-zarr-navigator can resolve per-channel display settings.
     channels_list = create_channel_list(mdata)
 
-    chunks = (1, 1, array6d.sizes["Z"], array6d.sizes["Y"], array6d.sizes["X"])
     # Collect chunk-parallel write tasks across ALL fields, then execute once with a
     # single dask.compute so fields (and their chunks) are written in parallel.
     delayed_writes: list = []
@@ -276,12 +349,15 @@ def convert_czi2hcs_omezarr(
     for well in layout.wells:
         well_group = root.require_group(well.row).require_group(well.column)
         field_paths = [str(field_index) for field_index, _ in well.fields]
-        write_well_metadata(well_group, field_paths, fmt=_fmt)  # type: ignore[arg-type]
+        _retry_io(write_well_metadata, well_group, field_paths, fmt=_fmt)  # type: ignore[arg-type]
 
         for field_index, scene_index in well.fields:
             image_group = well_group.require_group(str(field_index))
             logger.info(f"Scheduling Well: {well.path}, Field: {field_index}, Scene Index: {scene_index}")
-            image = array6d[scene_index, ...]
+            # Read one scene at a time (scenes may differ in Y/X size across the plate).
+            image = _read_single_scene(czi_path, scene_index).isel(S=0)
+            # Full Z-stack per (T, C); computed per scene since sizes may vary.
+            chunks = (1, 1, image.sizes["Z"], image.sizes["Y"], image.sizes["X"])
             delayed_writes.extend(
                 _write_image_delayed(
                     _to_ome_zarr_image(image),
@@ -291,7 +367,8 @@ def convert_czi2hcs_omezarr(
                     _fmt,
                 )
             )
-            ome_zarr.writer.add_metadata(
+            _retry_io(
+                ome_zarr.writer.add_metadata,
                 image_group,
                 {"omero": {"name": f"{well.path}/{field_index}", "channels": channels_list}},
                 fmt=_fmt,
@@ -299,7 +376,7 @@ def convert_czi2hcs_omezarr(
 
     if delayed_writes:
         logger.info("Writing %d field-pyramid task(s) in parallel (dask)...", len(delayed_writes))
-        dask.compute(*delayed_writes)
+        _retry_io(dask.compute, *delayed_writes)
 
     if zarr_format == 2:
         # Normalize multiscale level names (sN -> N) for legacy v0.4 readers.
@@ -380,8 +457,10 @@ def convert_czi2hcs_ngff(
             logger.info(f"File exists at {zarr_output_path}. Set overwrite=True to remove.")
             return zarr_output_path
 
-    array6d, mdata = read_tools.read_6darray(str(czi_path), use_xarray=True)
-    assert isinstance(array6d, xr.DataArray), "Expected xarray DataArray from read_6darray with use_xarray=True"
+    # Read metadata once; scenes are read individually in the writer loop below so
+    # plates with inconsistent scene shapes (variable well/field sizes) are
+    # supported -- reading the whole plate at once returns None in that case.
+    mdata = CziMetadata(str(czi_path))
 
     layout = resolve_hcs_layout(mdata, pad_columns=pad_columns)
     logger.info(f"Resolved plate layout from '{layout.source}': {len(layout.wells)} well(s)")
@@ -445,7 +524,9 @@ def convert_czi2hcs_ngff(
             logger.info(f"Creating Well: {well.well_id} (Row: {well.row}, Column: {well.column})")
             for field_index, scene_index in well.fields:
                 logger.info(f"Writing Well: {well.path}, Field: {field_index}, Scene Index: {scene_index}")
-                multiscales = get_fieldimage(array6d, scene_index, mdata)
+                # Read one scene at a time (scenes may differ in Y/X size across the plate).
+                array6d_scene = _read_single_scene(czi_path, scene_index)
+                multiscales = get_fieldimage(array6d_scene, 0, mdata)
                 if omero_channels:
                     multiscales.metadata.omero = nz.Omero(channels=omero_channels)
                 writer.write_well_image(
@@ -561,10 +642,11 @@ def write_omezarr(
     delayed = _write_image_delayed(_to_ome_zarr_image(array5d), root, axes, chunks, _fmt)
     if delayed:
         logger.info("Writing %d pyramid level(s) in parallel (dask)...", len(delayed))
-        dask.compute(*delayed)
+        _retry_io(dask.compute, *delayed)
 
     channels_list = create_channel_list(metadata)
-    ome_zarr.writer.add_metadata(
+    _retry_io(
+        ome_zarr.writer.add_metadata,
         root,
         {
             "omero": {
