@@ -62,6 +62,7 @@ all = [
     "ndv[pyqt,vispy]",
     "scikit-image",
     "matplotlib",
+    "tensorstore",  # optional async/parallel chunk I/O backend for ngff-zarr writes
 ]
 # OME-Zarr / OME-NGFF export (czitools.export_tools): conversion + validation.
 omezarr = [
@@ -71,6 +72,7 @@ omezarr = [
     "ome-zarr>=0.16.0",
     "zarr>=3.0",
     "ome-zarr-models>=1.7,<2",
+    "tensorstore",  # optional async/parallel chunk I/O backend for ngff-zarr writes
 ]
 # OME-Zarr export plus the MagicGUI converter application.
 omezarr-gui = [

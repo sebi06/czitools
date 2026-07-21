@@ -172,6 +172,8 @@ def perform_conversion(
     scene_id: int,
     write_ozx_directly: bool,
     write_ozx_afterwards: bool,
+    zarr_format: int = 3,
+    use_tensorstore: bool = True,
 ) -> Optional[str]:
     """
     Perform the CZI to OME-ZARR conversion with specified parameters.
@@ -184,6 +186,12 @@ def perform_conversion(
         write_ozx_afterwards: Convert to OZX after writing (NGFF-ZARR only)
         package_choice: Backend package (OME_ZARR or NGFF_ZARR)
         scene_id: Scene index to convert (for non-HCS mode with multiple scenes)
+        zarr_format: Zarr storage format for the ome-zarr-py backend (2 = OME-NGFF
+            v0.4 / zarr v2 for legacy viewers, 3 = zarr v3, default). Ignored by the
+            ngff-zarr backend, which always writes OME-NGFF v0.5 / zarr v3.
+        use_tensorstore: Use the tensorstore backend for parallel chunk I/O in the
+            ngff-zarr single-image path. Ignored by the ome-zarr-py backend and by
+            the HCS ngff path.
 
     Returns:
         str: Path to output OME-ZARR file, or None if conversion failed
@@ -210,7 +218,10 @@ def perform_conversion(
 
             if package_choice == omezarr_package.OME_ZARR:
                 output_path = convert_czi2hcs_omezarr(
-                    czi_filepath=str(filepath), overwrite=True, log_file_path=str(log_file_path)
+                    czi_filepath=str(filepath),
+                    overwrite=True,
+                    log_file_path=str(log_file_path),
+                    zarr_format=zarr_format,
                 )
             elif package_choice == omezarr_package.NGFF_ZARR:
                 if use_ozx_format and write_ozx_afterwards and not write_ozx_directly:
@@ -264,7 +275,13 @@ def perform_conversion(
 
                 # Write OME-ZARR using ome-zarr-py backend
 
-                output_path = write_omezarr(array, zarr_path=str(zarr_output_path), metadata=mdata, overwrite=True)
+                output_path = write_omezarr(
+                    array,
+                    zarr_path=str(zarr_output_path),
+                    metadata=mdata,
+                    overwrite=True,
+                    zarr_format=zarr_format,
+                )
 
                 logger.info("OME-ZARR created: %s", output_path)
 
@@ -277,8 +294,17 @@ def perform_conversion(
                     # Generate output path with _ngff.ome.zarr extension
                     zarr_output_path: Path = Path(str(filepath)[:-4] + "_ngff.ome.zarr")
 
-                # Write OME-ZARR using ngff-zarr backend
-                _ = write_omezarr_ngff(array, zarr_output_path, mdata, scale_factors=[2, 4], overwrite=True)
+                # Write OME-ZARR using ngff-zarr backend.
+                # scale_factors=None -> size-aware, Y/X-only pyramid depth derived
+                # from the plane size (see compute_pyramid_scale_factors).
+                _ = write_omezarr_ngff(
+                    array,
+                    zarr_output_path,
+                    mdata,
+                    scale_factors=None,
+                    overwrite=True,
+                    use_tensorstore=use_tensorstore,
+                )
 
                 output_path = str(zarr_output_path)
 
@@ -351,6 +377,20 @@ def perform_conversion(
         "label": "Create OZX archive after writing",
         "tooltip": "Enable OZX format for single-file OME-ZARR storage after writing",
     },
+    use_zarr_v2={
+        "label": "Write zarr v2 (legacy / OME-NGFF v0.4)",
+        "tooltip": (
+            "Write an OME-NGFF v0.4 / zarr v2 store instead of zarr v3, for legacy "
+            "viewers that do not support zarr v3 (ome-zarr-py backend only)."
+        ),
+    },
+    use_tensorstore={
+        "label": "Use tensorstore (parallel I/O)",
+        "tooltip": (
+            "Use the tensorstore backend for async/parallel chunk writes "
+            "(ngff-zarr backend, non-HCS only; requires the tensorstore package)."
+        ),
+    },
     scene_id={
         "label": "Scene ID",
         "min": 0,
@@ -370,6 +410,8 @@ def czi_to_omezarr_converter(
     use_ozx_format: bool = False,
     use_ozx_write_directly: bool = False,
     use_ozx_after_writing: bool = False,
+    use_zarr_v2: bool = False,
+    use_tensorstore: bool = True,
     scene_id: int = 0,
     show_napari: bool = False,
 ):
@@ -608,6 +650,8 @@ def on_convert_clicked() -> None:
     show_napari = czi_to_omezarr_converter.show_napari.value
     package_choice = czi_to_omezarr_converter.package_choice.value
     scene_id = czi_to_omezarr_converter.scene_id.value
+    use_zarr_v2 = czi_to_omezarr_converter.use_zarr_v2.value
+    use_tensorstore = czi_to_omezarr_converter.use_tensorstore.value
 
     # Validate that file exists
     if not czi_file.exists():
@@ -681,6 +725,8 @@ def on_convert_clicked() -> None:
             write_hcs=write_hcs,
             package_choice=package_choice,
             scene_id=scene_id,
+            zarr_format=(2 if use_zarr_v2 else 3),
+            use_tensorstore=use_tensorstore,
         )
 
         # Store result and mark as complete
@@ -777,6 +823,24 @@ def update_use_ozx_format_enabled_state() -> None:
         czi_to_omezarr_converter.use_ozx_format.value = False
 
     update_ozx_child_states()
+    update_zarr_v2_enabled_state()
+
+
+def update_zarr_v2_enabled_state() -> None:
+    """Enable the zarr v2 option only for the ome-zarr-py backend.
+
+    The ngff-zarr backend always writes OME-NGFF v0.5 / zarr v3, so the zarr v2
+    legacy option is disabled (and unchecked) whenever it is selected.
+    """
+    is_ome_zarr = czi_to_omezarr_converter.package_choice.value == omezarr_package.OME_ZARR
+    czi_to_omezarr_converter.use_zarr_v2.enabled = is_ome_zarr
+
+    if not is_ome_zarr and czi_to_omezarr_converter.use_zarr_v2.value:
+        czi_to_omezarr_converter.use_zarr_v2.value = False
+
+    # tensorstore parallel I/O only applies to the ngff-zarr backend.
+    is_ngff = czi_to_omezarr_converter.package_choice.value == omezarr_package.NGFF_ZARR
+    czi_to_omezarr_converter.use_tensorstore.enabled = is_ngff
 
 
 def on_use_ozx_format_changed(_: bool) -> None:
