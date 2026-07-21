@@ -24,15 +24,17 @@ from pathlib import Path
 from typing import Optional
 from magicgui import magicgui, widgets
 from czitools.metadata_tools.czi_metadata import CziMetadata
-from czitools.export_tools import (
-    omezarr_package,
+
+# Internal imports from sibling modules (avoid lazy-loading parent package)
+from ._logging import omezarr_package, setup_logging
+from .conversion import (
     convert_czi2hcs_omezarr,
     convert_czi2hcs_ngff,
     write_omezarr,
     write_omezarr_ngff,
-    setup_logging,
-    convert_hcs_omezarr2ozx,
 )
+from .plate import convert_hcs_omezarr2ozx
+
 from czitools.read_tools import read_tools
 import xarray as xr
 import logging
