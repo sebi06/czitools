@@ -7,11 +7,12 @@ which metadata sections are present.
 """
 
 from __future__ import annotations
-from typing import Union
+from typing import Any, List, Union
 import os
 from pylibCZIrw import czi as pyczi
 from box import Box
 import validators
+from pydantic import BaseModel, create_model, Field
 
 
 def get_czimd_box(filepath: Union[str, os.PathLike[str]]) -> Box:
@@ -138,3 +139,39 @@ def get_czimd_box(filepath: Union[str, os.PathLike[str]]) -> Box:
         czimd_box.has_layers = True
 
     return czimd_box
+
+
+def box_to_pydantic(box_obj: Box, model_name: str = "DynamicModel") -> BaseModel:
+    """
+    Convert Box to Pydantic model (better than dataclass for validation).
+
+    Args:
+        box_obj: Box object
+        model_name: Name for Pydantic model
+
+    Returns:
+        Pydantic model instance
+    """
+    field_definitions = {}
+
+    for key, value in box_obj.items():
+        # Infer type and set as field
+        if isinstance(value, Box):
+            # Nested Box -> recursive conversion
+            nested_model = box_to_pydantic(value, f"{model_name}{key.capitalize()}")
+            field_definitions[key] = (type(nested_model), Field(default=nested_model))
+        elif isinstance(value, list):
+            if value and isinstance(value[0], Box):
+                item_model = box_to_pydantic(value[0], f"{model_name}{key.capitalize()}Item")
+                nested_items = [box_to_pydantic(item, f"{model_name}{key.capitalize()}Item") for item in value]
+                field_definitions[key] = (List[type(item_model)], Field(default=nested_items))
+            else:
+                field_definitions[key] = (type(value), Field(default=value))
+        else:
+            field_type = type(value) if value is not None else Any
+            field_definitions[key] = (field_type, Field(default=value))
+
+    # Create Pydantic model dynamically
+    DynamicModel = create_model(model_name, **field_definitions)
+
+    return DynamicModel()

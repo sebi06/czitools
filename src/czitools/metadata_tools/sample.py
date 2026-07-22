@@ -13,10 +13,11 @@ gracefully; comments explain key fallbacks and edge cases.
 from typing import Union, List, Dict, Optional
 from dataclasses import dataclass, field
 from box import Box, BoxList
+from pydantic import BaseModel
 import os
 from collections import Counter
 from czitools.utils import logging_tools
-from czitools.utils.box import get_czimd_box
+from czitools.utils.box import get_czimd_box, box_to_pydantic
 from czitools.utils.planetable import get_planetable
 from czitools.metadata_tools.dimension import CziDimensions
 import traceback
@@ -49,6 +50,8 @@ class CziSampleInfo:
         image_stageX (Optional[float]): X coordinate of the image stage.
         image_stageY (Optional[float]): Y coordinate of the image stage.
         multipos_per_well (bool): Flag to indicate multiple positions per well.
+        sample_carrier (Optional[BaseModel]): Pydantic model representing the sample carrier information.
+        specimen (Optional[BaseModel]): Pydantic model representing the specimen information.
         verbose (bool): Flag to enable verbose logging.
     """
 
@@ -69,6 +72,8 @@ class CziSampleInfo:
     image_stageX: Optional[float] = field(init=False, default=None)
     image_stageY: Optional[float] = field(init=False, default=None)
     multipos_per_well: bool = False
+    sample_carrier: Optional[BaseModel] = field(init=False, default=None)
+    specimen: Optional[BaseModel] = field(init=False, default=None)
     verbose: bool = False
 
     def __post_init__(self):
@@ -82,6 +87,26 @@ class CziSampleInfo:
             czi_box = self.czisource
         else:
             czi_box = get_czimd_box(self.czisource)
+
+        # try to extract sample holder information
+        try:
+            self.sample_carrier = box_to_pydantic(
+                czi_box.ImageDocument.Metadata.Experiment.ExperimentBlocks.AcquisitionBlock.SubDimensionSetups.RegionsSetup.SampleHolder.Template,
+                "SampleCarrierInfo",
+            )
+        except AttributeError:
+            if self.verbose:
+                logger.info("CZI metadata do not contain sample carrier information.")
+
+        # try to extract the specimen information
+        try:
+            # self.specimen = czi_box.ImageDocument.Metadata.Information.Image.Specimen
+
+            self.specimen = box_to_pydantic(czi_box.ImageDocument.Metadata.Information.Image.Specimen, "SpecimenInfo")
+
+        except AttributeError:
+            if self.verbose:
+                logger.info("CZI metadata do not contain specimen information.")
 
         # Determine whether the CZI contains explicit scene/well information
         # using the pylibCZIrw-backed `CziDimensions` helper. If `SizeS` is
