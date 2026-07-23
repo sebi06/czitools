@@ -173,7 +173,7 @@ def _write_image_delayed(image, group, axes: str, chunks: tuple, fmt) -> list:
         image=image,
         group=group,
         axes=axes,
-        storage_options=dict(chunks=chunks),
+        storage_options=dict(chunks=chunks, overwrite=True),
         fmt=fmt,
         compute=False,
     )
@@ -258,6 +258,181 @@ def _normalize_multiscale_level_names_v2(store_path: Union[str, os.PathLike, Pat
             zattrs_path.write_text(json.dumps(attrs), encoding="utf-8")
 
 
+def _normalize_multiscale_level_names_v3(store_path: Union[str, os.PathLike, Path]) -> None:
+    """Rename zarr v3 multiscale levels from ``sN`` to ``N`` in a directory store.
+
+    ome-zarr-py hardcodes ``s0, s1, ...`` as pyramid level names inside
+    ``_write_pyramid_to_zarr`` (not overridable via any public API parameter).
+    The OME-NGFF v0.5 specification examples and all reference implementations
+    (e.g. IDR/EBI datasets created with ``ome2024-ngff-challenge``) use plain
+    numeric names (``0, 1, ...``). This walks a directory-based zarr v3 store,
+    renames each ``sN`` level directory to ``N`` and rewrites the matching
+    ``multiscales[].datasets[].path`` entries in every field group's
+    ``zarr.json``.
+
+    Args:
+        store_path (Union[str, os.PathLike, Path]): Path to the zarr v3 store root.
+    """
+    root = Path(store_path)
+    pattern = re.compile(r"^s(\d+)$")
+    zarr_json_paths = list(root.rglob("zarr.json"))
+    total = len(zarr_json_paths)
+
+    logger.info(
+        "Finalizing v3 store: normalizing %d node(s) (renaming pyramid levels sN -> N)...",
+        total,
+    )
+
+    iterator: object = zarr_json_paths
+    if HAS_PROGRESSBAR and total > 0:
+        widgets = [
+            "Finalizing v3 store ",
+            progressbar.Percentage(),
+            " ",
+            progressbar.Bar(),
+            " ",
+            progressbar.SimpleProgress(),
+        ]
+        iterator = progressbar.progressbar(zarr_json_paths, widgets=widgets, max_value=total, term_width=80)
+
+    for zarr_json_path in iterator:  # type: ignore[assignment]
+        try:
+            data = json.loads(zarr_json_path.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            continue
+        # Only process group nodes; array nodes (the pyramid levels themselves)
+        # don't have multiscales metadata.
+        if data.get("node_type") != "group":
+            continue
+        ome_attrs = data.get("attributes", {}).get("ome", {})
+        multiscales = ome_attrs.get("multiscales")
+        if not multiscales:
+            continue
+        group_dir = zarr_json_path.parent
+        changed = False
+        for multiscale in multiscales:
+            for dataset in multiscale.get("datasets", []):
+                match = pattern.match(str(dataset.get("path", "")))
+                if match is None:
+                    continue
+                new_name = match.group(1)
+                src = group_dir / dataset["path"]
+                dst = group_dir / new_name
+                if src.is_dir() and not dst.exists():
+                    src.rename(dst)
+                dataset["path"] = new_name
+                changed = True
+        if changed:
+            zarr_json_path.write_text(json.dumps(data), encoding="utf-8")
+
+
+def _normalize_multiscale_level_names_ngff(store_path: Union[str, os.PathLike, Path]) -> None:
+    """Rename ngff-zarr pyramid levels from ``scaleN/image-name`` to ``N``.
+
+    ngff-zarr hardcodes ``scaleN/{NgffImage.name}`` as the on-disk path for
+    every pyramid level — ``scaleN`` is an intermediate zarr group and
+    ``{name}`` is the array itself one level deeper. This 2-level structure is
+    incompatible with the OME-NGFF v0.5 convention used by every reference
+    implementation (IDR/EBI, ome2024-ngff-challenge), which stores each level
+    directly at a plain numeric path (``0``, ``1``, …) relative to the field
+    group.
+
+    The function:
+    1. Walks all ``zarr.json`` files in the store.
+    2. For each field-group node that has ``ome.multiscales`` with paths
+       matching ``scaleN/…``: moves the array directory (``scaleN/name/``) to
+       the flat numeric path (``N/``), deletes the now-empty ``scaleN/``
+       scaffold, and updates the ``datasets[].path`` entries in the JSON.
+    3. Rewrites the ``consolidated_metadata`` keys embedded in the same
+       ``zarr.json`` so that ``scaleN`` intermediate-group entries are dropped
+       and ``scaleN/name`` array entries are renamed to ``N``.
+
+    Args:
+        store_path (Union[str, os.PathLike, Path]): Path to the zarr v3 store root.
+    """
+    root = Path(store_path)
+    # Match "scale0", "scale0/anything" etc. — capture the level index N.
+    scale_prefix_re = re.compile(r"^scale(\d+)")
+    intermediate_group_re = re.compile(r"^scale\d+$")
+    zarr_json_paths = list(root.rglob("zarr.json"))
+    total = len(zarr_json_paths)
+
+    logger.info(
+        "Finalizing ngff-zarr store: normalizing %d node(s) (renaming scaleN/name -> N)...",
+        total,
+    )
+
+    iterator: object = zarr_json_paths
+    if HAS_PROGRESSBAR and total > 0:
+        widgets = [
+            "Finalizing ngff store ",
+            progressbar.Percentage(),
+            " ",
+            progressbar.Bar(),
+            " ",
+            progressbar.SimpleProgress(),
+        ]
+        iterator = progressbar.progressbar(zarr_json_paths, widgets=widgets, max_value=total, term_width=80)
+
+    for zarr_json_path in iterator:  # type: ignore[assignment]
+        try:
+            data = json.loads(zarr_json_path.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            continue
+        if data.get("node_type") != "group":
+            continue
+        ome_attrs = data.get("attributes", {}).get("ome", {})
+        multiscales = ome_attrs.get("multiscales")
+        if not multiscales:
+            continue
+
+        group_dir = zarr_json_path.parent
+        changed = False
+
+        for multiscale in multiscales:
+            for dataset in multiscale.get("datasets", []):
+                old_path = str(dataset.get("path", ""))
+                match = scale_prefix_re.match(old_path)
+                if match is None:
+                    continue
+                new_name = match.group(1)  # "0", "1", ...
+
+                # old_path is 2-level: "scaleN/image-name" → the array dir
+                src = group_dir / Path(old_path)
+                dst = group_dir / new_name
+                if src.is_dir() and not dst.exists():
+                    shutil.move(str(src), str(dst))
+                    # Remove the now-vacated intermediate "scaleN/" scaffold.
+                    # It may still contain a zarr.json group metadata file.
+                    scale_dir = group_dir / Path(old_path).parts[0]
+                    if scale_dir.is_dir():
+                        shutil.rmtree(scale_dir, ignore_errors=True)
+
+                dataset["path"] = new_name
+                changed = True
+
+        if not changed:
+            continue
+
+        # Rewrite the consolidated_metadata embedded in this zarr.json:
+        # drop "scaleN" intermediate-group entries; rename "scaleN/name" → "N".
+        consol = data.get("consolidated_metadata", {})
+        if isinstance(consol, dict) and "metadata" in consol:
+            old_meta: dict = consol["metadata"]
+            new_meta: dict = {}
+            for key, val in old_meta.items():
+                m = scale_prefix_re.match(key)
+                if m is None:
+                    new_meta[key] = val
+                elif intermediate_group_re.match(key):
+                    pass  # drop the "scaleN" intermediate-group entry
+                else:
+                    new_meta[m.group(1)] = val  # "scaleN/name" → "N"
+            consol["metadata"] = new_meta
+
+        zarr_json_path.write_text(json.dumps(data), encoding="utf-8")
+
+
 # ---------------------------------------------------------------------------
 # ome-zarr-py HCS conversion
 # ---------------------------------------------------------------------------
@@ -269,6 +444,7 @@ def convert_czi2hcs_omezarr(
     log_file_path: Optional[Union[str, os.PathLike, Path]] = None,
     pad_columns: bool = True,
     zarr_format: int = 3,
+    normalize_level_paths: bool = True,
 ) -> Path:
     """Convert a CZI file to OME-Zarr HCS format using the ome-zarr-py backend.
 
@@ -282,6 +458,10 @@ def convert_czi2hcs_omezarr(
             zarr v3 store; ``2`` writes an OME-NGFF v0.4 / zarr v2 store for
             compatibility with legacy readers (e.g. vizarr-based web viewers) that
             do not yet support zarr v3.
+        normalize_level_paths (bool): Rename pyramid level directories from the
+            ome-zarr-py convention (``sN``) to the OME-NGFF v0.5 / IDR convention
+            (plain integers ``N``). Defaults to ``True``. Set to ``False`` to keep
+            the raw ome-zarr-py output for debugging or compatibility testing.
 
     Returns:
         Path: Output OME-Zarr HCS directory (``<stem>_HCSplate_zarr2.ome.zarr`` or
@@ -378,9 +558,17 @@ def convert_czi2hcs_omezarr(
         logger.info("Writing %d field-pyramid task(s) in parallel (dask)...", len(delayed_writes))
         _retry_io(dask.compute, *delayed_writes)
 
-    if zarr_format == 2:
-        # Normalize multiscale level names (sN -> N) for legacy v0.4 readers.
-        _normalize_multiscale_level_names_v2(zarr_output_path)
+    if normalize_level_paths:
+        if zarr_format == 2:
+            # Normalize multiscale level names (sN -> N) for legacy v0.4 readers.
+            _normalize_multiscale_level_names_v2(zarr_output_path)
+        else:
+            # Normalize multiscale level names (sN -> N) to match OME-NGFF v0.5
+            # convention: ome-zarr-py hardcodes "s0", "s1" internally but all
+            # reference implementations (IDR/EBI) use plain numeric "0", "1".
+            _normalize_multiscale_level_names_v3(zarr_output_path)
+    else:
+        logger.info("Skipping pyramid level path normalization (normalize_level_paths=False).")
 
     logger.info("=" * 80)
     logger.info("Conversion completed successfully!")
@@ -404,6 +592,7 @@ def convert_czi2hcs_ngff(
     version: str = "0.5",
     output_dir: Optional[Union[str, os.PathLike, Path]] = None,
     pad_columns: bool = True,
+    normalize_level_paths: bool = True,
 ) -> Path:
     """Convert a CZI file to OME-Zarr HCS format using the ngff-zarr backend.
 
@@ -418,9 +607,14 @@ def convert_czi2hcs_ngff(
         output_dir (Optional[Union[str, os.PathLike, Path]]): Output directory.
             Defaults to the CZI file's parent directory.
         pad_columns (bool): Zero-pad column numbers in well paths (e.g. ``"04"``).
+        normalize_level_paths (bool): Rename pyramid level directories from the
+            ngff-zarr convention (``scaleN/image-name``) to the OME-NGFF v0.5 / IDR
+            convention (plain integers ``N``). Defaults to ``True``. Set to
+            ``False`` to keep the raw ngff-zarr output for debugging or
+            compatibility testing.
 
     Returns:
-        Path: Output HCS directory (``<stem>_ngff_plate.ome.zarr``) or ``.ozx`` file.
+        Path: Output HCS directory (``<stem>_ngff_plate_zarr3.ome.zarr``) or ``.ozx`` file.
     """
     czi_path = Path(czi_filepath)
     output_path_obj: Optional[Path] = Path(output_dir) if output_dir is not None else None
@@ -440,7 +634,7 @@ def convert_czi2hcs_ngff(
     logger.info(f"Plate name: {plate_name}")
 
     stem = czi_path.stem
-    suffix = "_ngff_plate.ozx" if write_ozx_directly else "_ngff_plate.ome.zarr"
+    suffix = "_ngff_plate.ozx" if write_ozx_directly else "_ngff_plate_zarr3.ome.zarr"
     base_dir = output_path_obj if output_path_obj is not None else czi_path.parent
     zarr_output_path = base_dir / f"{stem}{suffix}"
 
@@ -537,6 +731,13 @@ def convert_czi2hcs_ngff(
                 )
 
     _ensure_plate_version_metadata(write_path, version)
+
+    if normalize_level_paths:
+        # Normalize pyramid level paths: ngff-zarr writes "scaleN/image-name" but
+        # OME-NGFF v0.5 convention expects plain numeric paths "0", "1", …
+        _normalize_multiscale_level_names_ngff(write_path)
+    else:
+        logger.info("Skipping pyramid level path normalization (normalize_level_paths=False).")
 
     if _win_ozx_workaround:
         logger.info("Converting intermediate .ome.zarr to .ozx (Windows workaround)...")

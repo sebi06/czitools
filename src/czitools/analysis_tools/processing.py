@@ -4,12 +4,12 @@
 Provides the :class:`ArrayProcessor` class for filtering, thresholding, and
 object counting on 2D NumPy arrays.
 
-Vendored (with light edits) from ``czi_omezarr_utils.processing`` in the
-``omezarr_playground`` repository.
+Note:
+    These features require optional dependencies. Install them with:
 
-These features require optional dependencies. Install them with::
-
+    ```
     pip install "czitools[analysis]"
+    ```
 """
 
 from typing import Tuple, Optional, Literal

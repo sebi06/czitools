@@ -174,6 +174,7 @@ def perform_conversion(
     write_ozx_afterwards: bool,
     zarr_format: int = 3,
     use_tensorstore: bool = True,
+    normalize_level_paths: bool = True,
 ) -> Optional[str]:
     """
     Perform the CZI to OME-ZARR conversion with specified parameters.
@@ -192,6 +193,8 @@ def perform_conversion(
         use_tensorstore: Use the tensorstore backend for parallel chunk I/O in the
             ngff-zarr single-image path. Ignored by the ome-zarr-py backend and by
             the HCS ngff path.
+        normalize_level_paths: Rename pyramid level directories to plain integers
+            (0, 1, 2 …) as required by the OME-NGFF v0.5 / IDR convention.
 
     Returns:
         str: Path to output OME-ZARR file, or None if conversion failed
@@ -222,11 +225,12 @@ def perform_conversion(
                     overwrite=True,
                     log_file_path=str(log_file_path),
                     zarr_format=zarr_format,
+                    normalize_level_paths=normalize_level_paths,
                 )
             elif package_choice == omezarr_package.NGFF_ZARR:
                 if use_ozx_format and write_ozx_afterwards and not write_ozx_directly:
                     # OZX-after mode: write the intermediate .ome.zarr to a temp directory
-                    # so it never collides with (or deletes) an existing _ngff_plate.ome.zarr
+                    # so it never collides with (or deletes) an existing _ngff_plate_zarr3.ome.zarr
                     # produced by a previous conversion in the same session.
                     tmp_dir = tempfile.mkdtemp(prefix="omezarr_hcs_tmp_")
                     try:
@@ -236,6 +240,7 @@ def perform_conversion(
                             write_ozx_directly=False,
                             log_file_path=str(log_file_path),
                             output_dir=tmp_dir,
+                            normalize_level_paths=normalize_level_paths,
                         )
                         # Zip the temp zarr to an ozx also inside tmp_dir
                         tmp_ozx = convert_hcs_omezarr2ozx(tmp_zarr, remove_omezarr=True)
@@ -253,6 +258,7 @@ def perform_conversion(
                         overwrite=True,
                         write_ozx_directly=write_ozx_directly,
                         log_file_path=str(log_file_path),
+                        normalize_level_paths=normalize_level_paths,
                     )
 
             logger.info("HCS-ZARR created: %s", output_path)
@@ -392,6 +398,14 @@ def perform_conversion(
             "(ngff-zarr backend, non-HCS only; requires the tensorstore package)."
         ),
     },
+    normalize_level_paths={
+        "label": "Normalize pyramid level paths (sN / scaleN → N)",
+        "tooltip": (
+            "Rename pyramid level directories to plain integers (0, 1, 2 …) as required "
+            "by the OME-NGFF v0.5 convention used by IDR/EBI and all reference "
+            "implementations. Disable only for debugging raw library output."
+        ),
+    },
     scene_id={
         "label": "Scene ID",
         "min": 0,
@@ -412,7 +426,8 @@ def czi_to_omezarr_converter(
     use_ozx_write_directly: bool = False,
     use_ozx_after_writing: bool = False,
     use_zarr_v2: bool = False,
-    use_tensorstore: bool = True,
+    use_tensorstore: bool = False,
+    normalize_level_paths: bool = True,
     scene_id: int = 0,
     show_napari: bool = False,
 ):
@@ -653,6 +668,7 @@ def on_convert_clicked() -> None:
     scene_id = czi_to_omezarr_converter.scene_id.value
     use_zarr_v2 = czi_to_omezarr_converter.use_zarr_v2.value
     use_tensorstore = czi_to_omezarr_converter.use_tensorstore.value
+    normalize_level_paths = czi_to_omezarr_converter.normalize_level_paths.value
 
     # Validate that file exists
     if not czi_file.exists():
@@ -728,6 +744,7 @@ def on_convert_clicked() -> None:
             scene_id=scene_id,
             zarr_format=(2 if use_zarr_v2 else 3),
             use_tensorstore=use_tensorstore,
+            normalize_level_paths=normalize_level_paths,
         )
 
         # Store result and mark as complete
