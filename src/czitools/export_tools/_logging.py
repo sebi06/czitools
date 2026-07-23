@@ -42,6 +42,14 @@ def setup_logging(
         isinstance(h, logging.StreamHandler) and not isinstance(h, logging.FileHandler) for h in root_logger.handlers
     )
 
+    # Reconfigure if the target log file changed (different conversion run).
+    if log_file_path is not None and has_file_handler and not force_reconfigure:
+        target = str(Path(log_file_path))
+        for h in root_logger.handlers:
+            if isinstance(h, logging.FileHandler) and h.baseFilename != target:
+                force_reconfigure = True
+                break
+
     if has_file_handler and has_console_handler and not force_reconfigure:
         return root_logger
 
@@ -55,10 +63,18 @@ def setup_logging(
 
         console_handler = logging.StreamHandler()
         console_handler.setFormatter(formatter)
+        # Force UTF-8 on Windows where the default console encoding is cp1252.
+        # This prevents UnicodeEncodeError when log messages contain non-ASCII
+        # characters (e.g. the micro sign in "um" or emoji in validation messages).
+        if hasattr(console_handler.stream, "reconfigure"):
+            try:
+                console_handler.stream.reconfigure(encoding="utf-8", errors="replace")
+            except Exception:
+                pass
         root_logger.addHandler(console_handler)
 
         if log_file_path:
-            file_handler = logging.FileHandler(str(log_file_path))
+            file_handler = logging.FileHandler(str(log_file_path), encoding="utf-8")
             file_handler.setFormatter(formatter)
             root_logger.addHandler(file_handler)
 

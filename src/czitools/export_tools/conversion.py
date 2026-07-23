@@ -147,7 +147,15 @@ def _read_single_scene(czi_path: Union[str, os.PathLike, Path], scene_index: int
     return array6d
 
 
-def _write_image_delayed(image, group, axes: str, chunks: tuple, fmt) -> list:
+def _write_image_delayed(
+    image,
+    group,
+    axes: str,
+    chunks: tuple,
+    fmt,
+    scale: Optional[Dict[str, float]] = None,
+    axes_units: Optional[Dict[str, str]] = None,
+) -> list:
     """Schedule an ome-zarr-py image write as parallel (dask) chunk-write tasks.
 
     The array is wrapped in a dask array (chunked to ``chunks``) so ome-zarr-py's
@@ -162,6 +170,11 @@ def _write_image_delayed(image, group, axes: str, chunks: tuple, fmt) -> list:
         axes (str): Axis string, e.g. ``"tczyx"``.
         chunks (tuple): Chunk shape used for both the dask array and zarr storage.
         fmt: ome-zarr ``Format`` instance.
+        scale (Optional[Dict[str, float]]): Physical pixel sizes per axis (e.g.
+            ``{"z": 1.0, "y": 0.325, "x": 0.325}``). Written as
+            ``coordinateTransformations`` in the OME-NGFF multiscales metadata.
+        axes_units (Optional[Dict[str, str]]): Unit per spatial/temporal axis (e.g.
+            ``{"z": "micrometer", "y": "micrometer", "x": "micrometer"}``).
 
     Returns:
         list: A list of dask-delayed write tasks (possibly empty).
@@ -175,6 +188,8 @@ def _write_image_delayed(image, group, axes: str, chunks: tuple, fmt) -> list:
         axes=axes,
         storage_options=dict(chunks=chunks, overwrite=True),
         fmt=fmt,
+        scale=scale,
+        axes_units=axes_units,
         compute=False,
     )
     return list(delayed) if delayed else []
@@ -522,6 +537,22 @@ def convert_czi2hcs_omezarr(
     # as ngio / napari-ome-zarr-navigator can resolve per-channel display settings.
     channels_list = create_channel_list(mdata)
 
+    _mscale = mdata.scale
+    _phys_scale = {
+        "t": 1.0,
+        "c": 1.0,
+        "z": float(_mscale.Z) if (_mscale is not None and _mscale.Z is not None) else 1.0,
+        "y": float(_mscale.Y) if (_mscale is not None and _mscale.Y is not None) else 1.0,
+        "x": float(_mscale.X) if (_mscale is not None and _mscale.X is not None) else 1.0,
+    }
+    _phys_units = {"t": "second", "z": "micrometer", "y": "micrometer", "x": "micrometer"}
+    logger.info(
+        "Physical scale (um): X=%.6f  Y=%.6f  Z=%.6f",
+        _phys_scale["x"],
+        _phys_scale["y"],
+        _phys_scale["z"],
+    )
+
     # Collect chunk-parallel write tasks across ALL fields, then execute once with a
     # single dask.compute so fields (and their chunks) are written in parallel.
     delayed_writes: list = []
@@ -545,6 +576,8 @@ def convert_czi2hcs_omezarr(
                     "".join(str(d).lower() for d in image.dims),
                     chunks,
                     _fmt,
+                    scale=_phys_scale,
+                    axes_units=_phys_units,
                 )
             )
             _retry_io(
@@ -837,10 +870,34 @@ def write_omezarr(
     chunks = (1, 1, array5d.sizes["Z"], array5d.sizes["Y"], array5d.sizes["X"])
     axes = "".join(str(d).lower() for d in array5d.dims)
 
+    _mscale = metadata.scale
+    _phys_scale = {
+        "t": 1.0,
+        "c": 1.0,
+        "z": float(_mscale.Z) if (_mscale is not None and _mscale.Z is not None) else 1.0,
+        "y": float(_mscale.Y) if (_mscale is not None and _mscale.Y is not None) else 1.0,
+        "x": float(_mscale.X) if (_mscale is not None and _mscale.X is not None) else 1.0,
+    }
+    _phys_units = {"t": "second", "z": "micrometer", "y": "micrometer", "x": "micrometer"}
+    logger.info(
+        "Physical scale (um): X=%.6f  Y=%.6f  Z=%.6f",
+        _phys_scale["x"],
+        _phys_scale["y"],
+        _phys_scale["z"],
+    )
+
     # Parallel write: dask-wrap + compute=False yields a chunk-parallel write graph
     # that we execute with a single dask.compute (threads release the GIL during
     # zarr chunk writes + compression), roughly halving write time on large images.
-    delayed = _write_image_delayed(_to_ome_zarr_image(array5d), root, axes, chunks, _fmt)
+    delayed = _write_image_delayed(
+        _to_ome_zarr_image(array5d),
+        root,
+        axes,
+        chunks,
+        _fmt,
+        scale=_phys_scale,
+        axes_units=_phys_units,
+    )
     if delayed:
         logger.info("Writing %d pyramid level(s) in parallel (dask)...", len(delayed))
         _retry_io(dask.compute, *delayed)
@@ -950,9 +1007,17 @@ def write_omezarr_ngff(
         array5d.data if isinstance(array5d, xr.DataArray) else array5d,  # type: ignore[arg-type]
         dims=["t", "c", "z", "y", "x"],
         scale={
+            "t": 1.0,
+            "c": 1.0,
+            "z": float(_scale.Z) if (_scale is not None and _scale.Z is not None) else 1.0,
             "y": float(_scale.Y) if (_scale is not None and _scale.Y is not None) else 1.0,
             "x": float(_scale.X) if (_scale is not None and _scale.X is not None) else 1.0,
-            "z": float(_scale.Z) if (_scale is not None and _scale.Z is not None) else 1.0,
+        },
+        axes_units={
+            "t": "second",
+            "z": "micrometer",
+            "y": "micrometer",
+            "x": "micrometer",
         },
         name=_filename[:-4] + ".ome.zarr",
     )

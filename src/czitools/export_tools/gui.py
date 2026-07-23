@@ -108,8 +108,11 @@ def update_log_display() -> None:
 
     if log_file_path and log_file_path.exists():
         try:
-            # Open log file and seek to last read position
-            with open(log_file_path, "r", encoding="utf-8") as f:
+            # Open log file and seek to last read position.
+            # errors='replace' substitutes any non-UTF-8 bytes (e.g. from
+            # external libraries that write cp1252 to shared log handlers)
+            # with the Unicode replacement character instead of raising.
+            with open(log_file_path, "r", encoding="utf-8", errors="replace") as f:
                 f.seek(log_last_position)
                 new_content = f.read()
 
@@ -117,6 +120,10 @@ def update_log_display() -> None:
                 if new_content:
                     log_viewer.value += new_content
                     log_last_position = f.tell()
+                    # Auto-scroll to the bottom so the latest log entries are
+                    # always visible without the user needing to scroll manually.
+                    sb = log_viewer.native.verticalScrollBar()
+                    sb.setValue(sb.maximum())
         except Exception as e:
             logger.warning("Log update error: %s", e)
 
@@ -332,7 +339,7 @@ def perform_conversion(
                 try:
                     is_valid = validate_ome_zarr(output_path)
                     if is_valid:
-                        logger.info("Validation result: VALID ✅")
+                        logger.info("Validation result: VALID [OK]")
                     else:
                         logger.warning("Validation result: INVALID ❌ (see messages above)")
                 except Exception as ve:

@@ -115,9 +115,17 @@ def get_fieldimage(
         data=data,  # type: ignore[arg-type]
         dims=["t", "c", "z", "y", "x"],
         scale={
+            "t": 1.0,
+            "c": 1.0,
+            "z": float(_scale.Z) if (_scale is not None and _scale.Z is not None) else 1.0,
             "y": float(_scale.Y) if (_scale is not None and _scale.Y is not None) else 1.0,
             "x": float(_scale.X) if (_scale is not None and _scale.X is not None) else 1.0,
-            "z": float(_scale.Z) if (_scale is not None and _scale.Z is not None) else 1.0,
+        },
+        axes_units={
+            "t": "second",
+            "z": "micrometer",
+            "y": "micrometer",
+            "x": "micrometer",
         },
         translation={"t": 0.0, "c": 0.0, "z": 0.0, "y": 0.0, "x": 0.0},
         name=metadata.filename if metadata.filename is not None else "image.czi",
