@@ -66,6 +66,7 @@ python-dateutil = "*"
 
 # --- Dev / testing -----------------------------------------------------------
 ipykernel    = ">=5.2.0,<7"
+ipyfilechooser = "*"
 pytest       = "*"
 pytest-cov   = "*"
 setuptools   = "*"
