@@ -124,3 +124,4 @@ env = { QT_API = "pyqt6", SSL_CERT_DIR = "" }
 test         = { cmd = "pytest src/czitools/_tests/ -v", description = "Run the full test suite" }
 test-no-net  = { cmd = "pytest src/czitools/_tests/ -v -m 'not network'", description = "Run tests excluding network-dependent ones" }
 start-napari = { cmd = "napari", description = "Open the Napari viewer" }
+omezarr-gui   = { cmd = "czitools-omezarr-gui", description = "Open the OME-Zarr GUI" }
