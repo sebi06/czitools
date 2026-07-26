@@ -306,3 +306,10 @@ All metadata classes follow a similar pattern:
 - CZI files may have multiple scenes
 - Check `has_scenes` and `SizeS` for scene information
 - Use `bbox.total_bounding_box` for combined bounds
+
+<!-- mermaid-ai-skills:start -->
+## Mermaid Diagrams
+
+When the user asks to create, edit, or visualize a diagram, follow the
+instructions in `.github/instructions/mermaid.instructions.md`.
+<!-- mermaid-ai-skills:end -->
