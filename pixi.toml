@@ -99,7 +99,7 @@ napari-ome-zarr = ">=0.8.0"
 ndv          = { version = ">=0.5.0", extras = ["vispy", "pyqt"] }
 
 # --- Optional extras: [omezarr] ----------------------------------------------
-ngff-zarr    = ">=0.34.0"
+ngff-zarr    = ">=0.39.0"
 ome-zarr     = ">=0.16.0"
 
 # --- BioIO ecosystem ---------------------------------------------------------
