@@ -1,5 +1,4 @@
-# -*- coding: utf-8 -*-
-"""Core CZI -> OME-Zarr conversion functions (czitools Stage 5).
+"""Core CZI -> OME-Zarr conversion functions.
 
 Adapted from ``czi_omezarr_utils.conversion`` in the ``omezarr_playground``
 repository. The two HCS pipelines now consume the canonical layout produced by
@@ -22,6 +21,7 @@ import shutil
 import sys
 import time
 from pathlib import Path
+from typing import Optional
 
 # from typing import Dict, Optional, Union
 import dask
@@ -152,9 +152,9 @@ def _write_image_delayed(
     image,
     group,
     axes: str,
-    chunks: tuple,
+    chunks: str | tuple[int, ...],
     fmt,
-    scale: Dict[str, float] | None = None,
+    scale: dict[str, float] | None = None,
     axes_units: dict[str, str] | None = None,
 ) -> list:
     """Schedule an ome-zarr-py image write as parallel (dask) chunk-write tasks.
@@ -181,7 +181,7 @@ def _write_image_delayed(
         list: A list of dask-delayed write tasks (possibly empty).
     """
     if not isinstance(image, da.Array):
-        image = da.from_array(image, chunks=chunks)
+        image = da.from_array(image, chunks=chunks)  # type: ignore[arg-type]
 
     delayed = _retry_io(
         ome_zarr.writer.write_image,
@@ -254,13 +254,13 @@ def _normalize_multiscale_level_names_v2(store_path: str | os.PathLike | Path) -
 
     for zattrs_path in iterator:  # type: ignore[assignment]
         try:
-            attrs = json.loads(zattrs_path.read_text(encoding="utf-8"))
+            attrs = json.loads(zattrs_path.read_text(encoding="utf-8"))  # type: ignore[attr-defined]
         except (OSError, ValueError):
             continue
         multiscales = attrs.get("multiscales")
         if not multiscales:
             continue
-        group_dir = zattrs_path.parent
+        group_dir = zattrs_path.parent  # type: ignore[attr-defined]
         changed = False
         for multiscale in multiscales:
             for dataset in multiscale.get("datasets", []):
@@ -275,7 +275,7 @@ def _normalize_multiscale_level_names_v2(store_path: str | os.PathLike | Path) -
                 dataset["path"] = new_name
                 changed = True
         if changed:
-            zattrs_path.write_text(json.dumps(attrs), encoding="utf-8")
+            zattrs_path.write_text(json.dumps(attrs), encoding="utf-8")  # type: ignore[attr-defined]
 
 
 def _normalize_multiscale_level_names_v3(store_path: str | os.PathLike | Path) -> None:
@@ -317,7 +317,7 @@ def _normalize_multiscale_level_names_v3(store_path: str | os.PathLike | Path) -
 
     for zarr_json_path in iterator:  # type: ignore[assignment]
         try:
-            data = json.loads(zarr_json_path.read_text(encoding="utf-8"))
+            data = json.loads(zarr_json_path.read_text(encoding="utf-8"))  # type: ignore[attr-defined]
         except (OSError, ValueError):
             continue
         # Only process group nodes; array nodes (the pyramid levels themselves)
@@ -328,7 +328,7 @@ def _normalize_multiscale_level_names_v3(store_path: str | os.PathLike | Path) -
         multiscales = ome_attrs.get("multiscales")
         if not multiscales:
             continue
-        group_dir = zarr_json_path.parent
+        group_dir = zarr_json_path.parent  # type: ignore[attr-defined]
         changed = False
         for multiscale in multiscales:
             for dataset in multiscale.get("datasets", []):
@@ -343,10 +343,10 @@ def _normalize_multiscale_level_names_v3(store_path: str | os.PathLike | Path) -
                 dataset["path"] = new_name
                 changed = True
         if changed:
-            zarr_json_path.write_text(json.dumps(data), encoding="utf-8")
+            zarr_json_path.write_text(json.dumps(data), encoding="utf-8")  # type: ignore[attr-defined]
 
 
-def _normalize_multiscale_level_names_ngff(store_path: Union[str, os.PathLike, Path]) -> None:
+def _normalize_multiscale_level_names_ngff(store_path: str | os.PathLike | Path) -> None:
     """Rename ngff-zarr pyramid levels from ``scaleN/image-name`` to ``N``.
 
     ngff-zarr hardcodes ``scaleN/{NgffImage.name}`` as the on-disk path for
@@ -396,7 +396,7 @@ def _normalize_multiscale_level_names_ngff(store_path: Union[str, os.PathLike, P
 
     for zarr_json_path in iterator:  # type: ignore[assignment]
         try:
-            data = json.loads(zarr_json_path.read_text(encoding="utf-8"))
+            data = json.loads(zarr_json_path.read_text(encoding="utf-8"))  # type: ignore[attr-defined]
         except (OSError, ValueError):
             continue
         if data.get("node_type") != "group":
@@ -406,7 +406,7 @@ def _normalize_multiscale_level_names_ngff(store_path: Union[str, os.PathLike, P
         if not multiscales:
             continue
 
-        group_dir = zarr_json_path.parent
+        group_dir = zarr_json_path.parent  # type: ignore[attr-defined]
         changed = False
 
         for multiscale in multiscales:
@@ -450,7 +450,7 @@ def _normalize_multiscale_level_names_ngff(store_path: Union[str, os.PathLike, P
                     new_meta[m.group(1)] = val  # "scaleN/name" → "N"
             consol["metadata"] = new_meta
 
-        zarr_json_path.write_text(json.dumps(data), encoding="utf-8")
+        zarr_json_path.write_text(json.dumps(data), encoding="utf-8")  # type: ignore[attr-defined]
 
 
 # ---------------------------------------------------------------------------
@@ -655,7 +655,7 @@ def convert_czi2hcs_ngff(
         Path: Output HCS directory (``<stem>_ngff_plate_zarr3.ome.zarr``) or ``.ozx`` file.
     """
     czi_path = Path(czi_filepath)
-    output_path_obj: Optional[Path] = Path(output_dir) if output_dir is not None else None
+    output_path_obj: Path | None = Path(output_dir) if output_dir is not None else None
 
     if log_file_path is None:
         base = output_path_obj if output_path_obj is not None else czi_path.parent
