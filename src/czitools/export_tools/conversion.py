@@ -22,27 +22,28 @@ import shutil
 import sys
 import time
 from pathlib import Path
-from typing import Dict, Optional, Union
 
-import numpy as np
-import xarray as xr
+# from typing import Dict, Optional, Union
 import dask
 import dask.array as da
-import zarr
 import ngff_zarr as nz
-from ngff_zarr.v04.zarr_metadata import Plate, PlateColumn, PlateRow, PlateWell
+import numpy as np
+import ome_zarr.format
+import ome_zarr.writer
+import xarray as xr
+import zarr
 from ngff_zarr.hcs import HCSPlate, HCSPlateWriter, to_hcs_zarr
+from ngff_zarr.v04.zarr_metadata import Plate, PlateColumn, PlateRow, PlateWell
 from ome_zarr.io import parse_url
 from ome_zarr.writer import write_plate_metadata, write_well_metadata
-import ome_zarr.writer
-import ome_zarr.format
+from zarr.codecs import Blosc, Zstd
 
-from czitools.read_tools import read_tools
 from czitools.metadata_tools.czi_metadata import CziMetadata
+from czitools.read_tools import read_tools
 
 from ._logging import setup_logging
+from .display import compute_pyramid_scale_factors, create_channel_list, create_ngff_omero_channels, get_fieldimage
 from .plate import convert_hcs_omezarr2ozx
-from .display import get_fieldimage, create_channel_list, create_ngff_omero_channels, compute_pyramid_scale_factors
 from .resolver import resolve_hcs_layout
 
 logger = logging.getLogger(__name__)
@@ -66,7 +67,7 @@ except ImportError:  # pragma: no cover
     HAS_TENSORSTORE = False
 
 
-def _to_ome_zarr_image(array: Union[np.ndarray, xr.DataArray, da.Array]) -> Union[np.ndarray, da.Array]:
+def _to_ome_zarr_image(array: np.ndarray | xr.DataArray | da.Array) -> np.ndarray | da.Array:
     """Return an array type accepted by ome-zarr writer functions."""
     if isinstance(array, xr.DataArray):
         data = array.data
@@ -100,7 +101,7 @@ def _retry_io(func, *args, _attempts: int = 5, _base_delay: float = 0.2, **kwarg
     Raises:
         PermissionError: If all attempts fail.
     """
-    last_exc: Optional[PermissionError] = None
+    last_exc: PermissionError | None = None
     for attempt in range(_attempts):
         try:
             return func(*args, **kwargs)
@@ -122,7 +123,7 @@ def _retry_io(func, *args, _attempts: int = 5, _base_delay: float = 0.2, **kwarg
     raise last_exc
 
 
-def _read_single_scene(czi_path: Union[str, os.PathLike, Path], scene_index: int) -> xr.DataArray:
+def _read_single_scene(czi_path: str | os.PathLike | Path, scene_index: int) -> xr.DataArray:
     """Read a single CZI scene as a 6D (S=1, T, C, Z, Y, X) xarray DataArray.
 
     HCS plates frequently have scenes (wells/fields) with slightly different Y/X
@@ -143,7 +144,7 @@ def _read_single_scene(czi_path: Union[str, os.PathLike, Path], scene_index: int
     """
     array6d, _ = read_tools.read_6darray(str(czi_path), planes={"S": (scene_index, scene_index)}, use_xarray=True)
     if not isinstance(array6d, xr.DataArray):
-        raise ValueError(f"Failed to read scene {scene_index} from {czi_path} as an xarray DataArray")
+        raise TypeError(f"Failed to read scene {scene_index} from {czi_path} as an xarray DataArray")
     return array6d
 
 
@@ -153,8 +154,8 @@ def _write_image_delayed(
     axes: str,
     chunks: tuple,
     fmt,
-    scale: Optional[Dict[str, float]] = None,
-    axes_units: Optional[Dict[str, str]] = None,
+    scale: Dict[str, float] | None = None,
+    axes_units: dict[str, str] | None = None,
 ) -> list:
     """Schedule an ome-zarr-py image write as parallel (dask) chunk-write tasks.
 
@@ -181,21 +182,25 @@ def _write_image_delayed(
     """
     if not isinstance(image, da.Array):
         image = da.from_array(image, chunks=chunks)
+
     delayed = _retry_io(
         ome_zarr.writer.write_image,
         image=image,
         group=group,
         axes=axes,
-        storage_options=dict(chunks=chunks, overwrite=True),
+        method="nearest",
+        storage_options={"chunks": chunks, "overwrite": True, "shards": "auto", "compressors": Blosc()},
         fmt=fmt,
+        scale_factors=[2, 4, 8, 16],
         scale=scale,
         axes_units=axes_units,
         compute=False,
+        storage_options_kwargs={"use_tensorstore": HAS_TENSORSTORE},
     )
     return list(delayed) if delayed else []
 
 
-def _ensure_plate_version_metadata(zarr_path: Union[str, os.PathLike, Path], version: str) -> None:
+def _ensure_plate_version_metadata(zarr_path: str | os.PathLike | Path, version: str) -> None:
     """Ensure nested ome.plate.version exists in root metadata."""
     parsed = parse_url(Path(zarr_path), mode="r+")
     assert parsed is not None, f"Failed to open zarr store at {zarr_path}"
@@ -216,7 +221,7 @@ def _ensure_plate_version_metadata(zarr_path: Union[str, os.PathLike, Path], ver
     _retry_io(root.attrs.update, attrs)
 
 
-def _normalize_multiscale_level_names_v2(store_path: Union[str, os.PathLike, Path]) -> None:
+def _normalize_multiscale_level_names_v2(store_path: str | os.PathLike | Path) -> None:
     """Rename zarr v2 multiscale levels from ``sN`` to ``N`` in a directory store.
 
     ome-zarr 0.18 names multiscale datasets ``s0, s1, ...``. Some legacy OME-NGFF
@@ -273,7 +278,7 @@ def _normalize_multiscale_level_names_v2(store_path: Union[str, os.PathLike, Pat
             zattrs_path.write_text(json.dumps(attrs), encoding="utf-8")
 
 
-def _normalize_multiscale_level_names_v3(store_path: Union[str, os.PathLike, Path]) -> None:
+def _normalize_multiscale_level_names_v3(store_path: str | os.PathLike | Path) -> None:
     """Rename zarr v3 multiscale levels from ``sN`` to ``N`` in a directory store.
 
     ome-zarr-py hardcodes ``s0, s1, ...`` as pyramid level names inside
@@ -454,9 +459,9 @@ def _normalize_multiscale_level_names_ngff(store_path: Union[str, os.PathLike, P
 
 
 def convert_czi2hcs_omezarr(
-    czi_filepath: Union[str, os.PathLike, Path],
+    czi_filepath: str | os.PathLike | Path,
     overwrite: bool = True,
-    log_file_path: Optional[Union[str, os.PathLike, Path]] = None,
+    log_file_path: str | os.PathLike | Path | None = None,
     pad_columns: bool = True,
     zarr_format: int = 3,
     normalize_level_paths: bool = True,
@@ -617,13 +622,13 @@ def convert_czi2hcs_omezarr(
 
 
 def convert_czi2hcs_ngff(
-    czi_filepath: Union[str, os.PathLike, Path],
+    czi_filepath: str | os.PathLike | Path,
     plate_name: str = "Automated Plate",
     overwrite: bool = True,
-    log_file_path: Optional[Union[str, os.PathLike, Path]] = None,
+    log_file_path: str | os.PathLike | Path | None = None,
     write_ozx_directly: bool = False,
     version: str = "0.5",
-    output_dir: Optional[Union[str, os.PathLike, Path]] = None,
+    output_dir: str | os.PathLike | Path | None = None,
     pad_columns: bool = True,
     normalize_level_paths: bool = True,
 ) -> Path:
@@ -794,13 +799,13 @@ def convert_czi2hcs_ngff(
 
 
 def write_omezarr(
-    array5d: Union[np.ndarray, xr.DataArray, da.Array],
-    zarr_path: Union[str, Path],
+    array5d: np.ndarray | xr.DataArray | da.Array,
+    zarr_path: str | Path,
     metadata: CziMetadata,
     overwrite: bool = False,
-    log_file_path: Optional[Union[str, Path]] = None,
+    log_file_path: str | Path | None = None,
     zarr_format: int = 3,
-) -> Optional[Path]:
+) -> Path | None:
     """Write a single 5D image to OME-Zarr using the ome-zarr-py backend.
 
     Args:
@@ -931,18 +936,18 @@ def write_omezarr(
 
 
 def write_omezarr_ngff(
-    array5d: Union[np.ndarray, xr.DataArray, da.Array],
-    zarr_path: Union[Path, str],
+    array5d: np.ndarray | xr.DataArray | da.Array,
+    zarr_path: Path | str,
     metadata: CziMetadata,
-    scale_factors: Optional[list] = None,
+    scale_factors: list | None = None,
     overwrite: bool = False,
     version: str = "0.5",
-    chunks: Union[tuple, None] = None,
-    chunks_per_shard: Union[Dict[str, int], int, None] = 2,
-    log_file_path: Union[Path, str, None] = None,
+    chunks: tuple | None = None,
+    chunks_per_shard: dict[str, int] | int | None = 2,
+    log_file_path: Path | str | None = None,
     min_size: int = 512,
     max_levels: int = 6,
-    use_tensorstore: Optional[bool] = None,
+    use_tensorstore: bool | None = None,
 ) -> Optional["nz.NgffImage"]:
     """Write a single 5D image to OME-Zarr NGFF format with multi-scale pyramids.
 
