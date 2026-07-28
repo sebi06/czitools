@@ -37,11 +37,12 @@ from ngff_zarr.v04.zarr_metadata import Plate, PlateColumn, PlateRow, PlateWell
 from ome_zarr.io import parse_url
 from ome_zarr.writer import write_plate_metadata, write_well_metadata
 from zarr.codecs import Blosc, Zstd
+from zarr.core.chunk_grids import _guess_chunks
 
 from czitools.metadata_tools.czi_metadata import CziMetadata
 from czitools.read_tools import read_tools
 
-from ._logging import setup_logging
+from ._logging import compression_type, setup_logging
 from .display import compute_pyramid_scale_factors, create_channel_list, create_ngff_omero_channels, get_fieldimage
 from .plate import convert_hcs_omezarr2ozx
 from .resolver import resolve_hcs_layout
@@ -153,6 +154,7 @@ def _write_image_delayed(
     group,
     axes: str,
     chunks: str | tuple[int, ...],
+    compression: compression_type | None,
     fmt,
     scale: dict[str, float] | None = None,
     axes_units: dict[str, str] | None = None,
@@ -183,13 +185,21 @@ def _write_image_delayed(
     if not isinstance(image, da.Array):
         image = da.from_array(image, chunks=chunks)  # type: ignore[arg-type]
 
+    # Convert compression_type enum to actual codec instance
+    compressor = None
+    if compression == compression_type.BLOSC:
+        compressor = Blosc()
+    elif compression == compression_type.ZSTD:
+        compressor = Zstd()
+    # compression_type.NONE or None → compressor stays None
+
     delayed = _retry_io(
         ome_zarr.writer.write_image,
         image=image,
         group=group,
         axes=axes,
         method="nearest",
-        storage_options={"chunks": chunks, "overwrite": True, "shards": "auto", "compressors": Blosc()},
+        storage_options={"chunks": chunks, "overwrite": True, "compressors": compressor},
         fmt=fmt,
         scale_factors=[2, 4, 8, 16],
         scale=scale,
@@ -464,6 +474,7 @@ def convert_czi2hcs_omezarr(
     log_file_path: str | os.PathLike | Path | None = None,
     pad_columns: bool = True,
     zarr_format: int = 3,
+    compression: compression_type | None = compression_type.BLOSC,
     normalize_level_paths: bool = True,
 ) -> Path:
     """Convert a CZI file to OME-Zarr HCS format using the ome-zarr-py backend.
@@ -478,6 +489,8 @@ def convert_czi2hcs_omezarr(
             zarr v3 store; ``2`` writes an OME-NGFF v0.4 / zarr v2 store for
             compatibility with legacy readers (e.g. vizarr-based web viewers) that
             do not yet support zarr v3.
+        compression (Optional[compression_type]): Chunk compression type.
+            Defaults to ``compression_type.BLOSC``. Set to ``None`` for no compression
         normalize_level_paths (bool): Rename pyramid level directories from the
             ome-zarr-py convention (``sN``) to the OME-NGFF v0.5 / IDR convention
             (plain integers ``N``). Defaults to ``True``. Set to ``False`` to keep
@@ -580,7 +593,8 @@ def convert_czi2hcs_omezarr(
                     image_group,
                     "".join(str(d).lower() for d in image.dims),
                     chunks,
-                    _fmt,
+                    compression=compression,
+                    fmt=_fmt,
                     scale=_phys_scale,
                     axes_units=_phys_units,
                 )
@@ -630,6 +644,7 @@ def convert_czi2hcs_ngff(
     version: str = "0.5",
     output_dir: str | os.PathLike | Path | None = None,
     pad_columns: bool = True,
+    compression: compression_type | None = compression_type.BLOSC,
     normalize_level_paths: bool = True,
 ) -> Path:
     """Convert a CZI file to OME-Zarr HCS format using the ngff-zarr backend.
@@ -645,6 +660,8 @@ def convert_czi2hcs_ngff(
         output_dir (Optional[Union[str, os.PathLike, Path]]): Output directory.
             Defaults to the CZI file's parent directory.
         pad_columns (bool): Zero-pad column numbers in well paths (e.g. ``"04"``).
+        compression (Optional[compression_type]): Chunk compression type.
+            Defaults to ``compression_type.BLOSC``. Set to ``None`` for no compression.
         normalize_level_paths (bool): Rename pyramid level directories from the
             ngff-zarr convention (``scaleN/image-name``) to the OME-NGFF v0.5 / IDR
             convention (plain integers ``N``). Defaults to ``True``. Set to
@@ -805,6 +822,7 @@ def write_omezarr(
     overwrite: bool = False,
     log_file_path: str | Path | None = None,
     zarr_format: int = 3,
+    compression: compression_type | None = compression_type.BLOSC,
 ) -> Path | None:
     """Write a single 5D image to OME-Zarr using the ome-zarr-py backend.
 
@@ -819,6 +837,8 @@ def write_omezarr(
         zarr_format (int): Zarr storage format to write. ``3`` (default) writes a
             zarr v3 store; ``2`` writes an OME-NGFF v0.4 / zarr v2 store for
             compatibility with legacy readers that do not yet support zarr v3.
+        compression (Optional[compression_type]): Chunk compression type.
+            Defaults to ``compression_type.BLOSC``. Set to ``None`` for no compression
 
     Returns:
         Optional[Path]: Path to the written OME-Zarr file, or ``None`` on failure.
@@ -899,7 +919,8 @@ def write_omezarr(
         root,
         axes,
         chunks,
-        _fmt,
+        compression=compression,
+        fmt=_fmt,
         scale=_phys_scale,
         axes_units=_phys_units,
     )
@@ -944,6 +965,7 @@ def write_omezarr_ngff(
     version: str = "0.5",
     chunks: tuple | None = None,
     chunks_per_shard: dict[str, int] | int | None = 2,
+    compression: compression_type | None = compression_type.BLOSC,
     log_file_path: Path | str | None = None,
     min_size: int = 512,
     max_levels: int = 6,
@@ -963,6 +985,8 @@ def write_omezarr_ngff(
         version (str): NGFF version string. Defaults to ``"0.5"``.
         chunks (Union[tuple, None]): Explicit chunk shape (auto-computed if None).
         chunks_per_shard (Union[Dict[str, int], int, None]): Chunks per shard.
+        compression (Optional[compression_type]): Chunk compression type. Defaults to
+            ``compression_type.BLOSC``. Set to ``None`` for no compression.
         log_file_path (Union[Path, str, None]): Log file path. Defaults to
             ``<stem>_ngff.log``.
         min_size (int): Target maximum XY size of the coarsest pyramid level, used
@@ -1056,10 +1080,19 @@ def write_omezarr_ngff(
     _use_ts = HAS_TENSORSTORE if use_tensorstore is None else bool(use_tensorstore)
     logger.info("Writing NGFF pyramid (tensorstore=%s)...", _use_ts)
 
+    # Convert compression_type enum to actual codec instance
+    compressor = None
+    if compression == compression_type.BLOSC:
+        compressor = Blosc()
+    elif compression == compression_type.ZSTD:
+        compressor = Zstd()
+    # compression_type.NONE or None → compressor stays None
+
     nz.to_ngff_zarr(
         zarr_path,
         version=version,
         chunks_per_shard=chunks_per_shard,
+        storage_options={"compressors": compressor} if compressor is not None else {},
         use_tensorstore=_use_ts,
         multiscales=multiscales,
     )

@@ -5,10 +5,10 @@ Vendored (with light edits) from ``czi_omezarr_utils.logging_utils`` in the
 ``omezarr_playground`` repository as part of czitools Stage 5.
 """
 
+import logging
+from enum import Enum, unique
 from pathlib import Path
 from typing import Optional, Union
-from enum import Enum, unique
-import logging
 
 
 @unique
@@ -19,8 +19,17 @@ class omezarr_package(Enum):
     NGFF_ZARR = 2
 
 
+@unique
+class compression_type(Enum):
+    """Selectable compression type for OME-Zarr write backend."""
+
+    BLOSC = 1
+    ZSTD = 2
+    NONE = 3
+
+
 def setup_logging(
-    log_file_path: Optional[Union[str, Path]] = None,
+    log_file_path: str | Path | None = None,
     log_level: int = logging.INFO,
     force_reconfigure: bool = False,
 ) -> logging.Logger:

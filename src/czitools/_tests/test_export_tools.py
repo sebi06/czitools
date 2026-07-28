@@ -12,12 +12,12 @@ pytest.importorskip("ngff_zarr")
 pytest.importorskip("ome_zarr")
 pytest.importorskip("ome_zarr_models")
 
-from czitools.metadata_tools.czi_metadata import CziMetadata
 from czitools.export_tools import (
     convert_czi2hcs_ngff,
     resolve_hcs_layout,
     validate_ome_zarr,
 )
+from czitools.metadata_tools.czi_metadata import CziMetadata
 
 BASEDIR = Path(__file__).resolve().parents[3]
 WELLPLATE = BASEDIR / "data" / "WP96_4Pos_B4-10_DAPI.czi"
@@ -54,5 +54,5 @@ def test_convert_czi2hcs_ngff_and_validate(tmp_path: Path) -> None:
         pad_columns=True,
     )
     assert output.exists()
-    assert output.name == "WP96_4Pos_B4-10_DAPI_ngff_plate.ome.zarr"
+    assert output.name == "WP96_4Pos_B4-10_DAPI_ngff_plate_zarr3.ome.zarr"
     assert validate_ome_zarr(output) is True
