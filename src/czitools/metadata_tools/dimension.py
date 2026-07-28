@@ -6,7 +6,6 @@ STCZYX(A) image-dimension sizes from CZI metadata.
 
 import os
 from dataclasses import Field, field, fields
-from typing import List, Optional, Tuple, Union
 
 from box import Box
 from pydantic import ConfigDict
@@ -19,7 +18,7 @@ from czitools.utils.box import get_czimd_box
 logger = logging_tools.set_logging()
 
 
-def _string_to_float_list(string: str) -> List[float]:
+def _string_to_float_list(string: str) -> list[float]:
     """Converts a space-separated string of numbers into a list of floats.
 
     Args:
@@ -83,23 +82,23 @@ class CziDimensions:
         if they exist. Otherwise, they are set to None.
     """
 
-    czisource: Union[str, os.PathLike[str], Box]
-    SizeX: Optional[int] = field(init=False, default=None)  # total size X including scenes
-    SizeY: Optional[int] = field(init=False, default=None)  # total size Y including scenes
-    SizeX_scene: Optional[int] = field(init=False, default=None)  # size X per scene (if equal scene sizes)
-    SizeY_scene: Optional[int] = field(init=False, default=None)  # size Y per scene (if equal scene sizes)
-    SizeS: Optional[int] = field(init=False, default=None)
-    SizeT: Optional[int] = field(init=False, default=None)
-    SizeZ: Optional[int] = field(init=False, default=None)
-    SizeC: Optional[int] = field(init=False, default=None)
-    SizeM: Optional[int] = field(init=False, default=None)
-    SizeR: Optional[int] = field(init=False, default=None)
-    SizeH: Optional[int] = field(init=False, default=None)
-    SizeI: Optional[int] = field(init=False, default=None)
-    SizeV: Optional[int] = field(init=False, default=None)
-    SizeB: Optional[int] = field(init=False, default=None)
-    posZ: Optional[List[float]] = field(init=False, default=None)
-    posT: Optional[List[float]] = field(init=False, default=None)
+    czisource: str | os.PathLike[str] | Box
+    SizeX: int | None = field(init=False, default=None)  # total size X including scenes
+    SizeY: int | None = field(init=False, default=None)  # total size Y including scenes
+    SizeX_scene: int | None = field(init=False, default=None)  # size X per scene (if equal scene sizes)
+    SizeY_scene: int | None = field(init=False, default=None)  # size Y per scene (if equal scene sizes)
+    SizeS: int | None = field(init=False, default=None)
+    SizeT: int | None = field(init=False, default=None)
+    SizeZ: int | None = field(init=False, default=None)
+    SizeC: int | None = field(init=False, default=None)
+    SizeM: int | None = field(init=False, default=None)
+    SizeR: int | None = field(init=False, default=None)
+    SizeH: int | None = field(init=False, default=None)
+    SizeI: int | None = field(init=False, default=None)
+    SizeV: int | None = field(init=False, default=None)
+    SizeB: int | None = field(init=False, default=None)
+    posZ: list[float] | None = field(init=False, default=None)
+    posT: list[float] | None = field(init=False, default=None)
     verbose: bool = False
 
     def __post_init__(self):
@@ -150,11 +149,10 @@ class CziDimensions:
             "SizeB",
         ]
 
-        cls_fields: Tuple[Field, ...] = fields(self.__class__)
+        cls_fields: tuple[Field, ...] = fields(self.__class__)
         for fd in cls_fields:
-            if fd.name in dims:
-                if dimensions[fd.name] is not None:
-                    setattr(self, fd.name, int(dimensions[fd.name]))
+            if fd.name in dims and dimensions[fd.name] is not None:
+                setattr(self, fd.name, int(dimensions[fd.name]))
 
         if czi_box.has_scenes:
             try:

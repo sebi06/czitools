@@ -10,13 +10,13 @@ Schema version: ``1.0``.
 
 from __future__ import annotations
 
-from dataclasses import dataclass, replace
-from pathlib import Path
 import math
 import os
 import re
+from dataclasses import dataclass, replace
+from pathlib import Path
 from statistics import median
-from typing import Any, Optional, Union
+from typing import Any, Optional, Union, cast
 
 from box import Box, BoxList
 
@@ -62,21 +62,21 @@ class CziField:
     id: str
     field_index: int
     scene_index: int
-    region_id: Optional[str]
-    position_name: Optional[str]
-    scene_center_x: Optional[float]
-    scene_center_y: Optional[float]
+    region_id: str | None
+    position_name: str | None
+    scene_center_x: float | None
+    scene_center_y: float | None
     position_unit: str = "micrometer"
     position_source: str = "Scene.CenterPosition"
-    acquisition_z: Optional[float] = None
-    stage_x: Optional[float] = None
-    stage_y: Optional[float] = None
-    stage_x_range: Optional[tuple[float, float]] = None
-    stage_y_range: Optional[tuple[float, float]] = None
-    acquisition_z_range: Optional[tuple[float, float]] = None
+    acquisition_z: float | None = None
+    stage_x: float | None = None
+    stage_y: float | None = None
+    stage_x_range: tuple[float, float] | None = None
+    stage_y_range: tuple[float, float] | None = None
+    acquisition_z_range: tuple[float, float] | None = None
     stage_unit: str = "micrometer"
-    stage_source: Optional[str] = None
-    subblock_count: Optional[int] = None
+    stage_source: str | None = None
+    subblock_count: int | None = None
     position_conflict: bool = False
 
 
@@ -92,7 +92,7 @@ class CziWell:
     source_column_index: int
     row_index: int
     column_index: int
-    external_id: Optional[str]
+    external_id: str | None
     fields: tuple[CziField, ...]
 
 
@@ -102,12 +102,12 @@ class CziPlate:
 
     schema_version: str
     id: str
-    name: Optional[str]
-    declared_rows: Optional[int]
-    declared_columns: Optional[int]
+    name: str | None
+    declared_rows: int | None
+    declared_columns: int | None
     naming_convention: str
-    barcode: Optional[str]
-    external_id: Optional[str]
+    barcode: str | None
+    external_id: str | None
     observed_row_indices: tuple[int, ...]
     observed_column_indices: tuple[int, ...]
     wells: tuple[CziWell, ...]
@@ -128,7 +128,7 @@ class CziHcsResult:
 
     detected: bool
     reason: str
-    plate: Optional[CziPlate] = None
+    plate: CziPlate | None = None
 
 
 def normalize_well_name(name: str) -> tuple[str, int, int]:
@@ -161,16 +161,23 @@ def build_hcs_metadata(czi_box: Box) -> CziHcsResult:
 
     for fallback_scene_index, scene in enumerate(scenes):
         scene_index = _optional_int(getattr(scene, "Index", None))
+
+        # If the scene index is missing, use the fallback index from enumeration.
         if scene_index is None:
             scene_index = fallback_scene_index
+
+        # If the scene index is negative or already seen, return an error.
         if scene_index < 0 or scene_index in seen_scene_indices:
             return CziHcsResult(False, f"Scene index {scene_index} is negative or duplicated.")
+
         seen_scene_indices.add(scene_index)
 
         shape = getattr(scene, "Shape", None)
         source_name = getattr(scene, "ArrayName", None)
+
         if source_name is None and shape is not None:
             source_name = getattr(shape, "Name", None)
+
         if not source_name:
             return CziHcsResult(False, f"Scene {scene_index} has no usable well name.")
 
@@ -181,9 +188,12 @@ def build_hcs_metadata(czi_box: Box) -> CziHcsResult:
 
         source_row = _optional_int(getattr(shape, "RowIndex", None)) if shape is not None else None
         source_column = _optional_int(getattr(shape, "ColumnIndex", None)) if shape is not None else None
+
         if source_row is None or source_column is None or source_row < 1 or source_column < 1:
             return CziHcsResult(False, f"Scene {scene_index} lacks positive CZI well row/column indices.")
+
         row_index, column_index = source_row - 1, source_column - 1
+
         if (row_index, column_index) != (name_row, name_column):
             return CziHcsResult(
                 False,
@@ -192,11 +202,13 @@ def build_hcs_metadata(czi_box: Box) -> CziHcsResult:
             )
 
         previous = well_coordinates.setdefault(canonical_name, (source_row, source_column))
+
         if previous != (source_row, source_column):
             return CziHcsResult(False, f"Well {canonical_name!r} has inconsistent source indices.")
 
         region_value = getattr(scene, "RegionId", None)
         region_id = None if region_value is None else str(region_value)
+
         if region_id is not None:
             if region_id in seen_region_ids:
                 return CziHcsResult(False, f"RegionId {region_id!r} is duplicated.")
@@ -258,14 +270,17 @@ def build_hcs_metadata(czi_box: Box) -> CziHcsResult:
     template = _find_plate_template(czi_box)
     declared_rows = _optional_int(getattr(template, "ShapeRows", None)) if template else None
     declared_columns = _optional_int(getattr(template, "ShapeColumns", None)) if template else None
+
     if declared_rows is not None and any(well.row_index >= declared_rows for well in wells):
         return CziHcsResult(False, "An observed well row lies outside the declared plate template.")
+
     if declared_columns is not None and any(well.column_index >= declared_columns for well in wells):
         return CziHcsResult(False, "An observed well column lies outside the declared plate template.")
 
     plate_name = _optional_str(getattr(template, "Name", None)) if template else None
     source_path = getattr(czi_box, "filepath", None)
     source_name = Path(str(source_path)).name if source_path else "czi"
+
     plate = CziPlate(
         schema_version=HCS_SCHEMA_VERSION,
         id=f"plate:{source_name}",
@@ -279,6 +294,7 @@ def build_hcs_metadata(czi_box: Box) -> CziHcsResult:
         observed_column_indices=tuple(sorted({well.column_index for well in wells})),
         wells=tuple(wells),
     )
+
     return CziHcsResult(True, "Complete and consistent CZI well metadata was found.", plate)
 
 
@@ -287,14 +303,17 @@ def _get_scenes(czi_box: Box) -> list[Box]:
         value = czi_box.ImageDocument.Metadata.Information.Image.Dimensions.S.Scenes.Scene
     except AttributeError:
         return []
+
     if isinstance(value, Box):
         return [value]
+
     if isinstance(value, (BoxList, list)):
         return list(value)
+
     return []
 
 
-def _find_plate_template(value: Any) -> Optional[Box]:
+def _find_plate_template(value: Any) -> Box | None:
     """Find a template carrying declared plate dimensions without assuming XML depth."""
 
     if isinstance(value, (Box, dict)):
@@ -312,7 +331,8 @@ def _find_plate_template(value: Any) -> Optional[Box]:
     return None
 
 
-def _parse_center(value: Any) -> tuple[Optional[float], Optional[float]]:
+def _parse_center(value: Any) -> tuple[float | None, float | None]:
+
     if value is None:
         return None, None
     try:
@@ -322,34 +342,38 @@ def _parse_center(value: Any) -> tuple[Optional[float], Optional[float]]:
         return None, None
 
 
-def _optional_int(value: Any) -> Optional[int]:
+def _optional_int(value: Any) -> int | None:
+
     try:
         return None if value is None else int(value)
     except (TypeError, ValueError):
         return None
 
 
-def _optional_str(value: Any) -> Optional[str]:
+def _optional_str(value: Any) -> str | None:
+
     return None if value is None else str(value)
 
 
 def _row_label(row_index: int) -> str:
     value = row_index + 1
     label = ""
+
     while value:
         value, remainder = divmod(value - 1, 26)
         label = chr(ord("A") + remainder) + label
+
     return label
 
 
 # ---------------------------------------------------------------------------
-# Stage 2 - planetable position enrichment (lazy / opt-in)
+# planetable position enrichment (lazy / opt-in)
 # ---------------------------------------------------------------------------
 
 
 def enrich_hcs_with_planetable(
     plate: CziPlate,
-    filepath: Union[str, os.PathLike[str]],
+    filepath: str | os.PathLike[str],
     position_tolerance: float = 1.0,
 ) -> CziPlate:
     """Return a new plate whose fields carry aggregated subblock positions.
@@ -382,6 +406,7 @@ def enrich_hcs_with_planetable(
     from czitools.utils.planetable import get_planetable
 
     planetable, _ = get_planetable(filepath)
+
     if planetable is None or planetable.empty:
         # URL sources and files without subblock positions cannot be enriched.
         return plate
@@ -425,7 +450,7 @@ def enrich_hcs_with_planetable(
     return replace(plate, wells=tuple(new_wells))
 
 
-def _aggregate_positions(values: Any) -> tuple[Optional[float], Optional[tuple[float, float]]]:
+def _aggregate_positions(values: Any) -> tuple[float | None, tuple[float, float] | None]:
     """Return ``(median, (min, max))`` of numeric values, ignoring NaN/None."""
 
     numeric = [float(value) for value in values if value is not None and not _is_nan(value)]
@@ -434,7 +459,7 @@ def _aggregate_positions(values: Any) -> tuple[Optional[float], Optional[tuple[f
     return float(median(numeric)), (min(numeric), max(numeric))
 
 
-def _exceeds_tolerance(value_range: Optional[tuple[float, float]], tolerance: float) -> bool:
+def _exceeds_tolerance(value_range: tuple[float, float] | None, tolerance: float) -> bool:
     if value_range is None:
         return False
     low, high = value_range
@@ -448,7 +473,7 @@ def _is_nan(value: Any) -> bool:
         return False
 
 
-def well_relative_field_positions(well: CziWell) -> Optional[dict[int, tuple[float, float]]]:
+def well_relative_field_positions(well: CziWell) -> dict[int, tuple[float, float]] | None:
     """Return each field's XY offset from the well's field centroid.
 
     The origin is the centroid (arithmetic mean) of the well's field
@@ -474,8 +499,8 @@ def well_relative_field_positions(well: CziWell) -> Optional[dict[int, tuple[flo
     mean_y = sum(float(y) for _, y in centers) / len(centers)
     return {
         field_value.field_index: (
-            float(field_value.scene_center_x) - mean_x,
-            float(field_value.scene_center_y) - mean_y,
+            cast(float, field_value.scene_center_x) - mean_x,
+            cast(float, field_value.scene_center_y) - mean_y,
         )
         for field_value in well.fields
     }
@@ -484,7 +509,7 @@ def well_relative_field_positions(well: CziWell) -> Optional[dict[int, tuple[flo
 def well_absolute_field_positions(
     well: CziWell,
     source: str = "stage",
-) -> Optional[dict[int, tuple[float, float]]]:
+) -> dict[int, tuple[float, float]] | None:
     """Return each field's absolute XY position in the source coordinate frame.
 
     Unlike :func:`well_relative_field_positions`, which expresses each field as an

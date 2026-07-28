@@ -4,10 +4,12 @@ Provides `CziDetector`, which collects detector properties (manufacturer,
 model, type, pixel size, id) from CZI metadata.
 """
 
-from typing import Union, List, Optional
 import os
 from dataclasses import dataclass, field
+from typing import Optional
+
 from box import Box, BoxList
+
 from czitools.utils import logging_tools
 from czitools.utils.box import get_czimd_box
 
@@ -32,14 +34,14 @@ class CziDetector:
         verbose: If True, log informational messages while parsing.
     """
 
-    czisource: Union[str, os.PathLike, Box]
-    model: List[Optional[str]] = field(init=False, default_factory=list)
-    name: List[Optional[str]] = field(init=False, default_factory=list)
-    Id: List[Optional[str]] = field(init=False, default_factory=list)
-    modeltype: List[Optional[str]] = field(init=False, default_factory=list)
-    gain: List[Optional[float]] = field(init=False, default_factory=list)
-    zoom: List[Optional[float]] = field(init=False, default_factory=list)
-    amplificationgain: List[Optional[float]] = field(init=False, default_factory=list)
+    czisource: str | os.PathLike | Box
+    model: list[str | None] = field(init=False, default_factory=list)
+    name: list[str | None] = field(init=False, default_factory=list)
+    Id: list[str | None] = field(init=False, default_factory=list)
+    modeltype: list[str | None] = field(init=False, default_factory=list)
+    gain: list[float | None] = field(init=False, default_factory=list)
+    zoom: list[float | None] = field(init=False, default_factory=list)
+    amplificationgain: list[float | None] = field(init=False, default_factory=list)
     verbose: bool = False
 
     def __post_init__(self) -> None:
@@ -54,12 +56,12 @@ class CziDetector:
             if self.verbose:
                 logger.info("No Detector(s) information found in Instrument block.")
             # Keep historical single-None placeholders
-            placeholder: List[Optional[str]] = [None]
+            placeholder: list[Optional[str]] = [None]
             self.model = placeholder.copy()
             self.name = placeholder.copy()
             self.Id = placeholder.copy()
             self.modeltype = placeholder.copy()
-            gain_placeholder: List[Optional[float]] = [None]
+            gain_placeholder: list[Optional[float]] = [None]
             self.gain = gain_placeholder.copy()
             self.zoom = gain_placeholder.copy()
             self.amplificationgain = gain_placeholder.copy()
