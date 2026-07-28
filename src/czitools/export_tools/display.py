@@ -77,7 +77,7 @@ def compute_pyramid_scale_factors(size_y: int, size_x: int, min_size: int = 512,
 
 
 def get_fieldimage(
-    array6d: Union[xr.DataArray, np.ndarray, da.Array],
+    array6d: xr.DataArray | np.ndarray | da.Array,
     scene_index: int,
     metadata: CziMetadata,
     min_size: int = 512,

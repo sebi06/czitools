@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Validate local OME-Zarr files against the OME-NGFF v0.5 specification.
 
 Vendored (with light edits) from ``czi_omezarr_utils.validation`` in the
@@ -17,7 +16,7 @@ from pydantic import ValidationError
 logger = logging.getLogger(__name__)
 
 
-def validate_ome_zarr(path: Union[str, Path]) -> bool:
+def validate_ome_zarr(path: str | Path) -> bool:
     """Validate a local OME-Zarr file against the OME-NGFF v0.5 specification.
 
     Supports both standard image and HCS plate layouts using ``ome-zarr-models``

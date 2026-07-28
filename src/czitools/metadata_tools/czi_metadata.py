@@ -35,13 +35,13 @@ from czitools.metadata_tools.boundingbox import CziBoundingBox
 from czitools.metadata_tools.channel import CziChannelInfo
 from czitools.metadata_tools.detector import CziDetector
 from czitools.metadata_tools.dimension import CziDimensions
-from czitools.metadata_tools.helper import DictObj
 from czitools.metadata_tools.hcs import (
     CziHcsResult,
     CziPlate,
     build_hcs_metadata,
     enrich_hcs_with_planetable,
 )
+from czitools.metadata_tools.helper import DictObj
 from czitools.metadata_tools.microscope import CziMicroscope
 from czitools.metadata_tools.objective import CziObjectives
 from czitools.metadata_tools.sample import CziSampleInfo
@@ -100,49 +100,49 @@ class CziMetadata:
         verbose (bool): Verbose output for logging.
     """
 
-    filepath: Union[str, os.PathLike[str]]
-    filename: Optional[str] = field(init=False, default=None)
-    dirname: Optional[str] = field(init=False, default=None)
-    is_url: Optional[bool] = field(init=False, default=False)
-    software_name: Optional[str] = field(init=False, default=None)
-    software_version: Optional[str] = field(init=False, default=None)
-    acquisition_date: Optional[str] = field(init=False, default=None)
-    creation_date: Optional[str] = field(init=False, default=None)
-    user_name: Optional[str] = field(init=False, default=None)
-    czi_box: Optional[Box] = field(init=False, default=None)
-    pyczi_dims: Optional[Dict[str, tuple]] = field(init=False, default_factory=lambda: {})
-    sb_dimstring: Optional[str] = field(init=False, default=None)
-    sb_dims_shape: Optional[List[Dict[str, tuple]]] = field(init=False, default_factory=lambda: [])
-    sb_size: Optional[Tuple[int, ...]] = field(init=False, default_factory=lambda: ())
-    sb_ismosaic: Optional[bool] = field(init=False, default=None)
-    sb_dim_order: Optional[Dict[str, int]] = field(init=False, default_factory=lambda: {})
-    sb_dim_index: Optional[List[int]] = field(init=False, default_factory=lambda: [])
-    sb_dim_valid: Optional[int] = field(init=False, default=None)
-    sb_posC: Optional[int] = field(init=False, default=None)
-    pixeltypes: Optional[Dict[int, str]] = field(init=False, default_factory=lambda: {})
-    consistent_pixeltypes: Optional[bool] = field(init=False, default=None)
-    isRGB: Optional[Dict[int, bool]] = field(init=False, default_factory=lambda: {})
-    has_scenes: Optional[bool] = field(init=False, default=False)
-    has_label: Optional[bool] = field(init=False, default=False)
-    has_preview: Optional[bool] = field(init=False, default=False)
-    attachments: Optional[CziAttachments] = field(init=False, default=None)
-    npdtype_list: Optional[List[Any]] = field(init=False, default_factory=lambda: [])
-    maxvalue_list: Optional[List[int]] = field(init=False, default_factory=lambda: [])
-    image: Optional[CziDimensions] = field(init=False, default=None)
-    bbox: Optional[CziBoundingBox] = field(init=False, default=None)
-    channelinfo: Optional[CziChannelInfo] = field(init=False, default=None)
-    scale: Optional[CziScaling] = field(init=False, default=None)
-    objective: Optional[CziObjectives] = field(init=False, default=None)
-    detector: Optional[CziDetector] = field(init=False, default=None)
-    microscope: Optional[CziMicroscope] = field(init=False, default=None)
-    sample: Optional[CziSampleInfo] = field(init=False, default=None)
-    hcs: Optional[CziPlate] = field(init=False, default=None)
+    filepath: str | os.PathLike[str]
+    filename: str | None = field(init=False, default=None)
+    dirname: str | None = field(init=False, default=None)
+    is_url: bool | None = field(init=False, default=False)
+    software_name: str | None = field(init=False, default=None)
+    software_version: str | None = field(init=False, default=None)
+    acquisition_date: str | None = field(init=False, default=None)
+    creation_date: str | None = field(init=False, default=None)
+    user_name: str | None = field(init=False, default=None)
+    czi_box: Box | None = field(init=False, default=None)
+    pyczi_dims: dict[str, tuple] | None = field(init=False, default_factory=lambda: {})
+    sb_dimstring: str | None = field(init=False, default=None)
+    sb_dims_shape: list[dict[str, tuple]] | None = field(init=False, default_factory=lambda: [])
+    sb_size: tuple[int, ...] | None = field(init=False, default_factory=lambda: ())
+    sb_ismosaic: bool | None = field(init=False, default=None)
+    sb_dim_order: dict[str, int] | None = field(init=False, default_factory=lambda: {})
+    sb_dim_index: list[int] | None = field(init=False, default_factory=lambda: [])
+    sb_dim_valid: int | None = field(init=False, default=None)
+    sb_posC: int | None = field(init=False, default=None)
+    pixeltypes: dict[int, str] | None = field(init=False, default_factory=lambda: {})
+    consistent_pixeltypes: bool | None = field(init=False, default=None)
+    isRGB: dict[int, bool] | None = field(init=False, default_factory=lambda: {})
+    has_scenes: bool | None = field(init=False, default=False)
+    has_label: bool | None = field(init=False, default=False)
+    has_preview: bool | None = field(init=False, default=False)
+    attachments: CziAttachments | None = field(init=False, default=None)
+    npdtype_list: list[Any] | None = field(init=False, default_factory=lambda: [])
+    maxvalue_list: list[int] | None = field(init=False, default_factory=lambda: [])
+    image: CziDimensions | None = field(init=False, default=None)
+    bbox: CziBoundingBox | None = field(init=False, default=None)
+    channelinfo: CziChannelInfo | None = field(init=False, default=None)
+    scale: CziScaling | None = field(init=False, default=None)
+    objective: CziObjectives | None = field(init=False, default=None)
+    detector: CziDetector | None = field(init=False, default=None)
+    microscope: CziMicroscope | None = field(init=False, default=None)
+    sample: CziSampleInfo | None = field(init=False, default=None)
+    hcs: CziPlate | None = field(init=False, default=None)
     hcs_status: CziHcsResult = field(
         init=False, default_factory=lambda: CziHcsResult(False, "HCS detection has not run.")
     )
-    add_metadata: Optional[CziAddMetaData] = field(init=False, default=None)
-    scene_size_consistent: Optional[Tuple[int, ...]] = field(init=False, default_factory=lambda: ())
-    array6d_size: Optional[Tuple[int, ...]] = field(init=False, default=None)
+    add_metadata: CziAddMetaData | None = field(init=False, default=None)
+    scene_size_consistent: tuple[int, ...] | None = field(init=False, default_factory=lambda: ())
+    array6d_size: tuple[int, ...] | None = field(init=False, default=None)
     verbose: bool = False
 
     def __post_init__(self):
@@ -205,11 +205,12 @@ class CziMetadata:
 
                     if subblocks:
                         # Build dimension string and shapes from non-pyramid subblocks
-                        all_dims: Dict[int, Dict[str, Tuple[int, int]]] = {}
+                        all_dims: dict[int, dict[str, tuple[int, int]]] = {}
                         for sb in subblocks:
                             de = sb.directory_entry
                             _si = misc._de_scene_idx(de)
-                            s = _si if _si >= 0 else 0
+                            # s = _si if _si >= 0 else 0
+                            s = max(_si, 0)
                             for dim_char in misc._de_dim_chars(de):
                                 if dim_char in ("X", "Y"):
                                     continue
@@ -229,13 +230,13 @@ class CziMetadata:
                                     )
 
                         # Mosaic detection: any subblock with mosaic_index >= 1
-                        mosaic_counts: Dict[int, int] = {}
+                        mosaic_counts: dict[int, int] = {}
                         for sb in subblocks:
                             de = sb.directory_entry
                             _si = misc._de_scene_idx(de)
-                            s = _si if _si >= 0 else 0
+                            s = max(_si, 0)
                             _mi = misc._de_mosaic_idx(de)
-                            m = _mi if _mi >= 0 else 0
+                            m = max(_mi, 0)
                             mosaic_counts[s] = max(mosaic_counts.get(s, 0), m + 1)
 
                         self.sb_ismosaic = any(v > 1 for v in mosaic_counts.values())
@@ -248,7 +249,7 @@ class CziMetadata:
                         # Build per-scene dims_shape list
                         self.sb_dims_shape = []
                         for s in sorted(all_dims.keys()):
-                            shape_dict: Dict[str, Tuple[int, int]] = {}
+                            shape_dict: dict[str, tuple[int, int]] = {}
                             shape_dict["X"] = (0, x_shape)
                             shape_dict["Y"] = (0, y_shape)
                             for dim_char, (lo, hi) in all_dims[s].items():

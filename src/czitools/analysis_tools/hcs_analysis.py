@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """HCS OME-Zarr analysis utilities for czitools analysis tools.
 
 Provides :func:`process_hcs_omezarr` to count objects per well in an HCS
@@ -12,9 +11,8 @@ These features require optional dependencies. Install them with::
     pip install "czitools[analysis]"
 """
 
-from typing import Dict, Tuple
-import numpy as np
 import ngff_zarr as nz
+import numpy as np
 
 from czitools.analysis_tools.processing import ArrayProcessor
 from czitools.utils import logging_tools
@@ -25,8 +23,8 @@ logger = logging_tools.set_logging()
 def process_hcs_omezarr(
     hcs_omezarr_path: str,
     channel2analyze: int = 0,
-    measure_properties: Tuple[str, ...] = ("label", "area", "centroid", "bbox"),
-) -> Dict[str, int]:
+    measure_properties: tuple[str, ...] = ("label", "area", "centroid", "bbox"),
+) -> dict[str, int]:
     """Process an HCS OME-ZARR file to count objects per well.
 
     Iterates over every well and field in the plate, applies Otsu thresholding
@@ -37,11 +35,11 @@ def process_hcs_omezarr(
     Args:
         hcs_omezarr_path (str): Path to the HCS OME-ZARR file or directory.
         channel2analyze (int): Index of the channel to analyse (default: 0).
-        measure_properties (Tuple[str, ...]): regionprops properties to measure
+        measure_properties (tuple[str, ...]): regionprops properties to measure
             (default: label/area/centroid/bbox).
 
     Returns:
-        Dict[str, int]: Dictionary mapping well path strings (e.g. ``"B/4"``) to
+        dict[str, int]: Dictionary mapping well path strings (e.g. ``"B/4"``) to
             total object counts.
 
     Raises:
@@ -55,8 +53,8 @@ def process_hcs_omezarr(
         logger.error(f"Validation failed: {e}")
         raise
 
-    results_obj: Dict[str, int] = {}
-    results_mean: Dict[str, float] = {}
+    results_obj: dict[str, int] = {}
+    results_mean: dict[str, float] = {}
 
     logger.info(f"Number of wells in metadata: {len(hcs_plate.metadata.wells)}")
     logger.info(f"Wells in metadata: {[w.path for w in hcs_plate.metadata.wells]}")

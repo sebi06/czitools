@@ -12,21 +12,22 @@ Note:
     ```
 """
 
-from typing import Tuple, Optional, Literal
+from typing import Literal, Optional
+
 import numpy as np
 import pandas as pd
-from skimage.filters import threshold_triangle, threshold_otsu, median, gaussian
-from skimage.measure import label, regionprops_table
-from skimage.morphology import (
-    remove_small_objects,
-    remove_small_holes,
-    disk,
-    ball,
-    white_tophat,
-    black_tophat,
-)
 from skimage import segmentation
 from skimage.color import label2rgb
+from skimage.filters import gaussian, median, threshold_otsu, threshold_triangle
+from skimage.measure import label, regionprops_table
+from skimage.morphology import (
+    ball,
+    black_tophat,
+    disk,
+    remove_small_holes,
+    remove_small_objects,
+    white_tophat,
+)
 from skimage.util import invert
 
 from czitools.utils import logging_tools
@@ -124,16 +125,16 @@ class ArrayProcessor:
         fill_holes: bool = True,
         max_holesize: int = 1,
         label_rgb: bool = True,
-        orig_image: Optional[np.ndarray] = None,
+        orig_image: np.ndarray | None = None,
         bg_label: int = 0,
         measure_params: bool = False,
-        measure_properties: Optional[Tuple[str, ...]] = (
+        measure_properties: tuple[str, ...] | None = (
             "label",
             "area",
             "centroid",
             "bbox",
         ),
-    ) -> Tuple[np.ndarray, int, Optional[pd.DataFrame]]:
+    ) -> tuple[np.ndarray, int, pd.DataFrame | None]:
         """Label objects in the thresholded array and optionally measure properties.
 
         Args:
@@ -142,11 +143,11 @@ class ArrayProcessor:
             fill_holes (bool): Fill small holes before labelling (default: True).
             max_holesize (int): Maximum hole size to fill (default: 1).
             label_rgb (bool): Generate an RGB-labelled image overlay (default: True).
-            orig_image (Optional[np.ndarray]): Original image for RGB overlay (default: None).
+            orig_image (np.ndarray | None): Original image for RGB overlay (default: None).
             bg_label (int): Background label value (default: 0).
             measure_params (bool): Run regionprops measurement (default: False).
-            measure_properties (Optional[Tuple[str, ...]]): Property names for regionprops
-                (default: label/area/centroid/bbox).
+            measure_properties (tuple[str, ...] | None): Property names for regionprops
+                (default: ("label", "area", "centroid", "bbox")).
 
         Returns:
             Tuple[np.ndarray, int, Optional[pd.DataFrame]]: Tuple of
@@ -175,7 +176,7 @@ class ArrayProcessor:
         self.array = segmentation.clear_border(self.array, bgval=bg_label)
         self.array, num_label = label(self.array, background=bg_label, return_num=True, connectivity=2)
 
-        props: Optional[pd.DataFrame] = None
+        props: pd.DataFrame | None = None
         if measure_params and measure_properties is not None:
             if orig_image is None:
                 props = pd.DataFrame(

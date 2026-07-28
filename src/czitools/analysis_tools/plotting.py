@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Well-plate visualisation utilities for czitools analysis tools.
 
 Provides :func:`create_well_plate_heatmap` to render a heatmap of per-well
@@ -13,22 +12,21 @@ These features require optional dependencies. Install them with::
     pip install "czitools[analysis]"
 """
 
-from typing import Dict, Tuple
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import seaborn as sns
-import matplotlib.pyplot as plt
 from matplotlib.figure import Figure as MplFigure
 
 
 def create_well_plate_heatmap(
-    results: Dict[str, float],
+    results: dict[str, float],
     num_rows: int = 8,
     num_cols: int = 12,
     title: str = "Well Plate Heatmap",
     parameter: str = "Objects",
     cmap: str = "viridis",
-    figsize: Tuple[int, int] = (12, 6),
+    figsize: tuple[int, int] = (12, 6),
     annot: bool = True,
     fmt: str = ".0f",
 ) -> MplFigure:

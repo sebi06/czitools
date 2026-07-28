@@ -12,14 +12,16 @@ Provides `CziChannelInfo`, which extracts per-channel properties such as
 names, colours, dye names, pixel types and RGB status from CZI metadata.
 """
 
-from typing import Union, List, Dict, Optional
-from dataclasses import dataclass, field
-from box import Box, BoxList
 import os
+from dataclasses import dataclass, field
+from typing import Dict, List, Optional, Union
+
+import numpy as np
+from box import Box, BoxList
+from pylibCZIrw import czi as pyczi
+
 from czitools.utils import logging_tools, pixels
 from czitools.utils.box import get_czimd_box
-from pylibCZIrw import czi as pyczi
-import numpy as np
 
 logger = logging_tools.set_logging()
 
@@ -48,18 +50,18 @@ class CziChannelInfo:
         verbose (bool): Flag to enable verbose logging.
     """
 
-    czisource: Union[str, os.PathLike[str], Box]
-    names: List[str] = field(init=False, default_factory=lambda: [])
-    dyes: List[str] = field(init=False, default_factory=lambda: [])
-    dyes_short: List[str] = field(init=False, default_factory=lambda: [])
-    channel_descriptions: List[str] = field(init=False, default_factory=lambda: [])
-    colors: List[str] = field(init=False, default_factory=lambda: [])
-    clims: List[List[float]] = field(init=False, default_factory=lambda: [])
-    gamma: List[float] = field(init=False, default_factory=lambda: [])
-    pixeltypes: Dict[int, str] = field(init=False, default_factory=lambda: {})
-    isRGB: Dict[int, bool] = field(init=False, default_factory=lambda: {})
-    consistent_pixeltypes: Optional[bool] = field(init=False, default=None)
-    czi_disp_settings: Dict[int, pyczi.ChannelDisplaySettingsDataClass] = field(init=False, default_factory=lambda: {})
+    czisource: str | os.PathLike[str] | Box
+    names: list[str] = field(init=False, default_factory=lambda: [])
+    dyes: list[str] = field(init=False, default_factory=lambda: [])
+    dyes_short: list[str] = field(init=False, default_factory=lambda: [])
+    channel_descriptions: list[str] = field(init=False, default_factory=lambda: [])
+    colors: list[str] = field(init=False, default_factory=lambda: [])
+    clims: list[List[float]] = field(init=False, default_factory=lambda: [])
+    gamma: list[float] = field(init=False, default_factory=lambda: [])
+    pixeltypes: dict[int, str] = field(init=False, default_factory=lambda: {})
+    isRGB: dict[int, bool] = field(init=False, default_factory=lambda: {})
+    consistent_pixeltypes: bool | None = field(init=False, default=None)
+    czi_disp_settings: dict[int, pyczi.ChannelDisplaySettingsDataClass] = field(init=False, default_factory=lambda: {})
     verbose: bool = False
 
     def __post_init__(self):

@@ -4,13 +4,15 @@ Provides `CziAttachments`, which inspects a CZI file for known attachment
 types (label, preview, prescan) using `pylibCZIrw`.
 """
 
-from typing import Optional, Union, List
-from dataclasses import dataclass, field
-from box import Box
 import os
-from czitools.utils import logging_tools
+from dataclasses import dataclass, field
 from pathlib import Path
+from typing import List, Optional, Union
+
 import validators
+from box import Box
+
+from czitools.utils import logging_tools
 
 logger = logging_tools.set_logging()
 
@@ -28,11 +30,11 @@ class CziAttachments:
         verbose (bool): Flag to enable verbose logging.
     """
 
-    czisource: Union[str, os.PathLike[str], Box]
-    has_label: Optional[bool] = field(init=False, default=False)
-    has_preview: Optional[bool] = field(init=False, default=False)
-    has_prescan: Optional[bool] = field(init=False, default=False)
-    names: List[str] = field(init=False, default_factory=lambda: [])
+    czisource: str | os.PathLike[str] | Box
+    has_label: bool | None = field(init=False, default=False)
+    has_preview: bool | None = field(init=False, default=False)
+    has_prescan: bool | None = field(init=False, default=False)
+    names: list[str] = field(init=False, default_factory=lambda: [])
     verbose: bool = False
 
     def __post_init__(self):

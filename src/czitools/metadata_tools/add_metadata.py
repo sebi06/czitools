@@ -5,10 +5,12 @@ such as Experiment, HardwareSetting, CustomAttributes, DisplaySetting and
 Layers from a CZI file.
 """
 
-from typing import Union, Optional
-from dataclasses import dataclass, field
-from box import Box
 import os
+from dataclasses import dataclass, field
+from typing import Optional, Union
+
+from box import Box
+
 from czitools.utils import logging_tools
 from czitools.utils.box import get_czimd_box
 

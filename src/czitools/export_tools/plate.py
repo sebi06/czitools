@@ -17,15 +17,15 @@ Note:
     :mod:`czitools.export_tools.resolver`.
 """
 
-import shutil
 import logging
+import shutil
 from dataclasses import dataclass
 from enum import Enum, unique
 from pathlib import Path
 from typing import Dict, Optional, Union
 
-from ngff_zarr.v04.zarr_metadata import Plate, PlateColumn, PlateRow, PlateWell
 from ngff_zarr import write_store_to_zip
+from ngff_zarr.v04.zarr_metadata import Plate, PlateColumn, PlateRow, PlateWell
 
 logger = logging.getLogger(__name__)
 
@@ -55,7 +55,7 @@ def extract_well_coordinates(
     rows: set[str] = set()
     cols: set[str] = set()
 
-    for well in well_counter.keys():
+    for well in well_counter:
         rows.add("".join(filter(str.isalpha, well)))
         cols.add("".join(filter(str.isdigit, well)))
 
@@ -174,10 +174,10 @@ def define_plate_by_well_count(well_count: int, field_count: int = 1) -> Plate:
 
 
 def convert_hcs_omezarr2ozx(
-    hcs_omezarr_path: Union[str, Path],
+    hcs_omezarr_path: str | Path,
     remove_omezarr: bool = False,
     version: str = "0.5",
-) -> Optional[Path]:
+) -> Path | None:
     """Convert an HCS OME-Zarr directory into a single-file ``.ozx`` archive.
 
     Args:

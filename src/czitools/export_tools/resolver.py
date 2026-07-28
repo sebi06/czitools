@@ -13,8 +13,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import List, Tuple
 
-from czitools.metadata_tools.czi_metadata import CziMetadata
 from czitools.export_tools.plate import extract_well_coordinates
+from czitools.metadata_tools.czi_metadata import CziMetadata
 
 
 @dataclass(frozen=True)
@@ -25,7 +25,7 @@ class HcsWellLayout:
     column: str
     path: str
     well_id: str
-    fields: Tuple[Tuple[int, int], ...]  # (field_index, scene_index)
+    fields: tuple[tuple[int, int], ...]  # (field_index, scene_index)
 
 
 @dataclass(frozen=True)
@@ -34,7 +34,7 @@ class HcsLayout:
 
     row_names: List[str]
     col_names: List[str]
-    wells: List[HcsWellLayout]
+    wells: list[HcsWellLayout]
     field_count: int
     source: str  # "hcs" or "sample"
 
@@ -77,7 +77,7 @@ def _from_hcs_model(mdata: CziMetadata, pad_columns: bool) -> HcsLayout:
     row_names = sorted({_row_letter(well.canonical_name) for well in plate.wells})
     col_names = [col_label[c] for c in sorted(columns)]
 
-    wells: List[HcsWellLayout] = []
+    wells: list[HcsWellLayout] = []
     field_count = 0
     for well in sorted(plate.wells, key=lambda w: (w.row_index, w.column_index)):
         row = _row_letter(well.canonical_name)
@@ -109,7 +109,7 @@ def _from_sample_info(mdata: CziMetadata, pad_columns: bool) -> HcsLayout:
     row_names, col_names, _ = extract_well_coordinates(sample.well_counter, pad_columns=pad_columns)
     col_label = _pad_columns({int(c) for c in col_names}, pad_columns)
 
-    wells: List[HcsWellLayout] = []
+    wells: list[HcsWellLayout] = []
     field_count = 0
     for well_id in sorted(sample.well_scene_indices.keys(), key=_well_sort_key):
         scene_indices = sample.well_scene_indices[well_id]
