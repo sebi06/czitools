@@ -86,7 +86,8 @@ These are installed automatically with `pip install czitools`:
 | `pylibCZIrw>=5`       | Reading and writing CZI files     |
 | `czifile`             | Subblock-level CZI access         |
 | `numpy`               | Array operations                  |
-| `xarray[complete]`    | Labelled multi-dimensional arrays |
+| `dask`                | Chunked and lazy arrays            |
+| `xarray`              | Labelled multi-dimensional arrays |
 | `pandas`              | Planetable data manipulation      |
 | `python-box[all]`     | Attribute-style metadata access   |
 | `pydantic`            | Data validation                   |
@@ -96,25 +97,28 @@ These are installed automatically with `pip install czitools`:
 
 ### Optional dependencies (`[all]`)
 
-| Package                                  | Purpose                    |
-| ---------------------------------------- | -------------------------- |
-| `seaborn` / `plotly`                     | Plotting and visualization |
-| `qtpy` / `pyqtgraph`                     | Qt-based visualization     |
-| `colormap`                               | Colormap utilities         |
-| `ngff-zarr`                              | OME-ZARR export support    |
-| `bioio` / `bioio-czi` / `bioio-ome-zarr` | BioIO readers              |
-| `ndv[pyqt,vispy]`                        | NDV viewer integration     |
+| Package                                  | Purpose                         |
+| ---------------------------------------- | ------------------------------- |
+| `seaborn` / `plotly` / `matplotlib`      | Plotting and visualization      |
+| `qtpy` / `pyqtgraph`                     | Qt-based visualization          |
+| `colormap`                               | Colormap utilities              |
+| `ngff-zarr` / `ome-zarr` / `zarr`        | OME-Zarr export support         |
+| `bioio` / `bioio-czi` / `bioio-ome-zarr` | BioIO readers                   |
+| `ndv[pyqt,vispy]`                        | NDV viewer integration          |
+| `napari` / `napari-ome-zarr`             | Interactive image visualization |
+| `scikit-image`                           | Image processing                |
 
 ### OME-Zarr export dependencies (`[omezarr]`)
 
 Required by `czitools.export_tools` for CZI → OME-Zarr conversion and validation:
 
-| Package             | Purpose                                 |
-| ------------------- | --------------------------------------- |
-| `ngff-zarr>=0.34.0` | Primary write backend (OME-NGFF v0.5)   |
-| `ome-zarr>=0.16.0`  | Secondary write backend (OME-NGFF v0.4) |
-| `zarr>=3.0`         | Zarr v3 storage backend                 |
-| `ome-zarr-models`   | OME-NGFF v0.5 schema validation         |
+| Package                       | Purpose                                              |
+| ----------------------------- | ---------------------------------------------------- |
+| `ngff-zarr>=0.39.0`           | Primary write backend (OME-NGFF v0.5)                |
+| `ome-zarr>=0.16.0`            | Secondary write backend (Zarr v3 or v2)              |
+| `zarr>=3.0`                   | Zarr storage backend                                 |
+| `ome-zarr-models>=1.7,<2`     | OME-NGFF schema validation                           |
+| `tensorstore`                 | Optional asynchronous/parallel chunk writing backend |
 
 ### GUI dependencies (`[omezarr-gui]`)
 
