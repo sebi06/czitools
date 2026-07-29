@@ -16,7 +16,7 @@ import re
 from dataclasses import dataclass, replace
 from pathlib import Path
 from statistics import median
-from typing import Any, Optional, Union, cast
+from typing import Any, Union, cast
 
 from box import Box, BoxList
 

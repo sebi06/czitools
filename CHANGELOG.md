@@ -6,6 +6,35 @@ and the project adheres to [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [0.20.0] - 2026-07-29
+
+### Added
+
+- Immutable CZI HCS Plate → Well → Field metadata model with explicit detection status.
+- Well- and field-based pixel readers.
+- True lazy, scene-wise Dask readers with stable list and stacked return contracts.
+- OME-Zarr HCS conversion through ngff-zarr and ome-zarr-py backends.
+- OME-Zarr validation, converter GUI, HCS analysis, and plate heatmap helpers.
+- Well-plate metadata, position-enrichment, conversion, and analysis examples.
+
+### Changed
+
+- Expanded CZI sample metadata with lossless missing-value handling.
+- Added support for unequal scene and field shapes in scene-wise reads and HCS conversion.
+- Split optional OME-Zarr, GUI, analysis, documentation, and full dependency groups.
+- Updated installation, usage, and README documentation for current reader and HCS behavior.
+- Updated the Pixi environment to use compatible `imagecodecs` and `czifile` releases.
+
+### Fixed
+
+- TestPyPI deployment is now restricted to `testpypi-v*` tags.
+- Dask is declared as a core dependency because the pixel-reader module imports it directly.
+- Correctness-focused Ruff findings, including undefined type names and stale imports.
+
+See [_release_notes/v0.20.0.md](_release_notes/v0.20.0.md) for detailed release notes.
+
+---
+
 ## [0.17.2] — 2026-05-22
 
 ### Fixed
@@ -208,6 +237,8 @@ and the project adheres to [Semantic Versioning](https://semver.org/).
 
 ---
 
+[0.20.0]: https://github.com/sebi06/czitools/compare/v0.17.2...v0.20.0
+[0.17.2]: https://github.com/sebi06/czitools/releases/tag/v0.17.2
 [0.17.1]: https://github.com/sebi06/czitools/releases/tag/v0.17.1
 [0.17.0]: https://github.com/sebi06/czitools/releases/tag/v0.17.0
 [0.16.0]: https://github.com/sebi06/czitools/releases/tag/v0.16.0

@@ -14,7 +14,7 @@ names, colours, dye names, pixel types and RGB status from CZI metadata.
 
 import os
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Union
+from typing import Dict, List
 
 import numpy as np
 from box import Box, BoxList

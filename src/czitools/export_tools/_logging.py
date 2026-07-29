@@ -8,7 +8,6 @@ Vendored (with light edits) from ``czi_omezarr_utils.logging_utils`` in the
 import logging
 from enum import Enum, unique
 from pathlib import Path
-from typing import Optional, Union
 
 
 @unique

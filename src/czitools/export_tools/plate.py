@@ -22,7 +22,7 @@ import shutil
 from dataclasses import dataclass
 from enum import Enum, unique
 from pathlib import Path
-from typing import Dict, Optional, Union
+from typing import Dict
 
 from ngff_zarr import write_store_to_zip
 from ngff_zarr.v04.zarr_metadata import Plate, PlateColumn, PlateRow, PlateWell

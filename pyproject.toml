@@ -1,13 +1,14 @@
 [build-system]
-requires = ["setuptools>=61"]
+requires = ["setuptools>=77"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "czitools"
-version = "0.17.2"
-description = "Tools to simplify reading and CZI (Carl Zeiss Image) meta and pixel data"
+version = "0.20.0"
+description = "Tools for reading CZI pixel data and metadata and converting CZI data to OME-Zarr"
 readme = "README.md"
-license = {text = "GNU General Public License v3 (GPLv3)"}
+license = "GPL-3.0-only"
+license-files = ["LICENSE"]
 authors = [
     {name = "Sebastian Rhode", email = "sebrhode@gmail.com"}
 ]
@@ -36,6 +37,7 @@ dependencies = [
     "colorlog",
     "pydantic",
     "xarray",
+    "dask[array]",
     # Note: xarray[complete] removed - extras don't work with conda-forge packages.
     # When using pixi with conda-forge deps, conda installs the full package regardless.
 ]
@@ -120,7 +122,7 @@ docs = [
 
 [project.urls]
 "Bug Tracker" = "https://github.com/sebi06/czitools/issues"
-"Documentation" = "https://github.com/sebi06/czitools/#README.md"
+"Documentation" = "https://sebi06.github.io/czitools/"
 "Source Code" = "https://github.com/sebi06/czitools/"
 "User Support" = "https://github.com/sebi06/czitools/issues"
 
@@ -133,7 +135,7 @@ include-package-data = true
 
 [tool.setuptools.packages.find]
 where = ["src"]
-exclude = ["data*", "docs*", "demo*", "images*", "archive*"]
+exclude = ["czitools._tests*", "data*", "docs*", "demo*", "images*", "archive*"]
 
 [tool.setuptools.package-data]
 "*" = [
@@ -157,6 +159,16 @@ addopts = "--ignore=old/napari_tools/test_napari_tools.py"
 markers = [
     "network: marks tests that require network connectivity (deselect with '-m \"not network\"')",
 ]
+
+[tool.ruff]
+target-version = "py312"
+line-length = 120
+extend-exclude = ["build", "old"]
+
+[tool.ruff.lint]
+# Keep the release gate focused on syntax, imports, and definite runtime errors.
+# Broader modernization rules can be adopted incrementally after 0.20.0.
+select = ["E4", "E7", "E9", "F"]
 
 [tool.marimo.runtime]
 pythonpath = ["src"]

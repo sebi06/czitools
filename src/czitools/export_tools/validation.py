@@ -6,7 +6,7 @@ Vendored (with light edits) from ``czi_omezarr_utils.validation`` in the
 
 import logging
 from pathlib import Path
-from typing import Any, Union, cast
+from typing import Any, cast
 
 import zarr
 from ome_zarr_models.v05.image import Image

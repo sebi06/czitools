@@ -12,7 +12,6 @@ Contents:
 """
 
 import math
-from typing import Union
 import logging
 
 import numpy as np

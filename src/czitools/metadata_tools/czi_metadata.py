@@ -24,7 +24,7 @@ import xml.etree.ElementTree as ET
 # import numpy as np
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, Optional, Union
 
 from box import Box
 from pylibCZIrw import czi as pyczi

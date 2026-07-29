@@ -8,7 +8,6 @@ diagnostic messages are emitted only when ``verbose`` is True.
 
 import os
 from dataclasses import dataclass, field
-from typing import Dict, Optional, Union
 
 import validators
 from box import Box

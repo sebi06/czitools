@@ -77,7 +77,7 @@ def _measure_read(czi: str, repeats: int) -> tuple[float, float, tuple, np.dtype
     shape = tuple(array6d.shape)  # type: ignore[union-attr]
     dtype = array6d.dtype  # type: ignore[union-attr]
     size_mb = float(np.prod(shape)) * np.dtype(dtype).itemsize / (1024**2)
-    del holder
+    holder.clear()
     gc.collect()
     return best, mean, shape, dtype, size_mb
 
