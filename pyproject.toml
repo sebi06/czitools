@@ -31,7 +31,7 @@ dependencies = [
     "pandas",
     "python-dateutil",
     "python-box[all]",
-    "czifile",
+    "czifile>=2026.6.6",
     "loguru",
     "colorlog",
     "pydantic",
