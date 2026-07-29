@@ -7,7 +7,10 @@
 [![Python Version](https://img.shields.io/pypi/pyversions/czitools.svg?color=green)](https://python.org)
 [![Development Status](https://img.shields.io/pypi/status/czitools.svg)](https://en.wikipedia.org/wiki/Software_release_life_cycle#Alpha)
 
-This repository provides a collection of tools to simplify reading CZI (Carl Zeiss Image) pixel and metadata in Python. It is available as a [Python Package on PyPi](https://pypi.org/project/czitools/).
+This repository provides tools for reading CZI (Carl Zeiss Image) pixel data
+and metadata in Python, interpreting CZI well plates as an HCS
+Plate → Well → Field model, and converting CZI data to OME-Zarr. It is
+available as a [Python package on PyPI](https://pypi.org/project/czitools/).
 
 For full documentation see **[sebi06.github.io/czitools](https://sebi06.github.io/czitools/)**.
 
@@ -27,16 +30,16 @@ Install with additional functionality using optional extras:
 
 ```bash
 # OME-ZARR export (conversion + validation)
-pip install czitools[omezarr]
+pip install "czitools[omezarr]"
 
 # OME-ZARR export with GUI converter application
-pip install czitools[omezarr-gui]
+pip install "czitools[omezarr-gui]"
 
 # HCS plate analysis and visualization
-pip install czitools[analysis]
+pip install "czitools[analysis]"
 
 # Everything (all optional dependencies)
-pip install czitools[all]
+pip install "czitools[all]"
 ```
 
 ### Development Installation
@@ -49,19 +52,21 @@ git clone https://github.com/sebi06/czitools.git
 cd czitools
 
 # Install in editable mode with all extras
-pip install -e .[all]
+pip install -e ".[all]"
 ```
 
-### Conda/Pixi Installation
+### Conda/Pixi Development Environment
 
-For conda users (recommended for complex scientific Python environments):
+The cloned repository includes both a conda environment file and a Pixi
+workspace:
 
 ```bash
-# Using conda
-conda install -c conda-forge czitools
+# Create the provided conda environment
+conda env create -f env_czitools.yml
+conda activate czitools
 
-# Using pixi (modern conda alternative)
-pixi add czitools
+# Or install the locked Pixi workspace
+pixi install
 ```
 
 For more details see the [Installation docs](https://sebi06.github.io/czitools/install/).
@@ -69,19 +74,58 @@ For more details see the [Installation docs](https://sebi06.github.io/czitools/i
 ## Quick Start
 
 ```python
-from czitools.metadata_tools.czi_metadata import CziMetadata
-from czitools.read_tools import read_tools
+from czitools.metadata_tools import CziMetadata
+from czitools.read_tools import read_6darray, read_stacks_list
 
-# read all metadata
+# Read metadata without loading pixels.
 mdata = CziMetadata("path/to/file.czi")
+print(mdata.image_required.SizeC)
+print(mdata.scale_required.X)
 
-# read pixel data as a labelled STCZYX(A) array
-array6d, mdata = read_tools.read_6darray("path/to/file.czi", use_dask=True, use_xarray=True)
+# Read regular, equal-sized scenes eagerly as a labelled STCZYX(A) array.
+array6d, mdata = read_6darray("path/to/file.czi", use_xarray=True)
+
+# For true on-demand Dask reads, keep scenes as a list.
+scenes, dims, scene_count, mdata = read_stacks_list(
+    "path/to/file.czi",
+    use_dask=True,
+    use_xarray=True,
+)
+first_plane = scenes[0].isel(T=0, C=0, Z=0).compute()
 ```
+
+`read_6darray(..., use_dask=True)` produces a Dask-backed result but still
+reads the CZI eagerly. Use `read_stacks(..., use_dask=True)` or
+`read_stacks_list(..., use_dask=True)` for genuinely lazy pixel access.
 
 For detailed usage examples see the [Usage docs](https://sebi06.github.io/czitools/usage/).
 
 ## Features
+
+### CZI Well Plates and OME-Zarr HCS
+
+```python
+from czitools.export_tools import convert_czi2hcs_ngff, validate_ome_zarr
+from czitools.metadata_tools import CziMetadata
+from czitools.read_tools import read_field
+
+filepath = "path/to/plate.czi"
+mdata = CziMetadata(filepath)
+
+if mdata.hcs is None:
+    raise ValueError(mdata.hcs_status.reason)
+
+well = mdata.hcs.get_well("B04")
+field, _ = read_field(filepath, well="B04", field=0)
+
+# Requires: pip install "czitools[omezarr]"
+output = convert_czi2hcs_ngff(filepath, overwrite=True)
+assert validate_ome_zarr(output)
+```
+
+Well names accept forms such as `B4`, `b04`, and `B/4`. Field indices are
+zero-based within a well. The OME-Zarr converter writes the HCS hierarchy
+plate → well → field image → multiscale level.
 
 ### Analysis Tools
 
@@ -92,8 +136,12 @@ from czitools.analysis_tools import ArrayProcessor, process_hcs_omezarr, create_
 
 # Process 2D images with filters and object detection
 proc = ArrayProcessor(image_2d)
-filtered = proc.apply_gaussian_filter(sigma=2).apply_threshold(value=100)
-labelled, count, props = proc.label_objects(min_size=50, measure_params=True)
+filtered = proc.apply_gaussian_filter(sigma=2)
+binary = ArrayProcessor(filtered).apply_threshold(value=100)
+labelled, count, props = ArrayProcessor(binary).label_objects(
+    min_size=50,
+    measure_params=True,
+)
 
 # Analyze HCS OME-ZARR plates
 results = process_hcs_omezarr("plate.ome.zarr", channel2analyze=0)
@@ -102,7 +150,7 @@ results = process_hcs_omezarr("plate.ome.zarr", channel2analyze=0)
 fig = create_well_plate_heatmap(results, num_rows=8, num_cols=12)
 ```
 
-**Requires:** `pip install czitools[analysis]`
+**Requires:** `pip install "czitools[analysis]"`
 
 **CZI inside NDV**
 
@@ -118,6 +166,7 @@ fig = create_well_plate_heatmap(results, num_rows=8, num_cols=12)
 | -------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Read CZI metadata          | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/sebi06/czitools/blob/main/demo/notebooks/read_czi_metadata.ipynb)            |
 | Read CZI pixel data        | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/sebi06/czitools/blob/main/demo/notebooks/read_czi_pixeldata.ipynb)           |
-| Write OME-ZARR from CZI    | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/sebi06/czitools/blob/main/demo/notebooks/omezarr_from_czi_5d.ipynb)          |
+| Read CZI well-plate data   | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/sebi06/czitools/blob/main/demo/notebooks/read_czi_wellplate_data.ipynb)        |
+| Process OME-Zarr HCS plate | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/sebi06/czitools/blob/main/demo/notebooks/process_omezarr_HCS_plate.ipynb)       |
 | Show planetable as surface | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/sebi06/czitools/blob/main/demo/notebooks/show_czi_surface.ipynb)             |
 | Segment with Voronoi-Otsu  | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/sebi06/czitools/blob/main/demo/notebooks/read_czi_segment_voroni_otsu.ipynb) |
