@@ -28,7 +28,8 @@ and the project adheres to [Semantic Versioning](https://semver.org/).
 ### Fixed
 
 - TestPyPI deployment is now restricted to `testpypi-v*` tags.
-- Dask is declared as a core dependency because the pixel-reader module imports it directly.
+- Dask, Requests, Zarr, and Matplotlib are declared as core dependencies
+  because they are imported through the public package path.
 - Correctness-focused Ruff findings, including undefined type names and stale imports.
 
 See [_release_notes/v0.20.0.md](_release_notes/v0.20.0.md) for detailed release notes.

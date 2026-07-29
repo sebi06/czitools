@@ -38,6 +38,9 @@ dependencies = [
     "pydantic",
     "xarray",
     "dask[array]",
+    "requests",
+    "zarr>=3.0",
+    "matplotlib",
     # Note: xarray[complete] removed - extras don't work with conda-forge packages.
     # When using pixi with conda-forge deps, conda installs the full package regardless.
 ]
