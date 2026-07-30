@@ -11,7 +11,7 @@ import dask.array as da
 import numpy as np
 import pytest
 import xarray as xr
-from typing import List, Tuple, Optional, Union
+from typing import Tuple
 
 
 basedir = Path(__file__).resolve().parents[3]

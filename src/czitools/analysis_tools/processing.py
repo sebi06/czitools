@@ -12,7 +12,7 @@ Note:
     ```
 """
 
-from typing import Literal, Optional
+from typing import Literal
 
 import numpy as np
 import pandas as pd

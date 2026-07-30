@@ -8,8 +8,7 @@ import pandas as pd
 import pytest
 import numpy as np
 from typing import List, Tuple, Optional, Union, Dict
-from unittest.mock import patch, Mock
-from czitools.utils.misc import is_valid_czi_url, get_pyczi_readertype
+from czitools.utils.misc import get_pyczi_readertype
 from pylibCZIrw import czi as pyczi
 
 basedir = Path(__file__).resolve().parents[3]

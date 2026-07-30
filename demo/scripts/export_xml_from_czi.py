@@ -13,7 +13,6 @@
 
 # import the required libraries
 from czitools.metadata_tools import czi_metadata as czimd
-from czitools.utils import misc
 from pathlib import Path
 from magicgui import magicgui
 from magicgui.types import FileDialogMode

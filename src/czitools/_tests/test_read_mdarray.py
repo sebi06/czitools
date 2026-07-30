@@ -1,10 +1,9 @@
 from czitools.read_tools import read_tools
 from pathlib import Path
-import dask.array as da
 import numpy as np
 import pytest
 from pylibCZIrw import czi as pyczi
-from typing import List, Dict, Tuple, Optional, Type, Any, Union, Mapping
+from typing import Dict, Tuple, Optional
 
 basedir = Path(__file__).resolve().parents[3]
 
@@ -58,7 +57,7 @@ def test_read_mdarray(czifile: str, shape: Optional[Tuple[int]], use_dask: bool,
 
     mdarray, mdata = read_tools.read_6darray(filepath, use_dask=use_dask, chunk_zyx=chunk_zyx)
 
-    if type(shape) == type and issubclass(shape, Exception):
+    if isinstance(shape, type) and issubclass(shape, Exception):
         with pytest.raises(shape):
             mdarray.shape
     else:

@@ -37,7 +37,6 @@ from ngff_zarr.v04.zarr_metadata import Plate, PlateColumn, PlateRow, PlateWell
 from ome_zarr.io import parse_url
 from ome_zarr.writer import write_plate_metadata, write_well_metadata
 from zarr.codecs import Blosc, Zstd
-from zarr.core.chunk_grids import _guess_chunks
 
 from czitools.metadata_tools.czi_metadata import CziMetadata
 from czitools.read_tools import read_tools

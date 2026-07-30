@@ -11,7 +11,7 @@ metadata raises :class:`ValueError` instead of manufacturing a plate.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import List, Tuple
+from typing import List
 
 from czitools.export_tools.plate import extract_well_coordinates
 from czitools.metadata_tools.czi_metadata import CziMetadata

@@ -45,7 +45,10 @@ jobs:
             - name: Install dependencies
               run: |
                   python -m pip install --upgrade pip
-                  pip install setuptools tox tox-gh-actions pytest pytest-qt pytest-cov pandas
+                  pip install setuptools tox tox-gh-actions pytest pytest-qt pytest-cov pandas ruff
+
+            - name: Lint
+              run: ruff check src demo/scripts
 
             # this runs the platform-specific tests declared in tox.ini
             - name: Test with tox
@@ -64,7 +67,7 @@ jobs:
         # github secrets (see readme for details)
         needs: [test]
         runs-on: ubuntu-latest
-        if: contains(github.ref, 'tags')
+        if: startsWith(github.ref, 'refs/tags/testpypi-v')
         steps:
             - uses: actions/checkout@v6
             - name: Set up Python

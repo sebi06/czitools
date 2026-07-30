@@ -16,8 +16,8 @@ authors = ["Rhode, Sebastian <sebrhode@gmail.com>"]
 channels = ["conda-forge"]
 name = "czitools"
 platforms = ["win-64", "linux-64"]
-version = "0.17.2"
-description = "Tools to simplify reading CZI (Carl Zeiss Image) meta and pixel data."
+version = "0.20.0"
+description = "Tools for reading CZI pixel data and metadata and converting CZI data to OME-Zarr."
 
 # =============================================================================
 # CONDA-FORGE dependencies
@@ -46,6 +46,7 @@ colormap     = "*"
 zarr         = ">=3.0"
 fsspec       = "*"
 requests     = "*"
+imagecodecs  = ">=2026.6.6"  # required by czifile >=2026.6.6; keep compiled codecs on conda-forge
 
 # --- Qt bindings & widgets (conda-forge) -------------------------------------
 # MUST come from conda-forge to avoid DLL conflicts with PyPI Qt builds.
@@ -69,6 +70,7 @@ ipykernel    = ">=5.2.0,<7"
 ipyfilechooser = "*"
 pytest       = "*"
 pytest-cov   = "*"
+ruff         = ">=0.9.4"
 setuptools   = "*"
 wheel        = "*"
 validators   = "*"
@@ -89,7 +91,7 @@ czitools = { path = ".", editable = true }
 pylibCZIrw   = ">=6"
 python-box   = { version = "*", extras = ["all"] }
 loguru       = "*"
-czifile      = "*"
+czifile      = ">=2026.6.6"
 
 # --- Optional extras: [all] --------------------------------------------------
 plotly       = "*"
@@ -124,5 +126,6 @@ env = { QT_API = "pyqt6", SSL_CERT_DIR = "" }
 [tasks]
 test         = { cmd = "pytest src/czitools/_tests/ -v", description = "Run the full test suite" }
 test-no-net  = { cmd = "pytest src/czitools/_tests/ -v -m 'not network'", description = "Run tests excluding network-dependent ones" }
+lint         = { cmd = "ruff check src demo/scripts", description = "Run correctness-focused Ruff checks" }
 start-napari = { cmd = "napari", description = "Open the Napari viewer" }
 omezarr-gui   = { cmd = "czitools-omezarr-gui", description = "Open the OME-Zarr GUI" }

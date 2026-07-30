@@ -1,7 +1,6 @@
 from czitools.metadata_tools import czi_metadata as czimd
 from pathlib import Path
 import pytest
-from typing import List
 
 # adapt to your needs
 defaultdir = Path(__file__).resolve().parents[3] / "data"
@@ -58,7 +57,7 @@ def test_box(czifile: str, expected: bool) -> None:
     filepath = defaultdir / czifile
 
     try:
-        czibox = czimd.get_czimd_box(filepath)
+        czimd.get_czimd_box(filepath)
         ok = True
     except Exception:
         ok = False

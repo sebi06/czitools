@@ -21,7 +21,10 @@ import matplotlib.pyplot as plt
 from matplotlib import cm
 from matplotlib.figure import Figure as MplFigure
 import pandas as pd
-from typing import Tuple
+from typing import TYPE_CHECKING, Tuple
+
+if TYPE_CHECKING:
+    import plotly.graph_objects as go
 from czitools.utils import logging_tools
 
 logger = logging_tools.set_logging()
