@@ -140,6 +140,9 @@ include-package-data = true
 where = ["src"]
 exclude = ["czitools._tests*", "data*", "docs*", "demo*", "images*", "archive*"]
 
+[tool.setuptools.exclude-package-data]
+"czitools._tests" = ["*"]
+
 [tool.setuptools.package-data]
 "*" = [
     "*.czi",
