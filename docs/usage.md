@@ -12,7 +12,7 @@ from pathlib import Path
 filepath = Path("data/WP96_4Pos_B4-10_DAPI.czi")
 ```
 
-## Reading Metadata
+
 
 For most workflows, create one `CziMetadata` object and use its grouped
 properties. The metadata object returned by a pixel reader is the same type, so
@@ -36,16 +36,16 @@ print(mdata.scene_shape_is_consistent)
 The `*_required` properties return a non-optional value or raise a clear error.
 Frequently used groups are:
 
-| Property | Contents |
-| --- | --- |
-| `image` | Dimension sizes |
-| `bbox` | Total and per-scene bounding boxes |
-| `channelinfo` | Channel acquisition and display information |
-| `scale` | Physical scaling |
-| `objective`, `detector`, `microscope` | Instrument information |
-| `sample` | Per-scene sample and well information |
-| `attachments` | CZI attachment availability |
-| `hcs`, `hcs_status` | Validated HCS hierarchy and detection result |
+| Property                              | Contents                                     |
+| ------------------------------------- | -------------------------------------------- |
+| `image`                               | Dimension sizes                              |
+| `bbox`                                | Total and per-scene bounding boxes           |
+| `channelinfo`                         | Channel acquisition and display information  |
+| `scale`                               | Physical scaling                             |
+| `objective`, `detector`, `microscope` | Instrument information                       |
+| `sample`                              | Per-scene sample and well information        |
+| `attachments`                         | CZI attachment availability                  |
+| `hcs`, `hcs_status`                   | Validated HCS hierarchy and detection result |
 
 Metadata can also be read selectively using the individual classes:
 
@@ -113,14 +113,14 @@ scaling = czi_box.ImageDocument.Metadata.Scaling.Items.Distance
 Choose the reader according to the regularity of the data and whether loading
 must be genuinely lazy:
 
-| Requirement | Recommended function | Result |
-| --- | --- | --- |
-| Equal-sized scenes; eager read | `read_6darray` | One `STCZYX(A)` array |
-| Regular array wrapped as Dask | `read_6darray(use_dask=True)` | Dask-backed, but eagerly read |
-| True on-demand reads | `read_stacks(use_dask=True)` | Per-scene arrays by default |
-| True lazy reads with equal scenes stacked | `read_stacks_stacked` | One array with `S` |
-| Scenes that may differ in shape | `read_stacks_list` | Stable list of scene arrays |
-| A known HCS well or field | `read_well` / `read_field` | HCS-aware field arrays |
+| Requirement                               | Recommended function          | Result                        |
+| ----------------------------------------- | ----------------------------- | ----------------------------- |
+| Equal-sized scenes; eager read            | `read_6darray`                | One `STCZYX(A)` array         |
+| Regular array wrapped as Dask             | `read_6darray(use_dask=True)` | Dask-backed, but eagerly read |
+| True on-demand reads                      | `read_stacks(use_dask=True)`  | Per-scene arrays by default   |
+| True lazy reads with equal scenes stacked | `read_stacks_stacked`         | One array with `S`            |
+| Scenes that may differ in shape           | `read_stacks_list`            | Stable list of scene arrays   |
+| A known HCS well or field                 | `read_well` / `read_field`    | HCS-aware field arrays        |
 
 ### `read_6darray` — Full 6D Stack
 
@@ -400,15 +400,15 @@ scales = _create_scales_ndv(mdata)
 
 `read_6darray`, `read_field`, and `read_well` use **STCZYX(A)**:
 
-| Dim | Meaning                          |
-| --- | -------------------------------- |
-| S   | Scene                            |
-| T   | Time                             |
-| C   | Channel                          |
-| Z   | Z-slice                          |
-| Y   | Y (height)                       |
-| X   | X (width)                        |
-| A   | RGB sample/component (optional)  |
+| Dim | Meaning                         |
+| --- | ------------------------------- |
+| S   | Scene                           |
+| T   | Time                            |
+| C   | Channel                         |
+| Z   | Z-slice                         |
+| Y   | Y (height)                      |
+| X   | X (width)                       |
+| A   | RGB sample/component (optional) |
 
 `read_stacks` tracks `S` separately unless scenes are stacked. Optional CZI
 dimensions `V`, `R`, `I`, `H`, and `M` precede the always-present core
@@ -581,8 +581,8 @@ print(f"Wrote {output}")
 | -------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Read CZI metadata          | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/sebi06/czitools/blob/main/demo/notebooks/read_czi_metadata.ipynb)            |
 | Read CZI pixel data        | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/sebi06/czitools/blob/main/demo/notebooks/read_czi_pixeldata.ipynb)           |
-| Read CZI well-plate data   | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/sebi06/czitools/blob/main/demo/notebooks/read_czi_wellplate_data.ipynb)        |
-| Process OME-Zarr HCS plate | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/sebi06/czitools/blob/main/demo/notebooks/process_omezarr_HCS_plate.ipynb)       |
+| Read CZI well-plate data   | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/sebi06/czitools/blob/main/demo/notebooks/read_czi_wellplate_data.ipynb)      |
+| Process OME-Zarr HCS plate | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/sebi06/czitools/blob/main/demo/notebooks/process_omezarr_HCS_plate.ipynb)    |
 | Write OME-ZARR from CZI    | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/sebi06/czitools/blob/main/demo/notebooks/omezarr_from_czi_5d.ipynb)          |
 | Save with ZSTD compression | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/sebi06/czitools/blob/main/demo/notebooks/save_with_ZSTD_compression.ipynb)   |
 | Show planetable as surface | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/sebi06/czitools/blob/main/demo/notebooks/show_czi_surface.ipynb)             |
