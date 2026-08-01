@@ -515,7 +515,12 @@ run_gui()
 
 # Or embed the widget in napari
 from czitools.export_tools import create_gui
-viewer.window.add_dock_widget(create_gui(), name="CZI Converter")
+import napari
+
+viewer = napari.Viewer()
+viewer.window.add_dock_widget(create_gui(), name="CZI OME-ZARR Converter")
+
+napari.run()
 ```
 
 ## End-to-End HCS Example
