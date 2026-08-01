@@ -5,7 +5,9 @@ These tests are skipped automatically when the optional export dependencies
 """
 
 from pathlib import Path
+from types import SimpleNamespace
 
+import numpy as np
 import pytest
 
 pytest.importorskip("ngff_zarr")
@@ -16,7 +18,9 @@ from czitools.export_tools import (
     convert_czi2hcs_ngff,
     resolve_hcs_layout,
     validate_ome_zarr,
+    write_omezarr_ngff,
 )
+from czitools.export_tools import conversion
 from czitools.metadata_tools.czi_metadata import CziMetadata
 
 BASEDIR = Path(__file__).resolve().parents[3]
@@ -57,3 +61,41 @@ def test_convert_czi2hcs_ngff_and_validate(tmp_path: Path) -> None:
     assert output.exists()
     assert output.name == "WP96_4Pos_B4-10_DAPI_ngff_plate_zarr3.ome.zarr"
     assert validate_ome_zarr(output) is True
+
+
+def test_write_omezarr_ngff_to_local_path(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Compression options must not be forwarded as FSSpec storage options."""
+    metadata = SimpleNamespace(
+        filename="test.czi",
+        scale=SimpleNamespace(X=1.0, Y=1.0, Z=1.0),
+        image=None,
+        channelinfo=None,
+    )
+    output = tmp_path / "image.ome.zarr"
+    multiscales = SimpleNamespace(metadata=SimpleNamespace(omero=None))
+    captured: dict = {}
+
+    monkeypatch.setattr(conversion.nz, "to_ngff_image", lambda *args, **kwargs: "image")
+    monkeypatch.setattr(conversion.nz, "to_multiscales", lambda *args, **kwargs: multiscales)
+
+    def capture_write(store, **kwargs) -> None:
+        captured["store"] = store
+        captured.update(kwargs)
+
+    monkeypatch.setattr(conversion.nz, "to_ngff_zarr", capture_write)
+
+    image = write_omezarr_ngff(
+        np.zeros((1, 1, 1, 8, 8), dtype=np.uint16),
+        output,
+        metadata,
+        scale_factors=[2],
+        chunks=(1, 1, 1, 4, 4),
+        chunks_per_shard=None,
+        overwrite=True,
+        use_tensorstore=False,
+    )
+
+    assert image == "image"
+    assert captured["store"] == output
+    assert captured["compressor"] is not None
+    assert "storage_options" not in captured

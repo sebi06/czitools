@@ -164,6 +164,12 @@ notebooks/*.csv
 **/notebooks/data/
 **/notebooks/_experimental/**
 demo/notebooks/_experimental/**
+/old
+/demo/notebooks/exports
+/demo/notebooks/exports/**
+/demo/notebooks/*.zarr
+/demo/notebooks/*.log
+/demo/notebooks/__marimo__
 
 
 # skip specific files
@@ -188,8 +194,7 @@ data/nuc_small.czi
 data/Tumor_HE_Orig_small_disp.czi
 data/Tumor_HE_RGB_disp.czi
 .pylintrc
-/old
-/demo/notebooks/__marimo__
+
 /demo/omezarr_testing/HCS_ZARR_METADATA_FIX.md
 /demo/omezarr_testing/1_image_loading.ipynb
 /demo/omezarr_testing/2_image_writing.ipynb
