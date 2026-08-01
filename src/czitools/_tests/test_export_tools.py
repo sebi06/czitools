@@ -47,10 +47,11 @@ def test_resolve_layout_without_pad_columns() -> None:
 
 
 def test_convert_czi2hcs_ngff_and_validate(tmp_path: Path) -> None:
+    output_dir = tmp_path / "exports"
     output = convert_czi2hcs_ngff(
         WELLPLATE,
         overwrite=True,
-        output_dir=tmp_path,
+        output_dir=output_dir,
         pad_columns=True,
     )
     assert output.exists()

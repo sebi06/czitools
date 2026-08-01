@@ -9124,6 +9124,9 @@ packages:
   - pydantic
   - xarray
   - dask[array]
+  - requests
+  - zarr>=3.0
+  - matplotlib
   - seaborn ; extra == 'all'
   - plotly ; extra == 'all'
   - qtpy ; extra == 'all'
