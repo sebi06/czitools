@@ -182,7 +182,7 @@ fig = create_well_plate_heatmap(results, num_rows=8, num_cols=12)
 
 **CZI inside NDV**
 
-![5D CZI inside NDV](https://github.com/sebi06/czitools/raw/main/_images/czi_ndv1.png)
+![5D CZI inside NDV](https://github.com/sebi06/czitools/raw/main/_images/ndv.png)
 
 **CZI inside Napari**
 
