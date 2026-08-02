@@ -16,7 +16,7 @@ authors = ["Rhode, Sebastian <sebrhode@gmail.com>"]
 channels = ["conda-forge"]
 name = "czitools"
 platforms = ["win-64", "linux-64"]
-version = "0.20.0"
+version = "0.20.1"
 description = "Tools for reading CZI pixel data and metadata and converting CZI data to OME-Zarr."
 
 # =============================================================================
@@ -38,7 +38,9 @@ pandas       = "<3"
 scikit-image = ">=0.26.0"
 
 # --- Visualisation -----------------------------------------------------------
-matplotlib   = ">=3.7.0"
+# Use the backend-neutral package: the `matplotlib` conda metapackage pulls
+# PyQt5 on Linux, conflicting with the PyQt6 backend selected below.
+matplotlib-base = ">=3.7.0"
 seaborn      = ">=0.13.2"
 colormap     = "*"
 
@@ -124,8 +126,9 @@ env = { QT_API = "pyqt6", SSL_CERT_DIR = "" }
 # Tasks
 # =============================================================================
 [tasks]
-test         = { cmd = "pytest src/czitools/_tests/ -v", description = "Run the full test suite" }
-test-no-net  = { cmd = "pytest src/czitools/_tests/ -v -m 'not network'", description = "Run tests excluding network-dependent ones" }
+test         = { cmd = "pytest src/czitools/_tests/ -v", depends-on = ["verify-qt-backend"], description = "Run the full test suite" }
+test-no-net  = { cmd = "pytest src/czitools/_tests/ -v -m 'not network'", depends-on = ["verify-qt-backend"], description = "Run tests excluding network-dependent ones" }
 lint         = { cmd = "ruff check src demo/scripts", description = "Run correctness-focused Ruff checks" }
-start-napari = { cmd = "napari", description = "Open the Napari viewer" }
-omezarr-gui   = { cmd = "czitools-omezarr-gui", description = "Open the OME-Zarr GUI" }
+verify-qt-backend = { cmd = "python -c \"import importlib.util as iu; pyqt5 = iu.find_spec('PyQt5'); assert pyqt5 is None or iu.find_spec('PyQt5.QtCore') is None, 'PyQt5 must not be installed'; import qtpy; assert qtpy.API_NAME == 'PyQt6', qtpy.API_NAME; print('Qt backend: PyQt6 (PyQt5 absent)')\"", description = "Verify that PyQt6 is selected and PyQt5 is not installed" }
+start-napari = { cmd = "napari", depends-on = ["verify-qt-backend"], description = "Open the Napari viewer" }
+omezarr-gui   = { cmd = "czitools-omezarr-gui", depends-on = ["verify-qt-backend"], description = "Open the OME-Zarr GUI" }

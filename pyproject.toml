@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "czitools"
-version = "0.20.0"
+version = "0.20.1"
 description = "Tools for reading CZI pixel data and metadata and converting CZI data to OME-Zarr"
 readme = "README.md"
 license = "GPL-3.0-only"
@@ -41,8 +41,6 @@ dependencies = [
     "requests",
     "zarr>=3.0",
     "matplotlib",
-    # Note: xarray[complete] removed - extras don't work with conda-forge packages.
-    # When using pixi with conda-forge deps, conda installs the full package regardless.
 ]
 
 [project.optional-dependencies]

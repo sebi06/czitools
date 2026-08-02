@@ -169,6 +169,8 @@ demo/notebooks/_experimental/**
 /demo/notebooks/exports/**
 /demo/notebooks/*.zarr
 /demo/notebooks/*.log
+/demo/notebooks/old
+/demo/notebooks/old/**
 /demo/notebooks/__marimo__
 
 
