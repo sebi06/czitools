@@ -6,6 +6,37 @@ and the project adheres to [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [0.20.1] — 2026-08-02
+
+### Added
+
+- Regression coverage for nested HCS export directories, local ngff-zarr
+  compression handling, and lazy top-level package imports.
+- A consolidated usage notebook and a napari OME-Zarr GUI demo script.
+
+### Changed
+
+- Top-level `czitools` subpackages are imported lazily to reduce startup cost
+  and avoid loading optional visualization dependencies unnecessarily.
+- Napari display helpers now return the viewer and support non-blocking notebook
+  use through `run=False`.
+- The Pixi workspace now enforces a PyQt6 backend per platform and includes the
+  corrected `cmap`, `tensorstore`, NumPy, and validators dependency declarations.
+- README, usage guidance, Copilot instructions, demos, and notebooks were
+  refreshed for the current metadata, reader, HCS, and OME-Zarr APIs.
+
+### Fixed
+
+- HCS conversion now creates parent directories before opening its log file,
+  allowing exports to new nested output directories.
+- ngff-zarr compression is passed through the writer's `compressor` argument
+  instead of being misrouted as an FSSpec storage option.
+- The converter GUI selects PyQt6 before importing QtPy and MagicGUI.
+
+See [_release_notes/v0.20.1.md](_release_notes/v0.20.1.md) for detailed release notes.
+
+---
+
 ## [0.20.0] - 2026-07-30
 
 ### Added
