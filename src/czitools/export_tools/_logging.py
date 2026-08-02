@@ -45,9 +45,12 @@ def setup_logging(
     """
     root_logger = logging.getLogger()
 
-    has_file_handler = any(isinstance(h, logging.FileHandler) for h in root_logger.handlers)
+    has_file_handler = any(
+        isinstance(h, logging.FileHandler) for h in root_logger.handlers
+    )
     has_console_handler = any(
-        isinstance(h, logging.StreamHandler) and not isinstance(h, logging.FileHandler) for h in root_logger.handlers
+        isinstance(h, logging.StreamHandler) and not isinstance(h, logging.FileHandler)
+        for h in root_logger.handlers
     )
 
     # Reconfigure if the target log file changed (different conversion run).
@@ -67,7 +70,9 @@ def setup_logging(
         for handler in root_logger.handlers[:]:
             root_logger.removeHandler(handler)
 
-        formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+        formatter = logging.Formatter(
+            "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+        )
 
         console_handler = logging.StreamHandler()
         console_handler.setFormatter(formatter)
@@ -82,6 +87,7 @@ def setup_logging(
         root_logger.addHandler(console_handler)
 
         if log_file_path:
+            Path(log_file_path).parent.mkdir(parents=True, exist_ok=True)
             file_handler = logging.FileHandler(str(log_file_path), encoding="utf-8")
             file_handler.setFormatter(formatter)
             root_logger.addHandler(file_handler)

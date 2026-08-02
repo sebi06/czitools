@@ -13,4 +13,4 @@
 
 **By using any of those examples you agree to this disclaimer.**
 
-Version: 2025.10.10
+Version: 2026.08.02

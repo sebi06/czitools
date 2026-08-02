@@ -1091,7 +1091,7 @@ def write_omezarr_ngff(
         zarr_path,
         version=version,
         chunks_per_shard=chunks_per_shard,
-        storage_options={"compressors": compressor} if compressor is not None else {},
+        compressor=compressor,
         use_tensorstore=_use_ts,
         multiscales=multiscales,
     )

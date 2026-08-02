@@ -2,10 +2,10 @@
 
 [![PyPI](https://img.shields.io/pypi/v/czitools.svg?color=green)](https://pypi.org/project/czitools)
 [![PyPI - Downloads](https://img.shields.io/pypi/dm/czitools)](https://pypistats.org/packages/czitools)
-[![License](https://img.shields.io/pypi/l/czitools.svg?color=green)](https://github.com/sebi06/czitools/raw/master/LICENSE)
+[![License](https://img.shields.io/pypi/l/czitools.svg?color=green)](https://github.com/sebi06/czitools/raw/main/LICENSE)
 [![codecov](https://codecov.io/github/sebi06/czitools/graph/badge.svg?token=WK1KIMZARL)](https://codecov.io/github/sebi06/czitools)
 [![Python Version](https://img.shields.io/pypi/pyversions/czitools.svg?color=green)](https://python.org)
-[![Development Status](https://img.shields.io/pypi/status/czitools.svg)](https://en.wikipedia.org/wiki/Software_release_life_cycle#Alpha)
+[![Development Status](https://img.shields.io/pypi/status/czitools.svg)](https://en.wikipedia.org/wiki/Software_release_life_cycle#Beta)
 
 This repository provides tools for reading CZI (Carl Zeiss Image) pixel data
 and metadata in Python, interpreting CZI well plates as an HCS
@@ -29,10 +29,10 @@ pip install czitools
 Install with additional functionality using optional extras:
 
 ```bash
-# OME-ZARR export (conversion + validation)
+# OME-Zarr export (conversion + validation)
 pip install "czitools[omezarr]"
 
-# OME-ZARR export with GUI converter application
+# OME-Zarr export with GUI converter application
 pip install "czitools[omezarr-gui]"
 
 # HCS plate analysis and visualization
@@ -64,8 +64,9 @@ workspace:
 # Create the provided conda environment
 conda env create -f env_czitools.yml
 conda activate czitools
+python -m pip install -e ".[all]"
 
-# Or install the locked Pixi workspace
+# Or install the locked Pixi workspace (Windows and Linux)
 pixi install
 ```
 
@@ -143,7 +144,7 @@ labelled, count, props = ArrayProcessor(binary).label_objects(
     measure_params=True,
 )
 
-# Analyze HCS OME-ZARR plates
+# Analyze HCS OME-Zarr plates
 results = process_hcs_omezarr("plate.ome.zarr", channel2analyze=0)
 
 # Visualize results as heatmap
@@ -164,9 +165,25 @@ fig = create_well_plate_heatmap(results, num_rows=8, num_cols=12)
 
 | Topic                      | Link                                                                                                                                                                                               |
 | -------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| General usage czitools     | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/sebi06/czitools/blob/main/demo/notebooks/czitools_usage_demo.ipynb)          |
 | Read CZI metadata          | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/sebi06/czitools/blob/main/demo/notebooks/read_czi_metadata.ipynb)            |
 | Read CZI pixel data        | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/sebi06/czitools/blob/main/demo/notebooks/read_czi_pixeldata.ipynb)           |
-| Read CZI well-plate data   | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/sebi06/czitools/blob/main/demo/notebooks/read_czi_wellplate_data.ipynb)        |
-| Process OME-Zarr HCS plate | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/sebi06/czitools/blob/main/demo/notebooks/process_omezarr_HCS_plate.ipynb)       |
+| Read CZI well-plate data   | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/sebi06/czitools/blob/main/demo/notebooks/read_czi_wellplate_data.ipynb)      |
+| Process OME-Zarr HCS plate | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/sebi06/czitools/blob/main/demo/notebooks/process_omezarr_HCS_plate.ipynb)    |
 | Show planetable as surface | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/sebi06/czitools/blob/main/demo/notebooks/show_czi_surface.ipynb)             |
 | Segment with Voronoi-Otsu  | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/sebi06/czitools/blob/main/demo/notebooks/read_czi_segment_voroni_otsu.ipynb) |
+
+## Contributing
+
+The Pixi workspace is the recommended development setup on Windows and Linux.
+After cloning the repository, install the locked environment and run the local
+quality checks:
+
+```bash
+pixi install
+pixi run lint
+pixi run test-no-net
+```
+
+Please keep changes focused, add or update tests for behavioral changes, and
+open an issue before starting a large API or dependency change.
