@@ -4,23 +4,25 @@ This document provides guidelines for GitHub Copilot when working with the czito
 
 ## Project Overview
 
-**czitools** is a Python package for reading CZI (Carl Zeiss Image) pixel and metadata. It simplifies working with CZI microscopy image files by providing tools for metadata extraction and pixel data reading.
+**czitools** reads CZI (Carl Zeiss Image) pixel data and metadata, models CZI
+well plates as plate → well → field hierarchies, and optionally converts CZI
+data to OME-Zarr or analyses HCS plates.
 
 ### Key Dependencies
-- `pylibCZIrw` - Core library for reading/writing CZI files
-- `czifile` - Additional CZI functionality (subblock-level access)
-- `numpy` - Array operations
-- `dask` - Lazy/delayed array operations
-- `xarray` - Labeled multi-dimensional arrays
-- `pandas` - Data manipulation (planetables)
-- `python-box` - Dictionary access via attributes
-- `pydantic` - Data validation
-- `loguru` / `colorlog` - Logging
+
+- Core: `pylibCZIrw`, `czifile`, `numpy`, `dask`, `xarray`, `pandas`,
+  `python-box`, `pydantic`, `requests`, `validators`, and `zarr`.
+- OME-Zarr export: `ngff-zarr`, `ome-zarr`, `ome-zarr-models`, and
+  `tensorstore` (install with `czitools[omezarr]`).
+- Analysis and visualization: `scikit-image`, `matplotlib`, `seaborn`,
+  `napari`, and `ndv` (install the relevant extra or `czitools[all]`).
 
 ### Supported Python Versions
-- Python 3.12, 3.13
+
+- Python 3.12 and 3.13
 
 ### Supported Operating Systems
+
 - Windows
 - Linux
 - macOS (with manual pylibCZIrw wheel installation)
@@ -29,35 +31,20 @@ This document provides guidelines for GitHub Copilot when working with the czito
 
 ```
 src/czitools/
-├── metadata_tools/       # Classes for extracting CZI metadata
-│   ├── czi_metadata.py   # Main CziMetadata class
-│   ├── dimension.py      # CziDimensions
-│   ├── scaling.py        # CziScaling
-│   ├── channel.py        # CziChannelInfo
-│   ├── boundingbox.py    # CziBoundingBox
-│   ├── objective.py      # CziObjectives
-│   ├── detector.py       # CziDetector
-│   ├── microscope.py     # CziMicroscope
-│   ├── sample.py         # CziSampleInfo
-│   └── add_metadata.py   # CziAddMetaData
-├── read_tools/           # Functions for reading pixel data
-│   └── read_tools.py     # read_6darray, read_stacks, read_stacks_list, read_stacks_stacked
-├── utils/                # Utility modules
-│   ├── logging_tools.py  # Logging configuration
-│   ├── box.py            # Box utilities for metadata
-│   ├── misc.py           # Miscellaneous helpers
-│   ├── ndv_tools.py      # NDV LUT/scale helpers
-│   ├── pixels.py         # Pixel type utilities
-│   └── planetable.py     # Planetable generation
-├── visu_tools/           # Visualization utilities
-└── _tests/               # Test suite
+├── metadata_tools/  # Metadata dataclasses and the HCS plate model
+├── read_tools/      # Eager and lazy CZI pixel readers
+├── export_tools/    # Optional OME-Zarr conversion, validation, and GUI
+├── analysis_tools/  # Optional image processing and HCS analysis
+├── utils/           # Logging, planetable, NDV, and napari helpers
+├── visu_tools/      # Matplotlib and Plotly visualization helpers
+└── _tests/          # Pytest suite
 ```
 
 ## Coding Conventions
 
 ### General Guidelines
-- write clear, maintainable, and well-documented code
-- use SOLID Design Principles in python
+- Write clear, maintainable, and well-documented code.
+- Use SOLID design principles where they improve the code:
   - Single-responsibility principle (SRP) or Separation of concerns (SoC)
   - Open–closed principle (OCP)
   - Liskov substitution principle (LSP)
@@ -65,24 +52,25 @@ src/czitools/
   - Dependency inversion principle (DIP)
 
 ### Python Style
-- Use Python 3.12+ syntax and type hints
-- Follow PEP 8 style guidelines
-- Use `dataclass` for metadata classes with `@dataclass` decorator
-- Use `field(init=False, default=None)` for computed fields in dataclasses
-- Prefer `Optional[Type]` for nullable types
-- Use `Union[str, os.PathLike[str]]` for file paths
-- For lightweight structural typing across utility modules, prefer `Protocol` for metadata-like inputs
+- Use Python 3.12+ syntax and type hints.
+- Prefer built-in generics (`list[str]`, `dict[str, int]`) and `X | None` for
+  new code. Preserve a module's established annotation style in focused edits.
+- Follow PEP 8; the configured Ruff gate selects `E4`, `E7`, `E9`, and `F`.
+- Use `@dataclass` for metadata value objects and
+  `field(init=False, default=None)` for computed fields.
+- Accept `str | os.PathLike[str]` for filesystem paths where practical.
+- Prefer `Protocol` for lightweight structural typing across utility modules.
 
 ### Type Annotations
 ```python
-from typing import List, Dict, Tuple, Optional, Any, Union
+import os
 from dataclasses import dataclass, field
 
 @dataclass
 class ExampleMetadata:
-    filepath: Union[str, os.PathLike[str]]
-    value: Optional[float] = field(init=False, default=None)
-    items: Optional[List[str]] = field(init=False, default_factory=lambda: [])
+    filepath: str | os.PathLike[str]
+    value: float | None = field(init=False, default=None)
+    items: list[str] = field(init=False, default_factory=list)
 ```
 
 ### Imports Organization
@@ -92,10 +80,9 @@ class ExampleMetadata:
 
 ```python
 # Standard library
-from typing import Dict, Tuple, Optional, Union
 import os
-from pathlib import Path
 from dataclasses import dataclass, field
+from pathlib import Path
 
 # Third-party
 import numpy as np
@@ -123,31 +110,28 @@ if self.verbose:
 
 ### File Path Handling
 - Accept both `str` and `os.PathLike[str]` (Path objects)
-- Convert Path to string when needed: `str(filepath)`
+- Convert paths to strings only at library boundaries that require strings
 - Use `pathlib.Path` for path manipulations
-- Support URL paths using `validators.url()` check
+- Use the existing URL helpers in `czitools.utils.misc` instead of duplicating
+  URL detection
 
 ```python
-from pathlib import Path
-
-if isinstance(self.filepath, Path):
-    self.filepath = str(self.filepath)
+path = Path(filepath)
+filename = path.name
 ```
 
 ### Error Handling
-- Use defensive programming with fallback values
-- Guard against None values and division by zero
-- Use `try/except` blocks for external library calls
-- Return None or sensible defaults instead of raising exceptions when appropriate
+- Validate inputs at public boundaries and guard against `None` and division by
+  zero where metadata may be incomplete.
+- Catch only expected exceptions. Preserve the original exception as the cause
+  when raising a clearer domain error.
+- Use a documented fallback only when partial metadata is an accepted state;
+  otherwise fail clearly instead of silently returning `None`.
 
 ```python
-# Safe value extraction with fallback
-try:
-    value = float(data.Value) * 1000000
-    if value == 0.0:
-        value = 1.0  # fallback
-except (AttributeError, TypeError):
-    value = None
+# Safe extraction when a missing value is an accepted metadata state.
+raw_value = getattr(data, "Value", None)
+value = float(raw_value) * 1_000_000 if raw_value is not None else None
 ```
 
 ### Docstrings
@@ -165,20 +149,20 @@ except (AttributeError, TypeError):
 #### Function docstring example
 ```python
 def read_6darray(
-    filepath: Union[str, os.PathLike[str]],
-    use_dask: Optional[bool] = False,
-    zoom: Optional[float] = 1.0,
-) -> Tuple[Optional[np.ndarray], CziMetadata]:
+    filepath: CziPath,
+    use_dask: bool = False,
+    zoom: float = 1.0,
+) -> tuple[Array6D | None, CziMetadata]:
     """Read a CZI image file as 6D array.
 
     Args:
-        filepath (Union[str, os.PathLike[str]]): Path to the CZI image file.
-        use_dask (Optional[bool]): Option to use dask for delayed reading.
-        zoom (Optional[float]): Downscale factor [0.01 - 1.0].
+        filepath (CziPath): Path to the CZI image file.
+        use_dask (bool): Return a Dask-backed result after the eager read.
+        zoom (float): Downscale factor from 0.01 through 1.0.
 
     Returns:
-        Tuple[Optional[np.ndarray], CziMetadata]: Tuple of (array6d, metadata)
-            where array6d may be None on error.
+        tuple[Array6D | None, CziMetadata]: Array and metadata pair; the array
+            can be `None` when the CZI cannot form one regular 6D array.
     """
 ```
 
@@ -189,9 +173,9 @@ class CziScaling:
     """A class to handle scaling information from CZI image data.
 
     Attributes:
-        czisource (Union[str, os.PathLike[str], Box]): The source of the CZI image data.
-        X (Optional[float]): The scaling value for the X dimension in microns.
-        Y (Optional[float]): The scaling value for the Y dimension in microns.
+        czisource (str | os.PathLike[str] | Box): The CZI metadata source.
+        X (float | None): The X scaling value in microns.
+        Y (float | None): The Y scaling value in microns.
         verbose (bool): Flag to enable verbose logging.
     """
 ```
@@ -206,10 +190,10 @@ class CziScaling:
 
 ### Test Structure
 ```python
-from czitools.metadata_tools import czi_metadata as czimd
 from pathlib import Path
+from typing import Any
+
 import pytest
-from typing import List, Any
 
 basedir = Path(__file__).resolve().parents[3]
 
@@ -219,7 +203,7 @@ basedir = Path(__file__).resolve().parents[3]
         ("CellDivision_T3_Z5_CH2_X240_Y170.czi", [None, 3, 5, 2, 170, 240])
     ]
 )
-def test_example(czifile: str, expected_value: List[Any]) -> None:
+def test_example(czifile: str, expected_value: list[Any]) -> None:
     filepath = basedir / "data" / czifile
     # Test implementation
     assert result == expected_value
@@ -232,17 +216,16 @@ def test_example(czifile: str, expected_value: List[Any]) -> None:
 
 ### Running Tests
 ```bash
-pytest src/czitools/_tests/
-pytest -m "not network"  # Skip network tests
+pixi run test
+pixi run test-no-net
+pixi run lint
 ```
 
 ## Common Patterns
 
 ### Reading Metadata
 ```python
-from czitools.metadata_tools.czi_metadata import CziMetadata
-from czitools.metadata_tools.scaling import CziScaling
-from czitools.metadata_tools.dimension import CziDimensions
+from czitools.metadata_tools import CziDimensions, CziMetadata, CziScaling
 
 # Get all metadata at once
 mdata = CziMetadata(filepath)
@@ -254,16 +237,20 @@ dimensions = CziDimensions(filepath)
 
 ### Reading Pixel Data
 ```python
-from czitools.read_tools import read_tools
+from czitools.read_tools import read_stacks_list
 
-# Read as 6D array (STCZYX order)
-array6d, mdata = read_tools.read_6darray(
+# Use read_stacks_list for true lazy access and differently sized scenes.
+scenes, dims, scene_count, mdata = read_stacks_list(
     filepath,
-    use_dask=True,      # For large files
-    use_xarray=True,    # For labeled dimensions
-    zoom=0.5            # Downscale
+    use_dask=True,
+    use_xarray=True,
+    zoom=0.5,
 )
+first_plane = scenes[0].isel(T=0, C=0, Z=0).compute()
 ```
+
+`read_6darray(..., use_dask=True)` still reads pixel data eagerly before
+wrapping the result. Do not recommend it as the lazy path for large files.
 
 ### Using Box for Metadata
 ```python
@@ -276,7 +263,9 @@ scaling = czi_box.ImageDocument.Metadata.Scaling.Items.Distance
 
 ## Array Dimension Order
 
-CZI arrays use the dimension order: **STCZYX(A)**
+CZI arrays returned by `read_6darray`, `read_field`, and `read_well` use the
+dimension order **STCZYX(A)**.
+
 - S = Scene
 - T = Time
 - C = Channel
@@ -285,14 +274,21 @@ CZI arrays use the dimension order: **STCZYX(A)**
 - X = X dimension
 - A = Alpha/RGB component (optional)
 
+`read_stacks` can additionally preserve the optional `V`, `R`, `I`, `H`, and
+`M` dimensions before `T`, `C`, and `Z`.
+
 ## Additional Notes
 
 ### Metadata Classes Pattern
-All metadata classes follow a similar pattern:
+Most metadata classes follow this pattern:
+
 1. Accept `czisource` as filepath, Path, or Box object
 2. Use `@dataclass` with `field(init=False)` for computed attributes
 3. Implement `__post_init__` for initialization logic
 4. Support `verbose` parameter for logging control
+
+Keep optional feature imports lazy so `import czitools` and the core metadata
+and read APIs work without GUI, analysis, or OME-Zarr extras installed.
 
 ### Scaling Units
 - Internal scaling values are in **microns**

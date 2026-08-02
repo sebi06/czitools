@@ -29,6 +29,7 @@ classifiers = [
 dependencies = [
     "pylibCZIrw>=5",
     "progressbar2",
+    "numpy",
     "pandas",
     "python-dateutil",
     "python-box[all]",
@@ -39,6 +40,7 @@ dependencies = [
     "xarray",
     "dask[array]",
     "requests",
+    "validators",
     "zarr>=3.0",
     "matplotlib",
 ]
@@ -49,12 +51,9 @@ all = [
     "plotly",
     "qtpy",
     "pyqtgraph",
-    "colormap",
-    "ngff-zarr>=0.39.0",
-    "ngff-zarr[validate]",
-    "ngff-zarr[dask-image]",
+    "cmap",
+    "ngff-zarr[dask-image,validate]>=0.39.0",
     "ome-zarr>=0.16.0",
-    "zarr>=3.0",
     "ome-zarr-models>=1.7,<2",
     "magicgui",
     "napari>=0.8.0",
@@ -64,16 +63,12 @@ all = [
     "bioio-ome-zarr",
     "ndv[pyqt,vispy]",
     "scikit-image",
-    "matplotlib",
     "tensorstore",  # optional async/parallel chunk I/O backend for ngff-zarr writes
 ]
 # OME-Zarr / OME-NGFF export (czitools.export_tools): conversion + validation.
 omezarr = [
-    "ngff-zarr>=0.39.0",
-    "ngff-zarr[validate]",
-    "ngff-zarr[dask-image]",
+    "ngff-zarr[dask-image,validate]>=0.39.0",
     "ome-zarr>=0.16.0",
-    "zarr>=3.0",
     "ome-zarr-models>=1.7,<2",
     "tensorstore",  # optional async/parallel chunk I/O backend for ngff-zarr writes
 ]
@@ -94,10 +89,7 @@ analysis = [
     "matplotlib",
 ]
 docs = [
-    "mkdocs-material",
     "mkdocs-autorefs",
-    "mkdocs-spellcheck",
-    "mkdocs-api-autonav",
     "pymdown-extensions",
     "mkdocs >=1.6.1",
     "mkdocs-api-autonav >=0.1.2",
@@ -176,18 +168,3 @@ select = ["E4", "E7", "E9", "F"]
 
 [tool.marimo.runtime]
 pythonpath = ["src"]
-
-[tool.pixi.workspace]
-name = "czitools"
-channels = ["conda-forge"]
-platforms = ["linux-64", "osx-64", "win-64"]
-
-[tool.pixi.pypi-dependencies]
-czitools = {path = ".", editable = true}
-
-[tool.pixi.tasks]
-
-[tool.pixi.environments]
-# Crucial: "default" (the feature) refers to [project.dependencies]
-# "all" and "docs" refer to [project.optional-dependencies]
-default = { features = ["all", "docs", "default"], solve-group = "default" }

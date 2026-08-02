@@ -2,7 +2,7 @@
 # czitools — standalone Pixi environment
 #
 # Creates a self-contained environment for developing and testing czitools
-# including all optional extras ([all], [omezarr], [omezarr-gui]).
+# including all optional extras ([all], [omezarr], [omezarr-gui], [analysis]).
 #
 # Usage:
 #   pixi install            – resolve & install everything
@@ -42,7 +42,7 @@ scikit-image = ">=0.26.0"
 # PyQt5 on Linux, conflicting with the PyQt6 backend selected below.
 matplotlib-base = ">=3.7.0"
 seaborn      = ">=0.13.2"
-colormap     = "*"
+cmap         = "*"
 
 # --- Storage & I/O -----------------------------------------------------------
 zarr         = ">=3.0"
@@ -95,7 +95,7 @@ pyqt6 = ">=6.7, !=6.11.0, !=6.11.1"  # bundled Qt works with the host GLX/Mesa s
 czitools = { path = ".", editable = true }
 
 # --- czitools core (PyPI-only) -----------------------------------------------
-pylibCZIrw   = ">=6"
+pylibCZIrw   = ">=6"  # development targets the current major; package metadata retains >=5 compatibility
 python-box   = { version = "*", extras = ["all"] }
 loguru       = "*"
 czifile      = ">=2026.6.6"
@@ -111,6 +111,7 @@ ndv          = { version = ">=0.5.0", extras = ["vispy", "pyqt"] }
 # --- Optional extras: [omezarr] ----------------------------------------------
 ngff-zarr    = ">=0.39.0"
 ome-zarr     = ">=0.16.0"
+tensorstore  = "*"
 
 # --- BioIO ecosystem ---------------------------------------------------------
 bioio        = "*"
