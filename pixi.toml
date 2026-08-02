@@ -50,10 +50,9 @@ fsspec       = "*"
 requests     = "*"
 imagecodecs  = ">=2026.6.6"  # required by czifile >=2026.6.6; keep compiled codecs on conda-forge
 
-# --- Qt bindings & widgets (conda-forge) -------------------------------------
-# MUST come from conda-forge to avoid DLL conflicts with PyPI Qt builds.
-# Exclude Qt 6.11.0/6.11.1 — broken DLLs on all platforms.
-pyqt6        = ">=6.7, !=6.11.0, !=6.11.1"
+# --- Qt wrappers & widgets ----------------------------------------------------
+# PyQt6 is selected per platform below. The PyPI wheel is used on Linux to
+# avoid conda Qt's GLX libraries conflicting with the host Mesa driver.
 qtpy         = "*"
 pyqtgraph    = "*"
 
@@ -76,6 +75,12 @@ ruff         = ">=0.9.4"
 setuptools   = "*"
 wheel        = "*"
 validators   = "*"
+
+[target.win-64.dependencies]
+pyqt6 = ">=6.7, !=6.11.0, !=6.11.1"  # conda build avoids Windows DLL conflicts
+
+[target.linux-64.pypi-dependencies]
+pyqt6 = ">=6.7, !=6.11.0, !=6.11.1"  # bundled Qt works with the host GLX/Mesa stack
 
 # =============================================================================
 # PyPI dependencies

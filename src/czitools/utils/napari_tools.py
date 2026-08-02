@@ -69,7 +69,13 @@ def _add_xarray_to_viewer(
         viewer.dims.axis_labels = sub_array.dims
 
 
-def display_xarray_in_napari(array6d: Any, mdata: Any, subset_planes: Mapping[str, Any] | None = None) -> None:
+def display_xarray_in_napari(
+    array6d: Any,
+    mdata: Any,
+    subset_planes: Mapping[str, Any] | None = None,
+    *,
+    run: bool = True,
+) -> Any:
     """Display an xarray DataArray (STCZYX[A]) in Napari.
 
     Args:
@@ -78,6 +84,12 @@ def display_xarray_in_napari(array6d: Any, mdata: Any, subset_planes: Mapping[st
         subset_planes: dict describing subset planes (as returned in
             `array6d.attrs['subset_planes']`). If provided, used to map
             channel indices and names.
+        run: Start Napari's blocking event loop. Set this to ``False`` in a
+            Jupyter notebook so the viewer remains available to later cells.
+
+    Returns:
+        The created Napari viewer. With ``run=True``, the viewer's Qt window
+        may already be closed when this function returns.
 
     Notes:
         - If Napari is not installed this function raises ImportError.
@@ -99,18 +111,34 @@ def display_xarray_in_napari(array6d: Any, mdata: Any, subset_planes: Mapping[st
     viewer = napari.Viewer()
     _add_xarray_to_viewer(viewer, array6d, mdata, subset_planes_map)
 
-    napari.run()
+    if run:
+        napari.run()
+
+    return viewer
 
 
 def display_xarray_list_in_napari(
     arrays: Sequence[Any],
     mdata: Any,
     subset_planes_list: Sequence[Mapping[str, Any]] | None = None,
-) -> None:
+    *,
+    run: bool = True,
+) -> Any:
     """Display a list of xarray stacks in one Napari viewer.
 
     This supports stacks with different spatial shapes by adding each stack as
     its own set of layers.
+
+    Args:
+        arrays: Sequence of xarray stacks to display.
+        mdata: CZI metadata used for channel names, colors, and scaling.
+        subset_planes_list: Optional subset metadata for each stack.
+        run: Start Napari's blocking event loop. Set this to ``False`` in a
+            Jupyter notebook so the viewer remains available to later cells.
+
+    Returns:
+        The created Napari viewer. With ``run=True``, the viewer's Qt window
+        may already be closed when this function returns.
     """
     try:
         import napari
@@ -128,4 +156,7 @@ def display_xarray_list_in_napari(
             subset_planes_map = arr.attrs.get("subset_planes", {})
         _add_xarray_to_viewer(viewer, arr, mdata, subset_planes_map, layer_prefix=f"S{idx}_")
 
-    napari.run()
+    if run:
+        napari.run()
+
+    return viewer
