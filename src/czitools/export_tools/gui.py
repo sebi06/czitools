@@ -37,6 +37,7 @@ import xarray as xr
 import zarr
 from magicgui import magicgui, widgets
 from qtpy.QtCore import QTimer
+from qtpy.QtGui import QTextCursor
 
 from czitools.metadata_tools.czi_metadata import CziMetadata
 from czitools.read_tools import read_tools
@@ -96,6 +97,23 @@ except (ValueError, IndexError):
     parent_dir = None
 
 
+def _scroll_log_to_end() -> None:
+    """Move the log viewer cursor to the end and keep it visible."""
+    cursor = log_viewer.native.textCursor()
+    cursor.movePosition(QTextCursor.MoveOperation.End)
+    log_viewer.native.setTextCursor(cursor)
+    log_viewer.native.ensureCursorVisible()
+
+
+def _append_log_content(content: str) -> None:
+    """Append log content without replacing the complete text document."""
+    cursor = log_viewer.native.textCursor()
+    cursor.movePosition(QTextCursor.MoveOperation.End)
+    cursor.insertText(content)
+    log_viewer.native.setTextCursor(cursor)
+    log_viewer.native.ensureCursorVisible()
+
+
 def update_log_display() -> None:
     """Update log viewer widget with new content from the log file.
 
@@ -122,12 +140,8 @@ def update_log_display() -> None:
 
                 # Append new content to log viewer if any
                 if new_content:
-                    log_viewer.value += new_content
+                    _append_log_content(new_content)
                     log_last_position = f.tell()
-                    # Auto-scroll to the bottom so the latest log entries are
-                    # always visible without the user needing to scroll manually.
-                    sb = log_viewer.native.verticalScrollBar()
-                    sb.setValue(sb.maximum())
         except Exception as e:
             logger.warning("Log update error: %s", e)
 
@@ -153,14 +167,20 @@ def read_czi_metadata(filepath: Path) -> tuple[CziMetadata | None, int]:
 
         # Determine number of scenes
         image = mdata.image
-        num_scenes = image.SizeS if (image is not None and hasattr(image, "SizeS")) else None
+        num_scenes = (
+            image.SizeS if (image is not None and hasattr(image, "SizeS")) else None
+        )
 
         # Calculate max_scenes: if None or 0, default to 1
         max_scenes = num_scenes if num_scenes and num_scenes > 0 else 1
 
         # Build a dimension summary from available CziDimensions attributes
         _dim_keys = ("SizeS", "SizeT", "SizeC", "SizeZ", "SizeY", "SizeX")
-        _dims = {k: getattr(image, k, None) for k in _dim_keys if getattr(image, k, None) is not None}
+        _dims = {
+            k: getattr(image, k, None)
+            for k in _dim_keys
+            if getattr(image, k, None) is not None
+        }
         _dims_str = ", ".join(f"{k}={v}" for k, v in _dims.items())
 
         logger.info("Metadata loaded successfully")
@@ -230,7 +250,9 @@ def perform_conversion(
 
         # ========== HCS Format Conversion ==========
         if write_hcs:
-            logger.info("Converting to HCS-ZARR format using %s...", package_choice.name)
+            logger.info(
+                "Converting to HCS-ZARR format using %s...", package_choice.name
+            )
 
             if package_choice == omezarr_package.OME_ZARR:
                 output_path = convert_czi2hcs_omezarr(
@@ -287,10 +309,14 @@ def perform_conversion(
             )
 
             # Read the CZI file as a 6D array
-            array, mdata = read_tools.read_6darray(str(filepath), planes={"S": (scene_id, scene_id)}, use_xarray=True)
+            array, mdata = read_tools.read_6darray(
+                str(filepath), planes={"S": (scene_id, scene_id)}, use_xarray=True
+            )
 
             # Extract the specified scene (remove Scene dimension to get 5D array)
-            assert isinstance(array, xr.DataArray), "Expected xarray DataArray from read_6darray with use_xarray=True"
+            assert isinstance(
+                array, xr.DataArray
+            ), "Expected xarray DataArray from read_6darray with use_xarray=True"
             array = array.squeeze("S")
             logger.info("Array shape: %s, dtype: %s", array.shape, array.dtype)
 
@@ -318,7 +344,9 @@ def perform_conversion(
                     zarr_output_path: Path = Path(str(filepath)[:-4] + "_ngff.ozx")
                 else:
                     # Generate output path with _ngff_zarr3.ome.zarr extension (ngff-zarr always writes v3)
-                    zarr_output_path: Path = Path(str(filepath)[:-4] + "_ngff_zarr3.ome.zarr")
+                    zarr_output_path: Path = Path(
+                        str(filepath)[:-4] + "_ngff_zarr3.ome.zarr"
+                    )
 
                 # Write OME-ZARR using ngff-zarr backend.
                 # scale_factors=None -> size-aware, Y/X-only pyramid depth derived
@@ -356,7 +384,9 @@ def perform_conversion(
                     if is_valid:
                         logger.info("Validation result: VALID [OK]")
                     else:
-                        logger.warning("Validation result: INVALID ❌ (see messages above)")
+                        logger.warning(
+                            "Validation result: INVALID ❌ (see messages above)"
+                        )
                 except Exception as ve:
                     logger.error("Validation raised an error: %s", ve, exc_info=True)
 
@@ -521,10 +551,11 @@ except Exception:
 version_grid = widgets.TextEdit(
     value=version_info,
     label="Package Versions",
-    enabled=False,
+    enabled=True,
 )
-version_grid.min_height = 60
-version_grid.max_height = 80
+version_grid.min_height = 80
+version_grid.max_height = 120
+version_grid.read_only = True
 
 
 def on_read_metadata_clicked() -> None:
@@ -601,7 +632,9 @@ Ready to convert
     info_display.value = info_text
 
 
-def finish_conversion(output_path: str | None, should_open_napari: bool = False) -> None:
+def finish_conversion(
+    output_path: str | None, should_open_napari: bool = False
+) -> None:
     """Finalize conversion process and update UI state.
 
     This function is called from the main Qt thread after the background conversion
@@ -628,8 +661,11 @@ def finish_conversion(output_path: str | None, should_open_napari: bool = False)
         try:
             with open(log_file_path, "r", encoding="utf-8") as f:
                 log_viewer.value = f.read()
+            _scroll_log_to_end()
+            # Re-apply after Qt has recalculated the document layout and scrollbar.
+            QTimer.singleShot(0, _scroll_log_to_end)
         except Exception as e:
-            log_viewer.value += f"\n⚠️ Could not read log file: {e}"
+            _append_log_content(f"\n⚠️ Could not read log file: {e}")
 
     # Open napari viewer if requested (on main thread)
     if should_open_napari and output_path:
@@ -650,7 +686,12 @@ def finish_conversion(output_path: str | None, should_open_napari: bool = False)
                 try:
                     with open(zarr_json_path, "r", encoding="utf-8") as f:
                         meta = json.load(f)
-                    channels = meta.get("attributes", {}).get("ome", {}).get("omero", {}).get("channels", [])
+                    channels = (
+                        meta.get("attributes", {})
+                        .get("ome", {})
+                        .get("omero", {})
+                        .get("channels", [])
+                    )
                     for layer, ch in zip(viewer.layers, channels):
                         hex_color = ch.get("color", "FFFFFF")
                         r = int(hex_color[0:2], 16) / 255
@@ -723,7 +764,8 @@ def on_convert_clicked() -> None:
         _write_afterwards = czi_to_omezarr_converter.use_ozx_after_writing.value
         if not _write_directly and not _write_afterwards:
             info_display.value = (
-                "⚠️ 'Use Single-File OME-ZARR (.ozx)' is enabled — " "select at least one OZX write option."
+                "⚠️ 'Use Single-File OME-ZARR (.ozx)' is enabled — "
+                "select at least one OZX write option."
             )
             return
 
@@ -760,7 +802,9 @@ def on_convert_clicked() -> None:
 
         # Check if conversion is complete
         if conversion_result["completed"]:
-            finish_conversion(conversion_result["output_path"], conversion_result["show_napari"])
+            finish_conversion(
+                conversion_result["output_path"], conversion_result["show_napari"]
+            )
 
     log_timer.timeout.connect(check_conversion_status)
     log_timer.start(500)  # Poll every 500ms
@@ -862,7 +906,8 @@ def update_show_napari_enabled_state() -> None:
     the conversion is configured to produce an .ozx file.
     """
     will_produce_ozx = czi_to_omezarr_converter.use_ozx_format.value and (
-        czi_to_omezarr_converter.use_ozx_write_directly.value or czi_to_omezarr_converter.use_ozx_after_writing.value
+        czi_to_omezarr_converter.use_ozx_write_directly.value
+        or czi_to_omezarr_converter.use_ozx_after_writing.value
     )
 
     czi_to_omezarr_converter.show_napari.enabled = not will_produce_ozx
@@ -892,7 +937,9 @@ def update_zarr_v2_enabled_state() -> None:
     The ngff-zarr backend always writes OME-NGFF v0.5 / zarr v3, so the zarr v2
     legacy option is disabled (and unchecked) whenever it is selected.
     """
-    is_ome_zarr = czi_to_omezarr_converter.package_choice.value == omezarr_package.OME_ZARR
+    is_ome_zarr = (
+        czi_to_omezarr_converter.package_choice.value == omezarr_package.OME_ZARR
+    )
     czi_to_omezarr_converter.use_zarr_v2.enabled = is_ome_zarr
 
     if not is_ome_zarr and czi_to_omezarr_converter.use_zarr_v2.value:
@@ -1023,8 +1070,12 @@ convert_button.clicked.connect(on_convert_clicked)
 czi_to_omezarr_converter.write_hcs.changed.connect(on_write_hcs_changed)
 czi_to_omezarr_converter.package_choice.changed.connect(on_package_choice_changed)
 czi_to_omezarr_converter.use_ozx_format.changed.connect(on_use_ozx_format_changed)
-czi_to_omezarr_converter.use_ozx_write_directly.changed.connect(on_use_ozx_write_directly_changed)
-czi_to_omezarr_converter.use_ozx_after_writing.changed.connect(on_use_ozx_after_writing_changed)
+czi_to_omezarr_converter.use_ozx_write_directly.changed.connect(
+    on_use_ozx_write_directly_changed
+)
+czi_to_omezarr_converter.use_ozx_after_writing.changed.connect(
+    on_use_ozx_after_writing_changed
+)
 czi_to_omezarr_converter.czi_file.changed.connect(on_file_changed)
 
 
@@ -1058,9 +1109,34 @@ def create_gui() -> widgets.Container:
             log_viewer,
         ],
         labels=False,
+        scrollable=True,
     )
 
     return container
+
+
+def _resize_gui_to_content(gui: widgets.Container) -> None:
+    """Size the window to show all content, constrained to the current screen."""
+    content_widget = gui.native
+    window = gui.root_native_widget
+
+    layout = content_widget.layout()
+    if layout is not None:
+        layout.activate()
+
+    content_size = content_widget.sizeHint()
+    frame_width = window.frameWidth() if hasattr(window, "frameWidth") else 0
+    target_width = max(content_size.width() + 2 * frame_width, window.minimumWidth())
+    target_height = max(content_size.height() + 2 * frame_width, window.minimumHeight())
+
+    screen = window.screen()
+    if screen is not None:
+        available = screen.availableGeometry()
+        desktop_margin = 40
+        target_width = min(target_width, max(1, available.width() - desktop_margin))
+        target_height = min(target_height, max(1, available.height() - desktop_margin))
+
+    window.resize(target_width, target_height)
 
 
 # ============================================================================
@@ -1087,7 +1163,8 @@ def run_gui() -> None:
     logger.info("=" * 60)
     logger.info("Application started. Close the window to exit.")
 
-    gui.native.setWindowTitle("CZI --> OME-ZARR Converter (czitools)")
+    gui.root_native_widget.setWindowTitle("CZI --> OME-ZARR Converter (experimental)")
+    _resize_gui_to_content(gui)
     gui.show(run=True)
 
 

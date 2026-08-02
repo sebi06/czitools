@@ -128,6 +128,33 @@ Well names accept forms such as `B4`, `b04`, and `B/4`. Field indices are
 zero-based within a well. The OME-Zarr converter writes the HCS hierarchy
 plate → well → field image → multiscale level.
 
+### OME-Zarr Converter GUI
+
+The experimental converter GUI exports individual CZI images and HCS plates
+using either `ome-zarr-py` or `ngff-zarr`. It provides controls for compression,
+legacy OME-NGFF v0.4/Zarr v2 output, supported single-file `.ozx` workflows,
+parallel I/O, and optional napari viewing. The metadata preview lets you verify
+the detected dimensions and scenes before starting the conversion, while the
+log panel shows its progress.
+
+Install and launch it with:
+
+```bash
+pip install "czitools[omezarr-gui]"
+czitools-omezarr-gui
+```
+
+From the repository's Pixi environment, use the equivalent task:
+
+```bash
+pixi run omezarr-gui
+```
+
+![CZI to OME-Zarr converter GUI](https://github.com/sebi06/czitools/raw/main/_images/czi_omezarr_gui.png)
+
+See the [usage documentation](https://sebi06.github.io/czitools/usage/#ome-zarr-converter-gui)
+for the workflow and Python/napari integration examples.
+
 ### Analysis Tools
 
 The `analysis_tools` package provides image processing and HCS plate analysis utilities:

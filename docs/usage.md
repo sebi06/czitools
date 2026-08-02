@@ -499,14 +499,37 @@ write_omezarr_ngff(array, "image_ngff.ome.zarr", mdata, scale_factors=[2, 4], ov
 write_omezarr(array, zarr_path="image.ome.zarr", metadata=mdata, overwrite=True)
 ```
 
-### Converter GUI
+### OME-Zarr Converter GUI
 
-Install the GUI extra (`pip install "czitools[omezarr-gui]"`) and launch it via the
-console script or the Python API:
+The experimental CZI to OME-Zarr converter provides a graphical interface for
+exporting individual images and HCS plates. It supports the `ome-zarr-py` and
+`ngff-zarr` backends, compression selection, legacy OME-NGFF v0.4/Zarr v2
+output, and single-file `.ozx` output where supported. Optional controls expose
+parallel tensorstore I/O, pyramid-path normalization for compatibility testing,
+and opening the result in napari.
+
+Install the GUI extra and launch the application with its console command:
 
 ```bash
+pip install "czitools[omezarr-gui]"
 czitools-omezarr-gui
 ```
+
+From a Pixi checkout, use the equivalent task:
+
+```bash
+pixi run omezarr-gui
+```
+
+Select a CZI file, choose the backend and output options, and click **Read
+Metadata**. Review the detected dimensions and scene information before
+clicking **Convert to OME-ZARR**. Conversion progress is displayed in the log
+panel at the bottom of the window.
+
+![CZI to OME-Zarr converter GUI](https://github.com/sebi06/czitools/raw/main/_images/czi_omezarr_gui.png){ width="800" }
+
+The application can also be launched from Python or embedded as a napari dock
+widget:
 
 ```python
 # Launch standalone
@@ -588,7 +611,5 @@ print(f"Wrote {output}")
 | Read CZI pixel data        | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/sebi06/czitools/blob/main/demo/notebooks/read_czi_pixeldata.ipynb)           |
 | Read CZI well-plate data   | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/sebi06/czitools/blob/main/demo/notebooks/read_czi_wellplate_data.ipynb)      |
 | Process OME-Zarr HCS plate | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/sebi06/czitools/blob/main/demo/notebooks/process_omezarr_HCS_plate.ipynb)    |
-| Write OME-ZARR from CZI    | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/sebi06/czitools/blob/main/demo/notebooks/omezarr_from_czi_5d.ipynb)          |
-| Save with ZSTD compression | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/sebi06/czitools/blob/main/demo/notebooks/save_with_ZSTD_compression.ipynb)   |
 | Show planetable as surface | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/sebi06/czitools/blob/main/demo/notebooks/show_czi_surface.ipynb)             |
 | Segment with Voronoi-Otsu  | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/sebi06/czitools/blob/main/demo/notebooks/read_czi_segment_voroni_otsu.ipynb) |
