@@ -216,5 +216,8 @@ data/WP96_4Pos_B4-10_DAPI_planetable.csv
 .claude/
 .claude/skills/
 
+# Local-only activation overrides (machine/corporate specific)
+scripts/activate.local.*
+
 czitools/.benchmarks
 czitools/.github/pr_descriptions
