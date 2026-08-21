@@ -62,7 +62,7 @@
 <span class=normal>74</span>
 <span class=normal>75</span>
 <span class=normal>76</span></pre></div></td><td class=code><div><pre><span></span><code><span id=__span-0-18><span class=k>def</span><span class=w> </span><span class=nf>set_logging</span><span class=p>(</span><span class=n>level</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=n>logging</span><span class=o>.</span><span class=n>INFO</span><span class=p>,</span> <span class=n>format_string</span><span class=p>:</span> <span class=nb>str</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span><span class=p>,</span> <span class=n>colorize</span><span class=p>:</span> <span class=nb>bool</span> <span class=o>=</span> <span class=kc>True</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=n>logging</span><span class=o>.</span><span class=n>Logger</span><span class=p>:</span>
-</span><span id=__span-0-19><span class=w>    </span><span class=sd>&quot;&quot;&quot;</span>
+</span><span id=__span-0-19><span class=w>    </span><span class=sd>"""</span>
 </span><span id=__span-0-20><span class=sd>    Configures a standard Python logger with customizable level and format.</span>
 </span><span id=__span-0-21>
 </span><span id=__span-0-22><span class=sd>    Args:</span>
@@ -72,10 +72,10 @@
 </span><span id=__span-0-26>
 </span><span id=__span-0-27><span class=sd>    Returns:</span>
 </span><span id=__span-0-28><span class=sd>        logging.Logger: Configured standard Python logger instance.</span>
-</span><span id=__span-0-29><span class=sd>    &quot;&quot;&quot;</span>
+</span><span id=__span-0-29><span class=sd>    """</span>
 </span><span id=__span-0-30>
 </span><span id=__span-0-31>    <span class=c1># Create a logger</span>
-</span><span id=__span-0-32>    <span class=n>logger</span> <span class=o>=</span> <span class=n>logging</span><span class=o>.</span><span class=n>getLogger</span><span class=p>(</span><span class=s2>&quot;czitools&quot;</span><span class=p>)</span>
+</span><span id=__span-0-32>    <span class=n>logger</span> <span class=o>=</span> <span class=n>logging</span><span class=o>.</span><span class=n>getLogger</span><span class=p>(</span><span class=s2>"czitools"</span><span class=p>)</span>
 </span><span id=__span-0-33>
 </span><span id=__span-0-34>    <span class=c1># Clear any existing handlers</span>
 </span><span id=__span-0-35>    <span class=n>logger</span><span class=o>.</span><span class=n>handlers</span><span class=o>.</span><span class=n>clear</span><span class=p>()</span>
@@ -91,28 +91,28 @@
 </span><span id=__span-0-45>    <span class=k>if</span> <span class=n>colorize</span> <span class=ow>and</span> <span class=n>HAS_COLORLOG</span><span class=p>:</span>
 </span><span id=__span-0-46>        <span class=c1># Use colorlog for colored output</span>
 </span><span id=__span-0-47>        <span class=k>if</span> <span class=n>format_string</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>:</span>
-</span><span id=__span-0-48>            <span class=n>format_string</span> <span class=o>=</span> <span class=s2>&quot;</span><span class=si>%(log_color)s%(asctime)s</span><span class=s2> - </span><span class=si>%(name)s</span><span class=s2> - </span><span class=si>%(levelname)s</span><span class=s2> - </span><span class=si>%(message)s</span><span class=s2>&quot;</span>
+</span><span id=__span-0-48>            <span class=n>format_string</span> <span class=o>=</span> <span class=s2>"</span><span class=si>%(log_color)s%(asctime)s</span><span class=s2> - </span><span class=si>%(name)s</span><span class=s2> - </span><span class=si>%(levelname)s</span><span class=s2> - </span><span class=si>%(message)s</span><span class=s2>"</span>
 </span><span id=__span-0-49>
 </span><span id=__span-0-50>        <span class=n>formatter</span> <span class=o>=</span> <span class=n>colorlog</span><span class=o>.</span><span class=n>ColoredFormatter</span><span class=p>(</span>
 </span><span id=__span-0-51>            <span class=n>format_string</span><span class=p>,</span>
 </span><span id=__span-0-52>            <span class=n>log_colors</span><span class=o>=</span><span class=p>{</span>
-</span><span id=__span-0-53>                <span class=s2>&quot;DEBUG&quot;</span><span class=p>:</span> <span class=s2>&quot;cyan&quot;</span><span class=p>,</span>
-</span><span id=__span-0-54>                <span class=s2>&quot;INFO&quot;</span><span class=p>:</span> <span class=s2>&quot;green&quot;</span><span class=p>,</span>
-</span><span id=__span-0-55>                <span class=s2>&quot;WARNING&quot;</span><span class=p>:</span> <span class=s2>&quot;yellow&quot;</span><span class=p>,</span>
-</span><span id=__span-0-56>                <span class=s2>&quot;ERROR&quot;</span><span class=p>:</span> <span class=s2>&quot;red&quot;</span><span class=p>,</span>
-</span><span id=__span-0-57>                <span class=s2>&quot;CRITICAL&quot;</span><span class=p>:</span> <span class=s2>&quot;red,bg_white&quot;</span><span class=p>,</span>
+</span><span id=__span-0-53>                <span class=s2>"DEBUG"</span><span class=p>:</span> <span class=s2>"cyan"</span><span class=p>,</span>
+</span><span id=__span-0-54>                <span class=s2>"INFO"</span><span class=p>:</span> <span class=s2>"green"</span><span class=p>,</span>
+</span><span id=__span-0-55>                <span class=s2>"WARNING"</span><span class=p>:</span> <span class=s2>"yellow"</span><span class=p>,</span>
+</span><span id=__span-0-56>                <span class=s2>"ERROR"</span><span class=p>:</span> <span class=s2>"red"</span><span class=p>,</span>
+</span><span id=__span-0-57>                <span class=s2>"CRITICAL"</span><span class=p>:</span> <span class=s2>"red,bg_white"</span><span class=p>,</span>
 </span><span id=__span-0-58>            <span class=p>},</span>
 </span><span id=__span-0-59>        <span class=p>)</span>
 </span><span id=__span-0-60>    <span class=k>else</span><span class=p>:</span>
 </span><span id=__span-0-61>        <span class=c1># Use standard formatter</span>
 </span><span id=__span-0-62>        <span class=k>if</span> <span class=n>format_string</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>:</span>
-</span><span id=__span-0-63>            <span class=n>format_string</span> <span class=o>=</span> <span class=s2>&quot;</span><span class=si>%(asctime)s</span><span class=s2> - </span><span class=si>%(name)s</span><span class=s2> - </span><span class=si>%(levelname)s</span><span class=s2> - </span><span class=si>%(message)s</span><span class=s2>&quot;</span>
+</span><span id=__span-0-63>            <span class=n>format_string</span> <span class=o>=</span> <span class=s2>"</span><span class=si>%(asctime)s</span><span class=s2> - </span><span class=si>%(name)s</span><span class=s2> - </span><span class=si>%(levelname)s</span><span class=s2> - </span><span class=si>%(message)s</span><span class=s2>"</span>
 </span><span id=__span-0-64>
 </span><span id=__span-0-65>        <span class=n>formatter</span> <span class=o>=</span> <span class=n>logging</span><span class=o>.</span><span class=n>Formatter</span><span class=p>(</span><span class=n>format_string</span><span class=p>)</span>
 </span><span id=__span-0-66>
 </span><span id=__span-0-67>        <span class=c1># If colorlog is not available but colorize was requested, warn the user</span>
 </span><span id=__span-0-68>        <span class=k>if</span> <span class=n>colorize</span> <span class=ow>and</span> <span class=ow>not</span> <span class=n>HAS_COLORLOG</span><span class=p>:</span>
-</span><span id=__span-0-69>            <span class=nb>print</span><span class=p>(</span><span class=s2>&quot;Warning: colorlog package not found. Install with &#39;pip install colorlog&#39; for colored output.&quot;</span><span class=p>)</span>
+</span><span id=__span-0-69>            <span class=nb>print</span><span class=p>(</span><span class=s2>"Warning: colorlog package not found. Install with 'pip install colorlog' for colored output."</span><span class=p>)</span>
 </span><span id=__span-0-70>
 </span><span id=__span-0-71>    <span class=n>console_handler</span><span class=o>.</span><span class=n>setFormatter</span><span class=p>(</span><span class=n>formatter</span><span class=p>)</span>
 </span><span id=__span-0-72>

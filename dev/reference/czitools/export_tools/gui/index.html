@@ -28,7 +28,7 @@
 <span class=normal>1113</span>
 <span class=normal>1114</span>
 <span class=normal>1115</span></pre></div></td><td class=code><div><pre><span></span><code><span id=__span-0-1087><span class=k>def</span><span class=w> </span><span class=nf>create_gui</span><span class=p>()</span> <span class=o>-&gt;</span> <span class=n>widgets</span><span class=o>.</span><span class=n>Container</span><span class=p>:</span>
-</span><span id=__span-0-1088><span class=w>    </span><span class=sd>&quot;&quot;&quot;Create and return the complete GUI application container.</span>
+</span><span id=__span-0-1088><span class=w>    </span><span class=sd>"""Create and return the complete GUI application container.</span>
 </span><span id=__span-0-1089>
 </span><span id=__span-0-1090><span class=sd>    Assembles all widgets into a single vertical container in the following order:</span>
 </span><span id=__span-0-1091><span class=sd>    1. Version information display (top)</span>
@@ -40,7 +40,7 @@
 </span><span id=__span-0-1097>
 </span><span id=__span-0-1098><span class=sd>    Returns:</span>
 </span><span id=__span-0-1099><span class=sd>        widgets.Container: The main application widget container with all components</span>
-</span><span id=__span-0-1100><span class=sd>    &quot;&quot;&quot;</span>
+</span><span id=__span-0-1100><span class=sd>    """</span>
 </span><span id=__span-0-1101>    <span class=c1># Create container with all widgets</span>
 </span><span id=__span-0-1102>    <span class=n>container</span> <span class=o>=</span> <span class=n>widgets</span><span class=o>.</span><span class=n>Container</span><span class=p>(</span>
 </span><span id=__span-0-1103>        <span class=n>widgets</span><span class=o>=</span><span class=p>[</span>
@@ -167,76 +167,76 @@
 <span class=normal>504</span>
 <span class=normal>505</span></pre></div></td><td class=code><div><pre><span></span><code><span id=__span-0-410><span class=nd>@magicgui</span><span class=p>(</span>
 </span><span id=__span-0-411>    <span class=n>call_button</span><span class=o>=</span><span class=kc>False</span><span class=p>,</span>
-</span><span id=__span-0-412>    <span class=n>layout</span><span class=o>=</span><span class=s2>&quot;vertical&quot;</span><span class=p>,</span>
+</span><span id=__span-0-412>    <span class=n>layout</span><span class=o>=</span><span class=s2>"vertical"</span><span class=p>,</span>
 </span><span id=__span-0-413>    <span class=n>czi_file</span><span class=o>=</span><span class=p>{</span>
-</span><span id=__span-0-414>        <span class=s2>&quot;label&quot;</span><span class=p>:</span> <span class=s2>&quot;CZI File&quot;</span><span class=p>,</span>
-</span><span id=__span-0-415>        <span class=s2>&quot;mode&quot;</span><span class=p>:</span> <span class=s2>&quot;r&quot;</span><span class=p>,</span>
-</span><span id=__span-0-416>        <span class=s2>&quot;filter&quot;</span><span class=p>:</span> <span class=s2>&quot;*.czi&quot;</span><span class=p>,</span>
+</span><span id=__span-0-414>        <span class=s2>"label"</span><span class=p>:</span> <span class=s2>"CZI File"</span><span class=p>,</span>
+</span><span id=__span-0-415>        <span class=s2>"mode"</span><span class=p>:</span> <span class=s2>"r"</span><span class=p>,</span>
+</span><span id=__span-0-416>        <span class=s2>"filter"</span><span class=p>:</span> <span class=s2>"*.czi"</span><span class=p>,</span>
 </span><span id=__span-0-417>    <span class=p>},</span>
 </span><span id=__span-0-418>    <span class=n>package_choice</span><span class=o>=</span><span class=p>{</span>
-</span><span id=__span-0-419>        <span class=s2>&quot;label&quot;</span><span class=p>:</span> <span class=s2>&quot;OME-ZARR Package&quot;</span><span class=p>,</span>
-</span><span id=__span-0-420>        <span class=s2>&quot;choices&quot;</span><span class=p>:</span> <span class=p>[</span>
-</span><span id=__span-0-421>            <span class=p>(</span><span class=s2>&quot;ome-zarr-py&quot;</span><span class=p>,</span> <span class=n>omezarr_package</span><span class=o>.</span><span class=n>OME_ZARR</span><span class=p>),</span>
-</span><span id=__span-0-422>            <span class=p>(</span><span class=s2>&quot;ngff-zarr&quot;</span><span class=p>,</span> <span class=n>omezarr_package</span><span class=o>.</span><span class=n>NGFF_ZARR</span><span class=p>),</span>
+</span><span id=__span-0-419>        <span class=s2>"label"</span><span class=p>:</span> <span class=s2>"OME-ZARR Package"</span><span class=p>,</span>
+</span><span id=__span-0-420>        <span class=s2>"choices"</span><span class=p>:</span> <span class=p>[</span>
+</span><span id=__span-0-421>            <span class=p>(</span><span class=s2>"ome-zarr-py"</span><span class=p>,</span> <span class=n>omezarr_package</span><span class=o>.</span><span class=n>OME_ZARR</span><span class=p>),</span>
+</span><span id=__span-0-422>            <span class=p>(</span><span class=s2>"ngff-zarr"</span><span class=p>,</span> <span class=n>omezarr_package</span><span class=o>.</span><span class=n>NGFF_ZARR</span><span class=p>),</span>
 </span><span id=__span-0-423>        <span class=p>],</span>
-</span><span id=__span-0-424>        <span class=s2>&quot;tooltip&quot;</span><span class=p>:</span> <span class=s2>&quot;Choose the backend library for OME-ZARR writing&quot;</span><span class=p>,</span>
+</span><span id=__span-0-424>        <span class=s2>"tooltip"</span><span class=p>:</span> <span class=s2>"Choose the backend library for OME-ZARR writing"</span><span class=p>,</span>
 </span><span id=__span-0-425>    <span class=p>},</span>
 </span><span id=__span-0-426>    <span class=n>write_hcs</span><span class=o>=</span><span class=p>{</span>
-</span><span id=__span-0-427>        <span class=s2>&quot;label&quot;</span><span class=p>:</span> <span class=s2>&quot;Write HCS Layout&quot;</span><span class=p>,</span>
-</span><span id=__span-0-428>        <span class=s2>&quot;tooltip&quot;</span><span class=p>:</span> <span class=s2>&quot;Enable HCS (High Content Screening) multi-well plate format&quot;</span><span class=p>,</span>
+</span><span id=__span-0-427>        <span class=s2>"label"</span><span class=p>:</span> <span class=s2>"Write HCS Layout"</span><span class=p>,</span>
+</span><span id=__span-0-428>        <span class=s2>"tooltip"</span><span class=p>:</span> <span class=s2>"Enable HCS (High Content Screening) multi-well plate format"</span><span class=p>,</span>
 </span><span id=__span-0-429>    <span class=p>},</span>
 </span><span id=__span-0-430>    <span class=n>use_ozx_format</span><span class=o>=</span><span class=p>{</span>
-</span><span id=__span-0-431>        <span class=s2>&quot;label&quot;</span><span class=p>:</span> <span class=s2>&quot;Use Single-File OME-ZARR (.ozx)&quot;</span><span class=p>,</span>
-</span><span id=__span-0-432>        <span class=s2>&quot;tooltip&quot;</span><span class=p>:</span> <span class=s2>&quot;Enable OZX format for single-file OME-ZARR storage&quot;</span><span class=p>,</span>
+</span><span id=__span-0-431>        <span class=s2>"label"</span><span class=p>:</span> <span class=s2>"Use Single-File OME-ZARR (.ozx)"</span><span class=p>,</span>
+</span><span id=__span-0-432>        <span class=s2>"tooltip"</span><span class=p>:</span> <span class=s2>"Enable OZX format for single-file OME-ZARR storage"</span><span class=p>,</span>
 </span><span id=__span-0-433>    <span class=p>},</span>
 </span><span id=__span-0-434>    <span class=n>use_ozx_write_directly</span><span class=o>=</span><span class=p>{</span>
-</span><span id=__span-0-435>        <span class=s2>&quot;label&quot;</span><span class=p>:</span> <span class=s2>&quot;Create OZX archive during writing&quot;</span><span class=p>,</span>
-</span><span id=__span-0-436>        <span class=s2>&quot;tooltip&quot;</span><span class=p>:</span> <span class=s2>&quot;Write directly into a single-file OZX archive (NGFF-ZARR only, not available in HCS mode)&quot;</span><span class=p>,</span>
+</span><span id=__span-0-435>        <span class=s2>"label"</span><span class=p>:</span> <span class=s2>"Create OZX archive during writing"</span><span class=p>,</span>
+</span><span id=__span-0-436>        <span class=s2>"tooltip"</span><span class=p>:</span> <span class=s2>"Write directly into a single-file OZX archive (NGFF-ZARR only, not available in HCS mode)"</span><span class=p>,</span>
 </span><span id=__span-0-437>    <span class=p>},</span>
 </span><span id=__span-0-438>    <span class=n>use_ozx_after_writing</span><span class=o>=</span><span class=p>{</span>
-</span><span id=__span-0-439>        <span class=s2>&quot;label&quot;</span><span class=p>:</span> <span class=s2>&quot;Create OZX archive after writing&quot;</span><span class=p>,</span>
-</span><span id=__span-0-440>        <span class=s2>&quot;tooltip&quot;</span><span class=p>:</span> <span class=s2>&quot;Enable OZX format for single-file OME-ZARR storage after writing&quot;</span><span class=p>,</span>
+</span><span id=__span-0-439>        <span class=s2>"label"</span><span class=p>:</span> <span class=s2>"Create OZX archive after writing"</span><span class=p>,</span>
+</span><span id=__span-0-440>        <span class=s2>"tooltip"</span><span class=p>:</span> <span class=s2>"Enable OZX format for single-file OME-ZARR storage after writing"</span><span class=p>,</span>
 </span><span id=__span-0-441>    <span class=p>},</span>
 </span><span id=__span-0-442>    <span class=n>compression_choice</span><span class=o>=</span><span class=p>{</span>
-</span><span id=__span-0-443>        <span class=s2>&quot;label&quot;</span><span class=p>:</span> <span class=s2>&quot;Compression&quot;</span><span class=p>,</span>
-</span><span id=__span-0-444>        <span class=s2>&quot;choices&quot;</span><span class=p>:</span> <span class=p>[</span>
-</span><span id=__span-0-445>            <span class=p>(</span><span class=s2>&quot;None&quot;</span><span class=p>,</span> <span class=n>compression_type</span><span class=o>.</span><span class=n>NONE</span><span class=p>),</span>
-</span><span id=__span-0-446>            <span class=p>(</span><span class=s2>&quot;Blosc&quot;</span><span class=p>,</span> <span class=n>compression_type</span><span class=o>.</span><span class=n>BLOSC</span><span class=p>),</span>
-</span><span id=__span-0-447>            <span class=p>(</span><span class=s2>&quot;Zstd&quot;</span><span class=p>,</span> <span class=n>compression_type</span><span class=o>.</span><span class=n>ZSTD</span><span class=p>),</span>
+</span><span id=__span-0-443>        <span class=s2>"label"</span><span class=p>:</span> <span class=s2>"Compression"</span><span class=p>,</span>
+</span><span id=__span-0-444>        <span class=s2>"choices"</span><span class=p>:</span> <span class=p>[</span>
+</span><span id=__span-0-445>            <span class=p>(</span><span class=s2>"None"</span><span class=p>,</span> <span class=n>compression_type</span><span class=o>.</span><span class=n>NONE</span><span class=p>),</span>
+</span><span id=__span-0-446>            <span class=p>(</span><span class=s2>"Blosc"</span><span class=p>,</span> <span class=n>compression_type</span><span class=o>.</span><span class=n>BLOSC</span><span class=p>),</span>
+</span><span id=__span-0-447>            <span class=p>(</span><span class=s2>"Zstd"</span><span class=p>,</span> <span class=n>compression_type</span><span class=o>.</span><span class=n>ZSTD</span><span class=p>),</span>
 </span><span id=__span-0-448>        <span class=p>],</span>
-</span><span id=__span-0-449>        <span class=s2>&quot;tooltip&quot;</span><span class=p>:</span> <span class=s2>&quot;Choose the compression method for OME-ZARR output (default: Blosc)&quot;</span><span class=p>,</span>
+</span><span id=__span-0-449>        <span class=s2>"tooltip"</span><span class=p>:</span> <span class=s2>"Choose the compression method for OME-ZARR output (default: Blosc)"</span><span class=p>,</span>
 </span><span id=__span-0-450>    <span class=p>},</span>
 </span><span id=__span-0-451>    <span class=n>use_zarr_v2</span><span class=o>=</span><span class=p>{</span>
-</span><span id=__span-0-452>        <span class=s2>&quot;label&quot;</span><span class=p>:</span> <span class=s2>&quot;Write zarr v2 (legacy / OME-NGFF v0.4)&quot;</span><span class=p>,</span>
-</span><span id=__span-0-453>        <span class=s2>&quot;tooltip&quot;</span><span class=p>:</span> <span class=p>(</span>
-</span><span id=__span-0-454>            <span class=s2>&quot;Write an OME-NGFF v0.4 / zarr v2 store instead of zarr v3, for legacy &quot;</span>
-</span><span id=__span-0-455>            <span class=s2>&quot;viewers that do not support zarr v3 (ome-zarr-py backend only).&quot;</span>
+</span><span id=__span-0-452>        <span class=s2>"label"</span><span class=p>:</span> <span class=s2>"Write zarr v2 (legacy / OME-NGFF v0.4)"</span><span class=p>,</span>
+</span><span id=__span-0-453>        <span class=s2>"tooltip"</span><span class=p>:</span> <span class=p>(</span>
+</span><span id=__span-0-454>            <span class=s2>"Write an OME-NGFF v0.4 / zarr v2 store instead of zarr v3, for legacy "</span>
+</span><span id=__span-0-455>            <span class=s2>"viewers that do not support zarr v3 (ome-zarr-py backend only)."</span>
 </span><span id=__span-0-456>        <span class=p>),</span>
 </span><span id=__span-0-457>    <span class=p>},</span>
 </span><span id=__span-0-458>    <span class=n>use_tensorstore</span><span class=o>=</span><span class=p>{</span>
-</span><span id=__span-0-459>        <span class=s2>&quot;label&quot;</span><span class=p>:</span> <span class=s2>&quot;Use tensorstore (parallel I/O)&quot;</span><span class=p>,</span>
-</span><span id=__span-0-460>        <span class=s2>&quot;tooltip&quot;</span><span class=p>:</span> <span class=p>(</span>
-</span><span id=__span-0-461>            <span class=s2>&quot;Use the tensorstore backend for async/parallel chunk writes &quot;</span>
-</span><span id=__span-0-462>            <span class=s2>&quot;(ngff-zarr backend, non-HCS only; requires the tensorstore package).&quot;</span>
+</span><span id=__span-0-459>        <span class=s2>"label"</span><span class=p>:</span> <span class=s2>"Use tensorstore (parallel I/O)"</span><span class=p>,</span>
+</span><span id=__span-0-460>        <span class=s2>"tooltip"</span><span class=p>:</span> <span class=p>(</span>
+</span><span id=__span-0-461>            <span class=s2>"Use the tensorstore backend for async/parallel chunk writes "</span>
+</span><span id=__span-0-462>            <span class=s2>"(ngff-zarr backend, non-HCS only; requires the tensorstore package)."</span>
 </span><span id=__span-0-463>        <span class=p>),</span>
 </span><span id=__span-0-464>    <span class=p>},</span>
 </span><span id=__span-0-465>    <span class=n>normalize_level_paths</span><span class=o>=</span><span class=p>{</span>
-</span><span id=__span-0-466>        <span class=s2>&quot;label&quot;</span><span class=p>:</span> <span class=s2>&quot;Normalize pyramid level paths (sN / scaleN → N)&quot;</span><span class=p>,</span>
-</span><span id=__span-0-467>        <span class=s2>&quot;tooltip&quot;</span><span class=p>:</span> <span class=p>(</span>
-</span><span id=__span-0-468>            <span class=s2>&quot;Rename pyramid level directories to plain integers (0, 1, 2 …) to debug &quot;</span>
-</span><span id=__span-0-469>            <span class=s2>&quot;issues with older viewers. Enable only for debugging raw library output.&quot;</span>
+</span><span id=__span-0-466>        <span class=s2>"label"</span><span class=p>:</span> <span class=s2>"Normalize pyramid level paths (sN / scaleN → N)"</span><span class=p>,</span>
+</span><span id=__span-0-467>        <span class=s2>"tooltip"</span><span class=p>:</span> <span class=p>(</span>
+</span><span id=__span-0-468>            <span class=s2>"Rename pyramid level directories to plain integers (0, 1, 2 …) to debug "</span>
+</span><span id=__span-0-469>            <span class=s2>"issues with older viewers. Enable only for debugging raw library output."</span>
 </span><span id=__span-0-470>        <span class=p>),</span>
 </span><span id=__span-0-471>    <span class=p>},</span>
 </span><span id=__span-0-472>    <span class=n>scene_id</span><span class=o>=</span><span class=p>{</span>
-</span><span id=__span-0-473>        <span class=s2>&quot;label&quot;</span><span class=p>:</span> <span class=s2>&quot;Scene ID&quot;</span><span class=p>,</span>
-</span><span id=__span-0-474>        <span class=s2>&quot;min&quot;</span><span class=p>:</span> <span class=mi>0</span><span class=p>,</span>
-</span><span id=__span-0-475>        <span class=s2>&quot;max&quot;</span><span class=p>:</span> <span class=mi>0</span><span class=p>,</span>
-</span><span id=__span-0-476>        <span class=s2>&quot;tooltip&quot;</span><span class=p>:</span> <span class=s2>&quot;Select scene to convert (only for non-HCS mode with multiple scenes)&quot;</span><span class=p>,</span>
-</span><span id=__span-0-477>        <span class=s2>&quot;visible&quot;</span><span class=p>:</span> <span class=kc>False</span><span class=p>,</span>
+</span><span id=__span-0-473>        <span class=s2>"label"</span><span class=p>:</span> <span class=s2>"Scene ID"</span><span class=p>,</span>
+</span><span id=__span-0-474>        <span class=s2>"min"</span><span class=p>:</span> <span class=mi>0</span><span class=p>,</span>
+</span><span id=__span-0-475>        <span class=s2>"max"</span><span class=p>:</span> <span class=mi>0</span><span class=p>,</span>
+</span><span id=__span-0-476>        <span class=s2>"tooltip"</span><span class=p>:</span> <span class=s2>"Select scene to convert (only for non-HCS mode with multiple scenes)"</span><span class=p>,</span>
+</span><span id=__span-0-477>        <span class=s2>"visible"</span><span class=p>:</span> <span class=kc>False</span><span class=p>,</span>
 </span><span id=__span-0-478>    <span class=p>},</span>
 </span><span id=__span-0-479>    <span class=n>show_napari</span><span class=o>=</span><span class=p>{</span>
-</span><span id=__span-0-480>        <span class=s2>&quot;label&quot;</span><span class=p>:</span> <span class=s2>&quot;Show in napari After Conversion (Experimental !!!)&quot;</span><span class=p>,</span>
-</span><span id=__span-0-481>        <span class=s2>&quot;tooltip&quot;</span><span class=p>:</span> <span class=s2>&quot;Automatically open the result in napari viewer&quot;</span><span class=p>,</span>
+</span><span id=__span-0-480>        <span class=s2>"label"</span><span class=p>:</span> <span class=s2>"Show in napari After Conversion (Experimental !!!)"</span><span class=p>,</span>
+</span><span id=__span-0-481>        <span class=s2>"tooltip"</span><span class=p>:</span> <span class=s2>"Automatically open the result in napari viewer"</span><span class=p>,</span>
 </span><span id=__span-0-482>    <span class=p>},</span>
 </span><span id=__span-0-483><span class=p>)</span>
 </span><span id=__span-0-484><span class=k>def</span><span class=w> </span><span class=nf>czi_to_omezarr_converter</span><span class=p>(</span>
@@ -253,14 +253,14 @@
 </span><span id=__span-0-495>    <span class=n>scene_id</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>0</span><span class=p>,</span>
 </span><span id=__span-0-496>    <span class=n>show_napari</span><span class=p>:</span> <span class=nb>bool</span> <span class=o>=</span> <span class=kc>False</span><span class=p>,</span>
 </span><span id=__span-0-497><span class=p>):</span>
-</span><span id=__span-0-498><span class=w>    </span><span class=sd>&quot;&quot;&quot;</span>
+</span><span id=__span-0-498><span class=w>    </span><span class=sd>"""</span>
 </span><span id=__span-0-499><span class=sd>    Main widget for CZI to OME-ZARR conversion configuration.</span>
 </span><span id=__span-0-500>
 </span><span id=__span-0-501><span class=sd>    This widget holds all the conversion parameters.</span>
 </span><span id=__span-0-502><span class=sd>    The @magicgui decorator creates the actual widget from the parameter definitions above.</span>
 </span><span id=__span-0-503><span class=sd>    The function parameters must match the decorator configuration keys.</span>
-</span><span id=__span-0-504><span class=sd>    &quot;&quot;&quot;</span>
-</span><span id=__span-0-505>    <span class=k>pass</span>  <span class=c1># This function doesn&#39;t need to do anything - it just holds the widgets</span>
+</span><span id=__span-0-504><span class=sd>    """</span>
+</span><span id=__span-0-505>    <span class=k>pass</span>  <span class=c1># This function doesn't need to do anything - it just holds the widgets</span>
 </span></code></pre></div></td></tr></table></div> </details> </div> </div> <div class="doc doc-object doc-function"> <h2 id=czitools.export_tools.gui.finish_conversion class="doc doc-heading"> <code class="doc-symbol doc-symbol-heading doc-symbol-function"></code> <span class="doc doc-object-name doc-function-name">finish_conversion</span> <a href=#czitools.export_tools.gui.finish_conversion class=headerlink title="Permanent link">#</a></h2> <div class="language-python doc-signature highlight"><pre><span></span><code><span id=__span-0-1><span class=nf>finish_conversion</span><span class=p>(</span>
 </span><span id=__span-0-2>    <span class=n><a class="autorefs autorefs-internal" title="output_path (czitools.export_tools.gui.finish_conversion(output_path))" href=#czitools.export_tools.gui.finish_conversion(output_path)>output_path</a></span><span class=p>:</span> <span class=n><a class="autorefs autorefs-external" href=https://docs.python.org/3/library/stdtypes.html#str>str</a></span> <span class=o>|</span> <span class=kc>None</span><span class=p>,</span>
 </span><span id=__span-0-3>    <span class=n><a class="autorefs autorefs-internal" title="should_open_napari (czitools.export_tools.gui.finish_conversion(should_open_napari))" href=#czitools.export_tools.gui.finish_conversion(should_open_napari)>should_open_napari</a></span><span class=p>:</span> <span class=n><a class="autorefs autorefs-external" href=https://docs.python.org/3/library/functions.html#bool>bool</a></span> <span class=o>=</span> <span class=kc>False</span><span class=p>,</span>
@@ -351,7 +351,7 @@
 <span class=normal>718</span></pre></div></td><td class=code><div><pre><span></span><code><span id=__span-0-635><span class=k>def</span><span class=w> </span><span class=nf>finish_conversion</span><span class=p>(</span>
 </span><span id=__span-0-636>    <span class=n>output_path</span><span class=p>:</span> <span class=nb>str</span> <span class=o>|</span> <span class=kc>None</span><span class=p>,</span> <span class=n>should_open_napari</span><span class=p>:</span> <span class=nb>bool</span> <span class=o>=</span> <span class=kc>False</span>
 </span><span id=__span-0-637><span class=p>)</span> <span class=o>-&gt;</span> <span class=kc>None</span><span class=p>:</span>
-</span><span id=__span-0-638><span class=w>    </span><span class=sd>&quot;&quot;&quot;Finalize conversion process and update UI state.</span>
+</span><span id=__span-0-638><span class=w>    </span><span class=sd>"""Finalize conversion process and update UI state.</span>
 </span><span id=__span-0-639>
 </span><span id=__span-0-640><span class=sd>    This function is called from the main Qt thread after the background conversion</span>
 </span><span id=__span-0-641><span class=sd>    thread completes. It performs cleanup, final log reading, and optionally opens</span>
@@ -364,7 +364,7 @@
 </span><span id=__span-0-648><span class=sd>    Note:</span>
 </span><span id=__span-0-649><span class=sd>        Must be called from the main Qt thread to safely update UI widgets.</span>
 </span><span id=__span-0-650><span class=sd>        Uses global variables log_timer and log_file_path.</span>
-</span><span id=__span-0-651><span class=sd>    &quot;&quot;&quot;</span>
+</span><span id=__span-0-651><span class=sd>    """</span>
 </span><span id=__span-0-652>    <span class=k>global</span> <span class=n>log_timer</span><span class=p>,</span> <span class=n>log_file_path</span>
 </span><span id=__span-0-653>
 </span><span id=__span-0-654>    <span class=c1># Stop the log polling timer</span>
@@ -375,13 +375,13 @@
 </span><span id=__span-0-659>    <span class=c1># Perform final complete read of log file to capture all content</span>
 </span><span id=__span-0-660>    <span class=k>if</span> <span class=n>log_file_path</span> <span class=ow>and</span> <span class=n>log_file_path</span><span class=o>.</span><span class=n>exists</span><span class=p>():</span>
 </span><span id=__span-0-661>        <span class=k>try</span><span class=p>:</span>
-</span><span id=__span-0-662>            <span class=k>with</span> <span class=nb>open</span><span class=p>(</span><span class=n>log_file_path</span><span class=p>,</span> <span class=s2>&quot;r&quot;</span><span class=p>,</span> <span class=n>encoding</span><span class=o>=</span><span class=s2>&quot;utf-8&quot;</span><span class=p>)</span> <span class=k>as</span> <span class=n>f</span><span class=p>:</span>
+</span><span id=__span-0-662>            <span class=k>with</span> <span class=nb>open</span><span class=p>(</span><span class=n>log_file_path</span><span class=p>,</span> <span class=s2>"r"</span><span class=p>,</span> <span class=n>encoding</span><span class=o>=</span><span class=s2>"utf-8"</span><span class=p>)</span> <span class=k>as</span> <span class=n>f</span><span class=p>:</span>
 </span><span id=__span-0-663>                <span class=n>log_viewer</span><span class=o>.</span><span class=n>value</span> <span class=o>=</span> <span class=n>f</span><span class=o>.</span><span class=n>read</span><span class=p>()</span>
 </span><span id=__span-0-664>            <span class=n>_scroll_log_to_end</span><span class=p>()</span>
 </span><span id=__span-0-665>            <span class=c1># Re-apply after Qt has recalculated the document layout and scrollbar.</span>
 </span><span id=__span-0-666>            <span class=n>QTimer</span><span class=o>.</span><span class=n>singleShot</span><span class=p>(</span><span class=mi>0</span><span class=p>,</span> <span class=n>_scroll_log_to_end</span><span class=p>)</span>
 </span><span id=__span-0-667>        <span class=k>except</span> <span class=ne>Exception</span> <span class=k>as</span> <span class=n>e</span><span class=p>:</span>
-</span><span id=__span-0-668>            <span class=n>_append_log_content</span><span class=p>(</span><span class=sa>f</span><span class=s2>&quot;</span><span class=se>\n</span><span class=s2>⚠️ Could not read log file: </span><span class=si>{</span><span class=n>e</span><span class=si>}</span><span class=s2>&quot;</span><span class=p>)</span>
+</span><span id=__span-0-668>            <span class=n>_append_log_content</span><span class=p>(</span><span class=sa>f</span><span class=s2>"</span><span class=se>\n</span><span class=s2>⚠️ Could not read log file: </span><span class=si>{</span><span class=n>e</span><span class=si>}</span><span class=s2>"</span><span class=p>)</span>
 </span><span id=__span-0-669>
 </span><span id=__span-0-670>    <span class=c1># Open napari viewer if requested (on main thread)</span>
 </span><span id=__span-0-671>    <span class=k>if</span> <span class=n>should_open_napari</span> <span class=ow>and</span> <span class=n>output_path</span><span class=p>:</span>
@@ -390,45 +390,45 @@
 </span><span id=__span-0-674>        <span class=kn>import</span><span class=w> </span><span class=nn>napari</span>
 </span><span id=__span-0-675>        <span class=kn>from</span><span class=w> </span><span class=nn>napari.utils.colormaps</span><span class=w> </span><span class=kn>import</span> <span class=n>Colormap</span>
 </span><span id=__span-0-676>
-</span><span id=__span-0-677>        <span class=n>logger</span><span class=o>.</span><span class=n>info</span><span class=p>(</span><span class=s2>&quot;Opening in napari viewer...&quot;</span><span class=p>)</span>
+</span><span id=__span-0-677>        <span class=n>logger</span><span class=o>.</span><span class=n>info</span><span class=p>(</span><span class=s2>"Opening in napari viewer..."</span><span class=p>)</span>
 </span><span id=__span-0-678>        <span class=k>try</span><span class=p>:</span>
 </span><span id=__span-0-679>            <span class=n>viewer</span> <span class=o>=</span> <span class=n>napari</span><span class=o>.</span><span class=n>Viewer</span><span class=p>()</span>
-</span><span id=__span-0-680>            <span class=n>viewer</span><span class=o>.</span><span class=n>open</span><span class=p>(</span><span class=n>output_path</span><span class=p>,</span> <span class=n>plugin</span><span class=o>=</span><span class=s2>&quot;napari-ome-zarr&quot;</span><span class=p>)</span>
+</span><span id=__span-0-680>            <span class=n>viewer</span><span class=o>.</span><span class=n>open</span><span class=p>(</span><span class=n>output_path</span><span class=p>,</span> <span class=n>plugin</span><span class=o>=</span><span class=s2>"napari-ome-zarr"</span><span class=p>)</span>
 </span><span id=__span-0-681>
 </span><span id=__span-0-682>            <span class=c1># napari-ome-zarr does not reliably apply OMERO channel colors from NGFF 0.5.</span>
 </span><span id=__span-0-683>            <span class=c1># Read colors from zarr.json and apply them manually to each layer.</span>
-</span><span id=__span-0-684>            <span class=n>zarr_json_path</span> <span class=o>=</span> <span class=n>Path</span><span class=p>(</span><span class=n>output_path</span><span class=p>)</span> <span class=o>/</span> <span class=s2>&quot;zarr.json&quot;</span>
+</span><span id=__span-0-684>            <span class=n>zarr_json_path</span> <span class=o>=</span> <span class=n>Path</span><span class=p>(</span><span class=n>output_path</span><span class=p>)</span> <span class=o>/</span> <span class=s2>"zarr.json"</span>
 </span><span id=__span-0-685>            <span class=k>if</span> <span class=n>zarr_json_path</span><span class=o>.</span><span class=n>exists</span><span class=p>():</span>
 </span><span id=__span-0-686>                <span class=k>try</span><span class=p>:</span>
-</span><span id=__span-0-687>                    <span class=k>with</span> <span class=nb>open</span><span class=p>(</span><span class=n>zarr_json_path</span><span class=p>,</span> <span class=s2>&quot;r&quot;</span><span class=p>,</span> <span class=n>encoding</span><span class=o>=</span><span class=s2>&quot;utf-8&quot;</span><span class=p>)</span> <span class=k>as</span> <span class=n>f</span><span class=p>:</span>
+</span><span id=__span-0-687>                    <span class=k>with</span> <span class=nb>open</span><span class=p>(</span><span class=n>zarr_json_path</span><span class=p>,</span> <span class=s2>"r"</span><span class=p>,</span> <span class=n>encoding</span><span class=o>=</span><span class=s2>"utf-8"</span><span class=p>)</span> <span class=k>as</span> <span class=n>f</span><span class=p>:</span>
 </span><span id=__span-0-688>                        <span class=n>meta</span> <span class=o>=</span> <span class=n>json</span><span class=o>.</span><span class=n>load</span><span class=p>(</span><span class=n>f</span><span class=p>)</span>
 </span><span id=__span-0-689>                    <span class=n>channels</span> <span class=o>=</span> <span class=p>(</span>
-</span><span id=__span-0-690>                        <span class=n>meta</span><span class=o>.</span><span class=n>get</span><span class=p>(</span><span class=s2>&quot;attributes&quot;</span><span class=p>,</span> <span class=p>{})</span>
-</span><span id=__span-0-691>                        <span class=o>.</span><span class=n>get</span><span class=p>(</span><span class=s2>&quot;ome&quot;</span><span class=p>,</span> <span class=p>{})</span>
-</span><span id=__span-0-692>                        <span class=o>.</span><span class=n>get</span><span class=p>(</span><span class=s2>&quot;omero&quot;</span><span class=p>,</span> <span class=p>{})</span>
-</span><span id=__span-0-693>                        <span class=o>.</span><span class=n>get</span><span class=p>(</span><span class=s2>&quot;channels&quot;</span><span class=p>,</span> <span class=p>[])</span>
+</span><span id=__span-0-690>                        <span class=n>meta</span><span class=o>.</span><span class=n>get</span><span class=p>(</span><span class=s2>"attributes"</span><span class=p>,</span> <span class=p>{})</span>
+</span><span id=__span-0-691>                        <span class=o>.</span><span class=n>get</span><span class=p>(</span><span class=s2>"ome"</span><span class=p>,</span> <span class=p>{})</span>
+</span><span id=__span-0-692>                        <span class=o>.</span><span class=n>get</span><span class=p>(</span><span class=s2>"omero"</span><span class=p>,</span> <span class=p>{})</span>
+</span><span id=__span-0-693>                        <span class=o>.</span><span class=n>get</span><span class=p>(</span><span class=s2>"channels"</span><span class=p>,</span> <span class=p>[])</span>
 </span><span id=__span-0-694>                    <span class=p>)</span>
 </span><span id=__span-0-695>                    <span class=k>for</span> <span class=n>layer</span><span class=p>,</span> <span class=n>ch</span> <span class=ow>in</span> <span class=nb>zip</span><span class=p>(</span><span class=n>viewer</span><span class=o>.</span><span class=n>layers</span><span class=p>,</span> <span class=n>channels</span><span class=p>):</span>
-</span><span id=__span-0-696>                        <span class=n>hex_color</span> <span class=o>=</span> <span class=n>ch</span><span class=o>.</span><span class=n>get</span><span class=p>(</span><span class=s2>&quot;color&quot;</span><span class=p>,</span> <span class=s2>&quot;FFFFFF&quot;</span><span class=p>)</span>
+</span><span id=__span-0-696>                        <span class=n>hex_color</span> <span class=o>=</span> <span class=n>ch</span><span class=o>.</span><span class=n>get</span><span class=p>(</span><span class=s2>"color"</span><span class=p>,</span> <span class=s2>"FFFFFF"</span><span class=p>)</span>
 </span><span id=__span-0-697>                        <span class=n>r</span> <span class=o>=</span> <span class=nb>int</span><span class=p>(</span><span class=n>hex_color</span><span class=p>[</span><span class=mi>0</span><span class=p>:</span><span class=mi>2</span><span class=p>],</span> <span class=mi>16</span><span class=p>)</span> <span class=o>/</span> <span class=mi>255</span>
 </span><span id=__span-0-698>                        <span class=n>g</span> <span class=o>=</span> <span class=nb>int</span><span class=p>(</span><span class=n>hex_color</span><span class=p>[</span><span class=mi>2</span><span class=p>:</span><span class=mi>4</span><span class=p>],</span> <span class=mi>16</span><span class=p>)</span> <span class=o>/</span> <span class=mi>255</span>
 </span><span id=__span-0-699>                        <span class=n>b</span> <span class=o>=</span> <span class=nb>int</span><span class=p>(</span><span class=n>hex_color</span><span class=p>[</span><span class=mi>4</span><span class=p>:</span><span class=mi>6</span><span class=p>],</span> <span class=mi>16</span><span class=p>)</span> <span class=o>/</span> <span class=mi>255</span>
 </span><span id=__span-0-700>                        <span class=n>layer</span><span class=o>.</span><span class=n>colormap</span> <span class=o>=</span> <span class=n>Colormap</span><span class=p>(</span>
 </span><span id=__span-0-701>                            <span class=n>colors</span><span class=o>=</span><span class=p>[[</span><span class=mi>0</span><span class=p>,</span> <span class=mi>0</span><span class=p>,</span> <span class=mi>0</span><span class=p>,</span> <span class=mi>1</span><span class=p>],</span> <span class=p>[</span><span class=n>r</span><span class=p>,</span> <span class=n>g</span><span class=p>,</span> <span class=n>b</span><span class=p>,</span> <span class=mi>1</span><span class=p>]],</span>
-</span><span id=__span-0-702>                            <span class=n>name</span><span class=o>=</span><span class=sa>f</span><span class=s2>&quot;ch_</span><span class=si>{</span><span class=n>hex_color</span><span class=si>}</span><span class=s2>&quot;</span><span class=p>,</span>
+</span><span id=__span-0-702>                            <span class=n>name</span><span class=o>=</span><span class=sa>f</span><span class=s2>"ch_</span><span class=si>{</span><span class=n>hex_color</span><span class=si>}</span><span class=s2>"</span><span class=p>,</span>
 </span><span id=__span-0-703>                        <span class=p>)</span>
 </span><span id=__span-0-704>                <span class=k>except</span> <span class=ne>Exception</span> <span class=k>as</span> <span class=n>ce</span><span class=p>:</span>
-</span><span id=__span-0-705>                    <span class=n>logger</span><span class=o>.</span><span class=n>warning</span><span class=p>(</span><span class=s2>&quot;Could not apply channel colors: </span><span class=si>%s</span><span class=s2>&quot;</span><span class=p>,</span> <span class=n>ce</span><span class=p>)</span>
+</span><span id=__span-0-705>                    <span class=n>logger</span><span class=o>.</span><span class=n>warning</span><span class=p>(</span><span class=s2>"Could not apply channel colors: </span><span class=si>%s</span><span class=s2>"</span><span class=p>,</span> <span class=n>ce</span><span class=p>)</span>
 </span><span id=__span-0-706>
-</span><span id=__span-0-707>            <span class=n>logger</span><span class=o>.</span><span class=n>info</span><span class=p>(</span><span class=s2>&quot;Napari viewer opened successfully&quot;</span><span class=p>)</span>
+</span><span id=__span-0-707>            <span class=n>logger</span><span class=o>.</span><span class=n>info</span><span class=p>(</span><span class=s2>"Napari viewer opened successfully"</span><span class=p>)</span>
 </span><span id=__span-0-708>        <span class=k>except</span> <span class=ne>Exception</span> <span class=k>as</span> <span class=n>e</span><span class=p>:</span>
-</span><span id=__span-0-709>            <span class=n>logger</span><span class=o>.</span><span class=n>warning</span><span class=p>(</span><span class=s2>&quot;Failed to open in napari: </span><span class=si>%s</span><span class=s2>&quot;</span><span class=p>,</span> <span class=n>e</span><span class=p>)</span>
+</span><span id=__span-0-709>            <span class=n>logger</span><span class=o>.</span><span class=n>warning</span><span class=p>(</span><span class=s2>"Failed to open in napari: </span><span class=si>%s</span><span class=s2>"</span><span class=p>,</span> <span class=n>e</span><span class=p>)</span>
 </span><span id=__span-0-710>
 </span><span id=__span-0-711>    <span class=c1># Update UI</span>
 </span><span id=__span-0-712>    <span class=k>if</span> <span class=n>output_path</span><span class=p>:</span>
-</span><span id=__span-0-713>        <span class=n>info_display</span><span class=o>.</span><span class=n>value</span> <span class=o>=</span> <span class=sa>f</span><span class=s2>&quot;✅ Conversion successful!</span><span class=se>\n\n</span><span class=s2>Output: </span><span class=si>{</span><span class=n>output_path</span><span class=si>}</span><span class=s2>&quot;</span>
+</span><span id=__span-0-713>        <span class=n>info_display</span><span class=o>.</span><span class=n>value</span> <span class=o>=</span> <span class=sa>f</span><span class=s2>"✅ Conversion successful!</span><span class=se>\n\n</span><span class=s2>Output: </span><span class=si>{</span><span class=n>output_path</span><span class=si>}</span><span class=s2>"</span>
 </span><span id=__span-0-714>    <span class=k>else</span><span class=p>:</span>
-</span><span id=__span-0-715>        <span class=n>info_display</span><span class=o>.</span><span class=n>value</span> <span class=o>=</span> <span class=s2>&quot;❌ Conversion failed. Check console for details.&quot;</span>
+</span><span id=__span-0-715>        <span class=n>info_display</span><span class=o>.</span><span class=n>value</span> <span class=o>=</span> <span class=s2>"❌ Conversion failed. Check console for details."</span>
 </span><span id=__span-0-716>
 </span><span id=__span-0-717>    <span class=c1># Re-enable convert button</span>
 </span><span id=__span-0-718>    <span class=n>convert_button</span><span class=o>.</span><span class=n>enabled</span> <span class=o>=</span> <span class=kc>True</span>
@@ -556,7 +556,7 @@
 <span class=normal>841</span>
 <span class=normal>842</span>
 <span class=normal>843</span></pre></div></td><td class=code><div><pre><span></span><code><span id=__span-0-721><span class=k>def</span><span class=w> </span><span class=nf>on_convert_clicked</span><span class=p>()</span> <span class=o>-&gt;</span> <span class=kc>None</span><span class=p>:</span>
-</span><span id=__span-0-722><span class=w>    </span><span class=sd>&quot;&quot;&quot;Callback function for the &#39;Convert to OME-ZARR&#39; button.</span>
+</span><span id=__span-0-722><span class=w>    </span><span class=sd>"""Callback function for the 'Convert to OME-ZARR' button.</span>
 </span><span id=__span-0-723>
 </span><span id=__span-0-724><span class=sd>    This function orchestrates the entire conversion process:</span>
 </span><span id=__span-0-725><span class=sd>    1. Validates that a file is selected and metadata has been read</span>
@@ -570,7 +570,7 @@
 </span><span id=__span-0-733><span class=sd>    Note:</span>
 </span><span id=__span-0-734><span class=sd>        Uses multiple global variables to coordinate between UI thread and</span>
 </span><span id=__span-0-735><span class=sd>        conversion thread. Disables the convert button during processing.</span>
-</span><span id=__span-0-736><span class=sd>    &quot;&quot;&quot;</span>
+</span><span id=__span-0-736><span class=sd>    """</span>
 </span><span id=__span-0-737>    <span class=k>global</span> <span class=n>metadata</span><span class=p>,</span> <span class=n>selected_file</span><span class=p>,</span> <span class=n>conversion_running</span><span class=p>,</span> <span class=n>log_file_path</span><span class=p>,</span> <span class=n>log_last_position</span><span class=p>,</span> <span class=n>log_timer</span>
 </span><span id=__span-0-738>
 </span><span id=__span-0-739>    <span class=c1># Get current values from the widget</span>
@@ -587,12 +587,12 @@
 </span><span id=__span-0-750>
 </span><span id=__span-0-751>    <span class=c1># Validate that file exists</span>
 </span><span id=__span-0-752>    <span class=k>if</span> <span class=ow>not</span> <span class=n>czi_file</span><span class=o>.</span><span class=n>exists</span><span class=p>():</span>
-</span><span id=__span-0-753>        <span class=n>info_display</span><span class=o>.</span><span class=n>value</span> <span class=o>=</span> <span class=s2>&quot;❌ Error: Selected file does not exist&quot;</span>
+</span><span id=__span-0-753>        <span class=n>info_display</span><span class=o>.</span><span class=n>value</span> <span class=o>=</span> <span class=s2>"❌ Error: Selected file does not exist"</span>
 </span><span id=__span-0-754>        <span class=k>return</span>
 </span><span id=__span-0-755>
 </span><span id=__span-0-756>    <span class=c1># Validate that metadata has been read</span>
 </span><span id=__span-0-757>    <span class=k>if</span> <span class=n>metadata</span> <span class=ow>is</span> <span class=kc>None</span> <span class=ow>or</span> <span class=n>selected_file</span> <span class=o>!=</span> <span class=n>czi_file</span><span class=p>:</span>
-</span><span id=__span-0-758>        <span class=n>info_display</span><span class=o>.</span><span class=n>value</span> <span class=o>=</span> <span class=s2>&quot;⚠️ Please click &#39;Read Metadata&#39; first&quot;</span>
+</span><span id=__span-0-758>        <span class=n>info_display</span><span class=o>.</span><span class=n>value</span> <span class=o>=</span> <span class=s2>"⚠️ Please click 'Read Metadata' first"</span>
 </span><span id=__span-0-759>        <span class=k>return</span>
 </span><span id=__span-0-760>
 </span><span id=__span-0-761>    <span class=c1># Validate OZX sub-option selection</span>
@@ -601,58 +601,58 @@
 </span><span id=__span-0-764>        <span class=n>_write_afterwards</span> <span class=o>=</span> <span class=n>czi_to_omezarr_converter</span><span class=o>.</span><span class=n>use_ozx_after_writing</span><span class=o>.</span><span class=n>value</span>
 </span><span id=__span-0-765>        <span class=k>if</span> <span class=ow>not</span> <span class=n>_write_directly</span> <span class=ow>and</span> <span class=ow>not</span> <span class=n>_write_afterwards</span><span class=p>:</span>
 </span><span id=__span-0-766>            <span class=n>info_display</span><span class=o>.</span><span class=n>value</span> <span class=o>=</span> <span class=p>(</span>
-</span><span id=__span-0-767>                <span class=s2>&quot;⚠️ &#39;Use Single-File OME-ZARR (.ozx)&#39; is enabled — &quot;</span>
-</span><span id=__span-0-768>                <span class=s2>&quot;select at least one OZX write option.&quot;</span>
+</span><span id=__span-0-767>                <span class=s2>"⚠️ 'Use Single-File OME-ZARR (.ozx)' is enabled — "</span>
+</span><span id=__span-0-768>                <span class=s2>"select at least one OZX write option."</span>
 </span><span id=__span-0-769>            <span class=p>)</span>
 </span><span id=__span-0-770>            <span class=k>return</span>
 </span><span id=__span-0-771>
 </span><span id=__span-0-772>    <span class=c1># Clear log viewer and update status</span>
-</span><span id=__span-0-773>    <span class=n>log_viewer</span><span class=o>.</span><span class=n>value</span> <span class=o>=</span> <span class=s2>&quot;Starting conversion...</span><span class=se>\n</span><span class=s2>&quot;</span>
-</span><span id=__span-0-774>    <span class=n>info_display</span><span class=o>.</span><span class=n>value</span> <span class=o>=</span> <span class=s2>&quot;⏳ Converting... Please wait.&quot;</span>
+</span><span id=__span-0-773>    <span class=n>log_viewer</span><span class=o>.</span><span class=n>value</span> <span class=o>=</span> <span class=s2>"Starting conversion...</span><span class=se>\n</span><span class=s2>"</span>
+</span><span id=__span-0-774>    <span class=n>info_display</span><span class=o>.</span><span class=n>value</span> <span class=o>=</span> <span class=s2>"⏳ Converting... Please wait."</span>
 </span><span id=__span-0-775>    <span class=n>log_last_position</span> <span class=o>=</span> <span class=mi>0</span>
 </span><span id=__span-0-776>
 </span><span id=__span-0-777>    <span class=c1># Disable convert button during conversion</span>
 </span><span id=__span-0-778>    <span class=n>convert_button</span><span class=o>.</span><span class=n>enabled</span> <span class=o>=</span> <span class=kc>False</span>
 </span><span id=__span-0-779>
 </span><span id=__span-0-780>    <span class=c1># Setup log file path</span>
-</span><span id=__span-0-781>    <span class=n>log_file_path</span> <span class=o>=</span> <span class=n>czi_file</span><span class=o>.</span><span class=n>parent</span> <span class=o>/</span> <span class=sa>f</span><span class=s2>&quot;</span><span class=si>{</span><span class=n>czi_file</span><span class=o>.</span><span class=n>stem</span><span class=si>}</span><span class=s2>_conversion.log&quot;</span>
+</span><span id=__span-0-781>    <span class=n>log_file_path</span> <span class=o>=</span> <span class=n>czi_file</span><span class=o>.</span><span class=n>parent</span> <span class=o>/</span> <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>czi_file</span><span class=o>.</span><span class=n>stem</span><span class=si>}</span><span class=s2>_conversion.log"</span>
 </span><span id=__span-0-782>    <span class=n>conversion_running</span> <span class=o>=</span> <span class=kc>True</span>
 </span><span id=__span-0-783>
 </span><span id=__span-0-784>    <span class=c1># Store conversion result</span>
 </span><span id=__span-0-785>    <span class=n>conversion_result</span> <span class=o>=</span> <span class=p>{</span>
-</span><span id=__span-0-786>        <span class=s2>&quot;output_path&quot;</span><span class=p>:</span> <span class=kc>None</span><span class=p>,</span>
-</span><span id=__span-0-787>        <span class=s2>&quot;completed&quot;</span><span class=p>:</span> <span class=kc>False</span><span class=p>,</span>
-</span><span id=__span-0-788>        <span class=s2>&quot;show_napari&quot;</span><span class=p>:</span> <span class=n>show_napari</span><span class=p>,</span>
+</span><span id=__span-0-786>        <span class=s2>"output_path"</span><span class=p>:</span> <span class=kc>None</span><span class=p>,</span>
+</span><span id=__span-0-787>        <span class=s2>"completed"</span><span class=p>:</span> <span class=kc>False</span><span class=p>,</span>
+</span><span id=__span-0-788>        <span class=s2>"show_napari"</span><span class=p>:</span> <span class=n>show_napari</span><span class=p>,</span>
 </span><span id=__span-0-789>    <span class=p>}</span>
 </span><span id=__span-0-790>
 </span><span id=__span-0-791>    <span class=c1># Start timer to update log display every 500ms</span>
 </span><span id=__span-0-792>    <span class=n>log_timer</span> <span class=o>=</span> <span class=n>QTimer</span><span class=p>()</span>
 </span><span id=__span-0-793>
 </span><span id=__span-0-794>    <span class=k>def</span><span class=w> </span><span class=nf>check_conversion_status</span><span class=p>()</span> <span class=o>-&gt;</span> <span class=kc>None</span><span class=p>:</span>
-</span><span id=__span-0-795><span class=w>        </span><span class=sd>&quot;&quot;&quot;Check if conversion is complete and update UI accordingly.</span>
+</span><span id=__span-0-795><span class=w>        </span><span class=sd>"""Check if conversion is complete and update UI accordingly.</span>
 </span><span id=__span-0-796>
 </span><span id=__span-0-797><span class=sd>        This function is called periodically by QTimer. It updates the log display</span>
 </span><span id=__span-0-798><span class=sd>        and checks if the background conversion thread has completed. When complete,</span>
 </span><span id=__span-0-799><span class=sd>        it triggers UI finalization on the main thread.</span>
-</span><span id=__span-0-800><span class=sd>        &quot;&quot;&quot;</span>
+</span><span id=__span-0-800><span class=sd>        """</span>
 </span><span id=__span-0-801>        <span class=n>update_log_display</span><span class=p>()</span>  <span class=c1># Update log with new content</span>
 </span><span id=__span-0-802>
 </span><span id=__span-0-803>        <span class=c1># Check if conversion is complete</span>
-</span><span id=__span-0-804>        <span class=k>if</span> <span class=n>conversion_result</span><span class=p>[</span><span class=s2>&quot;completed&quot;</span><span class=p>]:</span>
+</span><span id=__span-0-804>        <span class=k>if</span> <span class=n>conversion_result</span><span class=p>[</span><span class=s2>"completed"</span><span class=p>]:</span>
 </span><span id=__span-0-805>            <span class=n>finish_conversion</span><span class=p>(</span>
-</span><span id=__span-0-806>                <span class=n>conversion_result</span><span class=p>[</span><span class=s2>&quot;output_path&quot;</span><span class=p>],</span> <span class=n>conversion_result</span><span class=p>[</span><span class=s2>&quot;show_napari&quot;</span><span class=p>]</span>
+</span><span id=__span-0-806>                <span class=n>conversion_result</span><span class=p>[</span><span class=s2>"output_path"</span><span class=p>],</span> <span class=n>conversion_result</span><span class=p>[</span><span class=s2>"show_napari"</span><span class=p>]</span>
 </span><span id=__span-0-807>            <span class=p>)</span>
 </span><span id=__span-0-808>
 </span><span id=__span-0-809>    <span class=n>log_timer</span><span class=o>.</span><span class=n>timeout</span><span class=o>.</span><span class=n>connect</span><span class=p>(</span><span class=n>check_conversion_status</span><span class=p>)</span>
 </span><span id=__span-0-810>    <span class=n>log_timer</span><span class=o>.</span><span class=n>start</span><span class=p>(</span><span class=mi>500</span><span class=p>)</span>  <span class=c1># Poll every 500ms</span>
 </span><span id=__span-0-811>
 </span><span id=__span-0-812>    <span class=k>def</span><span class=w> </span><span class=nf>run_conversion</span><span class=p>()</span> <span class=o>-&gt;</span> <span class=kc>None</span><span class=p>:</span>
-</span><span id=__span-0-813><span class=w>        </span><span class=sd>&quot;&quot;&quot;Run conversion in background thread.</span>
+</span><span id=__span-0-813><span class=w>        </span><span class=sd>"""Run conversion in background thread.</span>
 </span><span id=__span-0-814>
 </span><span id=__span-0-815><span class=sd>        This function executes in a separate daemon thread to prevent blocking</span>
 </span><span id=__span-0-816><span class=sd>        the Qt main thread. It performs the actual conversion and stores the</span>
 </span><span id=__span-0-817><span class=sd>        result in conversion_result dict for the main thread to process.</span>
-</span><span id=__span-0-818><span class=sd>        &quot;&quot;&quot;</span>
+</span><span id=__span-0-818><span class=sd>        """</span>
 </span><span id=__span-0-819>        <span class=k>global</span> <span class=n>conversion_running</span>
 </span><span id=__span-0-820>
 </span><span id=__span-0-821>        <span class=c1># Perform the conversion operation</span>
@@ -671,8 +671,8 @@
 </span><span id=__span-0-834>        <span class=p>)</span>
 </span><span id=__span-0-835>
 </span><span id=__span-0-836>        <span class=c1># Store result and mark as complete</span>
-</span><span id=__span-0-837>        <span class=n>conversion_result</span><span class=p>[</span><span class=s2>&quot;output_path&quot;</span><span class=p>]</span> <span class=o>=</span> <span class=n>output_path</span>
-</span><span id=__span-0-838>        <span class=n>conversion_result</span><span class=p>[</span><span class=s2>&quot;completed&quot;</span><span class=p>]</span> <span class=o>=</span> <span class=kc>True</span>
+</span><span id=__span-0-837>        <span class=n>conversion_result</span><span class=p>[</span><span class=s2>"output_path"</span><span class=p>]</span> <span class=o>=</span> <span class=n>output_path</span>
+</span><span id=__span-0-838>        <span class=n>conversion_result</span><span class=p>[</span><span class=s2>"completed"</span><span class=p>]</span> <span class=o>=</span> <span class=kc>True</span>
 </span><span id=__span-0-839>        <span class=n>conversion_running</span> <span class=o>=</span> <span class=kc>False</span>
 </span><span id=__span-0-840>
 </span><span id=__span-0-841>    <span class=c1># Start conversion in a separate thread</span>
@@ -713,7 +713,7 @@
 <span class=normal>1048</span>
 <span class=normal>1049</span>
 <span class=normal>1050</span></pre></div></td><td class=code><div><pre><span></span><code><span id=__span-0-1017><span class=k>def</span><span class=w> </span><span class=nf>on_file_changed</span><span class=p>(</span><span class=n>value</span><span class=p>:</span> <span class=n>Path</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=kc>None</span><span class=p>:</span>
-</span><span id=__span-0-1018><span class=w>    </span><span class=sd>&quot;&quot;&quot;Callback for file selector changes.</span>
+</span><span id=__span-0-1018><span class=w>    </span><span class=sd>"""Callback for file selector changes.</span>
 </span><span id=__span-0-1019>
 </span><span id=__span-0-1020><span class=sd>    This function handles UI updates when a new CZI file is selected:</span>
 </span><span id=__span-0-1021><span class=sd>    1. Dynamically adjusts file selector width based on path length (600-1200px)</span>
@@ -726,7 +726,7 @@
 </span><span id=__span-0-1028><span class=sd>    Note:</span>
 </span><span id=__span-0-1029><span class=sd>        Uses global variables metadata and max_scenes to reset application state.</span>
 </span><span id=__span-0-1030><span class=sd>        This ensures a clean state when switching between files.</span>
-</span><span id=__span-0-1031><span class=sd>    &quot;&quot;&quot;</span>
+</span><span id=__span-0-1031><span class=sd>    """</span>
 </span><span id=__span-0-1032>    <span class=k>global</span> <span class=n>metadata</span><span class=p>,</span> <span class=n>max_scenes</span>
 </span><span id=__span-0-1033>
 </span><span id=__span-0-1034>    <span class=k>if</span> <span class=n>value</span> <span class=ow>and</span> <span class=n>value</span><span class=o>.</span><span class=n>exists</span><span class=p>():</span>
@@ -739,8 +739,8 @@
 </span><span id=__span-0-1041>        <span class=c1># Clear previous metadata and logs</span>
 </span><span id=__span-0-1042>        <span class=n>metadata</span> <span class=o>=</span> <span class=kc>None</span>
 </span><span id=__span-0-1043>        <span class=n>max_scenes</span> <span class=o>=</span> <span class=mi>1</span>
-</span><span id=__span-0-1044>        <span class=n>info_display</span><span class=o>.</span><span class=n>value</span> <span class=o>=</span> <span class=s2>&quot;Select a CZI file and click &#39;Read Metadata&#39; to begin.&quot;</span>
-</span><span id=__span-0-1045>        <span class=n>log_viewer</span><span class=o>.</span><span class=n>value</span> <span class=o>=</span> <span class=s2>&quot;&quot;</span>
+</span><span id=__span-0-1044>        <span class=n>info_display</span><span class=o>.</span><span class=n>value</span> <span class=o>=</span> <span class=s2>"Select a CZI file and click 'Read Metadata' to begin."</span>
+</span><span id=__span-0-1045>        <span class=n>log_viewer</span><span class=o>.</span><span class=n>value</span> <span class=o>=</span> <span class=s2>""</span>
 </span><span id=__span-0-1046>
 </span><span id=__span-0-1047>        <span class=c1># Reset convert button state</span>
 </span><span id=__span-0-1048>        <span class=n>convert_button</span><span class=o>.</span><span class=n>enabled</span> <span class=o>=</span> <span class=kc>False</span>
@@ -761,7 +761,7 @@
 <span class=normal>1012</span>
 <span class=normal>1013</span>
 <span class=normal>1014</span></pre></div></td><td class=code><div><pre><span></span><code><span id=__span-0-1001><span class=k>def</span><span class=w> </span><span class=nf>on_package_choice_changed</span><span class=p>(</span><span class=n>value</span><span class=p>:</span> <span class=n>omezarr_package</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=kc>None</span><span class=p>:</span>
-</span><span id=__span-0-1002><span class=w>    </span><span class=sd>&quot;&quot;&quot;Callback for package_choice changes.</span>
+</span><span id=__span-0-1002><span class=w>    </span><span class=sd>"""Callback for package_choice changes.</span>
 </span><span id=__span-0-1003>
 </span><span id=__span-0-1004><span class=sd>    Manages single-file (.ozx) option availability based on selected backend:</span>
 </span><span id=__span-0-1005><span class=sd>    - ome-zarr-py: Does not support .ozx format, so option is disabled</span>
@@ -772,7 +772,7 @@
 </span><span id=__span-0-1010>
 </span><span id=__span-0-1011><span class=sd>    Note:</span>
 </span><span id=__span-0-1012><span class=sd>        The single-file option may remain disabled if HCS mode is active.</span>
-</span><span id=__span-0-1013><span class=sd>    &quot;&quot;&quot;</span>
+</span><span id=__span-0-1013><span class=sd>    """</span>
 </span><span id=__span-0-1014>    <span class=n>update_use_ozx_format_enabled_state</span><span class=p>()</span>
 </span></code></pre></div></td></tr></table></div> </details> </div> </div> <div class="doc doc-object doc-function"> <h2 id=czitools.export_tools.gui.on_read_metadata_clicked class="doc doc-heading"> <code class="doc-symbol doc-symbol-heading doc-symbol-function"></code> <span class="doc doc-object-name doc-function-name">on_read_metadata_clicked</span> <a href=#czitools.export_tools.gui.on_read_metadata_clicked class=headerlink title="Permanent link">#</a></h2> <div class="language-python doc-signature highlight"><pre><span></span><code><span id=__span-0-1><span class=nf>on_read_metadata_clicked</span><span class=p>()</span> <span class=o>-&gt;</span> <span class=kc>None</span>
 </span></code></pre></div> <div class="doc doc-contents "> <p>Callback function for the 'Read Metadata' button.</p> <p>Reads CZI file metadata and updates GUI state: - Validates file existence - Loads and parses CZI metadata - Updates scene selector visibility and range - Displays metadata summary in info widget - Enables convert button when successful</p> <details class=note open> <summary>Note</summary> <p>Updates global variables: metadata, max_scenes, selected_file</p> </details> <details class=mkdocstrings-source> <summary>Source code in <code>czitools/export_tools/gui.py</code></summary> <div class="language-python highlight"><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal>561</span>
@@ -847,7 +847,7 @@
 <span class=normal>630</span>
 <span class=normal>631</span>
 <span class=normal>632</span></pre></div></td><td class=code><div><pre><span></span><code><span id=__span-0-561><span class=k>def</span><span class=w> </span><span class=nf>on_read_metadata_clicked</span><span class=p>()</span> <span class=o>-&gt;</span> <span class=kc>None</span><span class=p>:</span>
-</span><span id=__span-0-562><span class=w>    </span><span class=sd>&quot;&quot;&quot;Callback function for the &#39;Read Metadata&#39; button.</span>
+</span><span id=__span-0-562><span class=w>    </span><span class=sd>"""Callback function for the 'Read Metadata' button.</span>
 </span><span id=__span-0-563>
 </span><span id=__span-0-564><span class=sd>    Reads CZI file metadata and updates GUI state:</span>
 </span><span id=__span-0-565><span class=sd>    - Validates file existence</span>
@@ -858,7 +858,7 @@
 </span><span id=__span-0-570>
 </span><span id=__span-0-571><span class=sd>    Note:</span>
 </span><span id=__span-0-572><span class=sd>        Updates global variables: metadata, max_scenes, selected_file</span>
-</span><span id=__span-0-573><span class=sd>    &quot;&quot;&quot;</span>
+</span><span id=__span-0-573><span class=sd>    """</span>
 </span><span id=__span-0-574>    <span class=k>global</span> <span class=n>metadata</span><span class=p>,</span> <span class=n>max_scenes</span><span class=p>,</span> <span class=n>selected_file</span>
 </span><span id=__span-0-575>
 </span><span id=__span-0-576>    <span class=c1># Get current file path from widget</span>
@@ -866,17 +866,17 @@
 </span><span id=__span-0-578>
 </span><span id=__span-0-579>    <span class=c1># Validate file existence</span>
 </span><span id=__span-0-580>    <span class=k>if</span> <span class=ow>not</span> <span class=n>filepath</span><span class=o>.</span><span class=n>exists</span><span class=p>():</span>
-</span><span id=__span-0-581>        <span class=n>info_display</span><span class=o>.</span><span class=n>value</span> <span class=o>=</span> <span class=s2>&quot;❌ Error: File does not exist&quot;</span>
+</span><span id=__span-0-581>        <span class=n>info_display</span><span class=o>.</span><span class=n>value</span> <span class=o>=</span> <span class=s2>"❌ Error: File does not exist"</span>
 </span><span id=__span-0-582>        <span class=k>return</span>
 </span><span id=__span-0-583>
 </span><span id=__span-0-584>    <span class=c1># Read metadata from CZI file</span>
-</span><span id=__span-0-585>    <span class=n>info_display</span><span class=o>.</span><span class=n>value</span> <span class=o>=</span> <span class=s2>&quot;⏳ Reading metadata...&quot;</span>
+</span><span id=__span-0-585>    <span class=n>info_display</span><span class=o>.</span><span class=n>value</span> <span class=o>=</span> <span class=s2>"⏳ Reading metadata..."</span>
 </span><span id=__span-0-586>    <span class=n>metadata</span><span class=p>,</span> <span class=n>max_scenes</span> <span class=o>=</span> <span class=n>read_czi_metadata</span><span class=p>(</span><span class=n>filepath</span><span class=p>)</span>
 </span><span id=__span-0-587>    <span class=n>selected_file</span> <span class=o>=</span> <span class=n>filepath</span>
 </span><span id=__span-0-588>
 </span><span id=__span-0-589>    <span class=c1># Handle metadata reading failure</span>
 </span><span id=__span-0-590>    <span class=k>if</span> <span class=n>metadata</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>:</span>
-</span><span id=__span-0-591>        <span class=n>info_display</span><span class=o>.</span><span class=n>value</span> <span class=o>=</span> <span class=s2>&quot;❌ Error: Failed to read metadata&quot;</span>
+</span><span id=__span-0-591>        <span class=n>info_display</span><span class=o>.</span><span class=n>value</span> <span class=o>=</span> <span class=s2>"❌ Error: Failed to read metadata"</span>
 </span><span id=__span-0-592>        <span class=k>return</span>
 </span><span id=__span-0-593>
 </span><span id=__span-0-594>    <span class=c1># Bind to a local variable so the type checker can narrow to CziMetadata (not Optional)</span>
@@ -898,14 +898,14 @@
 </span><span id=__span-0-610>
 </span><span id=__span-0-611>    <span class=c1># Bind image info to a local variable so the type checker can narrow away Optional</span>
 </span><span id=__span-0-612>    <span class=n>image</span> <span class=o>=</span> <span class=n>mdata</span><span class=o>.</span><span class=n>image</span>
-</span><span id=__span-0-613>    <span class=n>size_x</span> <span class=o>=</span> <span class=n>image</span><span class=o>.</span><span class=n>SizeX</span> <span class=k>if</span> <span class=n>image</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span> <span class=k>else</span> <span class=s2>&quot;N/A&quot;</span>
-</span><span id=__span-0-614>    <span class=n>size_y</span> <span class=o>=</span> <span class=n>image</span><span class=o>.</span><span class=n>SizeY</span> <span class=k>if</span> <span class=n>image</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span> <span class=k>else</span> <span class=s2>&quot;N/A&quot;</span>
-</span><span id=__span-0-615>    <span class=n>size_c</span> <span class=o>=</span> <span class=n>image</span><span class=o>.</span><span class=n>SizeC</span> <span class=k>if</span> <span class=n>image</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span> <span class=k>else</span> <span class=s2>&quot;N/A&quot;</span>
-</span><span id=__span-0-616>    <span class=n>size_z</span> <span class=o>=</span> <span class=n>image</span><span class=o>.</span><span class=n>SizeZ</span> <span class=k>if</span> <span class=n>image</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span> <span class=k>else</span> <span class=s2>&quot;N/A&quot;</span>
-</span><span id=__span-0-617>    <span class=n>size_t</span> <span class=o>=</span> <span class=n>image</span><span class=o>.</span><span class=n>SizeT</span> <span class=k>if</span> <span class=n>image</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span> <span class=k>else</span> <span class=s2>&quot;N/A&quot;</span>
+</span><span id=__span-0-613>    <span class=n>size_x</span> <span class=o>=</span> <span class=n>image</span><span class=o>.</span><span class=n>SizeX</span> <span class=k>if</span> <span class=n>image</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span> <span class=k>else</span> <span class=s2>"N/A"</span>
+</span><span id=__span-0-614>    <span class=n>size_y</span> <span class=o>=</span> <span class=n>image</span><span class=o>.</span><span class=n>SizeY</span> <span class=k>if</span> <span class=n>image</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span> <span class=k>else</span> <span class=s2>"N/A"</span>
+</span><span id=__span-0-615>    <span class=n>size_c</span> <span class=o>=</span> <span class=n>image</span><span class=o>.</span><span class=n>SizeC</span> <span class=k>if</span> <span class=n>image</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span> <span class=k>else</span> <span class=s2>"N/A"</span>
+</span><span id=__span-0-616>    <span class=n>size_z</span> <span class=o>=</span> <span class=n>image</span><span class=o>.</span><span class=n>SizeZ</span> <span class=k>if</span> <span class=n>image</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span> <span class=k>else</span> <span class=s2>"N/A"</span>
+</span><span id=__span-0-617>    <span class=n>size_t</span> <span class=o>=</span> <span class=n>image</span><span class=o>.</span><span class=n>SizeT</span> <span class=k>if</span> <span class=n>image</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span> <span class=k>else</span> <span class=s2>"N/A"</span>
 </span><span id=__span-0-618>
 </span><span id=__span-0-619>    <span class=c1># Build and display metadata summary</span>
-</span><span id=__span-0-620>    <span class=n>info_text</span> <span class=o>=</span> <span class=sa>f</span><span class=s2>&quot;&quot;&quot;✅ Metadata loaded successfully!</span>
+</span><span id=__span-0-620>    <span class=n>info_text</span> <span class=o>=</span> <span class=sa>f</span><span class=s2>"""✅ Metadata loaded successfully!</span>
 </span><span id=__span-0-621>
 </span><span id=__span-0-622><span class=s2>📁 File: </span><span class=si>{</span><span class=n>filepath</span><span class=o>.</span><span class=n>name</span><span class=si>}</span>
 </span><span id=__span-0-623><span class=s2>📐 Dimensions: </span><span class=si>{</span><span class=n>mdata</span><span class=o>.</span><span class=n>pyczi_dims</span><span class=si>}</span>
@@ -916,7 +916,7 @@
 </span><span id=__span-0-628><span class=s2>⏱️ Time points: </span><span class=si>{</span><span class=n>size_t</span><span class=si>}</span>
 </span><span id=__span-0-629>
 </span><span id=__span-0-630><span class=s2>Ready to convert</span>
-</span><span id=__span-0-631><span class=s2>&quot;&quot;&quot;</span>
+</span><span id=__span-0-631><span class=s2>"""</span>
 </span><span id=__span-0-632>    <span class=n>info_display</span><span class=o>.</span><span class=n>value</span> <span class=o>=</span> <span class=n>info_text</span>
 </span></code></pre></div></td></tr></table></div> </details> </div> </div> <div class="doc doc-object doc-function"> <h2 id=czitools.export_tools.gui.on_use_ozx_after_writing_changed class="doc doc-heading"> <code class="doc-symbol doc-symbol-heading doc-symbol-function"></code> <span class="doc doc-object-name doc-function-name">on_use_ozx_after_writing_changed</span> <a href=#czitools.export_tools.gui.on_use_ozx_after_writing_changed class=headerlink title="Permanent link">#</a></h2> <div class="language-python doc-signature highlight"><pre><span></span><code><span id=__span-0-1><span class=nf>on_use_ozx_after_writing_changed</span><span class=p>(</span><span class=n><span title=czitools.export_tools.gui.on_use_ozx_after_writing_changed(value)>value</span></span><span class=p>:</span> <span class=n><a class="autorefs autorefs-external" href=https://docs.python.org/3/library/functions.html#bool>bool</a></span><span class=p>)</span> <span class=o>-&gt;</span> <span class=kc>None</span>
 </span></code></pre></div> <div class="doc doc-contents "> <p>Ensure mutually exclusive OZX modes when post-write archive is toggled.</p> <details class=mkdocstrings-source> <summary>Source code in <code>czitools/export_tools/gui.py</code></summary> <div class="language-python highlight"><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal>970</span>
@@ -926,7 +926,7 @@
 <span class=normal>974</span>
 <span class=normal>975</span>
 <span class=normal>976</span></pre></div></td><td class=code><div><pre><span></span><code><span id=__span-0-970><span class=k>def</span><span class=w> </span><span class=nf>on_use_ozx_after_writing_changed</span><span class=p>(</span><span class=n>value</span><span class=p>:</span> <span class=nb>bool</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=kc>None</span><span class=p>:</span>
-</span><span id=__span-0-971><span class=w>    </span><span class=sd>&quot;&quot;&quot;Ensure mutually exclusive OZX modes when post-write archive is toggled.&quot;&quot;&quot;</span>
+</span><span id=__span-0-971><span class=w>    </span><span class=sd>"""Ensure mutually exclusive OZX modes when post-write archive is toggled."""</span>
 </span><span id=__span-0-972>    <span class=c1># Only clear the other side if it is currently checked.</span>
 </span><span id=__span-0-973>    <span class=k>if</span> <span class=n>value</span> <span class=ow>and</span> <span class=n>czi_to_omezarr_converter</span><span class=o>.</span><span class=n>use_ozx_write_directly</span><span class=o>.</span><span class=n>value</span><span class=p>:</span>
 </span><span id=__span-0-974>        <span class=n>czi_to_omezarr_converter</span><span class=o>.</span><span class=n>use_ozx_write_directly</span><span class=o>.</span><span class=n>value</span> <span class=o>=</span> <span class=kc>False</span>
@@ -938,7 +938,7 @@
 <span class=normal>955</span>
 <span class=normal>956</span>
 <span class=normal>957</span></pre></div></td><td class=code><div><pre><span></span><code><span id=__span-0-953><span class=k>def</span><span class=w> </span><span class=nf>on_use_ozx_format_changed</span><span class=p>(</span><span class=n>_</span><span class=p>:</span> <span class=nb>bool</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=kc>None</span><span class=p>:</span>
-</span><span id=__span-0-954><span class=w>    </span><span class=sd>&quot;&quot;&quot;React to master OZX toggle changes.&quot;&quot;&quot;</span>
+</span><span id=__span-0-954><span class=w>    </span><span class=sd>"""React to master OZX toggle changes."""</span>
 </span><span id=__span-0-955>
 </span><span id=__span-0-956>    <span class=n>update_ozx_child_states</span><span class=p>()</span>
 </span><span id=__span-0-957>    <span class=n>update_show_napari_enabled_state</span><span class=p>()</span>
@@ -951,7 +951,7 @@
 <span class=normal>965</span>
 <span class=normal>966</span>
 <span class=normal>967</span></pre></div></td><td class=code><div><pre><span></span><code><span id=__span-0-960><span class=k>def</span><span class=w> </span><span class=nf>on_use_ozx_write_directly_changed</span><span class=p>(</span><span class=n>value</span><span class=p>:</span> <span class=nb>bool</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=kc>None</span><span class=p>:</span>
-</span><span id=__span-0-961><span class=w>    </span><span class=sd>&quot;&quot;&quot;Ensure mutually exclusive OZX modes when direct write is toggled.&quot;&quot;&quot;</span>
+</span><span id=__span-0-961><span class=w>    </span><span class=sd>"""Ensure mutually exclusive OZX modes when direct write is toggled."""</span>
 </span><span id=__span-0-962>    <span class=c1># Only clear the other side if it is currently checked; avoids emitting</span>
 </span><span id=__span-0-963>    <span class=c1># spurious signals that feed back into update_ozx_child_states.</span>
 </span><span id=__span-0-964>    <span class=k>if</span> <span class=n>value</span> <span class=ow>and</span> <span class=n>czi_to_omezarr_converter</span><span class=o>.</span><span class=n>use_ozx_after_writing</span><span class=o>.</span><span class=n>value</span><span class=p>:</span>
@@ -979,7 +979,7 @@
 <span class=normal>996</span>
 <span class=normal>997</span>
 <span class=normal>998</span></pre></div></td><td class=code><div><pre><span></span><code><span id=__span-0-979><span class=k>def</span><span class=w> </span><span class=nf>on_write_hcs_changed</span><span class=p>(</span><span class=n>value</span><span class=p>:</span> <span class=nb>bool</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=kc>None</span><span class=p>:</span>
-</span><span id=__span-0-980><span class=w>    </span><span class=sd>&quot;&quot;&quot;Callback for write_hcs checkbox changes.</span>
+</span><span id=__span-0-980><span class=w>    </span><span class=sd>"""Callback for write_hcs checkbox changes.</span>
 </span><span id=__span-0-981>
 </span><span id=__span-0-982><span class=sd>    Controls UI state based on HCS mode selection:</span>
 </span><span id=__span-0-983><span class=sd>    - Hides scene selector in HCS mode (HCS processes all scenes automatically)</span>
@@ -990,7 +990,7 @@
 </span><span id=__span-0-988>
 </span><span id=__span-0-989><span class=sd>    Note:</span>
 </span><span id=__span-0-990><span class=sd>        Uses global max_scenes variable to determine scene selector visibility.</span>
-</span><span id=__span-0-991><span class=sd>    &quot;&quot;&quot;</span>
+</span><span id=__span-0-991><span class=sd>    """</span>
 </span><span id=__span-0-992>    <span class=k>global</span> <span class=n>max_scenes</span>
 </span><span id=__span-0-993>
 </span><span id=__span-0-994>    <span class=c1># Show scene selector only if NOT in HCS mode AND multiple scenes exist</span>
@@ -1228,7 +1228,7 @@
 </span><span id=__span-0-208>    <span class=n>compression_choice</span><span class=p>:</span> <span class=n>compression_type</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=n>compression_type</span><span class=o>.</span><span class=n>BLOSC</span><span class=p>,</span>
 </span><span id=__span-0-209>    <span class=n>normalize_level_paths</span><span class=p>:</span> <span class=nb>bool</span> <span class=o>=</span> <span class=kc>False</span><span class=p>,</span>
 </span><span id=__span-0-210><span class=p>)</span> <span class=o>-&gt;</span> <span class=nb>str</span> <span class=o>|</span> <span class=kc>None</span><span class=p>:</span>
-</span><span id=__span-0-211><span class=w>    </span><span class=sd>&quot;&quot;&quot;</span>
+</span><span id=__span-0-211><span class=w>    </span><span class=sd>"""</span>
 </span><span id=__span-0-212><span class=sd>    Perform the CZI to OME-ZARR conversion with specified parameters.</span>
 </span><span id=__span-0-213>
 </span><span id=__span-0-214><span class=sd>    Args:</span>
@@ -1251,27 +1251,27 @@
 </span><span id=__span-0-231>
 </span><span id=__span-0-232><span class=sd>    Returns:</span>
 </span><span id=__span-0-233><span class=sd>        str: Path to output OME-ZARR file, or None if conversion failed</span>
-</span><span id=__span-0-234><span class=sd>    &quot;&quot;&quot;</span>
+</span><span id=__span-0-234><span class=sd>    """</span>
 </span><span id=__span-0-235>    <span class=k>try</span><span class=p>:</span>
 </span><span id=__span-0-236>        <span class=c1># Setup logging</span>
-</span><span id=__span-0-237>        <span class=n>log_file_path</span> <span class=o>=</span> <span class=n>filepath</span><span class=o>.</span><span class=n>parent</span> <span class=o>/</span> <span class=sa>f</span><span class=s2>&quot;</span><span class=si>{</span><span class=n>filepath</span><span class=o>.</span><span class=n>stem</span><span class=si>}</span><span class=s2>_conversion.log&quot;</span>
+</span><span id=__span-0-237>        <span class=n>log_file_path</span> <span class=o>=</span> <span class=n>filepath</span><span class=o>.</span><span class=n>parent</span> <span class=o>/</span> <span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>filepath</span><span class=o>.</span><span class=n>stem</span><span class=si>}</span><span class=s2>_conversion.log"</span>
 </span><span id=__span-0-238>        <span class=n>setup_logging</span><span class=p>(</span><span class=nb>str</span><span class=p>(</span><span class=n>log_file_path</span><span class=p>),</span> <span class=n>force_reconfigure</span><span class=o>=</span><span class=kc>True</span><span class=p>)</span>
 </span><span id=__span-0-239>
-</span><span id=__span-0-240>        <span class=n>logger</span><span class=o>.</span><span class=n>info</span><span class=p>(</span><span class=s2>&quot;=&quot;</span> <span class=o>*</span> <span class=mi>80</span><span class=p>)</span>
-</span><span id=__span-0-241>        <span class=n>logger</span><span class=o>.</span><span class=n>info</span><span class=p>(</span><span class=s2>&quot;CZI to OME-ZARR Conversion Started&quot;</span><span class=p>)</span>
-</span><span id=__span-0-242>        <span class=n>logger</span><span class=o>.</span><span class=n>info</span><span class=p>(</span><span class=s2>&quot;=&quot;</span> <span class=o>*</span> <span class=mi>80</span><span class=p>)</span>
-</span><span id=__span-0-243>        <span class=n>logger</span><span class=o>.</span><span class=n>info</span><span class=p>(</span><span class=sa>f</span><span class=s2>&quot;Input file: </span><span class=si>{</span><span class=n>filepath</span><span class=si>}</span><span class=s2>&quot;</span><span class=p>)</span>
-</span><span id=__span-0-244>        <span class=n>logger</span><span class=o>.</span><span class=n>info</span><span class=p>(</span><span class=sa>f</span><span class=s2>&quot;Package: </span><span class=si>{</span><span class=n>package_choice</span><span class=o>.</span><span class=n>name</span><span class=si>}</span><span class=s2>&quot;</span><span class=p>)</span>
-</span><span id=__span-0-245>        <span class=n>logger</span><span class=o>.</span><span class=n>info</span><span class=p>(</span><span class=sa>f</span><span class=s2>&quot;HCS mode: </span><span class=si>{</span><span class=n>write_hcs</span><span class=si>}</span><span class=s2>&quot;</span><span class=p>)</span>
-</span><span id=__span-0-246>        <span class=n>logger</span><span class=o>.</span><span class=n>info</span><span class=p>(</span><span class=sa>f</span><span class=s2>&quot;Single-file (.ozx): </span><span class=si>{</span><span class=n>use_ozx_format</span><span class=si>}</span><span class=s2>&quot;</span><span class=p>)</span>
-</span><span id=__span-0-247>        <span class=n>logger</span><span class=o>.</span><span class=n>info</span><span class=p>(</span><span class=sa>f</span><span class=s2>&quot;Scene ID: </span><span class=si>{</span><span class=n>scene_id</span><span class=si>}</span><span class=s2>&quot;</span><span class=p>)</span>
+</span><span id=__span-0-240>        <span class=n>logger</span><span class=o>.</span><span class=n>info</span><span class=p>(</span><span class=s2>"="</span> <span class=o>*</span> <span class=mi>80</span><span class=p>)</span>
+</span><span id=__span-0-241>        <span class=n>logger</span><span class=o>.</span><span class=n>info</span><span class=p>(</span><span class=s2>"CZI to OME-ZARR Conversion Started"</span><span class=p>)</span>
+</span><span id=__span-0-242>        <span class=n>logger</span><span class=o>.</span><span class=n>info</span><span class=p>(</span><span class=s2>"="</span> <span class=o>*</span> <span class=mi>80</span><span class=p>)</span>
+</span><span id=__span-0-243>        <span class=n>logger</span><span class=o>.</span><span class=n>info</span><span class=p>(</span><span class=sa>f</span><span class=s2>"Input file: </span><span class=si>{</span><span class=n>filepath</span><span class=si>}</span><span class=s2>"</span><span class=p>)</span>
+</span><span id=__span-0-244>        <span class=n>logger</span><span class=o>.</span><span class=n>info</span><span class=p>(</span><span class=sa>f</span><span class=s2>"Package: </span><span class=si>{</span><span class=n>package_choice</span><span class=o>.</span><span class=n>name</span><span class=si>}</span><span class=s2>"</span><span class=p>)</span>
+</span><span id=__span-0-245>        <span class=n>logger</span><span class=o>.</span><span class=n>info</span><span class=p>(</span><span class=sa>f</span><span class=s2>"HCS mode: </span><span class=si>{</span><span class=n>write_hcs</span><span class=si>}</span><span class=s2>"</span><span class=p>)</span>
+</span><span id=__span-0-246>        <span class=n>logger</span><span class=o>.</span><span class=n>info</span><span class=p>(</span><span class=sa>f</span><span class=s2>"Single-file (.ozx): </span><span class=si>{</span><span class=n>use_ozx_format</span><span class=si>}</span><span class=s2>"</span><span class=p>)</span>
+</span><span id=__span-0-247>        <span class=n>logger</span><span class=o>.</span><span class=n>info</span><span class=p>(</span><span class=sa>f</span><span class=s2>"Scene ID: </span><span class=si>{</span><span class=n>scene_id</span><span class=si>}</span><span class=s2>"</span><span class=p>)</span>
 </span><span id=__span-0-248>
 </span><span id=__span-0-249>        <span class=n>output_path</span> <span class=o>=</span> <span class=kc>None</span>
 </span><span id=__span-0-250>
 </span><span id=__span-0-251>        <span class=c1># ========== HCS Format Conversion ==========</span>
 </span><span id=__span-0-252>        <span class=k>if</span> <span class=n>write_hcs</span><span class=p>:</span>
 </span><span id=__span-0-253>            <span class=n>logger</span><span class=o>.</span><span class=n>info</span><span class=p>(</span>
-</span><span id=__span-0-254>                <span class=s2>&quot;Converting to HCS-ZARR format using </span><span class=si>%s</span><span class=s2>...&quot;</span><span class=p>,</span> <span class=n>package_choice</span><span class=o>.</span><span class=n>name</span>
+</span><span id=__span-0-254>                <span class=s2>"Converting to HCS-ZARR format using </span><span class=si>%s</span><span class=s2>..."</span><span class=p>,</span> <span class=n>package_choice</span><span class=o>.</span><span class=n>name</span>
 </span><span id=__span-0-255>            <span class=p>)</span>
 </span><span id=__span-0-256>
 </span><span id=__span-0-257>            <span class=k>if</span> <span class=n>package_choice</span> <span class=o>==</span> <span class=n>omezarr_package</span><span class=o>.</span><span class=n>OME_ZARR</span><span class=p>:</span>
@@ -1288,7 +1288,7 @@
 </span><span id=__span-0-268>                    <span class=c1># OZX-after mode: write the intermediate .ome.zarr to a temp directory</span>
 </span><span id=__span-0-269>                    <span class=c1># so it never collides with (or deletes) an existing _ngff_plate_zarr3.ome.zarr</span>
 </span><span id=__span-0-270>                    <span class=c1># produced by a previous conversion in the same session.</span>
-</span><span id=__span-0-271>                    <span class=n>tmp_dir</span> <span class=o>=</span> <span class=n>tempfile</span><span class=o>.</span><span class=n>mkdtemp</span><span class=p>(</span><span class=n>prefix</span><span class=o>=</span><span class=s2>&quot;omezarr_hcs_tmp_&quot;</span><span class=p>)</span>
+</span><span id=__span-0-271>                    <span class=n>tmp_dir</span> <span class=o>=</span> <span class=n>tempfile</span><span class=o>.</span><span class=n>mkdtemp</span><span class=p>(</span><span class=n>prefix</span><span class=o>=</span><span class=s2>"omezarr_hcs_tmp_"</span><span class=p>)</span>
 </span><span id=__span-0-272>                    <span class=k>try</span><span class=p>:</span>
 </span><span id=__span-0-273>                        <span class=n>tmp_zarr</span> <span class=o>=</span> <span class=n>convert_czi2hcs_ngff</span><span class=p>(</span>
 </span><span id=__span-0-274>                            <span class=n>czi_filepath</span><span class=o>=</span><span class=nb>str</span><span class=p>(</span><span class=n>filepath</span><span class=p>),</span>
@@ -1318,32 +1318,32 @@
 </span><span id=__span-0-298>                        <span class=n>normalize_level_paths</span><span class=o>=</span><span class=n>normalize_level_paths</span><span class=p>,</span>
 </span><span id=__span-0-299>                    <span class=p>)</span>
 </span><span id=__span-0-300>
-</span><span id=__span-0-301>            <span class=n>logger</span><span class=o>.</span><span class=n>info</span><span class=p>(</span><span class=s2>&quot;HCS-ZARR created: </span><span class=si>%s</span><span class=s2>&quot;</span><span class=p>,</span> <span class=n>output_path</span><span class=p>)</span>
+</span><span id=__span-0-301>            <span class=n>logger</span><span class=o>.</span><span class=n>info</span><span class=p>(</span><span class=s2>"HCS-ZARR created: </span><span class=si>%s</span><span class=s2>"</span><span class=p>,</span> <span class=n>output_path</span><span class=p>)</span>
 </span><span id=__span-0-302>
 </span><span id=__span-0-303>        <span class=c1># ========== Standard OME-ZARR Conversion ==========</span>
 </span><span id=__span-0-304>        <span class=k>else</span><span class=p>:</span>
 </span><span id=__span-0-305>            <span class=n>logger</span><span class=o>.</span><span class=n>info</span><span class=p>(</span>
-</span><span id=__span-0-306>                <span class=s2>&quot;Converting scene </span><span class=si>%d</span><span class=s2> to OME-ZARR format using </span><span class=si>%s</span><span class=s2>...&quot;</span><span class=p>,</span>
+</span><span id=__span-0-306>                <span class=s2>"Converting scene </span><span class=si>%d</span><span class=s2> to OME-ZARR format using </span><span class=si>%s</span><span class=s2>..."</span><span class=p>,</span>
 </span><span id=__span-0-307>                <span class=n>scene_id</span><span class=p>,</span>
 </span><span id=__span-0-308>                <span class=n>package_choice</span><span class=o>.</span><span class=n>name</span><span class=p>,</span>
 </span><span id=__span-0-309>            <span class=p>)</span>
 </span><span id=__span-0-310>
 </span><span id=__span-0-311>            <span class=c1># Read the CZI file as a 6D array</span>
 </span><span id=__span-0-312>            <span class=n>array</span><span class=p>,</span> <span class=n>mdata</span> <span class=o>=</span> <span class=n>read_tools</span><span class=o>.</span><span class=n>read_6darray</span><span class=p>(</span>
-</span><span id=__span-0-313>                <span class=nb>str</span><span class=p>(</span><span class=n>filepath</span><span class=p>),</span> <span class=n>planes</span><span class=o>=</span><span class=p>{</span><span class=s2>&quot;S&quot;</span><span class=p>:</span> <span class=p>(</span><span class=n>scene_id</span><span class=p>,</span> <span class=n>scene_id</span><span class=p>)},</span> <span class=n>use_xarray</span><span class=o>=</span><span class=kc>True</span>
+</span><span id=__span-0-313>                <span class=nb>str</span><span class=p>(</span><span class=n>filepath</span><span class=p>),</span> <span class=n>planes</span><span class=o>=</span><span class=p>{</span><span class=s2>"S"</span><span class=p>:</span> <span class=p>(</span><span class=n>scene_id</span><span class=p>,</span> <span class=n>scene_id</span><span class=p>)},</span> <span class=n>use_xarray</span><span class=o>=</span><span class=kc>True</span>
 </span><span id=__span-0-314>            <span class=p>)</span>
 </span><span id=__span-0-315>
 </span><span id=__span-0-316>            <span class=c1># Extract the specified scene (remove Scene dimension to get 5D array)</span>
 </span><span id=__span-0-317>            <span class=k>assert</span> <span class=nb>isinstance</span><span class=p>(</span>
 </span><span id=__span-0-318>                <span class=n>array</span><span class=p>,</span> <span class=n>xr</span><span class=o>.</span><span class=n>DataArray</span>
-</span><span id=__span-0-319>            <span class=p>),</span> <span class=s2>&quot;Expected xarray DataArray from read_6darray with use_xarray=True&quot;</span>
-</span><span id=__span-0-320>            <span class=n>array</span> <span class=o>=</span> <span class=n>array</span><span class=o>.</span><span class=n>squeeze</span><span class=p>(</span><span class=s2>&quot;S&quot;</span><span class=p>)</span>
-</span><span id=__span-0-321>            <span class=n>logger</span><span class=o>.</span><span class=n>info</span><span class=p>(</span><span class=s2>&quot;Array shape: </span><span class=si>%s</span><span class=s2>, dtype: </span><span class=si>%s</span><span class=s2>&quot;</span><span class=p>,</span> <span class=n>array</span><span class=o>.</span><span class=n>shape</span><span class=p>,</span> <span class=n>array</span><span class=o>.</span><span class=n>dtype</span><span class=p>)</span>
+</span><span id=__span-0-319>            <span class=p>),</span> <span class=s2>"Expected xarray DataArray from read_6darray with use_xarray=True"</span>
+</span><span id=__span-0-320>            <span class=n>array</span> <span class=o>=</span> <span class=n>array</span><span class=o>.</span><span class=n>squeeze</span><span class=p>(</span><span class=s2>"S"</span><span class=p>)</span>
+</span><span id=__span-0-321>            <span class=n>logger</span><span class=o>.</span><span class=n>info</span><span class=p>(</span><span class=s2>"Array shape: </span><span class=si>%s</span><span class=s2>, dtype: </span><span class=si>%s</span><span class=s2>"</span><span class=p>,</span> <span class=n>array</span><span class=o>.</span><span class=n>shape</span><span class=p>,</span> <span class=n>array</span><span class=o>.</span><span class=n>dtype</span><span class=p>)</span>
 </span><span id=__span-0-322>
 </span><span id=__span-0-323>            <span class=k>if</span> <span class=n>package_choice</span> <span class=o>==</span> <span class=n>omezarr_package</span><span class=o>.</span><span class=n>OME_ZARR</span><span class=p>:</span>
 </span><span id=__span-0-324>                <span class=c1># Generate output path with zarr format suffix for ome-zarr-py backend</span>
-</span><span id=__span-0-325>                <span class=n>zarr_suffix</span> <span class=o>=</span> <span class=s2>&quot;zarr2&quot;</span> <span class=k>if</span> <span class=n>zarr_format</span> <span class=o>==</span> <span class=mi>2</span> <span class=k>else</span> <span class=s2>&quot;zarr3&quot;</span>
-</span><span id=__span-0-326>                <span class=n>zarr_output_path</span> <span class=o>=</span> <span class=n>Path</span><span class=p>(</span><span class=nb>str</span><span class=p>(</span><span class=n>filepath</span><span class=p>)[:</span><span class=o>-</span><span class=mi>4</span><span class=p>]</span> <span class=o>+</span> <span class=sa>f</span><span class=s2>&quot;_</span><span class=si>{</span><span class=n>zarr_suffix</span><span class=si>}</span><span class=s2>.ome.zarr&quot;</span><span class=p>)</span>
+</span><span id=__span-0-325>                <span class=n>zarr_suffix</span> <span class=o>=</span> <span class=s2>"zarr2"</span> <span class=k>if</span> <span class=n>zarr_format</span> <span class=o>==</span> <span class=mi>2</span> <span class=k>else</span> <span class=s2>"zarr3"</span>
+</span><span id=__span-0-326>                <span class=n>zarr_output_path</span> <span class=o>=</span> <span class=n>Path</span><span class=p>(</span><span class=nb>str</span><span class=p>(</span><span class=n>filepath</span><span class=p>)[:</span><span class=o>-</span><span class=mi>4</span><span class=p>]</span> <span class=o>+</span> <span class=sa>f</span><span class=s2>"_</span><span class=si>{</span><span class=n>zarr_suffix</span><span class=si>}</span><span class=s2>.ome.zarr"</span><span class=p>)</span>
 </span><span id=__span-0-327>
 </span><span id=__span-0-328>                <span class=c1># Write OME-ZARR using ome-zarr-py backend</span>
 </span><span id=__span-0-329>
@@ -1355,17 +1355,17 @@
 </span><span id=__span-0-335>                    <span class=n>zarr_format</span><span class=o>=</span><span class=n>zarr_format</span><span class=p>,</span>
 </span><span id=__span-0-336>                <span class=p>)</span>
 </span><span id=__span-0-337>
-</span><span id=__span-0-338>                <span class=n>logger</span><span class=o>.</span><span class=n>info</span><span class=p>(</span><span class=s2>&quot;OME-ZARR created: </span><span class=si>%s</span><span class=s2>&quot;</span><span class=p>,</span> <span class=n>output_path</span><span class=p>)</span>
+</span><span id=__span-0-338>                <span class=n>logger</span><span class=o>.</span><span class=n>info</span><span class=p>(</span><span class=s2>"OME-ZARR created: </span><span class=si>%s</span><span class=s2>"</span><span class=p>,</span> <span class=n>output_path</span><span class=p>)</span>
 </span><span id=__span-0-339>
 </span><span id=__span-0-340>            <span class=k>elif</span> <span class=n>package_choice</span> <span class=o>==</span> <span class=n>omezarr_package</span><span class=o>.</span><span class=n>NGFF_ZARR</span><span class=p>:</span>
 </span><span id=__span-0-341>
 </span><span id=__span-0-342>                <span class=k>if</span> <span class=n>write_ozx_directly</span><span class=p>:</span>
 </span><span id=__span-0-343>                    <span class=c1># Generate output path with _ngff.ozx extension</span>
-</span><span id=__span-0-344>                    <span class=n>zarr_output_path</span><span class=p>:</span> <span class=n>Path</span> <span class=o>=</span> <span class=n>Path</span><span class=p>(</span><span class=nb>str</span><span class=p>(</span><span class=n>filepath</span><span class=p>)[:</span><span class=o>-</span><span class=mi>4</span><span class=p>]</span> <span class=o>+</span> <span class=s2>&quot;_ngff.ozx&quot;</span><span class=p>)</span>
+</span><span id=__span-0-344>                    <span class=n>zarr_output_path</span><span class=p>:</span> <span class=n>Path</span> <span class=o>=</span> <span class=n>Path</span><span class=p>(</span><span class=nb>str</span><span class=p>(</span><span class=n>filepath</span><span class=p>)[:</span><span class=o>-</span><span class=mi>4</span><span class=p>]</span> <span class=o>+</span> <span class=s2>"_ngff.ozx"</span><span class=p>)</span>
 </span><span id=__span-0-345>                <span class=k>else</span><span class=p>:</span>
 </span><span id=__span-0-346>                    <span class=c1># Generate output path with _ngff_zarr3.ome.zarr extension (ngff-zarr always writes v3)</span>
 </span><span id=__span-0-347>                    <span class=n>zarr_output_path</span><span class=p>:</span> <span class=n>Path</span> <span class=o>=</span> <span class=n>Path</span><span class=p>(</span>
-</span><span id=__span-0-348>                        <span class=nb>str</span><span class=p>(</span><span class=n>filepath</span><span class=p>)[:</span><span class=o>-</span><span class=mi>4</span><span class=p>]</span> <span class=o>+</span> <span class=s2>&quot;_ngff_zarr3.ome.zarr&quot;</span>
+</span><span id=__span-0-348>                        <span class=nb>str</span><span class=p>(</span><span class=n>filepath</span><span class=p>)[:</span><span class=o>-</span><span class=mi>4</span><span class=p>]</span> <span class=o>+</span> <span class=s2>"_ngff_zarr3.ome.zarr"</span>
 </span><span id=__span-0-349>                    <span class=p>)</span>
 </span><span id=__span-0-350>
 </span><span id=__span-0-351>                <span class=c1># Write OME-ZARR using ngff-zarr backend.</span>
@@ -1382,43 +1382,43 @@
 </span><span id=__span-0-362>
 </span><span id=__span-0-363>                <span class=n>output_path</span> <span class=o>=</span> <span class=nb>str</span><span class=p>(</span><span class=n>zarr_output_path</span><span class=p>)</span>
 </span><span id=__span-0-364>
-</span><span id=__span-0-365>                <span class=n>logger</span><span class=o>.</span><span class=n>info</span><span class=p>(</span><span class=s2>&quot;OME-ZARR created: </span><span class=si>%s</span><span class=s2>&quot;</span><span class=p>,</span> <span class=n>output_path</span><span class=p>)</span>
+</span><span id=__span-0-365>                <span class=n>logger</span><span class=o>.</span><span class=n>info</span><span class=p>(</span><span class=s2>"OME-ZARR created: </span><span class=si>%s</span><span class=s2>"</span><span class=p>,</span> <span class=n>output_path</span><span class=p>)</span>
 </span><span id=__span-0-366>
 </span><span id=__span-0-367>        <span class=c1># Note: napari viewer will be opened on main thread after conversion completes</span>
 </span><span id=__span-0-368>
 </span><span id=__span-0-369>        <span class=c1># ========== Validate the generated OME-ZARR ==========</span>
 </span><span id=__span-0-370>        <span class=k>if</span> <span class=n>output_path</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>:</span>
-</span><span id=__span-0-371>            <span class=n>logger</span><span class=o>.</span><span class=n>info</span><span class=p>(</span><span class=s2>&quot;-&quot;</span> <span class=o>*</span> <span class=mi>80</span><span class=p>)</span>
-</span><span id=__span-0-372>            <span class=k>if</span> <span class=nb>str</span><span class=p>(</span><span class=n>output_path</span><span class=p>)</span><span class=o>.</span><span class=n>lower</span><span class=p>()</span><span class=o>.</span><span class=n>endswith</span><span class=p>(</span><span class=s2>&quot;.ozx&quot;</span><span class=p>):</span>
+</span><span id=__span-0-371>            <span class=n>logger</span><span class=o>.</span><span class=n>info</span><span class=p>(</span><span class=s2>"-"</span> <span class=o>*</span> <span class=mi>80</span><span class=p>)</span>
+</span><span id=__span-0-372>            <span class=k>if</span> <span class=nb>str</span><span class=p>(</span><span class=n>output_path</span><span class=p>)</span><span class=o>.</span><span class=n>lower</span><span class=p>()</span><span class=o>.</span><span class=n>endswith</span><span class=p>(</span><span class=s2>".ozx"</span><span class=p>):</span>
 </span><span id=__span-0-373>                <span class=c1># .ozx is a zipped single-file archive; the OME-NGFF validator opens</span>
 </span><span id=__span-0-374>                <span class=c1># directory/zip stores via zarr.open_group and does not support the</span>
 </span><span id=__span-0-375>                <span class=c1># .ozx layout directly, so validation is skipped for these outputs.</span>
 </span><span id=__span-0-376>                <span class=n>logger</span><span class=o>.</span><span class=n>info</span><span class=p>(</span>
-</span><span id=__span-0-377>                    <span class=s2>&quot;Validation skipped: .ozx archives are not validated (</span><span class=si>%s</span><span class=s2>)&quot;</span><span class=p>,</span>
+</span><span id=__span-0-377>                    <span class=s2>"Validation skipped: .ozx archives are not validated (</span><span class=si>%s</span><span class=s2>)"</span><span class=p>,</span>
 </span><span id=__span-0-378>                    <span class=n>output_path</span><span class=p>,</span>
 </span><span id=__span-0-379>                <span class=p>)</span>
 </span><span id=__span-0-380>            <span class=k>else</span><span class=p>:</span>
-</span><span id=__span-0-381>                <span class=n>logger</span><span class=o>.</span><span class=n>info</span><span class=p>(</span><span class=s2>&quot;Validating OME-ZARR output against OME-NGFF v0.5...&quot;</span><span class=p>)</span>
+</span><span id=__span-0-381>                <span class=n>logger</span><span class=o>.</span><span class=n>info</span><span class=p>(</span><span class=s2>"Validating OME-ZARR output against OME-NGFF v0.5..."</span><span class=p>)</span>
 </span><span id=__span-0-382>                <span class=k>try</span><span class=p>:</span>
 </span><span id=__span-0-383>                    <span class=n>is_valid</span> <span class=o>=</span> <span class=n>validate_ome_zarr</span><span class=p>(</span><span class=n>output_path</span><span class=p>)</span>
 </span><span id=__span-0-384>                    <span class=k>if</span> <span class=n>is_valid</span><span class=p>:</span>
-</span><span id=__span-0-385>                        <span class=n>logger</span><span class=o>.</span><span class=n>info</span><span class=p>(</span><span class=s2>&quot;Validation result: VALID [OK]&quot;</span><span class=p>)</span>
+</span><span id=__span-0-385>                        <span class=n>logger</span><span class=o>.</span><span class=n>info</span><span class=p>(</span><span class=s2>"Validation result: VALID [OK]"</span><span class=p>)</span>
 </span><span id=__span-0-386>                    <span class=k>else</span><span class=p>:</span>
 </span><span id=__span-0-387>                        <span class=n>logger</span><span class=o>.</span><span class=n>warning</span><span class=p>(</span>
-</span><span id=__span-0-388>                            <span class=s2>&quot;Validation result: INVALID ❌ (see messages above)&quot;</span>
+</span><span id=__span-0-388>                            <span class=s2>"Validation result: INVALID ❌ (see messages above)"</span>
 </span><span id=__span-0-389>                        <span class=p>)</span>
 </span><span id=__span-0-390>                <span class=k>except</span> <span class=ne>Exception</span> <span class=k>as</span> <span class=n>ve</span><span class=p>:</span>
-</span><span id=__span-0-391>                    <span class=n>logger</span><span class=o>.</span><span class=n>error</span><span class=p>(</span><span class=s2>&quot;Validation raised an error: </span><span class=si>%s</span><span class=s2>&quot;</span><span class=p>,</span> <span class=n>ve</span><span class=p>,</span> <span class=n>exc_info</span><span class=o>=</span><span class=kc>True</span><span class=p>)</span>
+</span><span id=__span-0-391>                    <span class=n>logger</span><span class=o>.</span><span class=n>error</span><span class=p>(</span><span class=s2>"Validation raised an error: </span><span class=si>%s</span><span class=s2>"</span><span class=p>,</span> <span class=n>ve</span><span class=p>,</span> <span class=n>exc_info</span><span class=o>=</span><span class=kc>True</span><span class=p>)</span>
 </span><span id=__span-0-392>
-</span><span id=__span-0-393>        <span class=n>logger</span><span class=o>.</span><span class=n>info</span><span class=p>(</span><span class=s2>&quot;=&quot;</span> <span class=o>*</span> <span class=mi>80</span><span class=p>)</span>
-</span><span id=__span-0-394>        <span class=n>logger</span><span class=o>.</span><span class=n>info</span><span class=p>(</span><span class=s2>&quot;Conversion completed successfully!&quot;</span><span class=p>)</span>
-</span><span id=__span-0-395>        <span class=n>logger</span><span class=o>.</span><span class=n>info</span><span class=p>(</span><span class=sa>f</span><span class=s2>&quot;Output: </span><span class=si>{</span><span class=n>output_path</span><span class=si>}</span><span class=s2>&quot;</span><span class=p>)</span>
-</span><span id=__span-0-396>        <span class=n>logger</span><span class=o>.</span><span class=n>info</span><span class=p>(</span><span class=s2>&quot;=&quot;</span> <span class=o>*</span> <span class=mi>80</span><span class=p>)</span>
+</span><span id=__span-0-393>        <span class=n>logger</span><span class=o>.</span><span class=n>info</span><span class=p>(</span><span class=s2>"="</span> <span class=o>*</span> <span class=mi>80</span><span class=p>)</span>
+</span><span id=__span-0-394>        <span class=n>logger</span><span class=o>.</span><span class=n>info</span><span class=p>(</span><span class=s2>"Conversion completed successfully!"</span><span class=p>)</span>
+</span><span id=__span-0-395>        <span class=n>logger</span><span class=o>.</span><span class=n>info</span><span class=p>(</span><span class=sa>f</span><span class=s2>"Output: </span><span class=si>{</span><span class=n>output_path</span><span class=si>}</span><span class=s2>"</span><span class=p>)</span>
+</span><span id=__span-0-396>        <span class=n>logger</span><span class=o>.</span><span class=n>info</span><span class=p>(</span><span class=s2>"="</span> <span class=o>*</span> <span class=mi>80</span><span class=p>)</span>
 </span><span id=__span-0-397>
 </span><span id=__span-0-398>        <span class=k>return</span> <span class=nb>str</span><span class=p>(</span><span class=n>output_path</span><span class=p>)</span> <span class=k>if</span> <span class=n>output_path</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span> <span class=k>else</span> <span class=kc>None</span>
 </span><span id=__span-0-399>
 </span><span id=__span-0-400>    <span class=k>except</span> <span class=ne>Exception</span> <span class=k>as</span> <span class=n>e</span><span class=p>:</span>
-</span><span id=__span-0-401>        <span class=n>logger</span><span class=o>.</span><span class=n>error</span><span class=p>(</span><span class=s2>&quot;Conversion failed: </span><span class=si>%s</span><span class=s2>&quot;</span><span class=p>,</span> <span class=n>e</span><span class=p>,</span> <span class=n>exc_info</span><span class=o>=</span><span class=kc>True</span><span class=p>)</span>
+</span><span id=__span-0-401>        <span class=n>logger</span><span class=o>.</span><span class=n>error</span><span class=p>(</span><span class=s2>"Conversion failed: </span><span class=si>%s</span><span class=s2>"</span><span class=p>,</span> <span class=n>e</span><span class=p>,</span> <span class=n>exc_info</span><span class=o>=</span><span class=kc>True</span><span class=p>)</span>
 </span><span id=__span-0-402>        <span class=k>return</span> <span class=kc>None</span>
 </span></code></pre></div></td></tr></table></div> </details> </div> </div> <div class="doc doc-object doc-function"> <h2 id=czitools.export_tools.gui.read_czi_metadata class="doc doc-heading"> <code class="doc-symbol doc-symbol-heading doc-symbol-function"></code> <span class="doc doc-object-name doc-function-name">read_czi_metadata</span> <a href=#czitools.export_tools.gui.read_czi_metadata class=headerlink title="Permanent link">#</a></h2> <div class="language-python doc-signature highlight"><pre><span></span><code><span id=__span-0-1><span class=nf>read_czi_metadata</span><span class=p>(</span>
 </span><span id=__span-0-2>    <span class=n><a class="autorefs autorefs-internal" title="filepath (czitools.export_tools.gui.read_czi_metadata(filepath))" href=#czitools.export_tools.gui.read_czi_metadata(filepath)>filepath</a></span><span class=p>:</span> <span class=n><a class="autorefs autorefs-external" title=pathlib.Path href=https://docs.python.org/3/library/pathlib.html#pathlib.Path>Path</a></span><span class=p>,</span>
@@ -1480,7 +1480,7 @@
 <span class=normal>193</span>
 <span class=normal>194</span>
 <span class=normal>195</span></pre></div></td><td class=code><div><pre><span></span><code><span id=__span-0-149><span class=k>def</span><span class=w> </span><span class=nf>read_czi_metadata</span><span class=p>(</span><span class=n>filepath</span><span class=p>:</span> <span class=n>Path</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=nb>tuple</span><span class=p>[</span><span class=n>CziMetadata</span> <span class=o>|</span> <span class=kc>None</span><span class=p>,</span> <span class=nb>int</span><span class=p>]:</span>
-</span><span id=__span-0-150><span class=w>    </span><span class=sd>&quot;&quot;&quot;Read metadata from a CZI file and determine the number of scenes.</span>
+</span><span id=__span-0-150><span class=w>    </span><span class=sd>"""Read metadata from a CZI file and determine the number of scenes.</span>
 </span><span id=__span-0-151>
 </span><span id=__span-0-152><span class=sd>    Args:</span>
 </span><span id=__span-0-153><span class=sd>        filepath: Path to the CZI file to read</span>
@@ -1493,7 +1493,7 @@
 </span><span id=__span-0-160><span class=sd>    Note:</span>
 </span><span id=__span-0-161><span class=sd>        Returns (None, 1) if metadata reading fails. The function prints progress</span>
 </span><span id=__span-0-162><span class=sd>        messages to console for user feedback.</span>
-</span><span id=__span-0-163><span class=sd>    &quot;&quot;&quot;</span>
+</span><span id=__span-0-163><span class=sd>    """</span>
 </span><span id=__span-0-164>    <span class=k>try</span><span class=p>:</span>
 </span><span id=__span-0-165>        <span class=c1># Read CZI metadata using czitools</span>
 </span><span id=__span-0-166>        <span class=n>mdata</span> <span class=o>=</span> <span class=n>CziMetadata</span><span class=p>(</span><span class=n>filepath</span><span class=p>)</span>
@@ -1501,30 +1501,30 @@
 </span><span id=__span-0-168>        <span class=c1># Determine number of scenes</span>
 </span><span id=__span-0-169>        <span class=n>image</span> <span class=o>=</span> <span class=n>mdata</span><span class=o>.</span><span class=n>image</span>
 </span><span id=__span-0-170>        <span class=n>num_scenes</span> <span class=o>=</span> <span class=p>(</span>
-</span><span id=__span-0-171>            <span class=n>image</span><span class=o>.</span><span class=n>SizeS</span> <span class=k>if</span> <span class=p>(</span><span class=n>image</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span> <span class=ow>and</span> <span class=nb>hasattr</span><span class=p>(</span><span class=n>image</span><span class=p>,</span> <span class=s2>&quot;SizeS&quot;</span><span class=p>))</span> <span class=k>else</span> <span class=kc>None</span>
+</span><span id=__span-0-171>            <span class=n>image</span><span class=o>.</span><span class=n>SizeS</span> <span class=k>if</span> <span class=p>(</span><span class=n>image</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span> <span class=ow>and</span> <span class=nb>hasattr</span><span class=p>(</span><span class=n>image</span><span class=p>,</span> <span class=s2>"SizeS"</span><span class=p>))</span> <span class=k>else</span> <span class=kc>None</span>
 </span><span id=__span-0-172>        <span class=p>)</span>
 </span><span id=__span-0-173>
 </span><span id=__span-0-174>        <span class=c1># Calculate max_scenes: if None or 0, default to 1</span>
 </span><span id=__span-0-175>        <span class=n>max_scenes</span> <span class=o>=</span> <span class=n>num_scenes</span> <span class=k>if</span> <span class=n>num_scenes</span> <span class=ow>and</span> <span class=n>num_scenes</span> <span class=o>&gt;</span> <span class=mi>0</span> <span class=k>else</span> <span class=mi>1</span>
 </span><span id=__span-0-176>
 </span><span id=__span-0-177>        <span class=c1># Build a dimension summary from available CziDimensions attributes</span>
-</span><span id=__span-0-178>        <span class=n>_dim_keys</span> <span class=o>=</span> <span class=p>(</span><span class=s2>&quot;SizeS&quot;</span><span class=p>,</span> <span class=s2>&quot;SizeT&quot;</span><span class=p>,</span> <span class=s2>&quot;SizeC&quot;</span><span class=p>,</span> <span class=s2>&quot;SizeZ&quot;</span><span class=p>,</span> <span class=s2>&quot;SizeY&quot;</span><span class=p>,</span> <span class=s2>&quot;SizeX&quot;</span><span class=p>)</span>
+</span><span id=__span-0-178>        <span class=n>_dim_keys</span> <span class=o>=</span> <span class=p>(</span><span class=s2>"SizeS"</span><span class=p>,</span> <span class=s2>"SizeT"</span><span class=p>,</span> <span class=s2>"SizeC"</span><span class=p>,</span> <span class=s2>"SizeZ"</span><span class=p>,</span> <span class=s2>"SizeY"</span><span class=p>,</span> <span class=s2>"SizeX"</span><span class=p>)</span>
 </span><span id=__span-0-179>        <span class=n>_dims</span> <span class=o>=</span> <span class=p>{</span>
 </span><span id=__span-0-180>            <span class=n>k</span><span class=p>:</span> <span class=nb>getattr</span><span class=p>(</span><span class=n>image</span><span class=p>,</span> <span class=n>k</span><span class=p>,</span> <span class=kc>None</span><span class=p>)</span>
 </span><span id=__span-0-181>            <span class=k>for</span> <span class=n>k</span> <span class=ow>in</span> <span class=n>_dim_keys</span>
 </span><span id=__span-0-182>            <span class=k>if</span> <span class=nb>getattr</span><span class=p>(</span><span class=n>image</span><span class=p>,</span> <span class=n>k</span><span class=p>,</span> <span class=kc>None</span><span class=p>)</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span>
 </span><span id=__span-0-183>        <span class=p>}</span>
-</span><span id=__span-0-184>        <span class=n>_dims_str</span> <span class=o>=</span> <span class=s2>&quot;, &quot;</span><span class=o>.</span><span class=n>join</span><span class=p>(</span><span class=sa>f</span><span class=s2>&quot;</span><span class=si>{</span><span class=n>k</span><span class=si>}</span><span class=s2>=</span><span class=si>{</span><span class=n>v</span><span class=si>}</span><span class=s2>&quot;</span> <span class=k>for</span> <span class=n>k</span><span class=p>,</span> <span class=n>v</span> <span class=ow>in</span> <span class=n>_dims</span><span class=o>.</span><span class=n>items</span><span class=p>())</span>
+</span><span id=__span-0-184>        <span class=n>_dims_str</span> <span class=o>=</span> <span class=s2>", "</span><span class=o>.</span><span class=n>join</span><span class=p>(</span><span class=sa>f</span><span class=s2>"</span><span class=si>{</span><span class=n>k</span><span class=si>}</span><span class=s2>=</span><span class=si>{</span><span class=n>v</span><span class=si>}</span><span class=s2>"</span> <span class=k>for</span> <span class=n>k</span><span class=p>,</span> <span class=n>v</span> <span class=ow>in</span> <span class=n>_dims</span><span class=o>.</span><span class=n>items</span><span class=p>())</span>
 </span><span id=__span-0-185>
-</span><span id=__span-0-186>        <span class=n>logger</span><span class=o>.</span><span class=n>info</span><span class=p>(</span><span class=s2>&quot;Metadata loaded successfully&quot;</span><span class=p>)</span>
-</span><span id=__span-0-187>        <span class=n>logger</span><span class=o>.</span><span class=n>info</span><span class=p>(</span><span class=s2>&quot;  - File: </span><span class=si>%s</span><span class=s2>&quot;</span><span class=p>,</span> <span class=n>filepath</span><span class=o>.</span><span class=n>name</span><span class=p>)</span>
-</span><span id=__span-0-188>        <span class=n>logger</span><span class=o>.</span><span class=n>info</span><span class=p>(</span><span class=s2>&quot;  - Dimensions: </span><span class=si>%s</span><span class=s2>&quot;</span><span class=p>,</span> <span class=n>_dims_str</span><span class=p>)</span>
-</span><span id=__span-0-189>        <span class=n>logger</span><span class=o>.</span><span class=n>info</span><span class=p>(</span><span class=s2>&quot;  - Number of scenes: </span><span class=si>%d</span><span class=s2>&quot;</span><span class=p>,</span> <span class=n>max_scenes</span><span class=p>)</span>
+</span><span id=__span-0-186>        <span class=n>logger</span><span class=o>.</span><span class=n>info</span><span class=p>(</span><span class=s2>"Metadata loaded successfully"</span><span class=p>)</span>
+</span><span id=__span-0-187>        <span class=n>logger</span><span class=o>.</span><span class=n>info</span><span class=p>(</span><span class=s2>"  - File: </span><span class=si>%s</span><span class=s2>"</span><span class=p>,</span> <span class=n>filepath</span><span class=o>.</span><span class=n>name</span><span class=p>)</span>
+</span><span id=__span-0-188>        <span class=n>logger</span><span class=o>.</span><span class=n>info</span><span class=p>(</span><span class=s2>"  - Dimensions: </span><span class=si>%s</span><span class=s2>"</span><span class=p>,</span> <span class=n>_dims_str</span><span class=p>)</span>
+</span><span id=__span-0-189>        <span class=n>logger</span><span class=o>.</span><span class=n>info</span><span class=p>(</span><span class=s2>"  - Number of scenes: </span><span class=si>%d</span><span class=s2>"</span><span class=p>,</span> <span class=n>max_scenes</span><span class=p>)</span>
 </span><span id=__span-0-190>
 </span><span id=__span-0-191>        <span class=k>return</span> <span class=n>mdata</span><span class=p>,</span> <span class=n>max_scenes</span>
 </span><span id=__span-0-192>
 </span><span id=__span-0-193>    <span class=k>except</span> <span class=ne>Exception</span> <span class=k>as</span> <span class=n>e</span><span class=p>:</span>
-</span><span id=__span-0-194>        <span class=n>logger</span><span class=o>.</span><span class=n>error</span><span class=p>(</span><span class=s2>&quot;Error reading metadata: </span><span class=si>%s</span><span class=s2>&quot;</span><span class=p>,</span> <span class=n>e</span><span class=p>)</span>
+</span><span id=__span-0-194>        <span class=n>logger</span><span class=o>.</span><span class=n>error</span><span class=p>(</span><span class=s2>"Error reading metadata: </span><span class=si>%s</span><span class=s2>"</span><span class=p>,</span> <span class=n>e</span><span class=p>)</span>
 </span><span id=__span-0-195>        <span class=k>return</span> <span class=kc>None</span><span class=p>,</span> <span class=mi>1</span>
 </span></code></pre></div></td></tr></table></div> </details> </div> </div> <div class="doc doc-object doc-function"> <h2 id=czitools.export_tools.gui.run_gui class="doc doc-heading"> <code class="doc-symbol doc-symbol-heading doc-symbol-function"></code> <span class="doc doc-object-name doc-function-name">run_gui</span> <a href=#czitools.export_tools.gui.run_gui class=headerlink title="Permanent link">#</a></h2> <div class="language-python doc-signature highlight"><pre><span></span><code><span id=__span-0-1><span class=nf>run_gui</span><span class=p>()</span> <span class=o>-&gt;</span> <span class=kc>None</span>
 </span></code></pre></div> <div class="doc doc-contents "> <p>Create and show the CZI -&gt; OME-Zarr converter as a standalone Qt window.</p> <p>Blocks until the window is closed. This is the entry point used by the <code>czitools-omezarr-gui</code> console script and the demo launcher.</p> <details class=mkdocstrings-source> <summary>Source code in <code>czitools/export_tools/gui.py</code></summary> <div class="language-python highlight"><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal>1151</span>
@@ -1545,21 +1545,21 @@
 <span class=normal>1166</span>
 <span class=normal>1167</span>
 <span class=normal>1168</span></pre></div></td><td class=code><div><pre><span></span><code><span id=__span-0-1151><span class=k>def</span><span class=w> </span><span class=nf>run_gui</span><span class=p>()</span> <span class=o>-&gt;</span> <span class=kc>None</span><span class=p>:</span>
-</span><span id=__span-0-1152><span class=w>    </span><span class=sd>&quot;&quot;&quot;Create and show the CZI -&gt; OME-Zarr converter as a standalone Qt window.</span>
+</span><span id=__span-0-1152><span class=w>    </span><span class=sd>"""Create and show the CZI -&gt; OME-Zarr converter as a standalone Qt window.</span>
 </span><span id=__span-0-1153>
 </span><span id=__span-0-1154><span class=sd>    Blocks until the window is closed. This is the entry point used by the</span>
 </span><span id=__span-0-1155><span class=sd>    ``czitools-omezarr-gui`` console script and the demo launcher.</span>
-</span><span id=__span-0-1156><span class=sd>    &quot;&quot;&quot;</span>
-</span><span id=__span-0-1157>    <span class=n>logging</span><span class=o>.</span><span class=n>basicConfig</span><span class=p>(</span><span class=n>level</span><span class=o>=</span><span class=n>logging</span><span class=o>.</span><span class=n>INFO</span><span class=p>,</span> <span class=nb>format</span><span class=o>=</span><span class=s2>&quot;</span><span class=si>%(levelname)s</span><span class=s2> - </span><span class=si>%(message)s</span><span class=s2>&quot;</span><span class=p>)</span>
+</span><span id=__span-0-1156><span class=sd>    """</span>
+</span><span id=__span-0-1157>    <span class=n>logging</span><span class=o>.</span><span class=n>basicConfig</span><span class=p>(</span><span class=n>level</span><span class=o>=</span><span class=n>logging</span><span class=o>.</span><span class=n>INFO</span><span class=p>,</span> <span class=nb>format</span><span class=o>=</span><span class=s2>"</span><span class=si>%(levelname)s</span><span class=s2> - </span><span class=si>%(message)s</span><span class=s2>"</span><span class=p>)</span>
 </span><span id=__span-0-1158>
 </span><span id=__span-0-1159>    <span class=n>gui</span> <span class=o>=</span> <span class=n>create_gui</span><span class=p>()</span>
 </span><span id=__span-0-1160>
-</span><span id=__span-0-1161>    <span class=n>logger</span><span class=o>.</span><span class=n>info</span><span class=p>(</span><span class=s2>&quot;=&quot;</span> <span class=o>*</span> <span class=mi>60</span><span class=p>)</span>
-</span><span id=__span-0-1162>    <span class=n>logger</span><span class=o>.</span><span class=n>info</span><span class=p>(</span><span class=s2>&quot;CZI to OME-ZARR Converter&quot;</span><span class=p>)</span>
-</span><span id=__span-0-1163>    <span class=n>logger</span><span class=o>.</span><span class=n>info</span><span class=p>(</span><span class=s2>&quot;=&quot;</span> <span class=o>*</span> <span class=mi>60</span><span class=p>)</span>
-</span><span id=__span-0-1164>    <span class=n>logger</span><span class=o>.</span><span class=n>info</span><span class=p>(</span><span class=s2>&quot;Application started. Close the window to exit.&quot;</span><span class=p>)</span>
+</span><span id=__span-0-1161>    <span class=n>logger</span><span class=o>.</span><span class=n>info</span><span class=p>(</span><span class=s2>"="</span> <span class=o>*</span> <span class=mi>60</span><span class=p>)</span>
+</span><span id=__span-0-1162>    <span class=n>logger</span><span class=o>.</span><span class=n>info</span><span class=p>(</span><span class=s2>"CZI to OME-ZARR Converter"</span><span class=p>)</span>
+</span><span id=__span-0-1163>    <span class=n>logger</span><span class=o>.</span><span class=n>info</span><span class=p>(</span><span class=s2>"="</span> <span class=o>*</span> <span class=mi>60</span><span class=p>)</span>
+</span><span id=__span-0-1164>    <span class=n>logger</span><span class=o>.</span><span class=n>info</span><span class=p>(</span><span class=s2>"Application started. Close the window to exit."</span><span class=p>)</span>
 </span><span id=__span-0-1165>
-</span><span id=__span-0-1166>    <span class=n>gui</span><span class=o>.</span><span class=n>root_native_widget</span><span class=o>.</span><span class=n>setWindowTitle</span><span class=p>(</span><span class=s2>&quot;CZI --&gt; OME-ZARR Converter (experimental)&quot;</span><span class=p>)</span>
+</span><span id=__span-0-1166>    <span class=n>gui</span><span class=o>.</span><span class=n>root_native_widget</span><span class=o>.</span><span class=n>setWindowTitle</span><span class=p>(</span><span class=s2>"CZI --&gt; OME-ZARR Converter (experimental)"</span><span class=p>)</span>
 </span><span id=__span-0-1167>    <span class=n>_resize_gui_to_content</span><span class=p>(</span><span class=n>gui</span><span class=p>)</span>
 </span><span id=__span-0-1168>    <span class=n>gui</span><span class=o>.</span><span class=n>show</span><span class=p>(</span><span class=n>run</span><span class=o>=</span><span class=kc>True</span><span class=p>)</span>
 </span></code></pre></div></td></tr></table></div> </details> </div> </div> <div class="doc doc-object doc-function"> <h2 id=czitools.export_tools.gui.update_log_display class="doc doc-heading"> <code class="doc-symbol doc-symbol-heading doc-symbol-function"></code> <span class="doc doc-object-name doc-function-name">update_log_display</span> <a href=#czitools.export_tools.gui.update_log_display class=headerlink title="Permanent link">#</a></h2> <div class="language-python doc-signature highlight"><pre><span></span><code><span id=__span-0-1><span class=nf>update_log_display</span><span class=p>()</span> <span class=o>-&gt;</span> <span class=kc>None</span>
@@ -1593,26 +1593,26 @@
 <span class=normal>144</span>
 <span class=normal>145</span>
 <span class=normal>146</span></pre></div></td><td class=code><div><pre><span></span><code><span id=__span-0-117><span class=k>def</span><span class=w> </span><span class=nf>update_log_display</span><span class=p>()</span> <span class=o>-&gt;</span> <span class=kc>None</span><span class=p>:</span>
-</span><span id=__span-0-118><span class=w>    </span><span class=sd>&quot;&quot;&quot;Update log viewer widget with new content from the log file.</span>
+</span><span id=__span-0-118><span class=w>    </span><span class=sd>"""Update log viewer widget with new content from the log file.</span>
 </span><span id=__span-0-119>
 </span><span id=__span-0-120><span class=sd>    This function performs incremental reading of the log file by seeking to the</span>
-</span><span id=__span-0-121><span class=sd>    last read position and only reading new content. It&#39;s called periodically by</span>
+</span><span id=__span-0-121><span class=sd>    last read position and only reading new content. It's called periodically by</span>
 </span><span id=__span-0-122><span class=sd>    a QTimer during conversion to provide live log updates.</span>
 </span><span id=__span-0-123>
 </span><span id=__span-0-124><span class=sd>    The function is thread-safe and designed to be called from the main Qt thread.</span>
 </span><span id=__span-0-125>
 </span><span id=__span-0-126><span class=sd>    Note:</span>
 </span><span id=__span-0-127><span class=sd>        Uses global variables log_last_position and log_file_path to track state.</span>
-</span><span id=__span-0-128><span class=sd>    &quot;&quot;&quot;</span>
+</span><span id=__span-0-128><span class=sd>    """</span>
 </span><span id=__span-0-129>    <span class=k>global</span> <span class=n>log_last_position</span><span class=p>,</span> <span class=n>log_file_path</span>
 </span><span id=__span-0-130>
 </span><span id=__span-0-131>    <span class=k>if</span> <span class=n>log_file_path</span> <span class=ow>and</span> <span class=n>log_file_path</span><span class=o>.</span><span class=n>exists</span><span class=p>():</span>
 </span><span id=__span-0-132>        <span class=k>try</span><span class=p>:</span>
 </span><span id=__span-0-133>            <span class=c1># Open log file and seek to last read position.</span>
-</span><span id=__span-0-134>            <span class=c1># errors=&#39;replace&#39; substitutes any non-UTF-8 bytes (e.g. from</span>
+</span><span id=__span-0-134>            <span class=c1># errors='replace' substitutes any non-UTF-8 bytes (e.g. from</span>
 </span><span id=__span-0-135>            <span class=c1># external libraries that write cp1252 to shared log handlers)</span>
 </span><span id=__span-0-136>            <span class=c1># with the Unicode replacement character instead of raising.</span>
-</span><span id=__span-0-137>            <span class=k>with</span> <span class=nb>open</span><span class=p>(</span><span class=n>log_file_path</span><span class=p>,</span> <span class=s2>&quot;r&quot;</span><span class=p>,</span> <span class=n>encoding</span><span class=o>=</span><span class=s2>&quot;utf-8&quot;</span><span class=p>,</span> <span class=n>errors</span><span class=o>=</span><span class=s2>&quot;replace&quot;</span><span class=p>)</span> <span class=k>as</span> <span class=n>f</span><span class=p>:</span>
+</span><span id=__span-0-137>            <span class=k>with</span> <span class=nb>open</span><span class=p>(</span><span class=n>log_file_path</span><span class=p>,</span> <span class=s2>"r"</span><span class=p>,</span> <span class=n>encoding</span><span class=o>=</span><span class=s2>"utf-8"</span><span class=p>,</span> <span class=n>errors</span><span class=o>=</span><span class=s2>"replace"</span><span class=p>)</span> <span class=k>as</span> <span class=n>f</span><span class=p>:</span>
 </span><span id=__span-0-138>                <span class=n>f</span><span class=o>.</span><span class=n>seek</span><span class=p>(</span><span class=n>log_last_position</span><span class=p>)</span>
 </span><span id=__span-0-139>                <span class=n>new_content</span> <span class=o>=</span> <span class=n>f</span><span class=o>.</span><span class=n>read</span><span class=p>()</span>
 </span><span id=__span-0-140>
@@ -1621,7 +1621,7 @@
 </span><span id=__span-0-143>                    <span class=n>_append_log_content</span><span class=p>(</span><span class=n>new_content</span><span class=p>)</span>
 </span><span id=__span-0-144>                    <span class=n>log_last_position</span> <span class=o>=</span> <span class=n>f</span><span class=o>.</span><span class=n>tell</span><span class=p>()</span>
 </span><span id=__span-0-145>        <span class=k>except</span> <span class=ne>Exception</span> <span class=k>as</span> <span class=n>e</span><span class=p>:</span>
-</span><span id=__span-0-146>            <span class=n>logger</span><span class=o>.</span><span class=n>warning</span><span class=p>(</span><span class=s2>&quot;Log update error: </span><span class=si>%s</span><span class=s2>&quot;</span><span class=p>,</span> <span class=n>e</span><span class=p>)</span>
+</span><span id=__span-0-146>            <span class=n>logger</span><span class=o>.</span><span class=n>warning</span><span class=p>(</span><span class=s2>"Log update error: </span><span class=si>%s</span><span class=s2>"</span><span class=p>,</span> <span class=n>e</span><span class=p>)</span>
 </span></code></pre></div></td></tr></table></div> </details> </div> </div> <div class="doc doc-object doc-function"> <h2 id=czitools.export_tools.gui.update_ozx_child_states class="doc doc-heading"> <code class="doc-symbol doc-symbol-heading doc-symbol-function"></code> <span class="doc doc-object-name doc-function-name">update_ozx_child_states</span> <a href=#czitools.export_tools.gui.update_ozx_child_states class=headerlink title="Permanent link">#</a></h2> <div class="language-python doc-signature highlight"><pre><span></span><code><span id=__span-0-1><span class=nf>update_ozx_child_states</span><span class=p>()</span> <span class=o>-&gt;</span> <span class=kc>None</span>
 </span></code></pre></div> <div class="doc doc-contents "> <p>Synchronize dependent OZX options with the master toggle.</p> <p>A re-entrancy guard (_ozx_state_updating) prevents the signal cascade that would otherwise occur when the auto-select logic sets a child value and that change immediately fires another callback that calls this function again. Without the guard, checking 'Create OZX archive during writing' would be immediately undone by the cascade: auto-select sets after=True → on_use_ozx_after_writing_changed(True) clears directly=False.</p> <details class=mkdocstrings-source> <summary>Source code in <code>czitools/export_tools/gui.py</code></summary> <div class="language-python highlight"><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal>846</span>
 <span class=normal>847</span>
@@ -1676,15 +1676,15 @@
 <span class=normal>896</span>
 <span class=normal>897</span>
 <span class=normal>898</span></pre></div></td><td class=code><div><pre><span></span><code><span id=__span-0-846><span class=k>def</span><span class=w> </span><span class=nf>update_ozx_child_states</span><span class=p>()</span> <span class=o>-&gt;</span> <span class=kc>None</span><span class=p>:</span>
-</span><span id=__span-0-847><span class=w>    </span><span class=sd>&quot;&quot;&quot;Synchronize dependent OZX options with the master toggle.</span>
+</span><span id=__span-0-847><span class=w>    </span><span class=sd>"""Synchronize dependent OZX options with the master toggle.</span>
 </span><span id=__span-0-848>
 </span><span id=__span-0-849><span class=sd>    A re-entrancy guard (_ozx_state_updating) prevents the signal cascade that</span>
 </span><span id=__span-0-850><span class=sd>    would otherwise occur when the auto-select logic sets a child value and that</span>
 </span><span id=__span-0-851><span class=sd>    change immediately fires another callback that calls this function again.</span>
-</span><span id=__span-0-852><span class=sd>    Without the guard, checking &#39;Create OZX archive during writing&#39; would be</span>
+</span><span id=__span-0-852><span class=sd>    Without the guard, checking 'Create OZX archive during writing' would be</span>
 </span><span id=__span-0-853><span class=sd>    immediately undone by the cascade: auto-select sets after=True →</span>
 </span><span id=__span-0-854><span class=sd>    on_use_ozx_after_writing_changed(True) clears directly=False.</span>
-</span><span id=__span-0-855><span class=sd>    &quot;&quot;&quot;</span>
+</span><span id=__span-0-855><span class=sd>    """</span>
 </span><span id=__span-0-856>    <span class=k>global</span> <span class=n>_ozx_state_updating</span>
 </span><span id=__span-0-857>    <span class=k>if</span> <span class=n>_ozx_state_updating</span><span class=p>:</span>
 </span><span id=__span-0-858>        <span class=k>return</span>
@@ -1710,7 +1710,7 @@
 </span><span id=__span-0-878>                <span class=n>czi_to_omezarr_converter</span><span class=o>.</span><span class=n>use_ozx_write_directly</span><span class=o>.</span><span class=n>value</span>
 </span><span id=__span-0-879>                <span class=ow>and</span> <span class=n>czi_to_omezarr_converter</span><span class=o>.</span><span class=n>use_ozx_after_writing</span><span class=o>.</span><span class=n>value</span>
 </span><span id=__span-0-880>            <span class=p>):</span>
-</span><span id=__span-0-881>                <span class=c1># Mutual exclusion: prefer &#39;after&#39; in HCS mode, &#39;directly&#39; otherwise</span>
+</span><span id=__span-0-881>                <span class=c1># Mutual exclusion: prefer 'after' in HCS mode, 'directly' otherwise</span>
 </span><span id=__span-0-882>                <span class=k>if</span> <span class=n>hcs_enabled</span><span class=p>:</span>
 </span><span id=__span-0-883>                    <span class=n>czi_to_omezarr_converter</span><span class=o>.</span><span class=n>use_ozx_write_directly</span><span class=o>.</span><span class=n>value</span> <span class=o>=</span> <span class=kc>False</span>
 </span><span id=__span-0-884>                <span class=k>else</span><span class=p>:</span>
@@ -1719,7 +1719,7 @@
 </span><span id=__span-0-887>                <span class=ow>not</span> <span class=n>czi_to_omezarr_converter</span><span class=o>.</span><span class=n>use_ozx_write_directly</span><span class=o>.</span><span class=n>value</span>
 </span><span id=__span-0-888>                <span class=ow>and</span> <span class=ow>not</span> <span class=n>czi_to_omezarr_converter</span><span class=o>.</span><span class=n>use_ozx_after_writing</span><span class=o>.</span><span class=n>value</span>
 </span><span id=__span-0-889>            <span class=p>):</span>
-</span><span id=__span-0-890>                <span class=c1># At least one sub-option must be active — default to &#39;after writing&#39;</span>
+</span><span id=__span-0-890>                <span class=c1># At least one sub-option must be active — default to 'after writing'</span>
 </span><span id=__span-0-891>                <span class=n>czi_to_omezarr_converter</span><span class=o>.</span><span class=n>use_ozx_after_writing</span><span class=o>.</span><span class=n>value</span> <span class=o>=</span> <span class=kc>True</span>
 </span><span id=__span-0-892>        <span class=k>else</span><span class=p>:</span>
 </span><span id=__span-0-893>            <span class=n>czi_to_omezarr_converter</span><span class=o>.</span><span class=n>use_ozx_write_directly</span><span class=o>.</span><span class=n>value</span> <span class=o>=</span> <span class=kc>False</span>
@@ -1745,12 +1745,12 @@
 <span class=normal>914</span>
 <span class=normal>915</span>
 <span class=normal>916</span></pre></div></td><td class=code><div><pre><span></span><code><span id=__span-0-901><span class=k>def</span><span class=w> </span><span class=nf>update_show_napari_enabled_state</span><span class=p>()</span> <span class=o>-&gt;</span> <span class=kc>None</span><span class=p>:</span>
-</span><span id=__span-0-902><span class=w>    </span><span class=sd>&quot;&quot;&quot;Enable or disable &#39;Show in napari&#39; based on whether the output will be an .ozx archive.</span>
+</span><span id=__span-0-902><span class=w>    </span><span class=sd>"""Enable or disable 'Show in napari' based on whether the output will be an .ozx archive.</span>
 </span><span id=__span-0-903>
 </span><span id=__span-0-904><span class=sd>    napari (via napari-ome-zarr) can only open directory-based OME-ZARR stores, not</span>
 </span><span id=__span-0-905><span class=sd>    zip-based .ozx archives. The checkbox is therefore disabled and unchecked whenever</span>
 </span><span id=__span-0-906><span class=sd>    the conversion is configured to produce an .ozx file.</span>
-</span><span id=__span-0-907><span class=sd>    &quot;&quot;&quot;</span>
+</span><span id=__span-0-907><span class=sd>    """</span>
 </span><span id=__span-0-908>    <span class=n>will_produce_ozx</span> <span class=o>=</span> <span class=n>czi_to_omezarr_converter</span><span class=o>.</span><span class=n>use_ozx_format</span><span class=o>.</span><span class=n>value</span> <span class=ow>and</span> <span class=p>(</span>
 </span><span id=__span-0-909>        <span class=n>czi_to_omezarr_converter</span><span class=o>.</span><span class=n>use_ozx_write_directly</span><span class=o>.</span><span class=n>value</span>
 </span><span id=__span-0-910>        <span class=ow>or</span> <span class=n>czi_to_omezarr_converter</span><span class=o>.</span><span class=n>use_ozx_after_writing</span><span class=o>.</span><span class=n>value</span>
@@ -1774,7 +1774,7 @@
 <span class=normal>929</span>
 <span class=normal>930</span>
 <span class=normal>931</span></pre></div></td><td class=code><div><pre><span></span><code><span id=__span-0-919><span class=k>def</span><span class=w> </span><span class=nf>update_use_ozx_format_enabled_state</span><span class=p>()</span> <span class=o>-&gt;</span> <span class=kc>None</span><span class=p>:</span>
-</span><span id=__span-0-920><span class=w>    </span><span class=sd>&quot;&quot;&quot;Enable or disable OZX controls based on backend capabilities.&quot;&quot;&quot;</span>
+</span><span id=__span-0-920><span class=w>    </span><span class=sd>"""Enable or disable OZX controls based on backend capabilities."""</span>
 </span><span id=__span-0-921>
 </span><span id=__span-0-922>    <span class=n>package_choice</span> <span class=o>=</span> <span class=n>czi_to_omezarr_converter</span><span class=o>.</span><span class=n>package_choice</span><span class=o>.</span><span class=n>value</span>
 </span><span id=__span-0-923>
@@ -1804,11 +1804,11 @@
 <span class=normal>948</span>
 <span class=normal>949</span>
 <span class=normal>950</span></pre></div></td><td class=code><div><pre><span></span><code><span id=__span-0-934><span class=k>def</span><span class=w> </span><span class=nf>update_zarr_v2_enabled_state</span><span class=p>()</span> <span class=o>-&gt;</span> <span class=kc>None</span><span class=p>:</span>
-</span><span id=__span-0-935><span class=w>    </span><span class=sd>&quot;&quot;&quot;Enable the zarr v2 option only for the ome-zarr-py backend.</span>
+</span><span id=__span-0-935><span class=w>    </span><span class=sd>"""Enable the zarr v2 option only for the ome-zarr-py backend.</span>
 </span><span id=__span-0-936>
 </span><span id=__span-0-937><span class=sd>    The ngff-zarr backend always writes OME-NGFF v0.5 / zarr v3, so the zarr v2</span>
 </span><span id=__span-0-938><span class=sd>    legacy option is disabled (and unchecked) whenever it is selected.</span>
-</span><span id=__span-0-939><span class=sd>    &quot;&quot;&quot;</span>
+</span><span id=__span-0-939><span class=sd>    """</span>
 </span><span id=__span-0-940>    <span class=n>is_ome_zarr</span> <span class=o>=</span> <span class=p>(</span>
 </span><span id=__span-0-941>        <span class=n>czi_to_omezarr_converter</span><span class=o>.</span><span class=n>package_choice</span><span class=o>.</span><span class=n>value</span> <span class=o>==</span> <span class=n>omezarr_package</span><span class=o>.</span><span class=n>OME_ZARR</span>
 </span><span id=__span-0-942>    <span class=p>)</span>

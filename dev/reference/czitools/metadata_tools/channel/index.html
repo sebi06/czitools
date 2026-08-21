@@ -44,17 +44,17 @@
 <span class=normal>267</span>
 <span class=normal>268</span>
 <span class=normal>269</span></pre></div></td><td class=code><div><pre><span></span><code><span id=__span-0-234><span class=k>def</span><span class=w> </span><span class=nf>hex_to_rgb</span><span class=p>(</span><span class=n>hex_string</span><span class=p>:</span> <span class=nb>str</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=nb>tuple</span><span class=p>[</span><span class=nb>int</span><span class=p>,</span> <span class=nb>int</span><span class=p>,</span> <span class=nb>int</span><span class=p>]:</span>
-</span><span id=__span-0-235><span class=w>    </span><span class=sd>&quot;&quot;&quot;Convert a hexadecimal color string to an RGB tuple.</span>
+</span><span id=__span-0-235><span class=w>    </span><span class=sd>"""Convert a hexadecimal color string to an RGB tuple.</span>
 </span><span id=__span-0-236>
 </span><span id=__span-0-237><span class=sd>    Args:</span>
-</span><span id=__span-0-238><span class=sd>        hex_string (str): A string representing a color in hexadecimal format (e.g., &#39;#RRGGBB&#39;).</span>
+</span><span id=__span-0-238><span class=sd>        hex_string (str): A string representing a color in hexadecimal format (e.g., '#RRGGBB').</span>
 </span><span id=__span-0-239>
 </span><span id=__span-0-240><span class=sd>    Returns:</span>
 </span><span id=__span-0-241><span class=sd>        tuple[int, int, int]: A tuple containing the RGB values (r, g, b) as integers.</span>
-</span><span id=__span-0-242><span class=sd>    &quot;&quot;&quot;</span>
+</span><span id=__span-0-242><span class=sd>    """</span>
 </span><span id=__span-0-243>
-</span><span id=__span-0-244>    <span class=c1># Remove the &#39;#&#39; characters</span>
-</span><span id=__span-0-245>    <span class=n>hex_string</span> <span class=o>=</span> <span class=n>hex_string</span><span class=o>.</span><span class=n>replace</span><span class=p>(</span><span class=s2>&quot;#&quot;</span><span class=p>,</span> <span class=s2>&quot;&quot;</span><span class=p>)</span>
+</span><span id=__span-0-244>    <span class=c1># Remove the '#' characters</span>
+</span><span id=__span-0-245>    <span class=n>hex_string</span> <span class=o>=</span> <span class=n>hex_string</span><span class=o>.</span><span class=n>replace</span><span class=p>(</span><span class=s2>"#"</span><span class=p>,</span> <span class=s2>""</span><span class=p>)</span>
 </span><span id=__span-0-246>
 </span><span id=__span-0-247>    <span class=c1># check the length of the string</span>
 </span><span id=__span-0-248>    <span class=k>if</span> <span class=nb>len</span><span class=p>(</span><span class=n>hex_string</span><span class=p>)</span> <span class=o>!=</span> <span class=mi>6</span><span class=p>:</span>
@@ -75,7 +75,7 @@
 </span><span id=__span-0-263>        <span class=n>b</span> <span class=o>=</span> <span class=mi>128</span>
 </span><span id=__span-0-264>
 </span><span id=__span-0-265>        <span class=n>logger</span><span class=o>.</span><span class=n>error</span><span class=p>(</span>
-</span><span id=__span-0-266>            <span class=sa>f</span><span class=s2>&quot;Invalid RGB values detected. Conversion of hex string </span><span class=si>{</span><span class=n>hex_string</span><span class=si>}</span><span class=s2> to RGB failed. Setting RGB values to 128.&quot;</span>
+</span><span id=__span-0-266>            <span class=sa>f</span><span class=s2>"Invalid RGB values detected. Conversion of hex string </span><span class=si>{</span><span class=n>hex_string</span><span class=si>}</span><span class=s2> to RGB failed. Setting RGB values to 128."</span>
 </span><span id=__span-0-267>        <span class=p>)</span>
 </span><span id=__span-0-268>
 </span><span id=__span-0-269>    <span class=k>return</span> <span class=n>r</span><span class=p>,</span> <span class=n>g</span><span class=p>,</span> <span class=n>b</span>

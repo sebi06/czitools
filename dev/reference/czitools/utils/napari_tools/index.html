@@ -57,35 +57,35 @@
 </span><span id=__span-0-76>    <span class=o>*</span><span class=p>,</span>
 </span><span id=__span-0-77>    <span class=n>run</span><span class=p>:</span> <span class=nb>bool</span> <span class=o>=</span> <span class=kc>True</span><span class=p>,</span>
 </span><span id=__span-0-78><span class=p>)</span> <span class=o>-&gt;</span> <span class=n>Any</span><span class=p>:</span>
-</span><span id=__span-0-79><span class=w>    </span><span class=sd>&quot;&quot;&quot;Display an xarray DataArray (STCZYX[A]) in Napari.</span>
+</span><span id=__span-0-79><span class=w>    </span><span class=sd>"""Display an xarray DataArray (STCZYX[A]) in Napari.</span>
 </span><span id=__span-0-80>
 </span><span id=__span-0-81><span class=sd>    Args:</span>
 </span><span id=__span-0-82><span class=sd>        array6d: xarray.DataArray with axes including C and Z.</span>
 </span><span id=__span-0-83><span class=sd>        mdata: CziMetadata instance (used for channel names/colors/scaling).</span>
 </span><span id=__span-0-84><span class=sd>        subset_planes: dict describing subset planes (as returned in</span>
-</span><span id=__span-0-85><span class=sd>            `array6d.attrs[&#39;subset_planes&#39;]`). If provided, used to map</span>
+</span><span id=__span-0-85><span class=sd>            `array6d.attrs['subset_planes']`). If provided, used to map</span>
 </span><span id=__span-0-86><span class=sd>            channel indices and names.</span>
-</span><span id=__span-0-87><span class=sd>        run: Start Napari&#39;s blocking event loop. Set this to ``False`` in a</span>
+</span><span id=__span-0-87><span class=sd>        run: Start Napari's blocking event loop. Set this to ``False`` in a</span>
 </span><span id=__span-0-88><span class=sd>            Jupyter notebook so the viewer remains available to later cells.</span>
 </span><span id=__span-0-89>
 </span><span id=__span-0-90><span class=sd>    Returns:</span>
-</span><span id=__span-0-91><span class=sd>        The created Napari viewer. With ``run=True``, the viewer&#39;s Qt window</span>
+</span><span id=__span-0-91><span class=sd>        The created Napari viewer. With ``run=True``, the viewer's Qt window</span>
 </span><span id=__span-0-92><span class=sd>        may already be closed when this function returns.</span>
 </span><span id=__span-0-93>
 </span><span id=__span-0-94><span class=sd>    Notes:</span>
 </span><span id=__span-0-95><span class=sd>        - If Napari is not installed this function raises ImportError.</span>
-</span><span id=__span-0-96><span class=sd>    &quot;&quot;&quot;</span>
+</span><span id=__span-0-96><span class=sd>    """</span>
 </span><span id=__span-0-97>    <span class=c1># Import napari lazily so czitools does not require it as a dependency.</span>
 </span><span id=__span-0-98>    <span class=k>try</span><span class=p>:</span>
 </span><span id=__span-0-99>        <span class=kn>import</span><span class=w> </span><span class=nn>napari</span>
 </span><span id=__span-0-100>    <span class=k>except</span> <span class=ne>Exception</span> <span class=k>as</span> <span class=n>exc</span><span class=p>:</span>  <span class=c1># pragma: no cover - optional dependency</span>
 </span><span id=__span-0-101>        <span class=k>raise</span> <span class=ne>ImportError</span><span class=p>(</span>
-</span><span id=__span-0-102>            <span class=s2>&quot;Napari is required for display_xarray_in_napari but is not installed. &quot;</span>
-</span><span id=__span-0-103>            <span class=s2>&quot;Install napari or skip viewer display. Original error: &quot;</span> <span class=o>+</span> <span class=nb>str</span><span class=p>(</span><span class=n>exc</span><span class=p>)</span>
+</span><span id=__span-0-102>            <span class=s2>"Napari is required for display_xarray_in_napari but is not installed. "</span>
+</span><span id=__span-0-103>            <span class=s2>"Install napari or skip viewer display. Original error: "</span> <span class=o>+</span> <span class=nb>str</span><span class=p>(</span><span class=n>exc</span><span class=p>)</span>
 </span><span id=__span-0-104>        <span class=p>)</span>
 </span><span id=__span-0-105>
 </span><span id=__span-0-106>    <span class=k>if</span> <span class=n>subset_planes</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>:</span>
-</span><span id=__span-0-107>        <span class=n>subset_planes_map</span><span class=p>:</span> <span class=n>Mapping</span><span class=p>[</span><span class=nb>str</span><span class=p>,</span> <span class=n>Any</span><span class=p>]</span> <span class=o>=</span> <span class=n>array6d</span><span class=o>.</span><span class=n>attrs</span><span class=o>.</span><span class=n>get</span><span class=p>(</span><span class=s2>&quot;subset_planes&quot;</span><span class=p>,</span> <span class=p>{})</span>
+</span><span id=__span-0-107>        <span class=n>subset_planes_map</span><span class=p>:</span> <span class=n>Mapping</span><span class=p>[</span><span class=nb>str</span><span class=p>,</span> <span class=n>Any</span><span class=p>]</span> <span class=o>=</span> <span class=n>array6d</span><span class=o>.</span><span class=n>attrs</span><span class=o>.</span><span class=n>get</span><span class=p>(</span><span class=s2>"subset_planes"</span><span class=p>,</span> <span class=p>{})</span>
 </span><span id=__span-0-108>    <span class=k>else</span><span class=p>:</span>
 </span><span id=__span-0-109>        <span class=n>subset_planes_map</span> <span class=o>=</span> <span class=n>subset_planes</span>
 </span><span id=__span-0-110>
@@ -153,7 +153,7 @@
 </span><span id=__span-0-124>    <span class=o>*</span><span class=p>,</span>
 </span><span id=__span-0-125>    <span class=n>run</span><span class=p>:</span> <span class=nb>bool</span> <span class=o>=</span> <span class=kc>True</span><span class=p>,</span>
 </span><span id=__span-0-126><span class=p>)</span> <span class=o>-&gt;</span> <span class=n>Any</span><span class=p>:</span>
-</span><span id=__span-0-127><span class=w>    </span><span class=sd>&quot;&quot;&quot;Display a list of xarray stacks in one Napari viewer.</span>
+</span><span id=__span-0-127><span class=w>    </span><span class=sd>"""Display a list of xarray stacks in one Napari viewer.</span>
 </span><span id=__span-0-128>
 </span><span id=__span-0-129><span class=sd>    This supports stacks with different spatial shapes by adding each stack as</span>
 </span><span id=__span-0-130><span class=sd>    its own set of layers.</span>
@@ -162,19 +162,19 @@
 </span><span id=__span-0-133><span class=sd>        arrays: Sequence of xarray stacks to display.</span>
 </span><span id=__span-0-134><span class=sd>        mdata: CZI metadata used for channel names, colors, and scaling.</span>
 </span><span id=__span-0-135><span class=sd>        subset_planes_list: Optional subset metadata for each stack.</span>
-</span><span id=__span-0-136><span class=sd>        run: Start Napari&#39;s blocking event loop. Set this to ``False`` in a</span>
+</span><span id=__span-0-136><span class=sd>        run: Start Napari's blocking event loop. Set this to ``False`` in a</span>
 </span><span id=__span-0-137><span class=sd>            Jupyter notebook so the viewer remains available to later cells.</span>
 </span><span id=__span-0-138>
 </span><span id=__span-0-139><span class=sd>    Returns:</span>
-</span><span id=__span-0-140><span class=sd>        The created Napari viewer. With ``run=True``, the viewer&#39;s Qt window</span>
+</span><span id=__span-0-140><span class=sd>        The created Napari viewer. With ``run=True``, the viewer's Qt window</span>
 </span><span id=__span-0-141><span class=sd>        may already be closed when this function returns.</span>
-</span><span id=__span-0-142><span class=sd>    &quot;&quot;&quot;</span>
+</span><span id=__span-0-142><span class=sd>    """</span>
 </span><span id=__span-0-143>    <span class=k>try</span><span class=p>:</span>
 </span><span id=__span-0-144>        <span class=kn>import</span><span class=w> </span><span class=nn>napari</span>
 </span><span id=__span-0-145>    <span class=k>except</span> <span class=ne>Exception</span> <span class=k>as</span> <span class=n>exc</span><span class=p>:</span>  <span class=c1># pragma: no cover - optional dependency</span>
 </span><span id=__span-0-146>        <span class=k>raise</span> <span class=ne>ImportError</span><span class=p>(</span>
-</span><span id=__span-0-147>            <span class=s2>&quot;Napari is required for display_xarray_list_in_napari but is not installed. &quot;</span>
-</span><span id=__span-0-148>            <span class=s2>&quot;Install napari or skip viewer display. Original error: &quot;</span> <span class=o>+</span> <span class=nb>str</span><span class=p>(</span><span class=n>exc</span><span class=p>)</span>
+</span><span id=__span-0-147>            <span class=s2>"Napari is required for display_xarray_list_in_napari but is not installed. "</span>
+</span><span id=__span-0-148>            <span class=s2>"Install napari or skip viewer display. Original error: "</span> <span class=o>+</span> <span class=nb>str</span><span class=p>(</span><span class=n>exc</span><span class=p>)</span>
 </span><span id=__span-0-149>        <span class=p>)</span>
 </span><span id=__span-0-150>
 </span><span id=__span-0-151>    <span class=n>viewer</span> <span class=o>=</span> <span class=n>napari</span><span class=o>.</span><span class=n>Viewer</span><span class=p>()</span>
@@ -182,8 +182,8 @@
 </span><span id=__span-0-153>        <span class=k>if</span> <span class=n>subset_planes_list</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span> <span class=ow>and</span> <span class=n>idx</span> <span class=o>&lt;</span> <span class=nb>len</span><span class=p>(</span><span class=n>subset_planes_list</span><span class=p>):</span>
 </span><span id=__span-0-154>            <span class=n>subset_planes_map</span> <span class=o>=</span> <span class=n>subset_planes_list</span><span class=p>[</span><span class=n>idx</span><span class=p>]</span>
 </span><span id=__span-0-155>        <span class=k>else</span><span class=p>:</span>
-</span><span id=__span-0-156>            <span class=n>subset_planes_map</span> <span class=o>=</span> <span class=n>arr</span><span class=o>.</span><span class=n>attrs</span><span class=o>.</span><span class=n>get</span><span class=p>(</span><span class=s2>&quot;subset_planes&quot;</span><span class=p>,</span> <span class=p>{})</span>
-</span><span id=__span-0-157>        <span class=n>_add_xarray_to_viewer</span><span class=p>(</span><span class=n>viewer</span><span class=p>,</span> <span class=n>arr</span><span class=p>,</span> <span class=n>mdata</span><span class=p>,</span> <span class=n>subset_planes_map</span><span class=p>,</span> <span class=n>layer_prefix</span><span class=o>=</span><span class=sa>f</span><span class=s2>&quot;S</span><span class=si>{</span><span class=n>idx</span><span class=si>}</span><span class=s2>_&quot;</span><span class=p>)</span>
+</span><span id=__span-0-156>            <span class=n>subset_planes_map</span> <span class=o>=</span> <span class=n>arr</span><span class=o>.</span><span class=n>attrs</span><span class=o>.</span><span class=n>get</span><span class=p>(</span><span class=s2>"subset_planes"</span><span class=p>,</span> <span class=p>{})</span>
+</span><span id=__span-0-157>        <span class=n>_add_xarray_to_viewer</span><span class=p>(</span><span class=n>viewer</span><span class=p>,</span> <span class=n>arr</span><span class=p>,</span> <span class=n>mdata</span><span class=p>,</span> <span class=n>subset_planes_map</span><span class=p>,</span> <span class=n>layer_prefix</span><span class=o>=</span><span class=sa>f</span><span class=s2>"S</span><span class=si>{</span><span class=n>idx</span><span class=si>}</span><span class=s2>_"</span><span class=p>)</span>
 </span><span id=__span-0-158>
 </span><span id=__span-0-159>    <span class=k>if</span> <span class=n>run</span><span class=p>:</span>
 </span><span id=__span-0-160>        <span class=n>napari</span><span class=o>.</span><span class=n>run</span><span class=p>()</span>

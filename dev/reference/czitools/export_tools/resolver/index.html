@@ -67,11 +67,11 @@
 <span class=normal>66</span>
 <span class=normal>67</span>
 <span class=normal>68</span></pre></div></td><td class=code><div><pre><span></span><code><span id=__span-0-52><span class=k>def</span><span class=w> </span><span class=nf>resolve_hcs_layout</span><span class=p>(</span><span class=n>mdata</span><span class=p>:</span> <span class=n>CziMetadata</span><span class=p>,</span> <span class=n>pad_columns</span><span class=p>:</span> <span class=nb>bool</span> <span class=o>=</span> <span class=kc>True</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=n>HcsLayout</span><span class=p>:</span>
-</span><span id=__span-0-53><span class=w>    </span><span class=sd>&quot;&quot;&quot;Resolve a normalized HCS layout from CZI metadata.</span>
+</span><span id=__span-0-53><span class=w>    </span><span class=sd>"""Resolve a normalized HCS layout from CZI metadata.</span>
 </span><span id=__span-0-54>
 </span><span id=__span-0-55><span class=sd>    Args:</span>
 </span><span id=__span-0-56><span class=sd>        mdata (CziMetadata): Metadata for the CZI file.</span>
-</span><span id=__span-0-57><span class=sd>        pad_columns (bool): Zero-pad column labels (e.g. ``&quot;04&quot;``). Defaults to True.</span>
+</span><span id=__span-0-57><span class=sd>        pad_columns (bool): Zero-pad column labels (e.g. ``"04"``). Defaults to True.</span>
 </span><span id=__span-0-58>
 </span><span id=__span-0-59><span class=sd>    Returns:</span>
 </span><span id=__span-0-60><span class=sd>        HcsLayout: Normalized rows, columns, and per-well field-&gt;scene mapping.</span>
@@ -79,7 +79,7 @@
 </span><span id=__span-0-62><span class=sd>    Raises:</span>
 </span><span id=__span-0-63><span class=sd>        ValueError: If neither the Stage 1 model nor a complete ``CziSampleInfo``</span>
 </span><span id=__span-0-64><span class=sd>            mapping is available.</span>
-</span><span id=__span-0-65><span class=sd>    &quot;&quot;&quot;</span>
+</span><span id=__span-0-65><span class=sd>    """</span>
 </span><span id=__span-0-66>    <span class=k>if</span> <span class=n>mdata</span><span class=o>.</span><span class=n>hcs</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>:</span>
 </span><span id=__span-0-67>        <span class=k>return</span> <span class=n>_from_hcs_model</span><span class=p>(</span><span class=n>mdata</span><span class=p>,</span> <span class=n>pad_columns</span><span class=p>)</span>
 </span><span id=__span-0-68>    <span class=k>return</span> <span class=n>_from_sample_info</span><span class=p>(</span><span class=n>mdata</span><span class=p>,</span> <span class=n>pad_columns</span><span class=p>)</span>
