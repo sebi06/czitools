@@ -211,3 +211,10 @@ data/WP96_4Pos_B4-10_DAPI_planetable.csv
 /_notes/wellplate_improvments.md
 /_notes/HCS_Metadata_OME_CZI_Proposal_Balu.docx
 /.pixi
+
+# Local-only Claude skill files
+.claude/
+.claude/skills/
+
+czitools/.benchmarks
+czitools/.github/pr_descriptions
