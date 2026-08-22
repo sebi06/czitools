@@ -8,6 +8,7 @@ __pycache__/
 
 # Distribution / packaging
 .Python
+src/czitools/_version.py
 build/
 develop-eggs/
 dist/
@@ -172,6 +173,8 @@ demo/notebooks/_experimental/**
 /demo/notebooks/old
 /demo/notebooks/old/**
 /demo/notebooks/__marimo__
+**/_archive/**
+
 
 
 # skip specific files

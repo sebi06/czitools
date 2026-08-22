@@ -1,10 +1,10 @@
 [build-system]
-requires = ["setuptools>=77"]
+requires = ["setuptools>=77", "setuptools-scm>=8"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "czitools"
-version = "0.20.1"
+dynamic = ["version"]
 description = "Tools for reading CZI pixel data and metadata and converting CZI data to OME-Zarr"
 readme = "README.md"
 license = "GPL-3.0-only"
@@ -143,6 +143,9 @@ exclude = ["czitools._tests*", "data*", "docs*", "demo*", "images*", "archive*"]
     "*.zarr",
     "*MetaData.xml",
 ]
+
+[tool.setuptools_scm]
+version_file = "src/czitools/_version.py"
 
 [tool.pytest.ini_options]
 testpaths = ["src/czitools/_tests"]

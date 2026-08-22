@@ -11,9 +11,9 @@ from importlib import import_module
 from types import ModuleType
 from typing import TYPE_CHECKING
 
-__version__ = "0.20.1"
+from czitools._version import version as __version__
 
-__all__ = ["metadata_tools", "read_tools", "utils", "visu_tools"]
+__all__ = ["__version__", "metadata_tools", "read_tools", "utils", "visu_tools"]
 
 if TYPE_CHECKING:
     from . import metadata_tools, read_tools, utils, visu_tools

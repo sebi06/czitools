@@ -208,8 +208,8 @@ Each item below is tagged with a recommended tier.
 
 *Generated review notes — update the checkboxes as items land.*
 
-- [ ] #1 CI test gating
-- [ ] #2 setuptools-scm versioning
+- [x] #1 CI test gating
+- [x] #2 setuptools-scm versioning
 - [ ] #3 true-lazy read_6darray
 - [ ] #4 split read_tools.py
 - [ ] #5 modern typing

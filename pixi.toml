@@ -16,7 +16,6 @@ authors = ["Rhode, Sebastian <sebrhode@gmail.com>"]
 channels = ["conda-forge"]
 name = "czitools"
 platforms = ["win-64", "linux-64"]
-version = "0.20.1"
 description = "Tools for reading CZI pixel data and metadata and converting CZI data to OME-Zarr."
 
 # =============================================================================
