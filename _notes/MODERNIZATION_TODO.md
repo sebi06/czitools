@@ -139,11 +139,50 @@ Each item below is tagged with a recommended tier.
 
 ### 7. Optional Zarr-backed lazy reading / caching `P2` `L`
 
-- **Problem:** dask reads always go back to the CZI. For repeated access,
-  converting once to a chunked Zarr store gives fast, truly-lazy random access.
-- **Action:** add an optional `read_to_zarr(filepath, store, chunks=...)` helper
-  (reuse `export_tools`) and a `da.from_zarr` fast path. Keep it optional
-  (`czitools[omezarr]`), out of the core import.
+- **Benefit is workload-dependent:** point #6 already makes a sequential CZI
+  scan very efficient. A persistent Zarr cache is therefore not a general
+  replacement for CZI reading; it is valuable when the same dataset is revisited
+  through random planes, small spatial ROIs, visualization, or repeated ML
+  epochs.
+- **Measured result:** local warm-cache benchmark on
+  `CellDivision_T10_Z15_CH2_DCV_small.czi` (300 planes, 39 MiB source), using
+  pixel-equivalent Zstd-compressed, one-plane chunks:
+
+  | Workload | Optimized CZI | Zarr chunk I/O | Result |
+  | -------- | ------------: | -------------: | ------ |
+  | Full 300-plane scan | 0.063 s | 0.068 s | Zarr was about 9% slower |
+  | 20 random planes | 0.357 s | 0.0047 s | Zarr was about 76x faster |
+
+  The cache read-and-write step took about 0.24 s after the common metadata
+  setup, so it broke even after roughly 14 random plane reads. The compressed
+  full-resolution chunks occupied about 21 MiB. Pixel checksums matched. These
+  figures measure the underlying local chunk I/O and are not a guarantee for
+  other CZI compression, chunk shapes, storage devices, or remote stores.
+- **Current blocker:** with the installed `zarr 3.2.1`, opening existing local
+  Zarr v2 and v3 arrays did not complete within 15 seconds, and prototype writes
+  stalled for more than one minute. Investigate and resolve this backend/version
+  behaviour before building an API around `da.from_zarr`; otherwise the actual
+  integration could erase the measured chunk-I/O benefit.
+- **Decision:** keep this as a conditional P2 item for interactive and repeated
+  random/ROI workloads. Defer it for one-shot batch pipelines and repeated full
+  scans, where it adds conversion time, storage duplication, and invalidation
+  complexity without a measured speed benefit.
+- **Action, after the blocker is resolved:**
+  1. Establish a tested Zarr/Numcodecs/Dask version combination and benchmark
+     real `da.from_zarr` reads and writes, including process restart and cold
+     filesystem-cache cases.
+  2. Prototype an explicit optional cache API (no transparent auto-conversion),
+     reusing `export_tools` where appropriate and keeping the dependency behind
+     `czitools[omezarr]`.
+  3. Support configurable Z/spatial chunks and evaluate Zarr v3 sharding so
+     random access does not create an excessive number of small files or remote
+     requests.
+  4. Add source fingerprinting/invalidation, atomic cache creation, metadata and
+     dimension preservation, pixel-parity tests, and documented cleanup/overwrite
+     behaviour.
+  5. Accept the feature only if end-to-end benchmarks show a useful break-even
+     point for the intended random/ROI workloads without regressing normal CZI
+     reads or importing optional dependencies from the core package.
 - **Effort:** L · **Model tier:** `premium` (new lazy API design + chunking strategy)
 
 ### 8. Expand Ruff beyond the release gate `P2` `S`
