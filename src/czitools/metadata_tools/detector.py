@@ -6,7 +6,6 @@ model, type, pixel size, id) from CZI metadata.
 
 import os
 from dataclasses import dataclass, field
-from typing import Optional
 
 from box import Box, BoxList
 
@@ -56,12 +55,12 @@ class CziDetector:
             if self.verbose:
                 logger.info("No Detector(s) information found in Instrument block.")
             # Keep historical single-None placeholders
-            placeholder: list[Optional[str]] = [None]
+            placeholder: list[str | None] = [None]
             self.model = placeholder.copy()
             self.name = placeholder.copy()
             self.Id = placeholder.copy()
             self.modeltype = placeholder.copy()
-            gain_placeholder: list[Optional[float]] = [None]
+            gain_placeholder: list[float | None] = [None]
             self.gain = gain_placeholder.copy()
             self.zoom = gain_placeholder.copy()
             self.amplificationgain = gain_placeholder.copy()

@@ -10,7 +10,6 @@ The code must handle multiple metadata sources and many missing fields
 gracefully; comments explain key fallbacks and edge cases.
 """
 
-from typing import Union, List, Dict, Optional
 from dataclasses import dataclass, field
 from box import Box, BoxList
 from pydantic import BaseModel
@@ -55,25 +54,25 @@ class CziSampleInfo:
         verbose (bool): Flag to enable verbose logging.
     """
 
-    czisource: Union[str, os.PathLike[str], Box]
-    well_array_names: List[str] = field(init=False, default_factory=lambda: [])
-    well_indices: List[int] = field(init=False, default_factory=lambda: [])
-    well_position_names: List[str] = field(init=False, default_factory=lambda: [])
-    well_colID: List[int] = field(init=False, default_factory=lambda: [])
-    well_rowID: List[int] = field(init=False, default_factory=lambda: [])
-    well_counter: Dict[str, int] = field(init=False, default_factory=lambda: {})
-    well_scene_indices: Dict[str, List[int]] = field(init=False, default_factory=lambda: {})
-    well_total_number: Optional[int] = field(init=False, default=None)
+    czisource: str | os.PathLike[str] | Box
+    well_array_names: list[str] = field(init=False, default_factory=lambda: [])
+    well_indices: list[int] = field(init=False, default_factory=lambda: [])
+    well_position_names: list[str] = field(init=False, default_factory=lambda: [])
+    well_colID: list[int] = field(init=False, default_factory=lambda: [])
+    well_rowID: list[int] = field(init=False, default_factory=lambda: [])
+    well_counter: dict[str, int] = field(init=False, default_factory=lambda: {})
+    well_scene_indices: dict[str, list[int]] = field(init=False, default_factory=lambda: {})
+    well_total_number: int | None = field(init=False, default=None)
     scene_count: int = field(init=False, default=0)
     well_unique_number: int = field(init=False, default=0)
-    field_centerX: List[Optional[float]] = field(init=False, default_factory=lambda: [])
-    field_centerY: List[Optional[float]] = field(init=False, default_factory=lambda: [])
-    well_region_ids: List[Optional[str]] = field(init=False, default_factory=lambda: [])
-    image_stageX: Optional[float] = field(init=False, default=None)
-    image_stageY: Optional[float] = field(init=False, default=None)
+    field_centerX: list[float | None] = field(init=False, default_factory=lambda: [])
+    field_centerY: list[float | None] = field(init=False, default_factory=lambda: [])
+    well_region_ids: list[str | None] = field(init=False, default_factory=lambda: [])
+    image_stageX: float | None = field(init=False, default=None)
+    image_stageY: float | None = field(init=False, default=None)
     multipos_per_well: bool = False
-    sample_carrier: Optional[BaseModel] = field(init=False, default=None)
-    specimen: Optional[BaseModel] = field(init=False, default=None)
+    sample_carrier: BaseModel | None = field(init=False, default=None)
+    specimen: BaseModel | None = field(init=False, default=None)
     verbose: bool = False
 
     def __post_init__(self):
@@ -165,7 +164,7 @@ class CziSampleInfo:
                     logger.error(e)
 
     @property
-    def scene_stageX(self) -> List[float]:
+    def scene_stageX(self) -> list[float]:
         """Deprecated compatibility view of :attr:`field_centerX`.
 
         Missing values remain represented as ``0.0`` here, matching the legacy
@@ -177,7 +176,7 @@ class CziSampleInfo:
         return [0.0 if value is None else value for value in self.field_centerX]
 
     @property
-    def scene_stageY(self) -> List[float]:
+    def scene_stageY(self) -> list[float]:
         """Deprecated compatibility view of :attr:`field_centerY`.
 
         As with :attr:`scene_stageX`, both a real zero coordinate and a missing
@@ -297,7 +296,7 @@ class CziSampleInfo:
         self.well_region_ids.append(None if region_id is None else str(region_id))
 
 
-def get_scenes_for_well(sample: CziSampleInfo, well_id: str) -> List[int]:
+def get_scenes_for_well(sample: CziSampleInfo, well_id: str) -> list[int]:
     """
     Returns a list of scene indices for a given well ID.
 

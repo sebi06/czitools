@@ -6,7 +6,7 @@ metadata_tools package, such as `ValueRange` and `AttachmentType`.
 
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any, Dict
+from typing import Any
 
 
 @dataclass
@@ -42,7 +42,7 @@ class DictObj:
 
     # TODO: consider deprecating this helper in favor of `box.Box`
 
-    def __init__(self, in_dict: Dict[str, Any]) -> None:
+    def __init__(self, in_dict: dict[str, Any]) -> None:
         if not isinstance(in_dict, dict):
             raise AssertionError("DictObj expects a dictionary as input")
 

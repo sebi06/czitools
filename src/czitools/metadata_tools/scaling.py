@@ -6,7 +6,7 @@ implementation is defensive: missing values fall back to sensible
 defaults and ratio computations avoid division-by-zero.
 """
 
-from typing import Union, Optional, Annotated, Dict
+from typing import Annotated
 from dataclasses import dataclass, field
 from box import Box, BoxList
 import os
@@ -34,14 +34,14 @@ class CziScaling:
         verbose (bool): Flag to enable verbose logging.
     """
 
-    czisource: Union[str, os.PathLike[str], Box]
-    X: Optional[float] = field(init=False, default=None)
-    Y: Optional[float] = field(init=False, default=None)
-    Z: Optional[float] = field(init=False, default=None)
-    X_sf: Optional[float] = field(init=False, default=None)
-    Y_sf: Optional[float] = field(init=False, default=None)
-    ratio: Optional[Dict[str, Optional[float]]] = field(init=False, default=None)
-    unit: Optional[str] = field(init=True, default="micron")
+    czisource: str | os.PathLike[str] | Box
+    X: float | None = field(init=False, default=None)
+    Y: float | None = field(init=False, default=None)
+    Z: float | None = field(init=False, default=None)
+    X_sf: float | None = field(init=False, default=None)
+    Y_sf: float | None = field(init=False, default=None)
+    ratio: dict[str, float | None] | None = field(init=False, default=None)
+    unit: str | None = field(init=True, default="micron")
     zoom: Annotated[float, ValueRange(0.01, 1.0)] = field(init=True, default=1.0)
     verbose: bool = False
 

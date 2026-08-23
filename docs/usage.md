@@ -116,8 +116,8 @@ must be genuinely lazy:
 | Requirement                               | Recommended function          | Result                        |
 | ----------------------------------------- | ----------------------------- | ----------------------------- |
 | Equal-sized scenes; eager read            | `read_6darray`                | One `STCZYX(A)` array         |
-| Regular array wrapped as Dask             | `read_6darray(use_dask=True)` | Dask-backed, but eagerly read |
-| True on-demand reads                      | `read_stacks(use_dask=True)`  | Per-scene arrays by default   |
+| Equal-sized scenes; lazy read             | `read_6darray(use_dask=True)` | One lazy `STCZYX(A)` array    |
+| Irregular scenes; lazy read               | `read_stacks(use_dask=True)`  | Per-scene arrays by default   |
 | True lazy reads with equal scenes stacked | `read_stacks_stacked`         | One array with `S`            |
 | Scenes that may differ in shape           | `read_stacks_list`            | Stable list of scene arrays   |
 | A known HCS well or field                 | `read_well` / `read_field`    | HCS-aware field arrays        |
@@ -133,7 +133,7 @@ from czitools.read_tools import read_6darray
 # NumPy array
 array6d, mdata = read_6darray(filepath)
 
-# Dask-backed array. The CZI data is still read eagerly.
+# Genuinely lazy Dask-backed array; planes are read during computation.
 array6d, mdata = read_6darray(filepath, use_dask=True)
 
 # xarray with labelled dimensions
@@ -150,16 +150,17 @@ subset, mdata = read_6darray(
 )
 ```
 
-!!! important "Dask-backed is not necessarily lazy"
-    `read_6darray(..., use_dask=True)` wraps the eagerly read result in a Dask
-    array. For true on-demand CZI reads, use
-    `read_stacks(..., use_dask=True)`.
+!!! note "Lazy reads"
+    `read_6darray(..., use_dask=True)` defers each CZI plane read until the
+    corresponding Dask task is computed. Use `read_stacks(..., use_dask=True)`
+    when scenes may have different shapes or extra dimensions.
 
 ### `read_stacks` — Scene-Wise Reading
 
 `read_stacks` supports all CZI dimensions and optionally stacks compatible
-scenes. With `use_dask=True`, pixel planes are read only when indexed or
-computed:
+scenes. With `use_dask=True`, it reads one representative plane per scene while
+constructing the result; the remaining pixel reads are deferred until indexed
+or computed:
 
 ```python
 from czitools.read_tools import read_stacks
@@ -202,7 +203,11 @@ stacked, dims, n, mdata = read_stacks_stacked(
 different shapes. Call `.compute()` on a Dask-backed selection when its pixels
 are needed.
 
-For example, this reads only one selected plane:
+By default, lazy reads group up to 64 planes into each task. This substantially
+reduces scheduler and repeated file-open overhead. It may read neighbouring
+planes when only a small selection is computed. Use `planes_per_chunk` to tune
+the group size, or opt into one-plane tasks when minimal random-access reads are
+more important than throughput:
 
 ```python
 scenes, dims, scene_count, mdata = read_stacks_list(
@@ -210,8 +215,10 @@ scenes, dims, scene_count, mdata = read_stacks_list(
     use_dask=True,
     use_xarray=True,
     planes={"T": (0, 0), "C": (0, 0)},
+    lazy_read_strategy="plane",
 )
 
+# With the plane strategy, this computes only the selected plane task.
 first_plane = scenes[0].isel(T=0, C=0, Z=0).compute()
 ```
 
@@ -345,8 +352,8 @@ stacked, mdata = read_well(filepath, well="B4", stack=True)
 If the CZI has no usable HCS plate metadata, both functions raise a `ValueError`
 explaining why (from `CziMetadata.hcs_status.reason`).
 
-These functions reuse `read_6darray`. Their `use_dask=True` results are
-Dask-backed, but are not true on-demand reads from the CZI.
+These functions reuse `read_6darray`, so `use_dask=True` also provides
+on-demand CZI plane reads.
 
 ## Displaying in Napari
 
@@ -595,7 +602,8 @@ print(f"Wrote {output}")
 ## Practical Guidance
 
 - Start with `CziMetadata` when deciding how to process an unfamiliar CZI.
-- Use `read_6darray` for regular data that comfortably fits in memory.
+- Use `read_6darray` for regular data, with `use_dask=True` when pixel reads
+  should remain lazy.
 - Use `read_stacks_list(..., use_dask=True)` for genuinely lazy access and
   unequal scene shapes.
 - Prefer the HCS model over manually correlating scenes and well names.

@@ -24,7 +24,7 @@ import xml.etree.ElementTree as ET
 # import numpy as np
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
-from typing import Any, Dict, Optional, Union
+from typing import Any
 
 from box import Box
 from pylibCZIrw import czi as pyczi
@@ -340,7 +340,7 @@ class CziMetadata:
             raise RuntimeError(f"CziMetadata.{name} is not available.")
         return value
 
-    def enrich_hcs_positions(self, position_tolerance: float = 1.0) -> Optional[CziPlate]:
+    def enrich_hcs_positions(self, position_tolerance: float = 1.0) -> CziPlate | None:
         """Enrich the detected HCS plate with aggregated subblock positions.
 
         This is opt-in because it scans subblock metadata (via the planetable)
@@ -382,7 +382,7 @@ class CziMetadata:
         return self._require_component("scale", self.scale)
 
 
-def get_metadata_as_object(filepath: Union[str, os.PathLike[str]]) -> DictObj:
+def get_metadata_as_object(filepath: str | os.PathLike[str]) -> DictObj:
     """
     Get the complete CZI metadata as an object.
     This function reads the metadata from a CZI file and converts it into a
@@ -403,7 +403,7 @@ def get_metadata_as_object(filepath: Union[str, os.PathLike[str]]) -> DictObj:
     return DictObj(md_dict)
 
 
-def _obj2dict(obj: Any, sort: bool = True) -> Dict[str, Any]:
+def _obj2dict(obj: Any, sort: bool = True) -> dict[str, Any]:
     """
     obj2dict: Convert a class attributes and their values to a dictionary
 
@@ -447,7 +447,7 @@ def _obj2dict(obj: Any, sort: bool = True) -> Dict[str, Any]:
         return result
 
 
-def writexml(filepath: Union[str, os.PathLike[str]], xmlsuffix: str = "_CZI_MetaData.xml") -> str:
+def writexml(filepath: str | os.PathLike[str], xmlsuffix: str = "_CZI_MetaData.xml") -> str:
     """
     writexml: Write XML information of CZI to disk
 
@@ -477,7 +477,7 @@ def writexml(filepath: Union[str, os.PathLike[str]], xmlsuffix: str = "_CZI_Meta
     return xmlfile
 
 
-def create_md_dict_red(metadata: CziMetadata, sort: bool = True, remove_none: bool = True) -> Dict:
+def create_md_dict_red(metadata: CziMetadata, sort: bool = True, remove_none: bool = True) -> dict:
     """Create a reduced metadata dictionary.
 
     Args:
@@ -574,7 +574,7 @@ def create_md_dict_red(metadata: CziMetadata, sort: bool = True, remove_none: bo
         return md_dict
 
 
-def create_md_dict_nested(metadata: CziMetadata, sort: bool = True, remove_none: bool = True) -> Dict:
+def create_md_dict_nested(metadata: CziMetadata, sort: bool = True, remove_none: bool = True) -> dict:
     """Create nested dictionary from metadata.
 
     Args:

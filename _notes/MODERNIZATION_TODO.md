@@ -124,6 +124,17 @@ Each item below is tagged with a recommended tier.
   - Avoid the `tempfile`/`shutil` copy path where possible (URL/remote reads);
     confirm it isn't taken for local files.
   - Cache `CziMetadata` construction — several `*_required` properties re-parse.
+- **Implemented decision:** lazy stack reads now use delayed multi-plane chunks
+  (64 planes by default) and retain `lazy_read_strategy="plane"` for minimal
+  random-access reads. This maps each task directly to one CZI open/close cycle
+  while permitting a smaller final chunk; `da.map_blocks` adds no clear benefit
+  for that variable final task. Both synchronous and threaded schedulers were
+  benchmarked against the plane strategy with pixel-equivalent results.
+- **Review outcome:** local paths use pylibCZIrw's standard reader directly and
+  do not take the attachment copy path. The `CziMetadata.*_required` properties
+  return components built during initialization and do not re-parse the file, so
+  no shared cache was added; caching these mutable metadata objects across calls
+  would make `adapt_metadata` and zoom-derived scaling leak between reads.
 - **Effort:** M (measure first with `pylancePythonProfiling` on a representative CZI) · **Model tier:** `premium` (profiling-driven perf work; measure before/after)
 
 ### 7. Optional Zarr-backed lazy reading / caching `P2` `L`
@@ -210,10 +221,10 @@ Each item below is tagged with a recommended tier.
 
 - [x] #1 CI test gating
 - [x] #2 setuptools-scm versioning
-- [ ] #3 true-lazy read_6darray
-- [ ] #4 split read_tools.py
-- [ ] #5 modern typing
-- [ ] #6 reading speed
+- [x] #3 true-lazy read_6darray
+- [x] #4 split read_tools.py
+- [x] #5 modern typing
+- [x] #6 reading speed
 - [ ] #7 zarr-backed lazy
 - [ ] #8 ruff expansion
 - [ ] #9 actions versions

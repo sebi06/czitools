@@ -7,7 +7,6 @@ Layers from a CZI file.
 
 import os
 from dataclasses import dataclass, field
-from typing import Optional, Union
 
 from box import Box
 
@@ -27,12 +26,12 @@ class CziAddMetaData:
     are emitted only when ``verbose`` is True.
     """
 
-    czisource: Union[str, os.PathLike, Box]
-    experiment: Optional[Box] = field(init=False, default=None)
-    hardwaresetting: Optional[Box] = field(init=False, default=None)
-    customattributes: Optional[Box] = field(init=False, default=None)
-    displaysetting: Optional[Box] = field(init=False, default=None)
-    layers: Optional[Box] = field(init=False, default=None)
+    czisource: str | os.PathLike | Box
+    experiment: Box | None = field(init=False, default=None)
+    hardwaresetting: Box | None = field(init=False, default=None)
+    customattributes: Box | None = field(init=False, default=None)
+    displaysetting: Box | None = field(init=False, default=None)
+    layers: Box | None = field(init=False, default=None)
     verbose: bool = False
 
     def __post_init__(self) -> None:

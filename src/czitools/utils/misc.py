@@ -19,7 +19,7 @@ import os
 import time
 import tracemalloc
 from pathlib import Path
-from typing import TYPE_CHECKING, Annotated, Any, Dict, Tuple, Union
+from typing import TYPE_CHECKING, Annotated, Any
 
 if TYPE_CHECKING:
     from czitools.metadata_tools.czi_metadata import CziMetadata
@@ -39,8 +39,8 @@ logger = logging_tools.set_logging()
 
 
 def get_pyczi_readertype(
-    filepath: Union[str, os.PathLike[str]],
-) -> Tuple[pyczi.ReaderFileInputTypes, bool]:
+    filepath: str | os.PathLike[str],
+) -> tuple[pyczi.ReaderFileInputTypes, bool]:
     """Determine the appropriate pylibCZIrw reader type for a CZI file path.
 
     This utility function checks whether the filepath is a URL or a local file
@@ -65,7 +65,7 @@ def get_pyczi_readertype(
         return pyczi.ReaderFileInputTypes.Standard, False
 
 
-def _slicedim(array: Union[np.ndarray, da.Array, zarr.Array], dimindex: int, posdim: int) -> np.ndarray:
+def _slicedim(array: np.ndarray | da.Array | zarr.Array, dimindex: int, posdim: int) -> np.ndarray:
     """Slice out a specific dimension without (!) dropping the dimension
     of the array to conserve the dimorder string
     This works for Numpy.Array, Dask and ZARR.
@@ -97,12 +97,12 @@ def _slicedim(array: Union[np.ndarray, da.Array, zarr.Array], dimindex: int, pos
 
 
 def calc_scaling(
-    data: Union[np.ndarray, da.Array, zarr.Array],
+    data: np.ndarray | da.Array | zarr.Array,
     corr_min: float = 1.0,
     offset_min: int = 0,
     corr_max: float = 0.85,
     offset_max: int = 0,
-) -> Tuple[int, int]:
+) -> tuple[int, int]:
     """Calculate the scaling for better display
 
     Args:
@@ -184,7 +184,7 @@ def md2dataframe(
     return mdframe
 
 
-def _sort_dict_by_key(unsorted_dict: Dict) -> Dict:
+def _sort_dict_by_key(unsorted_dict: dict) -> dict:
     """Sort a dictionary by key names
 
     Args:
@@ -228,7 +228,7 @@ def _addzeros(number: int) -> str:
     return zerostring
 
 
-def get_fname_woext(filepath: Union[str, os.PathLike[str]]) -> str:
+def get_fname_woext(filepath: str | os.PathLike[str]) -> str:
     """
     Extracts the filename without its extension from a given file path.
     It also works for extensions like myfile.abc.xyz
@@ -254,7 +254,7 @@ def get_fname_woext(filepath: Union[str, os.PathLike[str]]) -> str:
     return filepath_woext
 
 
-def _check_dimsize(mdata_entry: Union[Any, None], set2value: Any = 1) -> Union[Any, None]:
+def _check_dimsize(mdata_entry: Any | None, set2value: Any = 1) -> Any | None:
     """Check the entries for None.
 
     Args:
@@ -271,7 +271,7 @@ def _check_dimsize(mdata_entry: Union[Any, None], set2value: Any = 1) -> Union[A
         return mdata_entry
 
 
-def _clean_dict(d: Dict[Any, Any]) -> Dict[Any, Any]:
+def _clean_dict(d: dict[Any, Any]) -> dict[Any, Any]:
     """
     Recursively cleans a dictionary by removing keys with values that are None, empty lists, empty dictionaries,
     or empty NumPy arrays.
@@ -415,7 +415,7 @@ def _measure_execution_time(func):
     return timed_execution
 
 
-def is_valid_czi_url(myurl: str) -> Tuple[bool, str]:
+def is_valid_czi_url(myurl: str) -> tuple[bool, str]:
     """
     Validates whether a given URL points to a valid .czi file.
     Args:

@@ -7,7 +7,7 @@ which metadata sections are present.
 """
 
 from __future__ import annotations
-from typing import Any, List, Union
+from typing import Any
 import os
 from pylibCZIrw import czi as pyczi
 from box import Box
@@ -15,7 +15,7 @@ import validators
 from pydantic import BaseModel, create_model, Field
 
 
-def get_czimd_box(filepath: Union[str, os.PathLike[str]]) -> Box:
+def get_czimd_box(filepath: str | os.PathLike[str]) -> Box:
     """
     get_czimd_box: Get CZI metadata_tools as a python-box. For details: https://pypi.org/project/python-box/
 
@@ -164,7 +164,7 @@ def box_to_pydantic(box_obj: Box, model_name: str = "DynamicModel") -> BaseModel
             if value and isinstance(value[0], Box):
                 item_model = box_to_pydantic(value[0], f"{model_name}{key.capitalize()}Item")
                 nested_items = [box_to_pydantic(item, f"{model_name}{key.capitalize()}Item") for item in value]
-                field_definitions[key] = (List[type(item_model)], Field(default=nested_items))
+                field_definitions[key] = (list[type(item_model)], Field(default=nested_items))
             else:
                 field_definitions[key] = (type(value), Field(default=value))
         else:

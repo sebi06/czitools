@@ -22,7 +22,6 @@ import shutil
 from dataclasses import dataclass
 from enum import Enum, unique
 from pathlib import Path
-from typing import Dict
 
 from ngff_zarr import write_store_to_zip
 from ngff_zarr.v04.zarr_metadata import Plate, PlateColumn, PlateRow, PlateWell
@@ -111,7 +110,7 @@ class PlateType(Enum):
     PLATE_1536 = PlateConfiguration(32, 48, "1536-Well Plate")
 
 
-PLATE_FORMATS: Dict[int, PlateConfiguration] = {
+PLATE_FORMATS: dict[int, PlateConfiguration] = {
     6: PlateType.PLATE_6.value,
     24: PlateType.PLATE_24.value,
     48: PlateType.PLATE_48.value,

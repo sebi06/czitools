@@ -493,3 +493,43 @@ def test_read_stacks_stacked_scene_subset_s_coords() -> None:
     assert "S" in result.dims
     assert result.sizes["S"] == 1
     assert int(result.coords["S"].values[0]) == 1
+
+
+def test_read_stacks_chunked_lazy_strategy_matches_plane_strategy() -> None:
+    """Chunked tasks preserve pixels while substantially reducing graph size."""
+    filepath = basedir / "data" / "CellDivision_T3_Z5_CH2_X240_Y170.czi"
+
+    chunked, _, _, _ = read_tools.read_stacks(
+        filepath,
+        use_dask=True,
+        use_xarray=False,
+        stack_scenes=True,
+    )
+    per_plane, _, _, _ = read_tools.read_stacks(
+        filepath,
+        use_dask=True,
+        use_xarray=False,
+        stack_scenes=True,
+        lazy_read_strategy="plane",
+    )
+
+    assert isinstance(chunked, da.Array)
+    assert isinstance(per_plane, da.Array)
+    assert len(chunked.dask) < len(per_plane.dask)
+    np.testing.assert_array_equal(
+        chunked.compute(scheduler="synchronous"),
+        per_plane.compute(scheduler="synchronous"),
+    )
+
+
+@pytest.mark.parametrize(
+    ("kwargs", "message"),
+    [
+        ({"lazy_read_strategy": "invalid"}, "lazy_read_strategy"),
+        ({"planes_per_chunk": 0}, "planes_per_chunk"),
+    ],
+)
+def test_read_stacks_rejects_invalid_lazy_strategy_options(kwargs: dict, message: str) -> None:
+    """Invalid lazy-reader options fail before opening the CZI."""
+    with pytest.raises(ValueError, match=message):
+        read_tools.read_stacks("unused.czi", **kwargs)

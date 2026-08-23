@@ -4,7 +4,6 @@ Provides `CziMicroscope`, which extracts the microscope system name and
 identifier from CZI metadata.
 """
 
-from typing import Union, Optional
 from dataclasses import dataclass, field
 from box import Box
 import os
@@ -26,10 +25,10 @@ class CziMicroscope:
         verbose (bool): Flag to enable verbose logging.
     """
 
-    czisource: Union[str, os.PathLike[str], Box]
-    Id: Optional[str] = field(init=False)
-    Name: Optional[str] = field(init=False)
-    System: Optional[str] = field(init=False)
+    czisource: str | os.PathLike[str] | Box
+    Id: str | None = field(init=False)
+    Name: str | None = field(init=False)
+    System: str | None = field(init=False)
     verbose: bool = False
 
     def __post_init__(self):

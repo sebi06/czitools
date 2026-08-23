@@ -86,7 +86,7 @@ print(mdata.scale_required.X)
 # Read regular, equal-sized scenes eagerly as a labelled STCZYX(A) array.
 array6d, mdata = read_6darray("path/to/file.czi", use_xarray=True)
 
-# For true on-demand Dask reads, keep scenes as a list.
+# For irregular scenes, keep genuinely lazy reads as a list.
 scenes, dims, scene_count, mdata = read_stacks_list(
     "path/to/file.czi",
     use_dask=True,
@@ -95,9 +95,11 @@ scenes, dims, scene_count, mdata = read_stacks_list(
 first_plane = scenes[0].isel(T=0, C=0, Z=0).compute()
 ```
 
-`read_6darray(..., use_dask=True)` produces a Dask-backed result but still
-reads the CZI eagerly. Use `read_stacks(..., use_dask=True)` or
-`read_stacks_list(..., use_dask=True)` for genuinely lazy pixel access.
+`read_6darray(..., use_dask=True)` also provides genuinely lazy pixel access
+when the CZI has equal-sized scenes and consistent pixel types.
+`read_stacks(..., use_dask=True)` groups up to 64 planes per task by default to
+reduce file-open and scheduler overhead. Set `lazy_read_strategy="plane"` for
+the finest-grained random access, or tune the group with `planes_per_chunk`.
 
 For detailed usage examples see the [Usage docs](https://sebi06.github.io/czitools/usage/).
 
