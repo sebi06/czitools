@@ -1,6 +1,7 @@
 """Read CZI scenes as regular or irregular eager/lazy stacks."""
 
 import itertools
+import math
 from typing import Any, cast
 
 import dask.array as da
@@ -236,15 +237,71 @@ def _compute_tile_extent(
     return tile_h, tile_w
 
 
+def _plan_tile_grid(
+    rect_extent_layer0: int,
+    tile_extent_zoomed: int,
+    zoom: float,
+) -> tuple[int, list[int], list[int]]:
+    """Lay out the per-tile sizes along one axis.
+
+    The tiled reader must agree with the outer code on the plane's total
+    zoomed size and on each tile's zoomed extent, otherwise the dask array's
+    real shape and its declared coordinate arrays disagree. This helper is
+    the single source of truth: given the axis extent in layer-0 coords, the
+    requested tile size in *zoomed* coords, and the zoom factor, it returns
+    the total zoomed extent (as the sum of per-tile zoomed sizes) alongside
+    the layer-0 offsets and zoomed sizes of every non-empty tile.
+
+    ``sum(zoomed_sizes)`` can differ from ``int(rect_extent_layer0 * zoom)``:
+    sum-of-truncations is not always equal to truncation-of-sum. Using the
+    sum keeps every downstream consumer (coord arrays, xarray labels, napari
+    layer scale) in agreement with the tile grid actually assembled.
+
+    Args:
+        rect_extent_layer0: Full axis extent in native (layer-0) pixels.
+        tile_extent_zoomed: Requested tile edge in zoomed pixels.
+        zoom: Zoom factor forwarded to libCZI. ``0 < zoom <= 1``.
+
+    Returns:
+        Tuple ``(spatial_zoomed, offsets_layer0, sizes_zoomed)`` where
+        ``spatial_zoomed = sum(sizes_zoomed)`` is the true total zoomed
+        extent of the tiled composition, and the two lists give one entry
+        per emitted tile.
+    """
+    # Convert the requested zoomed tile size to layer-0 space. ``ceil``
+    # ensures the zoomed tile is at least as large as requested.
+    tile_extent_layer0 = max(1, math.ceil(tile_extent_zoomed / zoom))
+    offsets_layer0: list[int] = []
+    sizes_zoomed: list[int] = []
+    pos = 0
+    while pos < rect_extent_layer0:
+        # Clip the trailing tile so it does not exceed the plane extent.
+        size_layer0 = min(tile_extent_layer0, rect_extent_layer0 - pos)
+        size_zoomed = int(size_layer0 * zoom)
+        if size_zoomed > 0:
+            # A zero-sized tile happens at extreme zooms where the last few
+            # layer-0 pixels round down to zero; skip them so the resulting
+            # dask array has no empty chunks.
+            offsets_layer0.append(pos)
+            sizes_zoomed.append(size_zoomed)
+        pos += tile_extent_layer0
+    spatial_zoomed = sum(sizes_zoomed)
+    return spatial_zoomed, offsets_layer0, sizes_zoomed
+
+
 def _build_tiled_plane_dask(
     filepath: str,
     plane: dict[str, int],
     stack_idx: int | None,
-    spatial_y: int,
-    spatial_x: int,
     origin_xy: tuple[int, int],
-    tile_h: int,
-    tile_w: int,
+    row_offsets_layer0: list[int],
+    row_sizes_zoomed: list[int],
+    col_offsets_layer0: list[int],
+    col_sizes_zoomed: list[int],
+    tile_h_layer0: int,
+    tile_w_layer0: int,
+    rect_h_layer0: int,
+    rect_w_layer0: int,
     squeeze_grayscale: bool,
     dtype: np.dtype,
     zoom: float,
@@ -254,36 +311,49 @@ def _build_tiled_plane_dask(
 ) -> da.Array:
     """Compose a single 2D plane out of ROI-tile reads as one dask array.
 
-    Builds an ``n_rows × n_cols`` grid of ``da.from_delayed`` tiles and
-    concatenates them with ``da.concatenate`` (columns first along X,
-    then rows along Y). The returned dask array has shape
-    ``(spatial_y, spatial_x)`` (grayscale) or ``(spatial_y, spatial_x, A)``
-    (RGB) and chunks matching the tile grid, so consumers such as napari can
-    request just the tiles that intersect the visible viewport.
+    The tile layout is planned once by :func:`_plan_tile_grid` (called from
+    the outer reader) so both the caller (for coordinate arrays) and this
+    builder (for the dask graph) see the same per-row / per-column sizes.
+    Passing the layout in avoids the classic sum-of-truncations vs
+    truncation-of-sum mismatch, e.g. at zoom ``1/3`` the direct
+    ``int(rect * zoom)`` can differ by 1–3 pixels from the tile-composed
+    total.
+
+    Coordinate spaces are the tricky part when ``zoom != 1.0``:
+
+    - pylibCZIrw's ROI is always in **layer-0 (native) coordinates**.
+    - The output array is downsampled by ``zoom``, so the returned shape
+      per tile is ``int(roi_w * zoom) × int(roi_h * zoom)`` (libCZI
+      truncates). Each declared tile shape is exactly what libCZI returns.
 
     ``da.block`` is intentionally not used here: it matches its nesting
-    depth against the *last* N axes, which for RGB tiles would concatenate
-    along X and A (silently corrupting the pixel layout) instead of Y and X.
-    Explicit two-step ``da.concatenate`` calls stay correct for both
-    grayscale and RGB.
-
-    Edge tiles on the last row/column are clipped to the remaining extent, so
-    tile shapes are not necessarily equal.
+    depth against the *last* N axes, which for RGB planes with a trailing
+    ``A`` axis would concatenate along X and A instead of Y and X,
+    silently corrupting the pixel layout.
 
     Args:
         filepath: Path to the CZI file.
         plane: Non-spatial coordinate dict (T/C/Z/...) shared by every tile.
         stack_idx: Scene index or ``None`` for scene-less files.
-        spatial_y: Full plane height in pixels (Y).
-        spatial_x: Full plane width in pixels (X).
         origin_xy: ``(x, y)`` offset of the scene (or total bounding
-            rectangle) in the CZI's coordinate system. Added to each tile's
-            local ``(col*tile_w, row*tile_h)`` to build the ROI.
-        tile_h: Nominal tile height in pixels.
-        tile_w: Nominal tile width in pixels.
+            rectangle) in native coordinates. Added to each tile's local
+            layer-0 offset to build the ROI.
+        row_offsets_layer0: Starting Y offset in layer-0 coords for each
+            row of tiles.
+        row_sizes_zoomed: Corresponding zoomed height of each row (from
+            :func:`_plan_tile_grid`).
+        col_offsets_layer0: Starting X offset in layer-0 coords for each
+            column of tiles.
+        col_sizes_zoomed: Corresponding zoomed width of each column.
+        tile_h_layer0: Nominal tile height in layer-0 pixels. Used to
+            derive each tile's clipped layer-0 height.
+        tile_w_layer0: Nominal tile width in layer-0 pixels.
+        rect_h_layer0: Scene rectangle height in native pixels (for
+            clipping the trailing edge tiles).
+        rect_w_layer0: Scene rectangle width in native pixels.
         squeeze_grayscale: If True, grayscale planes drop the trailing A axis.
         dtype: NumPy dtype of the pixels.
-        zoom: Downscale factor forwarded to each ROI read.
+        zoom: Downscale factor. Forwarded to each ROI read.
         readertype: pylibCZIrw reader type (Standard / Curl).
         has_rgb_component: True when the plane has an RGB pixel-type axis
             that must be preserved (A=3).
@@ -291,31 +361,25 @@ def _build_tiled_plane_dask(
             ``has_rgb_component`` is True.
 
     Returns:
-        A single ``dask.array.Array`` whose chunks are the individual tile
-        reads. Nothing is read until the dask array is computed or indexed.
+        A single ``dask.array.Array`` whose shape is
+        ``(sum(row_sizes_zoomed), sum(col_sizes_zoomed))`` (with an
+        optional trailing ``A`` axis for RGB) and whose chunks are the
+        individual tile reads. Nothing is read until the dask array is
+        computed or indexed.
     """
     origin_x, origin_y = origin_xy
-    n_rows = (spatial_y + tile_h - 1) // tile_h
-    n_cols = (spatial_x + tile_w - 1) // tile_w
 
-    # Build a nested list of dask arrays and assemble it with explicit
-    # ``da.concatenate`` calls (axis=1 = X, then axis=0 = Y). ``da.block``
-    # cannot be used directly here because it matches its nesting depth to
-    # the *last* N axes: for RGB planes with a trailing ``A`` axis it would
-    # concatenate along X and A instead of Y and X, silently corrupting the
-    # pixel layout. The two-step concatenation is unambiguous regardless of
-    # whether the tile has a trailing pixel-component axis.
     grid: list[list[da.Array]] = []
-    for row in range(n_rows):
-        y0 = row * tile_h
-        this_h = min(tile_h, spatial_y - y0)
+    for row_index, y0_l0 in enumerate(row_offsets_layer0):
+        h_l0 = min(tile_h_layer0, rect_h_layer0 - y0_l0)
+        this_h = row_sizes_zoomed[row_index]
         row_tiles: list[da.Array] = []
-        for col in range(n_cols):
-            x0 = col * tile_w
-            this_w = min(tile_w, spatial_x - x0)
-            # ROI must be in the CZI's coordinate system, so add the scene
-            # (or total-bounding-rectangle) origin to the local tile offset.
-            roi = (origin_x + x0, origin_y + y0, this_w, this_h)
+        for col_index, x0_l0 in enumerate(col_offsets_layer0):
+            w_l0 = min(tile_w_layer0, rect_w_layer0 - x0_l0)
+            this_w = col_sizes_zoomed[col_index]
+            # ROI is in layer-0 CZI coordinates (see pylibCZIrw docstring).
+            # The scene origin adds any non-zero offset for scene-based files.
+            roi = (origin_x + x0_l0, origin_y + y0_l0, w_l0, h_l0)
             tile_shape: tuple[int, ...]
             if has_rgb_component and num_components is not None:
                 tile_shape = (this_h, this_w, num_components)
@@ -633,10 +697,66 @@ def read_stacks(
                 squeeze_grayscale = False
 
             # Full-plane spatial dims come from the scene rectangle, scaled by
-            # zoom. ``max(1, ...)`` guards against tiny scenes at extreme
-            # zooms rounding down to zero, which would produce empty arrays.
-            spatial_y = max(1, int(round(float(stack_rect.h) * zoom)))
-            spatial_x = max(1, int(round(float(stack_rect.w) * zoom)))
+            # zoom. Use ``int()`` truncation to match libCZI/pylibCZIrw's
+            # convention (``round()`` overshoots by one for zooms like 0.037037
+            # and produces a shape mismatch when the actual read comes back).
+            # ``max(1, ...)`` guards against tiny scenes at extreme zooms
+            # rounding down to zero, which would produce empty arrays.
+            spatial_y = max(1, int(float(stack_rect.h) * zoom))
+            spatial_x = max(1, int(float(stack_rect.w) * zoom))
+
+            # Decide up-front whether the dask branch will need spatial tiling.
+            # When it does the actual composed shape is the sum of per-tile
+            # zoomed sizes, which can differ from the direct ``int(rect*zoom)``
+            # estimate by a few pixels due to sum-of-truncations vs
+            # truncation-of-sum. Recompute here so array_shape, coords, and
+            # the dask graph all agree.
+            dtype_nbytes = int(np.dtype(dtype).itemsize)
+            plane_components = num_components if (has_pixel_type and not squeeze_grayscale) else 1
+            plane_bytes = spatial_y * spatial_x * dtype_nbytes * (plane_components or 1)
+            use_spatial_tiling = use_dask and plane_bytes > chunk_memory_limit
+
+            tile_h_zoomed = tile_w_zoomed = 0
+            tile_h_layer0 = tile_w_layer0 = 0
+            row_offsets_layer0: list[int] = []
+            row_sizes_zoomed: list[int] = []
+            col_offsets_layer0: list[int] = []
+            col_sizes_zoomed: list[int] = []
+            if use_spatial_tiling:
+                tile_h_zoomed, tile_w_zoomed = _compute_tile_extent(
+                    spatial_y=spatial_y,
+                    spatial_x=spatial_x,
+                    dtype_nbytes=dtype_nbytes,
+                    components=plane_components or 1,
+                    tile_size=tile_size,
+                    memory_limit=chunk_memory_limit,
+                )
+                # Plan Y and X grids once; both the dask builder and the
+                # coordinate arrays below use the resulting per-tile sizes.
+                spatial_y, row_offsets_layer0, row_sizes_zoomed = _plan_tile_grid(
+                    rect_extent_layer0=int(stack_rect.h),
+                    tile_extent_zoomed=tile_h_zoomed,
+                    zoom=zoom,
+                )
+                spatial_x, col_offsets_layer0, col_sizes_zoomed = _plan_tile_grid(
+                    rect_extent_layer0=int(stack_rect.w),
+                    tile_extent_zoomed=tile_w_zoomed,
+                    zoom=zoom,
+                )
+                tile_h_layer0 = max(1, math.ceil(tile_h_zoomed / zoom))
+                tile_w_layer0 = max(1, math.ceil(tile_w_zoomed / zoom))
+                logger.info(
+                    "read_stacks: Stack %d plane is %.2f MB (> %.2f MB limit); "
+                    "using spatial tiling %dx%d (%d tiles per plane, tile %dx%d zoomed).",
+                    stack_idx,
+                    plane_bytes / (1024 * 1024),
+                    chunk_memory_limit / (1024 * 1024),
+                    len(row_sizes_zoomed),
+                    len(col_sizes_zoomed),
+                    len(row_sizes_zoomed) * len(col_sizes_zoomed),
+                    tile_h_zoomed,
+                    tile_w_zoomed,
+                )
 
             # Build final dimension list and shape (excluding S, since we loop over scenes)
             # Shape: (*read_sizes, Y, X [, A])
@@ -661,41 +781,6 @@ def read_stacks(
 
             if use_dask:
                 total_planes = int(np.prod(read_sizes)) if read_sizes else 1
-
-                # Decide whether to spatially tile Y/X. Gigapixel planes must be
-                # broken into ROI tiles or the very first chunk fetch allocates
-                # the whole plane. Anything smaller keeps the fast whole-plane
-                # path so small files pay no overhead.
-                dtype_nbytes = int(np.dtype(dtype).itemsize)
-                plane_components = num_components if (has_pixel_type and not squeeze_grayscale) else 1
-                # ``plane_components or 1`` protects against ``None`` slipping
-                # through (num_components is only set when has_pixel_type=True).
-                plane_bytes = spatial_y * spatial_x * dtype_nbytes * (plane_components or 1)
-                use_spatial_tiling = plane_bytes > chunk_memory_limit
-                tile_h = tile_w = 0  # only meaningful when use_spatial_tiling
-                if use_spatial_tiling:
-                    tile_h, tile_w = _compute_tile_extent(
-                        spatial_y=spatial_y,
-                        spatial_x=spatial_x,
-                        dtype_nbytes=dtype_nbytes,
-                        components=plane_components or 1,
-                        tile_size=tile_size,
-                        memory_limit=chunk_memory_limit,
-                    )
-                    n_rows = (spatial_y + tile_h - 1) // tile_h
-                    n_cols = (spatial_x + tile_w - 1) // tile_w
-                    logger.info(
-                        "read_stacks: Stack %d plane is %.2f MB (> %.2f MB limit); "
-                        "using spatial tiling %dx%d (%d tiles per plane, tile %dx%d).",
-                        stack_idx,
-                        plane_bytes / (1024 * 1024),
-                        chunk_memory_limit / (1024 * 1024),
-                        n_rows,
-                        n_cols,
-                        n_rows * n_cols,
-                        tile_h,
-                        tile_w,
-                    )
 
                 # ROI origin: for scene-based files the ROI is expressed in the
                 # CZI's coordinate system, so use the scene's top-left corner.
@@ -787,15 +872,25 @@ def read_stacks(
                             if use_spatial_tiling:
                                 # Each leaf is already a chunked dask array of
                                 # shape plane_shape — nothing is read yet.
+                                # The tile builder works in layer-0 coords
+                                # because pylibCZIrw ROIs are native and the
+                                # output is downsampled internally by libCZI.
+                                # Pre-planned row/col layouts guarantee the
+                                # dask array shape matches spatial_y/spatial_x
+                                # exactly (see _plan_tile_grid).
                                 return _build_tiled_plane_dask(
                                     filepath=filepath,
                                     plane=plane,
                                     stack_idx=scene_index,
-                                    spatial_y=spatial_y,
-                                    spatial_x=spatial_x,
                                     origin_xy=origin_xy,
-                                    tile_h=tile_h,
-                                    tile_w=tile_w,
+                                    row_offsets_layer0=row_offsets_layer0,
+                                    row_sizes_zoomed=row_sizes_zoomed,
+                                    col_offsets_layer0=col_offsets_layer0,
+                                    col_sizes_zoomed=col_sizes_zoomed,
+                                    tile_h_layer0=tile_h_layer0,
+                                    tile_w_layer0=tile_w_layer0,
+                                    rect_h_layer0=int(stack_rect.h),
+                                    rect_w_layer0=int(stack_rect.w),
                                     squeeze_grayscale=squeeze_grayscale,
                                     dtype=dtype,
                                     zoom=zoom,
