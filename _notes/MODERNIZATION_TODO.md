@@ -162,6 +162,7 @@ Each item below is tagged with a recommended tier.
     (**not free** but still much cheaper than materializing layer 0 in
     Python and downsampling).
 - **Detection is pylibCZIrw-only (no `czifile` needed):**
+
   ```python
   from pylibCZIrw import czi as pyczi
 
@@ -175,6 +176,7 @@ Each item below is tagged with a recommended tier.
       doc.enumerate_subblocks(_cb)
   # sorted(zooms, reverse=True) -> [1.0, 0.5, 0.25, ...]
   ```
+
   `CziReader.enumerate_subblocks` walks subblock headers only (no pixel I/O)
   and `SubBlockInfo.get_zoom()` returns the stored physical/logical ratio
   directly. Verified against `CellDivision`, `Tumor_HE_RGB`, `WellD6_S1`,
@@ -233,6 +235,46 @@ Each item below is tagged with a recommended tier.
 - **Effort:** L · **Model tier:** `premium` (detection + graph construction
   are simple; the fiddly parts are non-uniform pyramid ratios, per-level
   `scale`, and integration with napari's multiscale renderer).
+- **Lessons learned during implementation (leave here for future debugging):**
+  1. **Enumeration is fast, not slow.** Even a 13,239-subblock gigapixel
+     file finishes `enumerate_subblocks` in ~20 ms. Early-stop heuristics
+     are unnecessary — and dangerous, because subblocks are typically
+     ordered by pyramid layer so an early exit would miss coarse levels.
+  2. **The initial "sample plane" read in `read_stacks` used to fetch the
+     whole plane just to peek at dtype/shape.** At layer-0 of a gigapixel
+     file that reads 24 GB per zoom level for nothing. Fixed by probing
+     with a 1×1 ROI and deriving spatial extents from `stack_rect × zoom`.
+  3. **pylibCZIrw uses `int()` truncation, not `round()`.** For zooms like
+     `0.037037` the returned shape is `int(rect * zoom)`, one pixel smaller
+     than `round(rect * zoom)`. Every path that predicts a read's shape
+     must use the same truncation.
+  4. **ROI is expressed in layer-0 coordinates**, and the returned array
+     shape is `int(roi.w * zoom) × int(roi.h * zoom)`. A tile grid in
+     zoomed coords must be converted to layer-0 (`ceil(tile / zoom)`)
+     before being handed to pylibCZIrw, and the declared dask chunk shape
+     must be computed with libCZI's own truncation to avoid broadcast
+     errors at chunk assembly.
+  5. **Sum-of-truncations ≠ truncation-of-sum.** At `zoom = 1/3` the direct
+     `int(rect * zoom)` estimate can differ from the sum of per-tile
+     `int(tile_layer0 * zoom)` values by 1–3 pixels. The tile layout must
+     be planned once by a single helper (`_plan_tile_grid`) and the same
+     row/col sizes must drive both the dask graph and the outer coord
+     arrays. Otherwise xarray raises
+     `CoordinateValidationError: conflicting sizes for dimension 'Y'`.
+  6. **libCZI's resampler is ROI-aware.** For files **without** an on-disk
+     pyramid, requesting the same non-1.0 zoom via one big ROI vs several
+     small ROIs can produce slightly different pixel values along tile
+     boundaries (~a few hundred gray levels of difference). At stored
+     pyramid zooms the resampler is bypassed and tile boundaries stay
+     exact, so this is not a problem for the multiscale reader as long as
+     `get_pyramid_zooms` returns the actual on-disk zooms.
+  7. **czifile is not needed.** `czifile.CziFile(fp).scenes[0].levels`
+     also exposes pyramid levels, but its `level.shape[1] /
+     layer0.shape[1]` zooms diverge slightly from libCZI's subblock ratios
+     (e.g. `0.12504923` vs `0.125`). Passing those to
+     `pylibCZIrw.CziReader.read(zoom=...)` would miss the stored level and
+     hit the C++ resampler. Sticking with pylibCZIrw's `SubBlockInfo.get_zoom()`
+     keeps every zoom hittable and avoids adding a heavy dependency.
 
 ### 4. Split the monolithic `read_tools.py` (~1550 lines) `P1` `M`
 

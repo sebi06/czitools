@@ -113,14 +113,16 @@ scaling = czi_box.ImageDocument.Metadata.Scaling.Items.Distance
 Choose the reader according to the regularity of the data and whether loading
 must be genuinely lazy:
 
-| Requirement                               | Recommended function          | Result                       |
-| ----------------------------------------- | ----------------------------- | ---------------------------- |
-| Equal-sized scenes; eager read            | `read_6darray`                | One `STCZYX(A)` array        |
-| Equal-sized scenes; lazy read             | `read_6darray(use_dask=True)` | One lazy `STCZYX(A)` array   |
-| Irregular scenes; lazy read               | `read_stacks(use_dask=True)`  | Per-scene arrays by default  |
-| True lazy reads with equal scenes stacked | `read_stacks_stacked`         | One array with `S`           |
-| Scenes that may differ in shape           | `read_stacks_list`            | Stable list of scene arrays  |
-| Gigapixel planes (whole-slide, large 2D)  | `read_stacks(use_dask=True)`  | Automatic spatial Y/X tiling |  | Multiscale pyramid for napari | `read_stacks_multiscale` | List of dask arrays per level |  | A known HCS well or field | `read_well` / `read_field` | HCS-aware field arrays |
+| Requirement                               | Recommended function          | Result                        |
+| ----------------------------------------- | ----------------------------- | ----------------------------- |
+| Equal-sized scenes; eager read            | `read_6darray`                | One `STCZYX(A)` array         |
+| Equal-sized scenes; lazy read             | `read_6darray(use_dask=True)` | One lazy `STCZYX(A)` array    |
+| Irregular scenes; lazy read               | `read_stacks(use_dask=True)`  | Per-scene arrays by default   |
+| True lazy reads with equal scenes stacked | `read_stacks_stacked`         | One array with `S`            |
+| Scenes that may differ in shape           | `read_stacks_list`            | Stable list of scene arrays   |
+| Gigapixel planes (whole-slide, large 2D)  | `read_stacks(use_dask=True)`  | Automatic spatial Y/X tiling  |
+| Multiscale pyramid for napari             | `read_stacks_multiscale`      | List of dask arrays per level |
+| A known HCS well or field                 | `read_well` / `read_field`    | HCS-aware field arrays        |
 
 ### `read_6darray` — Full 6D Stack
 
@@ -242,9 +244,19 @@ Behaviour:
 
 - **Trigger:** `plane_bytes = spatial_y × spatial_x × dtype.itemsize × components`;
   tiling is used when `plane_bytes > chunk_memory_limit`.
-- **Tile size:** `tile_size` (default 4096) sets the nominal square edge. The
-  chosen tile is halved iteratively so a single tile never exceeds
-  `chunk_memory_limit`.
+- **Tile size:** `tile_size` (default 4096) sets the nominal square edge in
+  *zoomed* pixels. The chosen tile is halved iteratively so a single tile
+  never exceeds `chunk_memory_limit`. Very small tiles (< ~256 px) are not
+  recommended: libCZI's resampler is ROI-aware, so tile-boundary pixels can
+  disagree slightly with a whole-plane read on files without an on-disk
+  pyramid. At the file's stored pyramid zooms every ROI is served directly
+  from a subblock and this effect does not occur.
+- **Coordinate spaces:** `pylibCZIrw.CziReader.read(roi=...)` interprets the
+  ROI in **native (layer-0) coordinates** and returns an array of shape
+  `int(roi.w * zoom) × int(roi.h * zoom)` (libCZI uses truncation, not
+  rounding). czitools converts the requested zoomed tile size back to
+  layer-0 via `ceil(tile / zoom)` and matches libCZI's truncation for the
+  declared dask chunk shape, so the graph is exact at any pyramid zoom.
 - **Grouping:** spatial tiling forces `lazy_read_strategy="plane"` for the
   affected stack. Small planes always keep the whole-plane path (no overhead).
 - **Where the change lives:** entirely in `czitools`. Downstream code (for
