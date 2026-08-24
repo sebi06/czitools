@@ -4,7 +4,6 @@ Provides `CziObjectives`, which collects objective and tubelens properties
 (NA, magnification, immersion, manufacturer, model, id) from CZI metadata.
 """
 
-from typing import Union, Optional, List
 from dataclasses import dataclass, field
 from box import Box, BoxList
 import os
@@ -40,15 +39,15 @@ class CziObjectives:
         verbose: emit informational logs when True.
     """
 
-    czisource: Union[str, os.PathLike, Box]
-    NA: List[Optional[float]] = field(init=False, default_factory=list)
-    objmag: List[Optional[float]] = field(init=False, default_factory=list)
-    Id: List[Optional[str]] = field(init=False, default_factory=list)
-    name: List[Optional[str]] = field(init=False, default_factory=list)
-    model: List[Optional[str]] = field(init=False, default_factory=list)
-    immersion: List[Optional[str]] = field(init=False, default_factory=list)
-    tubelensmag: List[Optional[float]] = field(init=False, default_factory=list)
-    totalmag: List[Optional[float]] = field(init=False, default_factory=list)
+    czisource: str | os.PathLike | Box
+    NA: list[float | None] = field(init=False, default_factory=list)
+    objmag: list[float | None] = field(init=False, default_factory=list)
+    Id: list[str | None] = field(init=False, default_factory=list)
+    name: list[str | None] = field(init=False, default_factory=list)
+    model: list[str | None] = field(init=False, default_factory=list)
+    immersion: list[str | None] = field(init=False, default_factory=list)
+    tubelensmag: list[float | None] = field(init=False, default_factory=list)
+    totalmag: list[float | None] = field(init=False, default_factory=list)
     verbose: bool = False
 
     def __post_init__(self) -> None:

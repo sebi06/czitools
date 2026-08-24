@@ -8,6 +8,7 @@ __pycache__/
 
 # Distribution / packaging
 .Python
+src/czitools/_version.py
 build/
 develop-eggs/
 dist/
@@ -172,6 +173,8 @@ demo/notebooks/_experimental/**
 /demo/notebooks/old
 /demo/notebooks/old/**
 /demo/notebooks/__marimo__
+**/_archive/**
+
 
 
 # skip specific files
@@ -215,6 +218,9 @@ data/WP96_4Pos_B4-10_DAPI_planetable.csv
 # Local-only Claude skill files
 .claude/
 .claude/skills/
+
+# Local-only activation overrides (machine/corporate specific)
+scripts/activate.local.*
 
 czitools/.benchmarks
 czitools/.github/pr_descriptions

@@ -16,7 +16,7 @@ import re
 from dataclasses import dataclass, replace
 from pathlib import Path
 from statistics import median
-from typing import Any, Union, cast
+from typing import Any, cast
 
 from box import Box, BoxList
 
@@ -585,7 +585,7 @@ def resolve_well(plate: CziPlate, well: str) -> CziWell:
     return plate.get_well(_normalize_well_key(well))
 
 
-def resolve_field(plate: CziPlate, well: str, field: Union[int, str] = 0) -> CziField:
+def resolve_field(plate: CziPlate, well: str, field: int | str = 0) -> CziField:
     """Resolve one field within a well by local index or by ``RegionId``.
 
     ``field`` is interpreted as a well-local 0-based field index when an ``int``

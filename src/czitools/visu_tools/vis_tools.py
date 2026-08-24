@@ -21,7 +21,7 @@ import matplotlib.pyplot as plt
 from matplotlib import cm
 from matplotlib.figure import Figure as MplFigure
 import pandas as pd
-from typing import TYPE_CHECKING, Tuple
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     import plotly.graph_objects as go
@@ -41,7 +41,7 @@ def scatterplot_mpl(
     fig1savename: str = "zsurface2d.png",
     fig2savename: str = "zsurface3d.png",
     msz3d: int = 20,
-) -> Tuple[MplFigure, MplFigure]:
+) -> tuple[MplFigure, MplFigure]:
     """Generates 2D and 3D scatter plots of XYZ positions from a given table and saves them as PNG files.
 
     Args:
@@ -183,7 +183,7 @@ def scatterplot_plotly(
     fig1savename: str = "zsurface2d.html",
     fig2savename: str = "zsurface3d.html",
     msz3d: int = 20,
-) -> Tuple["go.Figure", "go.Figure"]:
+) -> tuple["go.Figure", "go.Figure"]:
     """Generates 2D and 3D scatter plots using Plotly and saves them as HTML files.
 
     Args:

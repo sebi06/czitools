@@ -116,10 +116,12 @@ must be genuinely lazy:
 | Requirement                               | Recommended function          | Result                        |
 | ----------------------------------------- | ----------------------------- | ----------------------------- |
 | Equal-sized scenes; eager read            | `read_6darray`                | One `STCZYX(A)` array         |
-| Regular array wrapped as Dask             | `read_6darray(use_dask=True)` | Dask-backed, but eagerly read |
-| True on-demand reads                      | `read_stacks(use_dask=True)`  | Per-scene arrays by default   |
+| Equal-sized scenes; lazy read             | `read_6darray(use_dask=True)` | One lazy `STCZYX(A)` array    |
+| Irregular scenes; lazy read               | `read_stacks(use_dask=True)`  | Per-scene arrays by default   |
 | True lazy reads with equal scenes stacked | `read_stacks_stacked`         | One array with `S`            |
 | Scenes that may differ in shape           | `read_stacks_list`            | Stable list of scene arrays   |
+| Gigapixel planes (whole-slide, large 2D)  | `read_stacks(use_dask=True)`  | Automatic spatial Y/X tiling  |
+| Multiscale pyramid for napari             | `read_stacks_multiscale`      | List of dask arrays per level |
 | A known HCS well or field                 | `read_well` / `read_field`    | HCS-aware field arrays        |
 
 ### `read_6darray` — Full 6D Stack
@@ -133,7 +135,7 @@ from czitools.read_tools import read_6darray
 # NumPy array
 array6d, mdata = read_6darray(filepath)
 
-# Dask-backed array. The CZI data is still read eagerly.
+# Genuinely lazy Dask-backed array; planes are read during computation.
 array6d, mdata = read_6darray(filepath, use_dask=True)
 
 # xarray with labelled dimensions
@@ -150,16 +152,17 @@ subset, mdata = read_6darray(
 )
 ```
 
-!!! important "Dask-backed is not necessarily lazy"
-    `read_6darray(..., use_dask=True)` wraps the eagerly read result in a Dask
-    array. For true on-demand CZI reads, use
-    `read_stacks(..., use_dask=True)`.
+!!! note "Lazy reads"
+    `read_6darray(..., use_dask=True)` defers each CZI plane read until the
+    corresponding Dask task is computed. Use `read_stacks(..., use_dask=True)`
+    when scenes may have different shapes or extra dimensions.
 
 ### `read_stacks` — Scene-Wise Reading
 
 `read_stacks` supports all CZI dimensions and optionally stacks compatible
-scenes. With `use_dask=True`, pixel planes are read only when indexed or
-computed:
+scenes. With `use_dask=True`, it reads one representative plane per scene while
+constructing the result; the remaining pixel reads are deferred until indexed
+or computed:
 
 ```python
 from czitools.read_tools import read_stacks
@@ -202,7 +205,11 @@ stacked, dims, n, mdata = read_stacks_stacked(
 different shapes. Call `.compute()` on a Dask-backed selection when its pixels
 are needed.
 
-For example, this reads only one selected plane:
+By default, lazy reads group up to 64 planes into each task. This substantially
+reduces scheduler and repeated file-open overhead. It may read neighbouring
+planes when only a small selection is computed. Use `planes_per_chunk` to tune
+the group size, or opt into one-plane tasks when minimal random-access reads are
+more important than throughput:
 
 ```python
 scenes, dims, scene_count, mdata = read_stacks_list(
@@ -210,9 +217,134 @@ scenes, dims, scene_count, mdata = read_stacks_list(
     use_dask=True,
     use_xarray=True,
     planes={"T": (0, 0), "C": (0, 0)},
+    lazy_read_strategy="plane",
 )
 
+# With the plane strategy, this computes only the selected plane task.
 first_plane = scenes[0].isel(T=0, C=0, Z=0).compute()
+```
+
+#### Spatial Y/X tiling for very large planes
+
+Some CZI files, especially whole-slide or high-magnification scans, contain
+individual 2D planes that are tens of gigabytes when uncompressed. A single
+`93,555 × 138,996` `uint16` plane is about **24 GB** per channel. If the dask
+graph uses one task per plane, the very first tile fetch a viewer performs
+loads the entire plane into RAM.
+
+To keep those files usable, `read_stacks(..., use_dask=True)` automatically
+tiles Y/X into a grid when a single plane would exceed `chunk_memory_limit`
+(default 256 MB). Each tile becomes its own dask chunk backed by a
+ROI-based read via
+[`pylibCZIrw.CziReader.read(roi=(x, y, w, h), ...)`](https://github.com/ZEISS/pylibczirw),
+so viewers such as napari only fetch the tiles that intersect the current
+viewport.
+
+Behaviour:
+
+- **Trigger:** `plane_bytes = spatial_y × spatial_x × dtype.itemsize × components`;
+  tiling is used when `plane_bytes > chunk_memory_limit`.
+- **Tile size:** `tile_size` (default 4096) sets the nominal square edge in
+  *zoomed* pixels. The chosen tile is halved iteratively so a single tile
+  never exceeds `chunk_memory_limit`. Very small tiles (< ~256 px) are not
+  recommended: libCZI's resampler is ROI-aware, so tile-boundary pixels can
+  disagree slightly with a whole-plane read on files without an on-disk
+  pyramid. At the file's stored pyramid zooms every ROI is served directly
+  from a subblock and this effect does not occur.
+- **Coordinate spaces:** `pylibCZIrw.CziReader.read(roi=...)` interprets the
+  ROI in **native (layer-0) coordinates** and returns an array of shape
+  `int(roi.w * zoom) × int(roi.h * zoom)` (libCZI uses truncation, not
+  rounding). czitools converts the requested zoomed tile size back to
+  layer-0 via `ceil(tile / zoom)` and matches libCZI's truncation for the
+  declared dask chunk shape, so the graph is exact at any pyramid zoom.
+- **Grouping:** spatial tiling forces `lazy_read_strategy="plane"` for the
+  affected stack. Small planes always keep the whole-plane path (no overhead).
+- **Where the change lives:** entirely in `czitools`. Downstream code (for
+  example `napari-czitools`) needs no changes because it already passes
+  `use_dask=True` and napari renders chunked dask arrays natively.
+
+```python
+from czitools.read_tools import read_stacks_stacked
+
+# A 93k x 139k uint16 plane triggers 4096x4096 tiling (~32 MB per chunk).
+stacked, dims, n, mdata = read_stacks_stacked(
+    "path/to/huge.czi",
+    use_dask=True,
+    use_xarray=True,
+    tile_size=4096,               # optional; 4096 is the default
+    chunk_memory_limit=256 * 1024 * 1024,  # optional; 256 MB is the default
+)
+
+# Nothing has been read yet. Only the tiles hit by this ROI are loaded.
+viewport = stacked.isel(S=0, T=0, C=0, Z=0, Y=slice(0, 4096), X=slice(0, 4096))
+viewport.compute()
+```
+
+#### Multiscale pyramid reading
+
+Interactive viewers such as napari need a **multiscale pyramid** to render
+gigapixel planes efficiently: the coarsest level is uploaded to a single GPU
+texture and finer tiles stream in on zoom. `read_stacks_multiscale` wraps
+`read_stacks` and returns one lazy dask array per pyramid level, in a shape
+that napari's `viewer.add_image(..., multiscale=True)` accepts directly.
+
+CZI reality:
+
+- Some files store no pyramid at all (only `1.0`).
+- Some store standard powers of two (e.g. `[1.0, 0.5, 0.25, 0.125, 0.0625]`).
+- Others use application-specific factors (ZEN's 3x pyramid produces
+  `[1.0, 0.333, 0.111, ...]`).
+- `pylibCZIrw.CziReader.read(zoom=z)` reads directly from the matching
+  subblocks when `z` is a stored level (fast). Non-stored zooms trigger
+  libCZI's C++ resampler (slower, but still much cheaper than materialising
+  layer 0 in Python).
+- Levels below `zoom = 0.01` cannot be read (`pylibCZIrw` clamps to `0.01`)
+  and are automatically dropped from the returned list.
+
+Inspect the stored pyramid without reading any pixel data:
+
+```python
+from czitools.read_tools import get_pyramid_zooms
+
+print(get_pyramid_zooms("path/to/large.czi"))
+# -> [1.0, 0.5, 0.25, 0.125, 0.0625]
+```
+
+Build a multiscale pyramid ready for napari:
+
+```python
+from czitools.read_tools import read_stacks_multiscale
+
+levels, infos, dims, num_stacks, mdata = read_stacks_multiscale(
+    "path/to/large.czi",
+    use_xarray=True,
+    stack_scenes=True,
+    max_coarse_edge=8192,   # coarsest level's longest edge target in px
+)
+
+for lvl, info in zip(levels, infos):
+    print(f"zoom={info.zoom:.4f} stored={info.stored} shape={lvl.shape}")
+```
+
+Behaviour:
+
+- `levels` is a list, coarsest last. Every element has the same `S/T/C/Z`
+  shape as level 0 but progressively smaller `Y/X`.
+- `infos` contains a `PyramidLevel(zoom, stored, y, x)` per level so callers
+  can build per-level scale metadata (napari infers this from shape ratios
+  in most cases).
+- If the coarsest stored level's longer edge is still greater than
+  `max_coarse_edge` (default 8192), additional coarser levels are appended
+  by repeatedly halving the zoom until the top of the pyramid fits within
+  the target. Those synthetic levels use libCZI's resampler.
+- The read graph stays fully lazy — nothing is fetched until a caller
+  triggers `.compute()` (or napari renders the tiles it needs).
+
+```python
+import napari
+
+viewer = napari.Viewer()
+viewer.add_image(levels, multiscale=True)
 ```
 
 ## Reading Well-Plate Metadata
@@ -345,8 +477,8 @@ stacked, mdata = read_well(filepath, well="B4", stack=True)
 If the CZI has no usable HCS plate metadata, both functions raise a `ValueError`
 explaining why (from `CziMetadata.hcs_status.reason`).
 
-These functions reuse `read_6darray`. Their `use_dask=True` results are
-Dask-backed, but are not true on-demand reads from the CZI.
+These functions reuse `read_6darray`, so `use_dask=True` also provides
+on-demand CZI plane reads.
 
 ## Displaying in Napari
 
@@ -595,7 +727,8 @@ print(f"Wrote {output}")
 ## Practical Guidance
 
 - Start with `CziMetadata` when deciding how to process an unfamiliar CZI.
-- Use `read_6darray` for regular data that comfortably fits in memory.
+- Use `read_6darray` for regular data, with `use_dask=True` when pixel reads
+  should remain lazy.
 - Use `read_stacks_list(..., use_dask=True)` for genuinely lazy access and
   unequal scene shapes.
 - Prefer the HCS model over manually correlating scenes and well names.

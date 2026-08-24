@@ -1,10 +1,10 @@
 [build-system]
-requires = ["setuptools>=77"]
+requires = ["setuptools>=77", "setuptools-scm>=8"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "czitools"
-version = "0.20.1"
+dynamic = ["version"]
 description = "Tools for reading CZI pixel data and metadata and converting CZI data to OME-Zarr"
 readme = "README.md"
 license = "GPL-3.0-only"
@@ -53,7 +53,7 @@ all = [
     "pyqtgraph",
     "cmap",
     "ngff-zarr[dask-image,validate]>=0.39.0",
-    "ome-zarr>=0.16.0",
+    "ome-zarr>=0.18.0",
     "ome-zarr-models>=1.7,<2",
     "magicgui",
     "napari>=0.8.0",
@@ -68,7 +68,7 @@ all = [
 # OME-Zarr / OME-NGFF export (czitools.export_tools): conversion + validation.
 omezarr = [
     "ngff-zarr[dask-image,validate]>=0.39.0",
-    "ome-zarr>=0.16.0",
+    "ome-zarr>=0.18.0",
     "ome-zarr-models>=1.7,<2",
     "tensorstore",  # optional async/parallel chunk I/O backend for ngff-zarr writes
 ]
@@ -106,7 +106,7 @@ docs = [
     # Installed so the auto-generated czitools.export_tools API pages resolve
     # signature type references during the docs build.
     "ngff-zarr>=0.39.0",
-    "ome-zarr>=0.16.0",
+    "ome-zarr>=0.18.0",
     "zarr>=3.0",
     "ome-zarr-models>=1.7,<2",
     "magicgui",
@@ -143,6 +143,9 @@ exclude = ["czitools._tests*", "data*", "docs*", "demo*", "images*", "archive*"]
     "*.zarr",
     "*MetaData.xml",
 ]
+
+[tool.setuptools_scm]
+version_file = "src/czitools/_version.py"
 
 [tool.pytest.ini_options]
 testpaths = ["src/czitools/_tests"]

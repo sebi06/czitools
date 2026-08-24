@@ -11,7 +11,6 @@ metadata raises :class:`ValueError` instead of manufacturing a plate.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import List
 
 from czitools.export_tools.plate import extract_well_coordinates
 from czitools.metadata_tools.czi_metadata import CziMetadata
@@ -32,8 +31,8 @@ class HcsWellLayout:
 class HcsLayout:
     """Normalized plate layout shared by both export backends."""
 
-    row_names: List[str]
-    col_names: List[str]
+    row_names: list[str]
+    col_names: list[str]
     wells: list[HcsWellLayout]
     field_count: int
     source: str  # "hcs" or "sample"

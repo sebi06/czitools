@@ -21,9 +21,7 @@ import shutil
 import sys
 import time
 from pathlib import Path
-from typing import Optional
 
-# from typing import Dict, Optional, Union
 import dask
 import dask.array as da
 import ngff_zarr as nz
@@ -969,7 +967,7 @@ def write_omezarr_ngff(
     min_size: int = 512,
     max_levels: int = 6,
     use_tensorstore: bool | None = None,
-) -> Optional["nz.NgffImage"]:
+) -> "nz.NgffImage | None":
     """Write a single 5D image to OME-Zarr NGFF format with multi-scale pyramids.
 
     Args:

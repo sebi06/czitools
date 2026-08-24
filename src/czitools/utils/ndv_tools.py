@@ -7,7 +7,8 @@ with the NDV array viewer.
 
 from __future__ import annotations
 
-from typing import Protocol, Sequence, TypeAlias
+from typing import Protocol, TypeAlias
+from collections.abc import Sequence
 
 from cmap import Colormap
 

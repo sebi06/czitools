@@ -7,7 +7,6 @@ inside `__post_init__` and avoids modifying caller-provided types by
 using `os.fspath` for path-like conversion.
 """
 
-from typing import Optional, Union
 from dataclasses import dataclass, field
 import os
 from czitools.utils import logging_tools
@@ -45,13 +44,13 @@ class CziScene:
           handles are closed.
     """
 
-    filepath: Union[str, os.PathLike]
+    filepath: str | os.PathLike
     index: int
-    bbox: Optional[pyczi.Rectangle] = field(init=False, default=None)
-    xstart: Optional[int] = field(init=False, default=None)
-    ystart: Optional[int] = field(init=False, default=None)
-    width: Optional[int] = field(init=False, default=None)
-    height: Optional[int] = field(init=False, default=None)
+    bbox: pyczi.Rectangle | None = field(init=False, default=None)
+    xstart: int | None = field(init=False, default=None)
+    ystart: int | None = field(init=False, default=None)
+    width: int | None = field(init=False, default=None)
+    height: int | None = field(init=False, default=None)
     verbose: bool = False
 
     def __post_init__(self) -> None:

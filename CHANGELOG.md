@@ -6,6 +6,77 @@ and the project adheres to [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [0.21.0] — 2026-08-24
+
+### Added
+
+- `czitools.read_tools.get_pyramid_zooms(filepath)` — enumerates a CZI's
+  stored pyramid levels via `pylibCZIrw.CziReader.enumerate_subblocks` and
+  `SubBlockInfo.get_zoom()`. Runs in ~20 ms even on gigapixel files with
+  thousands of subblocks. Uses only `pylibCZIrw`; no `czifile` dependency.
+- `czitools.read_tools.read_stacks_multiscale(filepath, ...)` — returns one
+  lazy Dask array per pyramid level in the shape napari's
+  `add_image(..., multiscale=True)` accepts. Detected on-disk levels are
+  served directly from their subblocks. If the coarsest stored level
+  exceeds `max_coarse_edge` (default 8192 px), additional coarser levels
+  are synthesised via libCZI's C++ resampler so the top of the pyramid
+  always fits in one GPU texture.
+- `czitools.read_tools.PyramidLevel` — dataclass exposing per-level
+  `zoom`, `stored`, `y`, `x`.
+- `read_stacks(..., tile_size=4096)` — new parameter for spatial Y/X
+  tiling of gigapixel planes. Automatically activated when a single 2D
+  plane exceeds `chunk_memory_limit` (default 256 MB). Each Dask chunk
+  becomes one ROI-based read via
+  `pylibCZIrw.CziReader.read(roi=(x, y, w, h))`, so viewers only fetch
+  the tiles that intersect the current viewport instead of full planes.
+
+### Changed
+
+- The monolithic `src/czitools/read_tools/read_tools.py` (~1550 lines) is
+  split into focused modules: `_helpers.py`, `array6d.py`, `stacks.py`,
+  `field_well.py`, `attachments.py`, `tiles.py`, and the new
+  `pyramid.py`. The old `read_tools.py` remains as a backward-compat
+  facade that re-exports every public function, so existing imports like
+  `from czitools.read_tools import read_tools; read_tools.read_stacks(...)`
+  continue to work unchanged.
+- `read_stacks` no longer materialises a full plane just to probe dtype
+  and shape. It now issues a 1×1 ROI probe read and derives spatial
+  extents from `stack_rect × zoom`. This alone drops multiscale
+  construction on a 93,555 × 138,996 file from ~164 s to ~2.5 s.
+- Typing modernised to PEP 604 (`X | None`) and PEP 585 builtin generics
+  in the split modules.
+- README, `docs/usage.md`, and `_notes/MODERNIZATION_TODO.md` describe
+  the new tiling and multiscale reading APIs, including coordinate-space
+  and rounding caveats.
+
+### Fixed
+
+- `read_stacks` now uses `int()` truncation (matching libCZI's
+  convention) when predicting the shape of a zoomed read. `round()`
+  overshoots by one pixel for zooms like `0.037037` and caused
+  `ValueError: could not broadcast input array from shape (X-1, Y-1)
+  into shape (X, Y)` at chunk assembly.
+- The tiled reader now expresses each ROI in **layer-0 native
+  coordinates** and computes the declared Dask chunk shape with the same
+  `int(roi × zoom)` formula libCZI uses. Previously the tile grid was
+  laid out in zoomed coordinates, which silently produced wrong pixels
+  at any non-1.0 zoom.
+- A single `_plan_tile_grid` helper is now the source of truth for the
+  per-row and per-column tile sizes. Both the Dask graph and the outer
+  coordinate arrays consume this plan, eliminating the
+  `xarray.CoordinateValidationError: conflicting sizes for dimension
+  'Y'` that occurred at zooms like `1/3` where the sum of per-tile
+  truncated sizes differs from the truncation of the total size.
+- The napari-czitools plugin (companion release) now forwards
+  `use_dask=True` whenever the "Lazy Loading" checkbox is checked and
+  passes an explicit `contrast_limits` (from the CZI's embedded display
+  settings) so napari does not auto-scan the entire Dask array to derive
+  the display range.
+
+See [_release_notes/v0.21.0.md](_release_notes/v0.21.0.md) for detailed release notes.
+
+---
+
 ## [0.20.1] — 2026-08-02
 
 ### Added

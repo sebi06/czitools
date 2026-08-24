@@ -14,7 +14,6 @@ names, colours, dye names, pixel types and RGB status from CZI metadata.
 
 import os
 from dataclasses import dataclass, field
-from typing import Dict, List
 
 import numpy as np
 from box import Box, BoxList
@@ -56,7 +55,7 @@ class CziChannelInfo:
     dyes_short: list[str] = field(init=False, default_factory=lambda: [])
     channel_descriptions: list[str] = field(init=False, default_factory=lambda: [])
     colors: list[str] = field(init=False, default_factory=lambda: [])
-    clims: list[List[float]] = field(init=False, default_factory=lambda: [])
+    clims: list[list[float]] = field(init=False, default_factory=lambda: [])
     gamma: list[float] = field(init=False, default_factory=lambda: [])
     pixeltypes: dict[int, str] = field(init=False, default_factory=lambda: {})
     isRGB: dict[int, bool] = field(init=False, default_factory=lambda: {})
@@ -158,7 +157,7 @@ class CziChannelInfo:
         # Gamma: fallback to 0.85 if not provided
         self.gamma.append(0.85 if display.Gamma is None else float(display.Gamma))
 
-    def _calculate_display_settings(self) -> Dict:
+    def _calculate_display_settings(self) -> dict:
         """Construct pylibCZIrw channel display settings for each channel.
 
         The function maps per-channel metadata (color, display limits, and
@@ -185,7 +184,7 @@ class CziChannelInfo:
         num_channels = len(self.names)
 
         # initialize the display settings mapping
-        display_settings_dict: Dict[int, pyczi.ChannelDisplaySettingsDataClass] = {}
+        display_settings_dict: dict[int, pyczi.ChannelDisplaySettingsDataClass] = {}
 
         for channel_index in range(num_channels):
 

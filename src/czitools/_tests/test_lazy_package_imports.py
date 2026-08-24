@@ -7,10 +7,13 @@ import sys
 def test_top_level_package_does_not_eagerly_import_subpackages() -> None:
     code = """
 import sys
+from importlib.metadata import version
+
 import czitools
 
 subpackages = {"metadata_tools", "read_tools", "utils", "visu_tools"}
 assert subpackages <= set(dir(czitools))
+assert czitools.__version__ == version("czitools")
 assert all(f"czitools.{name}" not in sys.modules for name in subpackages)
 assert "matplotlib" not in sys.modules
 assert "dask" not in sys.modules

@@ -18,7 +18,7 @@ metadata and return it as a `pandas.DataFrame`.
 import os
 import xml.etree.ElementTree as ET
 from pathlib import Path
-from typing import Any, Dict, Optional, Tuple, Union
+from typing import Any
 
 import czifile as czifile_module
 import dateutil.parser as dt
@@ -60,7 +60,7 @@ def _get_scene_index(de: Any, default: int = 0) -> int:
     return idx if idx is not None and idx >= 0 else default
 
 
-def _get_bbox(de: Any) -> Tuple[int, int, int, int]:
+def _get_bbox(de: Any) -> tuple[int, int, int, int]:
     """Extract (xstart, ystart, width, height) from a czifile directory_entry."""
     xstart = misc._de_dim_start(de, "X")
     ystart = misc._de_dim_start(de, "Y")
@@ -70,13 +70,13 @@ def _get_bbox(de: Any) -> Tuple[int, int, int, int]:
 
 
 def get_planetable(
-    czipath: Union[str, os.PathLike[str]],
-    norm_time: Optional[bool] = True,
-    save_table: Optional[bool] = False,
-    table_separator: Optional[str] = ";",
-    table_index: Optional[bool] = True,
-    planes: Optional[Dict[str, int]] = None,
-) -> Tuple[pd.DataFrame, Optional[str]]:
+    czipath: str | os.PathLike[str],
+    norm_time: bool | None = True,
+    save_table: bool | None = False,
+    table_separator: str | None = ";",
+    table_index: bool | None = True,
+    planes: dict[str, int] | None = None,
+) -> tuple[pd.DataFrame, str | None]:
     """
     Extracts the plane table from the individual subblocks of a CZI file.
 
@@ -107,7 +107,7 @@ def get_planetable(
 
     rows = []
     # Mosaic tile counter: maps (S, T, C, Z) → next M index
-    tile_counters: Dict[Tuple[int, int, int, int], int] = {}
+    tile_counters: dict[tuple[int, int, int, int], int] = {}
 
     with czifile_module.CziFile(czipath) as czi:
         subblocks = list(czi.subblocks())
@@ -220,7 +220,7 @@ def get_planetable(
     return df_czi, None
 
 
-def _getsbinfo(subblock: Optional[Any]) -> Tuple[float, float, float, float]:
+def _getsbinfo(subblock: Any | None) -> tuple[float, float, float, float]:
     """
     Extracts metadata information from a subblock metadata XML element.
 
@@ -281,7 +281,7 @@ def _norm_columns(df: pd.DataFrame, colname: str = "Time [s]", mode: str = "min"
     return df
 
 
-def filter_planetable(planetable: pd.DataFrame, planes: Optional[Dict[str, int]] = None) -> pd.DataFrame:
+def filter_planetable(planetable: pd.DataFrame, planes: dict[str, int] | None = None) -> pd.DataFrame:
     """
     Filters the input planetable DataFrame based on specified dimension entries.
 
@@ -418,7 +418,7 @@ def _initialize_planetable_dataframe() -> pd.DataFrame:
 
 def _save_planetable_if_requested(
     df_czi: pd.DataFrame, czifile: str, table_separator: str, table_index: bool
-) -> Tuple[pd.DataFrame, Optional[str]]:
+) -> tuple[pd.DataFrame, str | None]:
     """
     Save the planetable to CSV if requested.
 

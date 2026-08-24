@@ -86,7 +86,7 @@ print(mdata.scale_required.X)
 # Read regular, equal-sized scenes eagerly as a labelled STCZYX(A) array.
 array6d, mdata = read_6darray("path/to/file.czi", use_xarray=True)
 
-# For true on-demand Dask reads, keep scenes as a list.
+# For irregular scenes, keep genuinely lazy reads as a list.
 scenes, dims, scene_count, mdata = read_stacks_list(
     "path/to/file.czi",
     use_dask=True,
@@ -95,9 +95,41 @@ scenes, dims, scene_count, mdata = read_stacks_list(
 first_plane = scenes[0].isel(T=0, C=0, Z=0).compute()
 ```
 
-`read_6darray(..., use_dask=True)` produces a Dask-backed result but still
-reads the CZI eagerly. Use `read_stacks(..., use_dask=True)` or
-`read_stacks_list(..., use_dask=True)` for genuinely lazy pixel access.
+`read_6darray(..., use_dask=True)` also provides genuinely lazy pixel access
+when the CZI has equal-sized scenes and consistent pixel types.
+`read_stacks(..., use_dask=True)` groups up to 64 planes per task by default to
+reduce file-open and scheduler overhead. Set `lazy_read_strategy="plane"` for
+the finest-grained random access, or tune the group with `planes_per_chunk`.
+
+For gigapixel CZIs (single planes over ~256 MB uncompressed) `read_stacks`
+automatically activates **spatial Y/X tiling**: each dask chunk becomes one
+ROI-based read via `pylibCZIrw`, so viewers such as napari only load the tiles
+that intersect the visible viewport instead of full planes. Tune the tile edge
+with `tile_size` (default 4096) or the trigger threshold with
+`chunk_memory_limit`. Small planes keep the fast whole-plane path.
+
+For interactive viewers that need a **multiscale pyramid** (napari's
+`add_image(..., multiscale=True)`, gigapixel whole-slide display, etc.) use
+`read_stacks_multiscale`:
+
+```python
+from czitools.read_tools import get_pyramid_zooms, read_stacks_multiscale
+
+# Inspect the stored pyramid without reading pixels.
+print(get_pyramid_zooms("path/to/large.czi"))
+# -> [1.0, 0.5, 0.25, 0.125, 0.0625]   (standard 2x pyramid)
+
+# One lazy dask array per level, ready for napari.
+levels, infos, dims, num_stacks, mdata = read_stacks_multiscale(
+    "path/to/large.czi",
+    max_coarse_edge=8192,   # force coarser synthetic levels if needed
+)
+```
+Levels detected on disk are served directly from their subblocks (no
+resampling). If the coarsest stored level is still larger than
+`max_coarse_edge` on any edge, additional coarser levels are synthesized
+via libCZI's C++ downsampler so the top of the pyramid always fits in one
+GPU texture.
 
 For detailed usage examples see the [Usage docs](https://sebi06.github.io/czitools/usage/).
 
