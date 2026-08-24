@@ -1,1 +1,12 @@
 prune src/czitools/_tests
+prune data
+prune demo
+prune _notes
+prune _images
+prune _archive
+prune _release_notes
+prune site
+prune build
+global-exclude *.lock
+global-exclude coverage.xml
+global-exclude .pixi
