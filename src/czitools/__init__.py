@@ -8,10 +8,16 @@ Provides three sub-packages:
 """
 
 from importlib import import_module
+from importlib.metadata import PackageNotFoundError
+from importlib.metadata import version as _metadata_version
 from types import ModuleType
 from typing import TYPE_CHECKING
 
-from czitools._version import version as __version__
+try:
+    __version__: str = _metadata_version("czitools")
+except PackageNotFoundError:
+    # editable install without dist-info; fall back to _version.py
+    from czitools._version import version as __version__  # type: ignore[assignment]
 
 __all__ = ["__version__", "metadata_tools", "read_tools", "utils", "visu_tools"]
 
