@@ -13,7 +13,6 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import cast
 
-import numpy as np
 import xarray as xr
 from pylibCZIrw import czi as pyczi
 
