@@ -120,6 +120,227 @@ def _read_plane_chunk(
     return chunk_array
 
 
+# ---------------------------------------------------------------------------
+# Spatial Y/X tiling helpers
+#
+# Gigapixel CZI files can have single 2D planes that are tens of GB when
+# uncompressed (e.g. 93,555 × 138,996 uint16 ≈ 24 GB per channel). Reading
+# such planes as one dask chunk defeats lazy access because the very first
+# read allocates the whole plane in RAM. The helpers below break a plane into
+# a grid of spatial tiles using pylibCZIrw's ROI-based read
+# (``CziReader.read(roi=(x, y, w, h), ...)``), so each dask task only fetches
+# the pixels of a single tile.
+#
+# The tiled path is only used when a single plane exceeds ``chunk_memory_limit``
+# in ``read_stacks``; smaller planes keep the fast whole-plane path.
+# ---------------------------------------------------------------------------
+
+
+def _read_tile_delayed(
+    filepath: str,
+    plane: dict[str, int],
+    stack_idx: int | None,
+    roi: tuple[int, int, int, int],
+    squeeze_grayscale: bool,
+    zoom: float = 1.0,
+    readertype: pyczi.ReaderFileInputTypes = pyczi.ReaderFileInputTypes.Standard,
+) -> np.ndarray:
+    """Read a single 2D spatial tile from a CZI file via a ROI.
+
+    Called lazily by dask when a specific spatial chunk is requested. The ROI
+    is expressed in the CZI's own coordinate system, so for scene-based files
+    the caller must add the scene's ``stack_rect.x/y`` offset before passing
+    the tuple in. ``pylibCZIrw.CziReader.read`` accepts ``roi`` as a plain
+    ``(x, y, w, h)`` tuple; using a tuple avoids importing/constructing
+    ``pyczi.Rectangle`` here.
+
+    Args:
+        filepath: Path to the CZI file (local path or URL).
+        plane: Dictionary mapping non-spatial dimension names (T/C/Z/...) to
+            their coordinate values for this tile.
+        stack_idx: Scene index to read from, or ``None`` when the CZI has no
+            explicit scenes (the ROI is then interpreted in the total
+            bounding rectangle's coordinate space).
+        roi: ``(x, y, w, h)`` region of interest in the CZI's coordinate
+            system. ``w`` and ``h`` are the tile's actual size (edge tiles
+            may be smaller than the nominal tile size).
+        squeeze_grayscale: If True, squeeze the trailing pixel-type axis
+            (A=1) for grayscale data. RGB (A=3) is preserved.
+        zoom: Downscale factor for the 2D read [0.01 - 1.0].
+        readertype: The pylibCZIrw reader type (Standard for local files,
+            Curl for URLs).
+
+    Returns:
+        2D numpy array of shape ``(h, w)`` for grayscale or ``(h, w, A)`` for
+        RGB. Dimensions match the ROI's ``h`` and ``w``.
+    """
+    # Each dask worker opens/closes the file independently. pylibCZIrw is
+    # thread-safe for read operations and releases the GIL during I/O.
+    with pyczi.open_czi(filepath, readertype) as czidoc:
+        if stack_idx is None:
+            # Scene-less CZI: ROI is in the total bounding rectangle's space.
+            img2d = czidoc.read(plane=plane, roi=roi, zoom=zoom)
+        else:
+            img2d = czidoc.read(plane=plane, scene=stack_idx, roi=roi, zoom=zoom)
+
+        if squeeze_grayscale:
+            img2d = img2d[..., 0]
+    return img2d
+
+
+def _compute_tile_extent(
+    spatial_y: int,
+    spatial_x: int,
+    dtype_nbytes: int,
+    components: int,
+    tile_size: int,
+    memory_limit: int,
+) -> tuple[int, int]:
+    """Choose ``(tile_h, tile_w)`` so a single tile fits under ``memory_limit``.
+
+    Starts from a square tile of ``tile_size`` (clamped to the actual plane
+    extent) and iteratively halves the larger dimension until the tile's
+    estimated memory footprint (``tile_h * tile_w * dtype_nbytes * components``)
+    is at or below ``memory_limit``. The halving guarantees termination; the
+    smallest allowed extent is one pixel.
+
+    Args:
+        spatial_y: Full plane height in pixels.
+        spatial_x: Full plane width in pixels.
+        dtype_nbytes: Bytes per pixel for a single component (e.g. 2 for
+            ``uint16``).
+        components: Number of pixel components (1 for grayscale, 3 for RGB).
+        tile_size: Requested nominal tile edge in pixels. Ignored if it
+            exceeds the plane extent.
+        memory_limit: Maximum allowed uncompressed bytes for one tile.
+
+    Returns:
+        ``(tile_h, tile_w)`` in pixels.
+    """
+    # Clamp the requested tile size so we never claim a larger tile than the
+    # plane itself; this also lets small planes use a single-tile layout.
+    tile_h = max(1, min(tile_size, spatial_y))
+    tile_w = max(1, min(tile_size, spatial_x))
+
+    def _bytes(h: int, w: int) -> int:
+        return h * w * dtype_nbytes * components
+
+    # Halve the larger dimension first to keep tiles reasonably square.
+    while _bytes(tile_h, tile_w) > memory_limit and (tile_h > 1 or tile_w > 1):
+        if tile_w >= tile_h and tile_w > 1:
+            tile_w = max(1, tile_w // 2)
+        elif tile_h > 1:
+            tile_h = max(1, tile_h // 2)
+        else:  # pragma: no cover - both are 1
+            break
+    return tile_h, tile_w
+
+
+def _build_tiled_plane_dask(
+    filepath: str,
+    plane: dict[str, int],
+    stack_idx: int | None,
+    spatial_y: int,
+    spatial_x: int,
+    origin_xy: tuple[int, int],
+    tile_h: int,
+    tile_w: int,
+    squeeze_grayscale: bool,
+    dtype: np.dtype,
+    zoom: float,
+    readertype: pyczi.ReaderFileInputTypes,
+    has_rgb_component: bool,
+    num_components: int | None,
+) -> da.Array:
+    """Compose a single 2D plane out of ROI-tile reads as one dask array.
+
+    Builds an ``n_rows × n_cols`` grid of ``da.from_delayed`` tiles and
+    concatenates them with ``da.concatenate`` (columns first along X,
+    then rows along Y). The returned dask array has shape
+    ``(spatial_y, spatial_x)`` (grayscale) or ``(spatial_y, spatial_x, A)``
+    (RGB) and chunks matching the tile grid, so consumers such as napari can
+    request just the tiles that intersect the visible viewport.
+
+    ``da.block`` is intentionally not used here: it matches its nesting
+    depth against the *last* N axes, which for RGB tiles would concatenate
+    along X and A (silently corrupting the pixel layout) instead of Y and X.
+    Explicit two-step ``da.concatenate`` calls stay correct for both
+    grayscale and RGB.
+
+    Edge tiles on the last row/column are clipped to the remaining extent, so
+    tile shapes are not necessarily equal.
+
+    Args:
+        filepath: Path to the CZI file.
+        plane: Non-spatial coordinate dict (T/C/Z/...) shared by every tile.
+        stack_idx: Scene index or ``None`` for scene-less files.
+        spatial_y: Full plane height in pixels (Y).
+        spatial_x: Full plane width in pixels (X).
+        origin_xy: ``(x, y)`` offset of the scene (or total bounding
+            rectangle) in the CZI's coordinate system. Added to each tile's
+            local ``(col*tile_w, row*tile_h)`` to build the ROI.
+        tile_h: Nominal tile height in pixels.
+        tile_w: Nominal tile width in pixels.
+        squeeze_grayscale: If True, grayscale planes drop the trailing A axis.
+        dtype: NumPy dtype of the pixels.
+        zoom: Downscale factor forwarded to each ROI read.
+        readertype: pylibCZIrw reader type (Standard / Curl).
+        has_rgb_component: True when the plane has an RGB pixel-type axis
+            that must be preserved (A=3).
+        num_components: Number of pixel components; only used when
+            ``has_rgb_component`` is True.
+
+    Returns:
+        A single ``dask.array.Array`` whose chunks are the individual tile
+        reads. Nothing is read until the dask array is computed or indexed.
+    """
+    origin_x, origin_y = origin_xy
+    n_rows = (spatial_y + tile_h - 1) // tile_h
+    n_cols = (spatial_x + tile_w - 1) // tile_w
+
+    # Build a nested list of dask arrays and assemble it with explicit
+    # ``da.concatenate`` calls (axis=1 = X, then axis=0 = Y). ``da.block``
+    # cannot be used directly here because it matches its nesting depth to
+    # the *last* N axes: for RGB planes with a trailing ``A`` axis it would
+    # concatenate along X and A instead of Y and X, silently corrupting the
+    # pixel layout. The two-step concatenation is unambiguous regardless of
+    # whether the tile has a trailing pixel-component axis.
+    grid: list[list[da.Array]] = []
+    for row in range(n_rows):
+        y0 = row * tile_h
+        this_h = min(tile_h, spatial_y - y0)
+        row_tiles: list[da.Array] = []
+        for col in range(n_cols):
+            x0 = col * tile_w
+            this_w = min(tile_w, spatial_x - x0)
+            # ROI must be in the CZI's coordinate system, so add the scene
+            # (or total-bounding-rectangle) origin to the local tile offset.
+            roi = (origin_x + x0, origin_y + y0, this_w, this_h)
+            tile_shape: tuple[int, ...]
+            if has_rgb_component and num_components is not None:
+                tile_shape = (this_h, this_w, num_components)
+            else:
+                tile_shape = (this_h, this_w)
+            delayed_tile = dask_delayed(_read_tile_delayed)(
+                filepath,
+                plane,
+                stack_idx,
+                roi,
+                squeeze_grayscale,
+                zoom,
+                readertype,
+            )
+            row_tiles.append(da.from_delayed(delayed_tile, shape=tile_shape, dtype=dtype))
+        grid.append(row_tiles)
+
+    # Concatenate columns along X first (axis 1), then rows along Y (axis 0).
+    # For a single-tile grid, this collapses to that tile without any copy.
+    if len(grid) == 1 and len(grid[0]) == 1:
+        return grid[0][0]
+    row_arrays = [(row_tiles[0] if len(row_tiles) == 1 else da.concatenate(row_tiles, axis=1)) for row_tiles in grid]
+    return row_arrays[0] if len(row_arrays) == 1 else da.concatenate(row_arrays, axis=0)
+
+
 def read_stacks(
     filepath: CziPath,
     use_dask: bool = False,
@@ -132,6 +353,7 @@ def read_stacks(
     chunk_memory_limit: int = 256 * 1024 * 1024,
     lazy_read_strategy: LazyReadStrategy = "chunk",
     planes_per_chunk: int = 64,
+    tile_size: int = 4096,
 ) -> ReadStacksWithMetaReturn:
     """Read all 2D planes from a CZI file, grouped per stack.
 
@@ -182,6 +404,17 @@ def read_stacks(
             finest-grained random access.
         planes_per_chunk: Maximum planes read by each chunk task when
             ``lazy_read_strategy="chunk"``. Defaults to 64.
+        tile_size: Nominal spatial tile edge in pixels used for Y/X tiling of
+            very large planes when ``use_dask=True``. Only activated when a
+            single uncompressed 2D plane would exceed ``chunk_memory_limit``
+            (default 256 MB). Small planes always keep the whole-plane path
+            and pay no tiling overhead. When tiling is triggered, each dask
+            chunk corresponds to one ROI read via
+            ``pylibCZIrw.CziReader.read(roi=(x, y, w, h))`` and the T/C/Z
+            grouping strategy is forced to ``"plane"`` so per-plane tile
+            grids can be composed with ``dask.array.block``. The requested
+            edge is halved iteratively so a single tile stays within
+            ``chunk_memory_limit``. Defaults to 4096.
 
     Returns:
         Tuple of (arrays_or_list, dims, num_stacks, metadata):
@@ -212,6 +445,8 @@ def read_stacks(
         raise ValueError("lazy_read_strategy must be either 'chunk' or 'plane'.")
     if planes_per_chunk < 1:
         raise ValueError("planes_per_chunk must be at least 1.")
+    if tile_size < 1:
+        raise ValueError("tile_size must be at least 1.")
 
     # Determine reader type for URL or local file support
     readertype, is_url = misc.get_pyczi_readertype(filepath)
@@ -372,26 +607,38 @@ def read_stacks(
             size_y, size_x = stack_rect.h, stack_rect.w
             logger.debug(f"read_stacks: Stack {stack_idx}: Y={size_y}, X={size_x}")
 
-            # Sample read to get dtype and actual spatial shape
+            # Peek at dtype and pixel-component layout using a 1x1 ROI. A
+            # full-plane sample here would allocate the entire plane just to
+            # inspect ``sample.dtype`` and ``sample.shape[2]``; that costs
+            # ~24 GB per level on gigapixel files. The 1x1 ROI is a few bytes
+            # and gives us the same dtype/RGB information. Spatial extents
+            # come from ``stack_rect`` (which we already have) scaled by the
+            # zoom factor — matching what pylibCZIrw returns from a full read.
             sample_plane = {name: start for name, start in zip(read_dims, read_starts)}
-            # If scenes present, read from the mapped scene_index; otherwise read total
+            probe_roi = (int(stack_rect.x), int(stack_rect.y), 1, 1)
             if scene_index is not None and len(czidoc.scenes_bounding_rectangle) > scene_index:
-                sample = czidoc.read(plane=sample_plane, scene=scene_index, zoom=zoom)
+                sample = czidoc.read(plane=sample_plane, scene=scene_index, roi=probe_roi, zoom=zoom)
             else:
-                sample = czidoc.read(plane=sample_plane, zoom=zoom)
+                sample = czidoc.read(plane=sample_plane, roi=probe_roi, zoom=zoom)
             dtype = sample.dtype
 
-            # Handle pixel type dimension (A) - grayscale (A=1) or RGB (A=3)
+            # sample.shape is (1, 1) for grayscale or (1, 1, C) for RGB after
+            # the 1x1 ROI, so pixel-type detection stays identical.
             has_pixel_type = sample.ndim == 3
             if has_pixel_type:
-                spatial_y, spatial_x, num_components = sample.shape
-                squeeze_grayscale = num_components == 1  # squeeze if grayscale
+                num_components = int(sample.shape[2])
+                squeeze_grayscale = num_components == 1
             else:
-                spatial_y, spatial_x = sample.shape
                 num_components = None
                 squeeze_grayscale = False
 
-                # Build final dimension list and shape (excluding S, since we loop over scenes)
+            # Full-plane spatial dims come from the scene rectangle, scaled by
+            # zoom. ``max(1, ...)`` guards against tiny scenes at extreme
+            # zooms rounding down to zero, which would produce empty arrays.
+            spatial_y = max(1, int(round(float(stack_rect.h) * zoom)))
+            spatial_x = max(1, int(round(float(stack_rect.w) * zoom)))
+
+            # Build final dimension list and shape (excluding S, since we loop over scenes)
             # Shape: (*read_sizes, Y, X [, A])
             if has_pixel_type and not squeeze_grayscale:
                 array_shape = tuple(read_sizes) + (spatial_y, spatial_x, num_components)
@@ -415,7 +662,62 @@ def read_stacks(
             if use_dask:
                 total_planes = int(np.prod(read_sizes)) if read_sizes else 1
 
-                if lazy_read_strategy == "chunk":
+                # Decide whether to spatially tile Y/X. Gigapixel planes must be
+                # broken into ROI tiles or the very first chunk fetch allocates
+                # the whole plane. Anything smaller keeps the fast whole-plane
+                # path so small files pay no overhead.
+                dtype_nbytes = int(np.dtype(dtype).itemsize)
+                plane_components = num_components if (has_pixel_type and not squeeze_grayscale) else 1
+                # ``plane_components or 1`` protects against ``None`` slipping
+                # through (num_components is only set when has_pixel_type=True).
+                plane_bytes = spatial_y * spatial_x * dtype_nbytes * (plane_components or 1)
+                use_spatial_tiling = plane_bytes > chunk_memory_limit
+                tile_h = tile_w = 0  # only meaningful when use_spatial_tiling
+                if use_spatial_tiling:
+                    tile_h, tile_w = _compute_tile_extent(
+                        spatial_y=spatial_y,
+                        spatial_x=spatial_x,
+                        dtype_nbytes=dtype_nbytes,
+                        components=plane_components or 1,
+                        tile_size=tile_size,
+                        memory_limit=chunk_memory_limit,
+                    )
+                    n_rows = (spatial_y + tile_h - 1) // tile_h
+                    n_cols = (spatial_x + tile_w - 1) // tile_w
+                    logger.info(
+                        "read_stacks: Stack %d plane is %.2f MB (> %.2f MB limit); "
+                        "using spatial tiling %dx%d (%d tiles per plane, tile %dx%d).",
+                        stack_idx,
+                        plane_bytes / (1024 * 1024),
+                        chunk_memory_limit / (1024 * 1024),
+                        n_rows,
+                        n_cols,
+                        n_rows * n_cols,
+                        tile_h,
+                        tile_w,
+                    )
+
+                # ROI origin: for scene-based files the ROI is expressed in the
+                # CZI's coordinate system, so use the scene's top-left corner.
+                # For scene-less files fall back to the total bounding rectangle
+                # (its (x, y) is 0 by default but may differ on legacy files).
+                if scene_index is not None and len(czidoc.scenes_bounding_rectangle) > scene_index:
+                    origin_xy = (int(stack_rect.x), int(stack_rect.y))
+                else:
+                    origin_xy = (int(stack_rect.x), int(stack_rect.y))
+
+                # Tiling forces per-plane task construction so we can compose a
+                # ``da.block`` grid at the leaves. The multi-plane "chunk"
+                # strategy is incompatible with per-plane spatial grids because
+                # each task returns a flat contiguous buffer.
+                effective_strategy: LazyReadStrategy = "plane" if use_spatial_tiling else lazy_read_strategy
+                if use_spatial_tiling and lazy_read_strategy == "chunk":
+                    logger.info(
+                        "read_stacks: spatial tiling active — overriding "
+                        "lazy_read_strategy='chunk' with 'plane' for this stack."
+                    )
+
+                if effective_strategy == "chunk":
                     logger.info(
                         f"read_stacks: Grouping {total_planes} planes into tasks "
                         f"of at most {planes_per_chunk} planes"
@@ -450,21 +752,29 @@ def read_stacks(
                         )
 
                     flattened = (
-                        delayed_chunks[0]
-                        if len(delayed_chunks) == 1
-                        else da.concatenate(delayed_chunks, axis=0)
+                        delayed_chunks[0] if len(delayed_chunks) == 1 else da.concatenate(delayed_chunks, axis=0)
                     )
                     stack = flattened.reshape(array_shape)
                 else:
-                    logger.info(
-                        f"read_stacks: Creating {total_planes} fine-grained plane tasks"
-                    )
+                    if not use_spatial_tiling:
+                        logger.info(f"read_stacks: Creating {total_planes} fine-grained plane tasks")
+
+                    # Capture whether the pixel-type axis must be preserved as
+                    # the trailing dim in every tile.
+                    has_rgb_component = has_pixel_type and not squeeze_grayscale
 
                     def build_dask_stack(
                         dims_remaining: list[int],
                         current_indices: list[int],
                     ) -> da.Array:
-                        """Recursively stack delayed single-plane reads."""
+                        """Recursively stack per-plane dask arrays.
+
+                        Leaves are either a single whole-plane delayed read
+                        or, when ``use_spatial_tiling`` is True, a tile grid
+                        composed by :func:`_build_tiled_plane_dask`. The
+                        interior nodes stack per-dimension along a new axis,
+                        matching the canonical dim order.
+                        """
                         if not dims_remaining:
                             plane = {
                                 name: start + index
@@ -474,6 +784,25 @@ def read_stacks(
                                     current_indices,
                                 )
                             }
+                            if use_spatial_tiling:
+                                # Each leaf is already a chunked dask array of
+                                # shape plane_shape — nothing is read yet.
+                                return _build_tiled_plane_dask(
+                                    filepath=filepath,
+                                    plane=plane,
+                                    stack_idx=scene_index,
+                                    spatial_y=spatial_y,
+                                    spatial_x=spatial_x,
+                                    origin_xy=origin_xy,
+                                    tile_h=tile_h,
+                                    tile_w=tile_w,
+                                    squeeze_grayscale=squeeze_grayscale,
+                                    dtype=dtype,
+                                    zoom=zoom,
+                                    readertype=readertype,
+                                    has_rgb_component=has_rgb_component,
+                                    num_components=num_components,
+                                )
                             delayed_read = _read_plane_delayed(
                                 filepath,
                                 plane,
@@ -716,6 +1045,7 @@ def read_stacks_list(
     chunk_memory_limit: int = 256 * 1024 * 1024,
     lazy_read_strategy: LazyReadStrategy = "chunk",
     planes_per_chunk: int = 64,
+    tile_size: int = 4096,
 ) -> tuple[StackList, list[str], int, czimd.CziMetadata]:
     """Read stacks and always return a list (one element per scene).
 
@@ -734,6 +1064,7 @@ def read_stacks_list(
         chunk_memory_limit=chunk_memory_limit,
         lazy_read_strategy=lazy_read_strategy,
         planes_per_chunk=planes_per_chunk,
+        tile_size=tile_size,
     )
 
     if not isinstance(result, list):
@@ -752,6 +1083,7 @@ def read_stacks_stacked(
     chunk_memory_limit: int = 256 * 1024 * 1024,
     lazy_read_strategy: LazyReadStrategy = "chunk",
     planes_per_chunk: int = 64,
+    tile_size: int = 4096,
 ) -> tuple[StackArray, list[str], int, czimd.CziMetadata]:
     """Read stacks and require a single stacked output with an S dimension.
 
@@ -771,6 +1103,7 @@ def read_stacks_stacked(
         chunk_memory_limit=chunk_memory_limit,
         lazy_read_strategy=lazy_read_strategy,
         planes_per_chunk=planes_per_chunk,
+        tile_size=tile_size,
     )
 
     if isinstance(result, list):

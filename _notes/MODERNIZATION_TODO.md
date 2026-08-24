@@ -78,6 +78,162 @@ Each item below is tagged with a recommended tier.
   Update the docstring to stop advertising a non-lazy `use_dask`.
 - **Effort:** M · **Model tier:** `premium` (dask laziness/correctness reasoning; easy to get subtly wrong)
 
+### 3b. Spatial Y/X tiling for very large planes `P1` `M`
+
+- **Where:** [src/czitools/read_tools/stacks.py](../src/czitools/read_tools/stacks.py)
+  (`_read_plane_delayed`, `_read_plane_chunk`, `read_stacks` dask branch).
+- **Problem:** even with `use_dask=True`, each dask task in `read_stacks` reads
+  one **whole 2D plane** at full resolution via `czidoc.read(plane=..., scene=...)`.
+  For gigapixel CZIs (for example a `93,555 × 138,996` uint16 plane ≈ 24 GB per
+  channel) a single tile fetch — including the very first tile napari asks for —
+  allocates the entire plane, so viewers OOM despite the graph being lazy. The
+  effective chunk size is the plane size, not a user-friendly tile size.
+- **Concept:** switch the dask graph from one-task-per-plane to a **grid of
+  spatial tiles per plane** using pylibCZIrw's existing ROI support
+  ([`CziReader.read(roi=Rectangle(x, y, w, h), ...)`](https://github.com/ZEISS/pylibczirw/blob/main/pylibCZIrw/czi.py#L912)).
+  Each tile task reads only the pixels inside its ROI, so viewers only pay for
+  the tiles that actually intersect the viewport.
+- **Threshold — only kicks in when needed:**
+  - Estimate `plane_bytes = spatial_y × spatial_x × dtype.itemsize` (× 3 for RGB).
+  - Reuse the existing `chunk_memory_limit` parameter (default 256 MB). When
+    `plane_bytes > chunk_memory_limit`, build a tiled dask graph; otherwise keep
+    the current whole-plane behaviour. Small planes therefore pay **no overhead**.
+  - Default tile size: 4096 × 4096 (~32 MB uint16), configurable via a new
+    `tile_size: int = 4096` parameter. Actual tile dims are clamped to
+    `chunk_memory_limit`.
+- **How the graph is built:**
+  1. Compute the tile grid `(n_rows, n_cols)` from `(spatial_y, spatial_x)`.
+  2. Add `_read_tile_delayed(filepath, plane, scene_index, roi, zoom, ...)` and
+     `_read_tile_chunk(filepath, tiles_batch, ...)` helpers. Both call
+     `czidoc.read(plane=..., scene=..., roi=Rectangle(x, y, w, h))`. ROI
+     coordinates are expressed in the **scene's** coordinate space: the base
+     offset is `stack_rect.x/y` (or `total_bounding_rectangle` for scene-less
+     files), so each tile's `roi.x = base_x + col * tile_w`, `roi.y = base_y +
+     row * tile_h`, with the last row/column clipped to the remaining extent.
+  3. Wrap each tile in `da.from_delayed(shape=(tile_h, tile_w[, A]), dtype=...)`.
+  4. Compose the plane with `da.block([[t00, t01, ...], [t10, t11, ...], ...])`
+     so the resulting dask array has shape `(spatial_y, spatial_x[, A])` with
+     chunks `((tile_h, ..., last_tile_h), (tile_w, ..., last_tile_w))`.
+  5. Combine per-plane tiled arrays across T/C/Z (and extra dims) using the
+     existing `da.stack`/`build_dask_stack` pattern.
+- **Where the change lives:**
+  - **czitools only** — extends `stacks.py`. `napari-czitools` needs no changes
+    because it already forwards `use_dask=True` and napari natively renders
+    chunked dask arrays.
+  - Existing `lazy_read_strategy` / `planes_per_chunk` still control T/C/Z-plane
+    grouping; `tile_size` is orthogonal and controls the Y/X grid.
+- **Impact on the 105 GB / 93k × 139k uint16 file:**
+  - Chunk size drops from ~24 GB → ~32 MB (4096² tile).
+  - Initial napari render loads only the few tiles that intersect the viewport
+    (a couple hundred MB) instead of every full plane (~72 GB for 3 channels).
+- **Effort:** M · **Model tier:** `premium` (dask graph shape + ROI coordinate
+  arithmetic must be correct; add tests covering last-tile clamping, RGB (A dim),
+  scene-less files, and cross-check pixels against a whole-plane read for a
+  small file).
+
+### 3c. Multiscale pyramid reader for gigapixel display `P1` `L`
+
+- **Where:** new module `src/czitools/read_tools/pyramid.py` (multiscale) plus
+  the existing [stacks.py](../src/czitools/read_tools/stacks.py) tiling. Also
+  extends [napari-czitools](../../napari-czitools/) to consume the multiscale
+  list.
+- **Problem — the second-order rendering wall:** the Y/X tiling in item 3b
+  removed the OOM at construction time and made viewport-scale reads cheap,
+  but a single gigapixel plane still has to be rendered by napari. Without a
+  multiscale representation, napari's default 2D image layer must materialize
+  the full plane once to build a display texture (the array is far larger
+  than any GPU texture, so downsampling happens on the CPU) and then keep it
+  cached for interactive contrast changes. Observed on the 93,555 × 138,996
+  `uint16` file: first-frame latency ≈ 90 s and RAM oscillates between about
+  44 GB and 90 GB (multiple ~24 GB copies during the render pipeline).
+  Contrast auto-detection is no longer to blame — it now uses the CZI's
+  embedded display settings for free — so only a multiscale pyramid can
+  eliminate the ~24 GB spikes.
+- **CZI reality — no assumptions about level count or ratio:**
+  - Some CZIs store no pyramid at all (only zoom `1.0`).
+  - Some store standard powers of two (`1.0, 0.5, 0.25, ...` — for example
+    `DTScan_ID4.czi` has 5 such levels).
+  - Others use application-specific factors. The 105 GB `Mouse Kidney` file
+    stores only `[1.0, 0.333]`, so its coarsest stored level is still
+    ~31k × 46k and will not fit in one GPU texture.
+  - Reading a stored zoom via `pylibCZIrw.CziReader.read(zoom=z)` serves
+    pixels directly from the matching subblocks (**cheap**). Requesting a
+    zoom that is not stored triggers libCZI's C++ sampler
+    (**not free** but still much cheaper than materializing layer 0 in
+    Python and downsampling).
+- **Detection is pylibCZIrw-only (no `czifile` needed):**
+  ```python
+  from pylibCZIrw import czi as pyczi
+
+  zooms: set[float] = set()
+
+  def _cb(idx, info) -> bool:
+      zooms.add(round(float(info.get_zoom()), 6))
+      return True
+
+  with pyczi.open_czi(filepath) as doc:
+      doc.enumerate_subblocks(_cb)
+  # sorted(zooms, reverse=True) -> [1.0, 0.5, 0.25, ...]
+  ```
+  `CziReader.enumerate_subblocks` walks subblock headers only (no pixel I/O)
+  and `SubBlockInfo.get_zoom()` returns the stored physical/logical ratio
+  directly. Verified against `CellDivision`, `Tumor_HE_RGB`, `WellD6_S1`,
+  `DTScan_ID4`, and the `Mouse Kidney` gigapixel file.
+- **Action / design:**
+  1. Add `get_pyramid_zooms(filepath) -> list[float]` in a small
+     `pyramid.py` helper (sorted largest-first, `[1.0]` for files without a
+     stored pyramid).
+  2. Add `read_stacks_multiscale(filepath, ..., extra_coarse_edge=8192)`
+     that returns a `list[array]` — one per pyramid level, same S/T/C/Z
+     shape, progressively smaller Y/X. Each level is built by calling the
+     existing `read_stacks(..., zoom=z, use_dask=True, use_xarray=...)` so
+     spatial Y/X tiling from item 3b still applies per level and the plumbing
+     stays in one place. Cache the parsed `CziMetadata` between level reads
+     to avoid re-parsing XML.
+  3. **GPU-safety synthesis.** After the stored levels, extend the list with
+     synthetic coarser levels (each half the previous edge) until the
+     coarsest edge is ≤ `extra_coarse_edge` (default 8192, safely under the
+     typical 16k GPU texture limit). Each synthetic level is a call to
+     `read_stacks(..., zoom=z_synth)` — libCZI resamples in C++ from the
+     nearest stored level. The synthetic reads only happen when napari
+     actually asks for those tiles, so the graph itself stays lazy.
+  4. Return a helper `list[LevelInfo]` alongside the arrays with per-level
+     zoom, physical pixel size, and shape so napari-czitools can pass a
+     matching `scale` per level.
+- **napari-czitools integration:**
+  1. `ChannelLayer.sub_array` accepts either `xr.DataArray` (as today) or
+     `list[xr.DataArray | dask.array.Array]` (multiscale). Add matching
+     `scales: list[list[float]] | None` for per-level scale vectors.
+  2. `CZIDataLoader.add_to_viewer` detects the list case and calls
+     `viewer.add_image(sub_array_list, multiscale=True, scale=scales, ...)`
+     while continuing to forward the pre-computed `contrast_limits`.
+  3. Turn multiscale on automatically when the file has more than one
+     detected level. Add an option to force it off (fallback to the current
+     single-array path) for debugging or files where the pyramid is broken.
+- **Where the change lives:**
+  - Core detection + multiscale reader: `czitools`.
+  - Consumer wiring (widget checkbox, `add_image(multiscale=True)`, per-level
+    scale metadata): `napari-czitools`.
+- **Expected impact on the 105 GB / 93k × 139k file:**
+  - First-frame latency drops from ~90 s → ~1–3 s (napari renders the coarse
+    level immediately).
+  - Peak RAM drops from ~90 GB → baseline + a few hundred MB (the coarse
+    level is a few MB; finer tiles stream only when the user zooms in).
+  - Pan/zoom stays fluid because only visible tiles at the current zoom level
+    are read on demand.
+- **Tests to add:**
+  - `get_pyramid_zooms` matches expected sets for the probed files above.
+  - `read_stacks_multiscale` returns a list of length ≥ 1 with monotonically
+    shrinking Y/X.
+  - Pixel-equality between level 0 of the multiscale output and the current
+    `read_stacks_stacked` result.
+  - Synthetic-level path: when the coarsest stored level is larger than
+    `extra_coarse_edge`, the returned list includes additional lazy levels
+    with correct shapes.
+- **Effort:** L · **Model tier:** `premium` (detection + graph construction
+  are simple; the fiddly parts are non-uniform pyramid ratios, per-level
+  `scale`, and integration with napari's multiscale renderer).
+
 ### 4. Split the monolithic `read_tools.py` (~1550 lines) `P1` `M`
 
 - **Where:** [src/czitools/read_tools/read_tools.py](../src/czitools/read_tools/read_tools.py)
@@ -148,10 +304,10 @@ Each item below is tagged with a recommended tier.
   `CellDivision_T10_Z15_CH2_DCV_small.czi` (300 planes, 39 MiB source), using
   pixel-equivalent Zstd-compressed, one-plane chunks:
 
-  | Workload | Optimized CZI | Zarr chunk I/O | Result |
-  | -------- | ------------: | -------------: | ------ |
-  | Full 300-plane scan | 0.063 s | 0.068 s | Zarr was about 9% slower |
-  | 20 random planes | 0.357 s | 0.0047 s | Zarr was about 76x faster |
+  | Workload            | Optimized CZI | Zarr chunk I/O | Result                    |
+  | ------------------- | ------------: | -------------: | ------------------------- |
+  | Full 300-plane scan |       0.063 s |        0.068 s | Zarr was about 9% slower  |
+  | 20 random planes    |       0.357 s |       0.0047 s | Zarr was about 76x faster |
 
   The cache read-and-write step took about 0.24 s after the common metadata
   setup, so it broke even after roughly 14 random plane reads. The compressed
@@ -261,6 +417,8 @@ Each item below is tagged with a recommended tier.
 - [x] #1 CI test gating
 - [x] #2 setuptools-scm versioning
 - [x] #3 true-lazy read_6darray
+- [x] #3b spatial Y/X tiling for very large planes
+- [x] #3c multiscale pyramid reader for gigapixel display
 - [x] #4 split read_tools.py
 - [x] #5 modern typing
 - [x] #6 reading speed

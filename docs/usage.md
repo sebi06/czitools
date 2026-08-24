@@ -113,14 +113,14 @@ scaling = czi_box.ImageDocument.Metadata.Scaling.Items.Distance
 Choose the reader according to the regularity of the data and whether loading
 must be genuinely lazy:
 
-| Requirement                               | Recommended function          | Result                        |
-| ----------------------------------------- | ----------------------------- | ----------------------------- |
-| Equal-sized scenes; eager read            | `read_6darray`                | One `STCZYX(A)` array         |
-| Equal-sized scenes; lazy read             | `read_6darray(use_dask=True)` | One lazy `STCZYX(A)` array    |
-| Irregular scenes; lazy read               | `read_stacks(use_dask=True)`  | Per-scene arrays by default   |
-| True lazy reads with equal scenes stacked | `read_stacks_stacked`         | One array with `S`            |
-| Scenes that may differ in shape           | `read_stacks_list`            | Stable list of scene arrays   |
-| A known HCS well or field                 | `read_well` / `read_field`    | HCS-aware field arrays        |
+| Requirement                               | Recommended function          | Result                       |
+| ----------------------------------------- | ----------------------------- | ---------------------------- |
+| Equal-sized scenes; eager read            | `read_6darray`                | One `STCZYX(A)` array        |
+| Equal-sized scenes; lazy read             | `read_6darray(use_dask=True)` | One lazy `STCZYX(A)` array   |
+| Irregular scenes; lazy read               | `read_stacks(use_dask=True)`  | Per-scene arrays by default  |
+| True lazy reads with equal scenes stacked | `read_stacks_stacked`         | One array with `S`           |
+| Scenes that may differ in shape           | `read_stacks_list`            | Stable list of scene arrays  |
+| Gigapixel planes (whole-slide, large 2D)  | `read_stacks(use_dask=True)`  | Automatic spatial Y/X tiling |  | Multiscale pyramid for napari | `read_stacks_multiscale` | List of dask arrays per level |  | A known HCS well or field | `read_well` / `read_field` | HCS-aware field arrays |
 
 ### `read_6darray` — Full 6D Stack
 
@@ -220,6 +220,119 @@ scenes, dims, scene_count, mdata = read_stacks_list(
 
 # With the plane strategy, this computes only the selected plane task.
 first_plane = scenes[0].isel(T=0, C=0, Z=0).compute()
+```
+
+#### Spatial Y/X tiling for very large planes
+
+Some CZI files, especially whole-slide or high-magnification scans, contain
+individual 2D planes that are tens of gigabytes when uncompressed. A single
+`93,555 × 138,996` `uint16` plane is about **24 GB** per channel. If the dask
+graph uses one task per plane, the very first tile fetch a viewer performs
+loads the entire plane into RAM.
+
+To keep those files usable, `read_stacks(..., use_dask=True)` automatically
+tiles Y/X into a grid when a single plane would exceed `chunk_memory_limit`
+(default 256 MB). Each tile becomes its own dask chunk backed by a
+ROI-based read via
+[`pylibCZIrw.CziReader.read(roi=(x, y, w, h), ...)`](https://github.com/ZEISS/pylibczirw),
+so viewers such as napari only fetch the tiles that intersect the current
+viewport.
+
+Behaviour:
+
+- **Trigger:** `plane_bytes = spatial_y × spatial_x × dtype.itemsize × components`;
+  tiling is used when `plane_bytes > chunk_memory_limit`.
+- **Tile size:** `tile_size` (default 4096) sets the nominal square edge. The
+  chosen tile is halved iteratively so a single tile never exceeds
+  `chunk_memory_limit`.
+- **Grouping:** spatial tiling forces `lazy_read_strategy="plane"` for the
+  affected stack. Small planes always keep the whole-plane path (no overhead).
+- **Where the change lives:** entirely in `czitools`. Downstream code (for
+  example `napari-czitools`) needs no changes because it already passes
+  `use_dask=True` and napari renders chunked dask arrays natively.
+
+```python
+from czitools.read_tools import read_stacks_stacked
+
+# A 93k x 139k uint16 plane triggers 4096x4096 tiling (~32 MB per chunk).
+stacked, dims, n, mdata = read_stacks_stacked(
+    "path/to/huge.czi",
+    use_dask=True,
+    use_xarray=True,
+    tile_size=4096,               # optional; 4096 is the default
+    chunk_memory_limit=256 * 1024 * 1024,  # optional; 256 MB is the default
+)
+
+# Nothing has been read yet. Only the tiles hit by this ROI are loaded.
+viewport = stacked.isel(S=0, T=0, C=0, Z=0, Y=slice(0, 4096), X=slice(0, 4096))
+viewport.compute()
+```
+
+#### Multiscale pyramid reading
+
+Interactive viewers such as napari need a **multiscale pyramid** to render
+gigapixel planes efficiently: the coarsest level is uploaded to a single GPU
+texture and finer tiles stream in on zoom. `read_stacks_multiscale` wraps
+`read_stacks` and returns one lazy dask array per pyramid level, in a shape
+that napari's `viewer.add_image(..., multiscale=True)` accepts directly.
+
+CZI reality:
+
+- Some files store no pyramid at all (only `1.0`).
+- Some store standard powers of two (e.g. `[1.0, 0.5, 0.25, 0.125, 0.0625]`).
+- Others use application-specific factors (ZEN's 3x pyramid produces
+  `[1.0, 0.333, 0.111, ...]`).
+- `pylibCZIrw.CziReader.read(zoom=z)` reads directly from the matching
+  subblocks when `z` is a stored level (fast). Non-stored zooms trigger
+  libCZI's C++ resampler (slower, but still much cheaper than materialising
+  layer 0 in Python).
+- Levels below `zoom = 0.01` cannot be read (`pylibCZIrw` clamps to `0.01`)
+  and are automatically dropped from the returned list.
+
+Inspect the stored pyramid without reading any pixel data:
+
+```python
+from czitools.read_tools import get_pyramid_zooms
+
+print(get_pyramid_zooms("path/to/large.czi"))
+# -> [1.0, 0.5, 0.25, 0.125, 0.0625]
+```
+
+Build a multiscale pyramid ready for napari:
+
+```python
+from czitools.read_tools import read_stacks_multiscale
+
+levels, infos, dims, num_stacks, mdata = read_stacks_multiscale(
+    "path/to/large.czi",
+    use_xarray=True,
+    stack_scenes=True,
+    max_coarse_edge=8192,   # coarsest level's longest edge target in px
+)
+
+for lvl, info in zip(levels, infos):
+    print(f"zoom={info.zoom:.4f} stored={info.stored} shape={lvl.shape}")
+```
+
+Behaviour:
+
+- `levels` is a list, coarsest last. Every element has the same `S/T/C/Z`
+  shape as level 0 but progressively smaller `Y/X`.
+- `infos` contains a `PyramidLevel(zoom, stored, y, x)` per level so callers
+  can build per-level scale metadata (napari infers this from shape ratios
+  in most cases).
+- If the coarsest stored level's longer edge is still greater than
+  `max_coarse_edge` (default 8192), additional coarser levels are appended
+  by repeatedly halving the zoom until the top of the pyramid fits within
+  the target. Those synthetic levels use libCZI's resampler.
+- The read graph stays fully lazy — nothing is fetched until a caller
+  triggers `.compute()` (or napari renders the tiles it needs).
+
+```python
+import napari
+
+viewer = napari.Viewer()
+viewer.add_image(levels, multiscale=True)
 ```
 
 ## Reading Well-Plate Metadata
