@@ -82,9 +82,28 @@ from czitools.read_tools import read_6darray, read_stacks_list
 mdata = CziMetadata("path/to/file.czi")
 print(mdata.image_required.SizeC)
 print(mdata.scale_required.X)
+print(mdata.scene_shape_is_consistent)  # True when all scenes can be stacked
+
+# scene_shape_tolerance (default=1) controls the maximum allowed pixel
+# difference in width or height between scenes before they are considered
+# inconsistent. A value of 1 absorbs the ±1-pixel rounding that commonly
+# occurs with HCS plate coordinates and allows those scenes to be stacked.
+mdata_plate = CziMetadata("path/to/plate.czi", scene_shape_tolerance=1)
 
 # Read regular, equal-sized scenes eagerly as a labelled STCZYX(A) array.
 array6d, mdata = read_6darray("path/to/file.czi", use_xarray=True)
+
+# For HCS plate files whose scenes differ by ±1 pixel due to coordinate
+# rounding, pass scene_stack_tolerance=1 so read_stacks crops them to a
+# common shape and stacks them into one array (default=0, strict equality).
+from czitools.read_tools import read_stacks
+stacked, dims, n, mdata = read_stacks(
+    "path/to/plate.czi",
+    use_dask=True,
+    use_xarray=True,
+    stack_scenes=True,
+    scene_stack_tolerance=1,
+)
 
 # For irregular scenes, keep genuinely lazy reads as a list.
 scenes, dims, scene_count, mdata = read_stacks_list(

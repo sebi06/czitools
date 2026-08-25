@@ -183,6 +183,27 @@ Return behaviour:
 | `True`         | Yes                | Single stacked array (with `S` dim) |
 | `True`         | No                 | `list` (with warning)               |
 
+**HCS plate files with ±1-pixel rounding differences** — scenes from
+different wells often have bounding rectangles that differ by one pixel
+because stage coordinates round differently at each well position. Pass
+`scene_stack_tolerance=1` (default `0`) to crop all scenes to the smallest
+common Y/X shape before stacking:
+
+```python
+stacked, dims, n, mdata = read_stacks(
+    filepath,
+    use_dask=True,
+    use_xarray=True,
+    stack_scenes=True,
+    scene_stack_tolerance=1,  # crop ±N-px differences; 0 = strict equality
+)
+```
+
+The crop removes at most `scene_stack_tolerance` pixels from the right/bottom
+edge of oversized scenes and is silent for files where all scenes already have
+identical shapes. `read_stacks_multiscale` accepts the same parameter and
+forwards it to every pyramid level.
+
 For strict return contracts:
 
 ```python

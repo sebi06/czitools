@@ -418,6 +418,7 @@ def read_stacks(
     lazy_read_strategy: LazyReadStrategy = "chunk",
     planes_per_chunk: int = 64,
     tile_size: int = 4096,
+    scene_stack_tolerance: int = 0,
 ) -> ReadStacksWithMetaReturn:
     """Read all 2D planes from a CZI file, grouped per stack.
 
@@ -441,8 +442,14 @@ def read_stacks(
         use_xarray: If True, return xr.DataArray with labeled dimensions. If False,
             return plain np.ndarray (or dask.array if use_dask=True). Defaults to True.
         stack_scenes: If True and all scenes have the same shape, stack them
-            into a single array with S as the first dimension. If shapes differ,
-            returns a list (with a warning). Defaults to False.
+            into a single array with S as the first dimension. If shapes differ
+            beyond ``scene_stack_tolerance``, returns a list (with a warning).
+            Defaults to False.
+        scene_stack_tolerance: Maximum allowed pixel difference in the Y or X
+            dimension between scenes when ``stack_scenes=True``. Scenes within
+            this tolerance are cropped to the smallest common Y/X shape before
+            stacking. All non-spatial dims (T, C, Z, …) must still be identical.
+            Defaults to 0 (strict equality, backward-compatible).
         planes: Optional dict specifying substack ranges (keys: S, T, C, Z).
             Values are (start, end) tuples, zero-based inclusive. Mirrors
             `read_6darray` semantics.
@@ -1005,6 +1012,42 @@ def read_stacks(
             return stack_arrays, all_dims, num_stacks, mdata
 
         unique_shapes = set(stack_shapes)
+
+        # Crop scenes to a common Y/X shape when they differ within tolerance.
+        if len(unique_shapes) > 1 and scene_stack_tolerance > 0:
+            y_idx = all_dims.index("Y")
+            x_idx = all_dims.index("X")
+            all_y = [s[y_idx] for s in stack_shapes]
+            all_x = [s[x_idx] for s in stack_shapes]
+            non_yx = [tuple(v for i, v in enumerate(s) if i not in (y_idx, x_idx)) for s in stack_shapes]
+            if (
+                len(set(non_yx)) == 1
+                and max(all_y) - min(all_y) <= scene_stack_tolerance
+                and max(all_x) - min(all_x) <= scene_stack_tolerance
+            ):
+                min_y, min_x = min(all_y), min(all_x)
+                logger.info(
+                    "read_stacks: Y/X sizes differ by at most %d px; cropping all "
+                    "stacks to Y=%d, X=%d for stacking (scene_stack_tolerance=%d).",
+                    max(max(all_y) - min(all_y), max(all_x) - min(all_x)),
+                    min_y,
+                    min_x,
+                    scene_stack_tolerance,
+                )
+                cropped: list[Any] = []
+                for arr in stack_arrays:
+                    if isinstance(arr, xr.DataArray):
+                        arr = arr.isel(Y=slice(0, min_y), X=slice(0, min_x))
+                    else:
+                        sel: list[Any] = [slice(None)] * len(all_dims)
+                        sel[y_idx] = slice(0, min_y)
+                        sel[x_idx] = slice(0, min_x)
+                        arr = arr[tuple(sel)]
+                    cropped.append(arr)
+                stack_arrays = cropped
+                stack_shapes = [tuple(int(v) for v in arr.shape) for arr in stack_arrays]
+                unique_shapes = set(stack_shapes)
+
         if len(unique_shapes) == 1:
             logger.info(f"read_stacks: Stacking {num_stacks} stacks (all shapes equal: {stack_shapes[0]})")
             stacked_dims = ["S"] + all_dims

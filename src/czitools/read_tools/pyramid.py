@@ -178,6 +178,7 @@ def read_stacks_multiscale(
     chunk_memory_limit: int = 256 * 1024 * 1024,
     lazy_read_strategy: LazyReadStrategy = "chunk",
     planes_per_chunk: int = 64,
+    scene_stack_tolerance: int = 0,
 ) -> tuple[
     list[StackArray | StackList],
     list[PyramidLevel],
@@ -292,6 +293,7 @@ def read_stacks_multiscale(
             chunk_memory_limit=chunk_memory_limit,
             lazy_read_strategy=lazy_read_strategy,
             planes_per_chunk=planes_per_chunk,
+            scene_stack_tolerance=scene_stack_tolerance,
         )
         levels.append(result)
         dims_out = dims

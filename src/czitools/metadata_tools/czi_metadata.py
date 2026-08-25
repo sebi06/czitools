@@ -142,7 +142,9 @@ class CziMetadata:
     )
     add_metadata: CziAddMetaData | None = field(init=False, default=None)
     scene_size_consistent: tuple[int, ...] | None = field(init=False, default_factory=lambda: ())
+    scene_shape_is_consistent: bool = field(init=False, default=True)
     array6d_size: tuple[int, ...] | None = field(init=False, default=None)
+    scene_shape_tolerance: int = 1
     verbose: bool = False
 
     def __post_init__(self):
@@ -192,8 +194,10 @@ class CziMetadata:
             self.pixeltypes = czidoc.pixel_types
             self.isRGB, self.consistent_pixeltypes = pixels._check_if_rgb(self.pixeltypes)
 
-            # check for consistent scene shape
-            self.scene_shape_is_consistent = pixels.check_scenes_shape(czidoc, size_s=self.image.SizeS)
+            # check for consistent scene shape; tolerance absorbs ±N-pixel plate rounding
+            self.scene_shape_is_consistent = pixels.check_scenes_shape(
+                czidoc, size_s=self.image.SizeS, tolerance=self.scene_shape_tolerance
+            )
 
         if not self.is_url:
             # get additional dimension info using czifile (replaces aicspylibczi)

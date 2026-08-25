@@ -15,7 +15,6 @@ Maps `pylibCZIrw` pixel-type enumerations to NumPy dtypes and provides
 helpers to determine bits-per-pixel and channel counts.
 """
 
-
 import numpy as np
 from pylibCZIrw import czi as pyczi
 
@@ -91,15 +90,18 @@ def _get_dtype_fromstring(
     return dtype, maxvalue
 
 
-def check_scenes_shape(czidoc: pyczi.CziReader, size_s: int | None) -> bool:
-    """Check if all scenes have the same shape.
+def check_scenes_shape(czidoc: pyczi.CziReader, size_s: int | None, tolerance: int = 1) -> bool:
+    """Check if all scenes have the same shape within a pixel tolerance.
 
     Args:
         czidoc (pyczi.CziReader): CziReader to read the properties
         size_s (Union[int, None]): Size of scene dimension
+        tolerance (int): Maximum allowed pixel difference in width or height
+            between scenes. Defaults to 1 to absorb sub-pixel rounding in
+            plate coordinate systems.
 
     Returns:
-        bool: True is all scenes have identical XY shape
+        bool: True if all scenes have XY shapes within ``tolerance`` pixels
     """
     scene_width = []
     scene_height = []
@@ -110,12 +112,11 @@ def check_scenes_shape(czidoc: pyczi.CziReader, size_s: int | None) -> bool:
             scene_width.append(czidoc.scenes_bounding_rectangle[s].w)
             scene_height.append(czidoc.scenes_bounding_rectangle[s].h)
 
-        # check if all entries in list are the same
-        sw = scene_width.count(scene_width[0]) == len(scene_width)
-        sh = scene_height.count(scene_height[0]) == len(scene_height)
+        # check if all entries are within the allowed tolerance
+        sw = (max(scene_width) - min(scene_width)) <= tolerance
+        sh = (max(scene_height) - min(scene_height)) <= tolerance
 
-        # only if entries for X and Y are all the same as the shape is consistent
-        if sw is True and sh is True:
+        if sw and sh:
             scene_shape_is_consistent = True
 
     else:
