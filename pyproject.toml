@@ -43,6 +43,7 @@ dependencies = [
     "validators",
     "zarr>=3.0",
     "matplotlib",
+    "rich",
 ]
 
 [project.optional-dependencies]

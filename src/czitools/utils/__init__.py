@@ -1,10 +1,17 @@
 """Utility helpers for czitools.
 
 Contains tools for logging configuration, metadata boxing, array scaling,
-planetable generation, pixel type inspection, and napari display helpers.
+planetable generation, pixel type inspection, HCS metadata display, and napari
+display helpers.
 """
 
 from .box import get_czimd_box
+from .hcs_tools import (
+    print_hcs_plate_info,
+    print_sample_metadata,
+    print_section_header,
+    print_well_fields,
+)
 from .logging_tools import set_logging
 from .misc import (
     calc_scaling,
@@ -33,4 +40,8 @@ __all__ = [
     "filter_planetable",
     "get_planetable",
     "save_planetable",
+    "print_section_header",
+    "print_hcs_plate_info",
+    "print_sample_metadata",
+    "print_well_fields",
 ]

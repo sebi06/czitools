@@ -144,6 +144,7 @@ levels, infos, dims, num_stacks, mdata = read_stacks_multiscale(
     max_coarse_edge=8192,   # force coarser synthetic levels if needed
 )
 ```
+
 Levels detected on disk are served directly from their subblocks (no
 resampling). If the coarsest stored level is still larger than
 `max_coarse_edge` on any edge, additional coarser levels are synthesized
@@ -178,6 +179,42 @@ assert validate_ome_zarr(output)
 Well names accept forms such as `B4`, `b04`, and `B/4`. Field indices are
 zero-based within a well. The OME-Zarr converter writes the HCS hierarchy
 plate → well → field image → multiscale level.
+
+### HCS Plate Inspection CLI
+
+Quickly inspect CZI well-plate metadata from the command line:
+
+```bash
+# Inspect entire plate (all wells and fields)
+python -m czitools.demo.scripts.czi_hcs_check -f plate.czi
+
+# Inspect a specific well
+python -m czitools.demo.scripts.czi_hcs_check -f plate.czi --well B4
+
+# Hide the well summary table (useful for large plates)
+python -m czitools.demo.scripts.czi_hcs_check -f plate.czi --no-well-table
+
+# Get help
+python -m czitools.demo.scripts.czi_hcs_check --help
+```
+
+Or use the utility functions in Python:
+
+```python
+from czitools.utils import print_hcs_plate_info, print_sample_metadata, print_well_fields
+from czitools.metadata_tools import CziMetadata
+
+mdata = CziMetadata("plate.czi")
+
+# Print plate hierarchy with well summary
+print_hcs_plate_info(mdata)
+
+# Print sample metadata and scene details
+print_sample_metadata(mdata)
+
+# Print field information for a specific well
+print_well_fields(mdata, well_name="B4")
+```
 
 ### OME-Zarr Converter GUI
 

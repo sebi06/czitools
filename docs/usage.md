@@ -12,7 +12,196 @@ from pathlib import Path
 filepath = Path("data/WP96_4Pos_B4-10_DAPI.czi")
 ```
 
+## Inspecting HCS Well Plates
 
+### Command-Line Tool
+
+The `czi_hcs_check.py` script provides a convenient way to inspect CZI well-plate metadata from the terminal with rich, colorized output:
+
+#### Inspect entire plate
+
+```bash
+python demo/scripts/czi_hcs_check.py plate.czi
+```
+
+#### Inspect a specific well
+
+```bash
+python demo/scripts/czi_hcs_check.py -f plate.czi --well B4
+```
+
+When you specify a well with `--well`, the tool displays:
+- The requested well's field information in the **Well Fields** section
+- The **First Scene Details** from that specific well (not the overall first scene)
+
+This provides consistent context when inspecting a particular well.
+
+#### Using the --filepath flag
+
+```bash
+python demo/scripts/czi_hcs_check.py --filepath plate.czi
+```
+
+#### View all options
+
+```bash
+python demo/scripts/czi_hcs_check.py --help
+```
+
+#### Hide well summary table for large plates
+
+```bash
+python demo/scripts/czi_hcs_check.py -f plate.czi --no-well-table
+```
+
+The `--no-well-table` flag hides the well summary table, which is useful for large plates with many wells where the table output can be lengthy.
+
+**Example output** (showing HCS plate information with rich formatting):
+
+```
+╭─────────────────────────────────────────────────────────────────╮
+│ 🔬 High-Content Screening (HCS) Plate Information              │
+╰─────────────────────────────────────────────────────────────────╯
+HCS Detected: True
+Reason: Valid HCS hierarchy detected
+
+Plate ID: 596fa2ec-0844-4cef-999f-8a27cf3c85dd
+Plate Name: Test Plate 96
+Schema Version: 2.0
+Dimensions: 8 rows × 12 columns (declared)
+Row Indices: [0, 1, 2, 3, 4, 5, 6, 7]
+Column Indices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]
+
+Total Wells: 96
+Total Fields: 384
+
+╭─────────────────────────────────────────────────────────────────╮
+│ Well Summary                                                    │
+├──────────┬─────────────┬───────────┬────────────┬────────────┤
+│ Well     │ Path        │ CZI Index │ Normalized │ Fields     │
+├──────────┼─────────────┼───────────┼────────────┼────────────┤
+│ A1       │ Row0/Col0   │ (0,0)     │ (0,0)      │ 4          │
+│ A2       │ Row0/Col1   │ (0,1)     │ (0,1)      │ 4          │
+│ ...[continues for all wells]...
+│ H12      │ Row7/Col11  │ (7,11)    │ (7,11)     │ 4          │
+╰──────────┴─────────────┴───────────┴────────────┴────────────╯
+```
+
+### Python API
+
+For programmatic access, use the HCS display utilities from `czitools.utils`:
+
+#### Print plate information
+
+```python
+from czitools.utils import print_hcs_plate_info
+from czitools.metadata_tools import CziMetadata
+
+mdata = CziMetadata("plate.czi")
+print_hcs_plate_info(mdata)
+```
+
+#### Print sample metadata
+
+```python
+from czitools.utils import print_sample_metadata
+
+mdata = CziMetadata("plate.czi")
+
+# Print sample metadata (shows first scene overall)
+print_sample_metadata(mdata)
+
+# Print sample metadata with first scene from a specific well
+print_sample_metadata(mdata, well_name="B5")
+```
+
+The optional `well_name` parameter shows the first scene from that specific well, providing consistent context when inspecting a particular well.
+
+**Example output** (sample metadata):
+
+```
+╭─────────────────────────────────────────────────────────────────╮
+│ 📊 Sample Metadata                                              │
+╰─────────────────────────────────────────────────────────────────╯
+
+Scene Count:        384
+Unique Wells:       96
+Fields per Well:    4
+
+Per-Scene Collections (8 entries)
+  well names          384
+  well indices        384
+  position names      384
+  row indices         384
+  column indices      384
+  field center X      384
+  field center Y      384
+  region IDs          384
+
+╭─────────────────────────────────────────────────────────────────╮
+│ 🎬 First Scene Details                                          │
+╰─────────────────────────────────────────────────────────────────╯
+
+Well:              A1
+Region ID:         1
+Field Center:      (1234.56, 5678.90) µm
+Stage Position:    (0.0, 0.0)
+```
+
+#### Print well fields
+
+```python
+from czitools.utils import print_well_fields
+
+mdata = CziMetadata("plate.czi")
+print_well_fields(mdata, well_name="B4")
+```
+
+**Example output** (well fields):
+
+```
+╭─────────────────────────────────────────────────────────────────╮
+│ 🔎 Well Fields                                                  │
+╰─────────────────────────────────────────────────────────────────╯
+
+╭────────────────────────────────────────────────────────────────╮
+│ Fields in well 'B4'                                            │
+├──────────┬────────┬────┬─────────┬─────────────┬─────────────┤
+│ Local    │ Scene  │ ID │ Region  │ Center X    │ Center Y    │
+├──────────┼────────┼────┼─────────┼─────────────┼─────────────┤
+│ 0        │ 52     │ 1  │ 1       │ 1234.56     │ 5678.90     │
+│ 1        │ 53     │ 2  │ 1       │ 2345.67     │ 5678.90     │
+│ 2        │ 54     │ 3  │ 1       │ 1234.56     │ 6789.01     │
+│ 3        │ 55     │ 4  │ 1       │ 2345.67     │ 6789.01     │
+╰──────────┴────────┴────┴─────────┴─────────────┴─────────────╯
+```
+
+#### Get well by name and access fields
+
+```python
+from czitools.metadata_tools import CziMetadata
+
+mdata = CziMetadata("plate.czi")
+
+# Access HCS plate hierarchy
+plate = mdata.hcs
+if plate is not None:
+    # Get a well by name (supports B4, b04, B/4 formats)
+    well = plate.get_well("B4")
+    print(f"Well: {well.canonical_name}")
+    print(f"Position: Row {well.row_index}, Column {well.column_index}")
+    print(f"Fields: {len(well.fields)}")
+    
+    # Access field information
+    for field in well.fields:
+        print(f"  Field {field.field_index}: "
+              f"Scene {field.scene_index}, "
+              f"Center: ({field.scene_center_x}, {field.scene_center_y}) µm")
+```
+
+
+
+## General Metadata Access
 
 For most workflows, create one `CziMetadata` object and use its grouped
 properties. The metadata object returned by a pixel reader is the same type, so
