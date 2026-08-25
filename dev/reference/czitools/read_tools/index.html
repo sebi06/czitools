@@ -5,7 +5,7 @@
       dataclass
    (czitools.read_tools.PyramidLevel)" href=#czitools.read_tools.PyramidLevel>PyramidLevel</a></code></b> – <div class=doc-md-description> <p>Description of one level in a CZI multiscale pyramid.</p> </div> </li> </ul> <p><span class=doc-section-title>Functions:</span></p> <ul> <li class="doc-section-item field-body"> <b><code><a class="autorefs autorefs-internal" title="            get_pyramid_zooms (czitools.read_tools.get_pyramid_zooms)" href=#czitools.read_tools.get_pyramid_zooms>get_pyramid_zooms</a></code></b> – <div class=doc-md-description> <p>Return the zoom factors of pyramid levels stored in the CZI file.</p> </div> </li> <li class="doc-section-item field-body"> <b><code><a class="autorefs autorefs-internal" title="            read_6darray (czitools.read_tools.read_6darray)" href=#czitools.read_tools.read_6darray>read_6darray</a></code></b> – <div class=doc-md-description> <p>Read a CZI image file as an STCZYX(A) array.</p> </div> </li> <li class="doc-section-item field-body"> <b><code><a class="autorefs autorefs-internal" title="            read_attachments (czitools.read_tools.read_attachments)" href=#czitools.read_tools.read_attachments>read_attachments</a></code></b> – <div class=doc-md-description> <p>Read attachment images from a CZI image as numpy array</p> </div> </li> <li class="doc-section-item field-body"> <b><code><a class="autorefs autorefs-internal" title="            read_field (czitools.read_tools.read_field)" href=#czitools.read_tools.read_field>read_field</a></code></b> – <div class=doc-md-description> <p>Read a single well/field of an HCS plate as a 6D array (STCZYX(A)).</p> </div> </li> <li class="doc-section-item field-body"> <b><code><a class="autorefs autorefs-internal" title="            read_stacks (czitools.read_tools.read_stacks)" href=#czitools.read_tools.read_stacks>read_stacks</a></code></b> – <div class=doc-md-description> <p>Read all 2D planes from a CZI file, grouped per stack.</p> </div> </li> <li class="doc-section-item field-body"> <b><code><a class="autorefs autorefs-internal" title="            read_stacks_list (czitools.read_tools.read_stacks_list)" href=#czitools.read_tools.read_stacks_list>read_stacks_list</a></code></b> – <div class=doc-md-description> <p>Read stacks and always return a list (one element per scene).</p> </div> </li> <li class="doc-section-item field-body"> <b><code><a class="autorefs autorefs-internal" title="            read_stacks_multiscale (czitools.read_tools.read_stacks_multiscale)" href=#czitools.read_tools.read_stacks_multiscale>read_stacks_multiscale</a></code></b> – <div class=doc-md-description> <p>Read a CZI as a multiscale pyramid ready for <code>napari.add_image</code>.</p> </div> </li> <li class="doc-section-item field-body"> <b><code><a class="autorefs autorefs-internal" title="            read_stacks_stacked (czitools.read_tools.read_stacks_stacked)" href=#czitools.read_tools.read_stacks_stacked>read_stacks_stacked</a></code></b> – <div class=doc-md-description> <p>Read stacks and require a single stacked output with an S dimension.</p> </div> </li> <li class="doc-section-item field-body"> <b><code><a class="autorefs autorefs-internal" title="            read_tiles (czitools.read_tools.read_tiles)" href=#czitools.read_tools.read_tiles>read_tiles</a></code></b> – <div class=doc-md-description> <p>Reads a specific tile from a CZI file.</p> </div> </li> <li class="doc-section-item field-body"> <b><code><a class="autorefs autorefs-internal" title="            read_well (czitools.read_tools.read_well)" href=#czitools.read_tools.read_well>read_well</a></code></b> – <div class=doc-md-description> <p>Read all (or selected) fields of one well of an HCS plate.</p> </div> </li> </ul> <div class="doc doc-children"> <div class="doc doc-object doc-class"> <h2 id=czitools.read_tools.PyramidLevel class="doc doc-heading"> <code class="doc-symbol doc-symbol-heading doc-symbol-class"></code> <span class="doc doc-object-name doc-class-name">PyramidLevel</span> <span class="doc doc-labels"> <small class="doc doc-label doc-label-dataclass"><code>dataclass</code></small> </span> <a href=#czitools.read_tools.PyramidLevel class=headerlink title="Permanent link">#</a></h2> <div class="language-python doc-signature highlight"><pre><span></span><code><span id=__span-0-1><span class=nf>PyramidLevel</span><span class=p>(</span><span class=n><span title=czitools.read_tools.PyramidLevel(zoom)>zoom</span></span><span class=p>:</span> <span class=n><a class="autorefs autorefs-external" href=https://docs.python.org/3/library/functions.html#float>float</a></span><span class=p>,</span> <span class=n><span title=czitools.read_tools.PyramidLevel(stored)>stored</span></span><span class=p>:</span> <span class=n><a class="autorefs autorefs-external" href=https://docs.python.org/3/library/functions.html#bool>bool</a></span><span class=p>,</span> <span class=n><span title=czitools.read_tools.PyramidLevel(y)>y</span></span><span class=p>:</span> <span class=n><a class="autorefs autorefs-external" href=https://docs.python.org/3/library/functions.html#int>int</a></span><span class=p>,</span> <span class=n><span title=czitools.read_tools.PyramidLevel(x)>x</span></span><span class=p>:</span> <span class=n><a class="autorefs autorefs-external" href=https://docs.python.org/3/library/functions.html#int>int</a></span><span class=p>)</span>
 </span></code></pre></div> <div class="doc doc-contents "> <p>Description of one level in a CZI multiscale pyramid.</p> <p><span class=doc-section-title>Attributes:</span></p> <ul> <li class="doc-section-item field-body"> <b><code><span title=czitools.read_tools.PyramidLevel.zoom>zoom</span></code></b> (<code><a class="autorefs autorefs-external" href=https://docs.python.org/3/library/functions.html#float>float</a></code>) – <div class=doc-md-description> <p>Zoom factor relative to layer 0 (<code>1.0</code> for layer 0).</p> </div> </li> <li class="doc-section-item field-body"> <b><code><span title=czitools.read_tools.PyramidLevel.stored>stored</span></code></b> (<code><a class="autorefs autorefs-external" href=https://docs.python.org/3/library/functions.html#bool>bool</a></code>) – <div class=doc-md-description> <p>True if the level exists as its own subblock set in the CZI and therefore reads without resampling. False for synthetic levels emitted by :func:<code>read_stacks_multiscale</code> when the coarsest stored level is still too large for a single GPU texture.</p> </div> </li> <li class="doc-section-item field-body"> <b><code><span title=czitools.read_tools.PyramidLevel.y>y</span></code></b> (<code><a class="autorefs autorefs-external" href=https://docs.python.org/3/library/functions.html#int>int</a></code>) – <div class=doc-md-description> <p>Full-plane height in pixels at this level (rounded down).</p> </div> </li> <li class="doc-section-item field-body"> <b><code><span title=czitools.read_tools.PyramidLevel.x>x</span></code></b> (<code><a class="autorefs autorefs-external" href=https://docs.python.org/3/library/functions.html#int>int</a></code>) – <div class=doc-md-description> <p>Full-plane width in pixels at this level (rounded down).</p> </div> </li> </ul> <div class="doc doc-children"> </div> </div> </div> <div class="doc doc-object doc-function"> <h2 id=czitools.read_tools.get_pyramid_zooms class="doc doc-heading"> <code class="doc-symbol doc-symbol-heading doc-symbol-function"></code> <span class="doc doc-object-name doc-function-name">get_pyramid_zooms</span> <a href=#czitools.read_tools.get_pyramid_zooms class=headerlink title="Permanent link">#</a></h2> <div class="language-python doc-signature highlight"><pre><span></span><code><span id=__span-0-1><span class=nf>get_pyramid_zooms</span><span class=p>(</span><span class=n><a class="autorefs autorefs-internal" title="filepath (czitools.read_tools.get_pyramid_zooms(filepath))" href=#czitools.read_tools.get_pyramid_zooms(filepath)>filepath</a></span><span class=p>:</span> <span class=n><span title=czitools.read_tools._helpers.CziPath>CziPath</span></span><span class=p>)</span> <span class=o>-&gt;</span> <span class=n><a class="autorefs autorefs-external" href=https://docs.python.org/3/library/stdtypes.html#list>list</a></span><span class=p>[</span><span class=n><a class="autorefs autorefs-external" href=https://docs.python.org/3/library/functions.html#float>float</a></span><span class=p>]</span>
-</span></code></pre></div> <div class="doc doc-contents "> <p>Return the zoom factors of pyramid levels stored in the CZI file.</p> <p>Uses only :mod:<code>pylibCZIrw</code>. <code>CziReader.enumerate_subblocks</code> walks subblock headers (no pixel I/O) and <code>SubBlockInfo.get_zoom()</code> reports each level's zoom directly. Even multi-thousand-subblock gigapixel files complete in well under a second. Files without an on-disk pyramid return <code>[1.0]</code>.</p> <p>Levels whose zoom is below :data:<code>_MIN_READ_ZOOM</code> (0.01) are dropped because <code>pylibCZIrw.CziReader.read</code> clamps such zooms to 0.01 and cannot serve their native pixels.</p> <p><span class=doc-section-title>Parameters:</span></p> <ul> <li class="doc-section-item field-body"> <h3 id=czitools.read_tools.get_pyramid_zooms(filepath) class="doc doc-heading doc-heading-parameter"> <b><code>filepath</code></b> <a href=#czitools.read_tools.get_pyramid_zooms(filepath) class=headerlink title="Permanent link">#</a></h3> (<code><span title=czitools.read_tools._helpers.CziPath>CziPath</span></code>) – <div class=doc-md-description> <p>Path to the CZI file (local path or URL).</p> </div> </li> </ul> <p><span class=doc-section-title>Returns:</span></p> <ul> <li class="doc-section-item field-body"> <code><a class="autorefs autorefs-external" href=https://docs.python.org/3/library/stdtypes.html#list>list</a>[<a class="autorefs autorefs-external" href=https://docs.python.org/3/library/functions.html#float>float</a>]</code> – <div class=doc-md-description> <p>Sorted list of unique zoom factors, largest first — for example</p> </div> </li> <li class="doc-section-item field-body"> <code><a class="autorefs autorefs-external" href=https://docs.python.org/3/library/stdtypes.html#list>list</a>[<a class="autorefs autorefs-external" href=https://docs.python.org/3/library/functions.html#float>float</a>]</code> – <div class=doc-md-description> <p><code>[1.0, 0.5, 0.25, 0.125, 0.0625]</code> for standard pyramids, or</p> </div> </li> <li class="doc-section-item field-body"> <code><a class="autorefs autorefs-external" href=https://docs.python.org/3/library/stdtypes.html#list>list</a>[<a class="autorefs autorefs-external" href=https://docs.python.org/3/library/functions.html#float>float</a>]</code> – <div class=doc-md-description> <p><code>[1.0, 0.333333]</code> for ZEN's 3x pyramid variant.</p> </div> </li> </ul> <details class=mkdocstrings-source> <summary>Source code in <code>czitools/read_tools/pyramid.py</code></summary> <div class="language-python highlight"><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal> 63</span>
+</span></code></pre></div> <div class="doc doc-contents "> <p>Return the zoom factors of pyramid levels stored in the CZI file.</p> <p>For local files uses :mod:<code>czifile</code>'s <code>scene.levels</code> structure. Each level's zoom is derived from its stored X size relative to level 0, matching the approach in <code>check_PYL.py</code>. The <code>directory_entry</code> of every subblock carries a unitless scale (physicalSize / logicalSize); subblocks with <code>is_pyramid=True</code> have a scale &lt; 1.0 and belong to a stored pyramid level. Files without a pyramid return <code>[1.0]</code>.</p> <p>For URL paths (not supported by :mod:<code>czifile</code>), falls back to :mod:<code>pylibCZIrw</code> enumeration restricted to scene 0's bounding rectangle so that plate-wide thumbnail subblocks are excluded.</p> <p>Levels whose zoom is below :data:<code>_MIN_READ_ZOOM</code> (0.01) are dropped because <code>pylibCZIrw.CziReader.read</code> clamps such zooms to 0.01.</p> <p><span class=doc-section-title>Parameters:</span></p> <ul> <li class="doc-section-item field-body"> <h3 id=czitools.read_tools.get_pyramid_zooms(filepath) class="doc doc-heading doc-heading-parameter"> <b><code>filepath</code></b> <a href=#czitools.read_tools.get_pyramid_zooms(filepath) class=headerlink title="Permanent link">#</a></h3> (<code><span title=czitools.read_tools._helpers.CziPath>CziPath</span></code>) – <div class=doc-md-description> <p>Path to the CZI file (local path or URL).</p> </div> </li> </ul> <p><span class=doc-section-title>Returns:</span></p> <ul> <li class="doc-section-item field-body"> <code><a class="autorefs autorefs-external" href=https://docs.python.org/3/library/stdtypes.html#list>list</a>[<a class="autorefs autorefs-external" href=https://docs.python.org/3/library/functions.html#float>float</a>]</code> – <div class=doc-md-description> <p>Sorted list of unique zoom factors, largest first — for example</p> </div> </li> <li class="doc-section-item field-body"> <code><a class="autorefs autorefs-external" href=https://docs.python.org/3/library/stdtypes.html#list>list</a>[<a class="autorefs autorefs-external" href=https://docs.python.org/3/library/functions.html#float>float</a>]</code> – <div class=doc-md-description> <p><code>[1.0, 0.5, 0.25, 0.125, 0.0625]</code> for standard pyramids, or</p> </div> </li> <li class="doc-section-item field-body"> <code><a class="autorefs autorefs-external" href=https://docs.python.org/3/library/stdtypes.html#list>list</a>[<a class="autorefs autorefs-external" href=https://docs.python.org/3/library/functions.html#float>float</a>]</code> – <div class=doc-md-description> <p><code>[1.0, 0.333333]</code> for ZEN's 3x pyramid variant.</p> </div> </li> </ul> <details class=mkdocstrings-source> <summary>Source code in <code>czitools/read_tools/pyramid.py</code></summary> <div class="language-python highlight"><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal> 63</span>
 <span class=normal> 64</span>
 <span class=normal> 65</span>
 <span class=normal> 66</span>
@@ -45,47 +45,95 @@
 <span class=normal>100</span>
 <span class=normal>101</span>
 <span class=normal>102</span>
-<span class=normal>103</span></pre></div></td><td class=code><div><pre><span></span><code><span id=__span-0-63><span class=k>def</span><span class=w> </span><span class=nf>get_pyramid_zooms</span><span class=p>(</span><span class=n>filepath</span><span class=p>:</span> <span class=n>CziPath</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=nb>list</span><span class=p>[</span><span class=nb>float</span><span class=p>]:</span>
+<span class=normal>103</span>
+<span class=normal>104</span>
+<span class=normal>105</span>
+<span class=normal>106</span>
+<span class=normal>107</span>
+<span class=normal>108</span>
+<span class=normal>109</span>
+<span class=normal>110</span>
+<span class=normal>111</span>
+<span class=normal>112</span>
+<span class=normal>113</span>
+<span class=normal>114</span>
+<span class=normal>115</span>
+<span class=normal>116</span>
+<span class=normal>117</span>
+<span class=normal>118</span>
+<span class=normal>119</span>
+<span class=normal>120</span>
+<span class=normal>121</span>
+<span class=normal>122</span>
+<span class=normal>123</span>
+<span class=normal>124</span>
+<span class=normal>125</span>
+<span class=normal>126</span>
+<span class=normal>127</span></pre></div></td><td class=code><div><pre><span></span><code><span id=__span-0-63><span class=k>def</span><span class=w> </span><span class=nf>get_pyramid_zooms</span><span class=p>(</span><span class=n>filepath</span><span class=p>:</span> <span class=n>CziPath</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=nb>list</span><span class=p>[</span><span class=nb>float</span><span class=p>]:</span>
 </span><span id=__span-0-64><span class=w>    </span><span class=sd>"""Return the zoom factors of pyramid levels stored in the CZI file.</span>
 </span><span id=__span-0-65>
-</span><span id=__span-0-66><span class=sd>    Uses only :mod:`pylibCZIrw`. ``CziReader.enumerate_subblocks`` walks</span>
-</span><span id=__span-0-67><span class=sd>    subblock headers (no pixel I/O) and ``SubBlockInfo.get_zoom()`` reports</span>
-</span><span id=__span-0-68><span class=sd>    each level's zoom directly. Even multi-thousand-subblock gigapixel files</span>
-</span><span id=__span-0-69><span class=sd>    complete in well under a second. Files without an on-disk pyramid return</span>
-</span><span id=__span-0-70><span class=sd>    ``[1.0]``.</span>
-</span><span id=__span-0-71>
-</span><span id=__span-0-72><span class=sd>    Levels whose zoom is below :data:`_MIN_READ_ZOOM` (0.01) are dropped</span>
-</span><span id=__span-0-73><span class=sd>    because ``pylibCZIrw.CziReader.read`` clamps such zooms to 0.01 and</span>
-</span><span id=__span-0-74><span class=sd>    cannot serve their native pixels.</span>
-</span><span id=__span-0-75>
-</span><span id=__span-0-76><span class=sd>    Args:</span>
-</span><span id=__span-0-77><span class=sd>        filepath: Path to the CZI file (local path or URL).</span>
-</span><span id=__span-0-78>
-</span><span id=__span-0-79><span class=sd>    Returns:</span>
-</span><span id=__span-0-80><span class=sd>        Sorted list of unique zoom factors, largest first — for example</span>
-</span><span id=__span-0-81><span class=sd>        ``[1.0, 0.5, 0.25, 0.125, 0.0625]`` for standard pyramids, or</span>
-</span><span id=__span-0-82><span class=sd>        ``[1.0, 0.333333]`` for ZEN's 3x pyramid variant.</span>
-</span><span id=__span-0-83><span class=sd>    """</span>
-</span><span id=__span-0-84>    <span class=n>filepath</span> <span class=o>=</span> <span class=nb>str</span><span class=p>(</span><span class=n>filepath</span><span class=p>)</span>
-</span><span id=__span-0-85>    <span class=n>readertype</span><span class=p>,</span> <span class=n>_</span> <span class=o>=</span> <span class=n>misc</span><span class=o>.</span><span class=n>get_pyczi_readertype</span><span class=p>(</span><span class=n>filepath</span><span class=p>)</span>
-</span><span id=__span-0-86>
-</span><span id=__span-0-87>    <span class=n>zooms</span><span class=p>:</span> <span class=nb>set</span><span class=p>[</span><span class=nb>float</span><span class=p>]</span> <span class=o>=</span> <span class=nb>set</span><span class=p>()</span>
-</span><span id=__span-0-88>
-</span><span id=__span-0-89>    <span class=k>def</span><span class=w> </span><span class=nf>_collect</span><span class=p>(</span><span class=n>_idx</span><span class=p>:</span> <span class=nb>int</span><span class=p>,</span> <span class=n>info</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=nb>bool</span><span class=p>:</span>
-</span><span id=__span-0-90>        <span class=k>try</span><span class=p>:</span>
-</span><span id=__span-0-91>            <span class=n>zooms</span><span class=o>.</span><span class=n>add</span><span class=p>(</span><span class=nb>round</span><span class=p>(</span><span class=nb>float</span><span class=p>(</span><span class=n>info</span><span class=o>.</span><span class=n>get_zoom</span><span class=p>()),</span> <span class=n>_ZOOM_ROUND</span><span class=p>))</span>
-</span><span id=__span-0-92>        <span class=k>except</span> <span class=ne>Exception</span><span class=p>:</span>
-</span><span id=__span-0-93>            <span class=c1># Skip malformed entries; other subblocks may still expose zooms.</span>
-</span><span id=__span-0-94>            <span class=k>pass</span>
-</span><span id=__span-0-95>        <span class=k>return</span> <span class=kc>True</span>
-</span><span id=__span-0-96>
-</span><span id=__span-0-97>    <span class=k>with</span> <span class=n>pyczi</span><span class=o>.</span><span class=n>open_czi</span><span class=p>(</span><span class=n>filepath</span><span class=p>,</span> <span class=n>readertype</span><span class=p>)</span> <span class=k>as</span> <span class=n>doc</span><span class=p>:</span>
-</span><span id=__span-0-98>        <span class=n>doc</span><span class=o>.</span><span class=n>enumerate_subblocks</span><span class=p>(</span><span class=n>_collect</span><span class=p>)</span>
-</span><span id=__span-0-99>
-</span><span id=__span-0-100>    <span class=n>readable</span> <span class=o>=</span> <span class=nb>sorted</span><span class=p>((</span><span class=n>z</span> <span class=k>for</span> <span class=n>z</span> <span class=ow>in</span> <span class=n>zooms</span> <span class=k>if</span> <span class=n>z</span> <span class=o>&gt;=</span> <span class=n>_MIN_READ_ZOOM</span><span class=p>),</span> <span class=n>reverse</span><span class=o>=</span><span class=kc>True</span><span class=p>)</span>
-</span><span id=__span-0-101>    <span class=k>if</span> <span class=ow>not</span> <span class=n>readable</span><span class=p>:</span>
-</span><span id=__span-0-102>        <span class=k>return</span> <span class=p>[</span><span class=mf>1.0</span><span class=p>]</span>
-</span><span id=__span-0-103>    <span class=k>return</span> <span class=n>readable</span>
+</span><span id=__span-0-66><span class=sd>    For local files uses :mod:`czifile`'s ``scene.levels`` structure.</span>
+</span><span id=__span-0-67><span class=sd>    Each level's zoom is derived from its stored X size relative to level 0,</span>
+</span><span id=__span-0-68><span class=sd>    matching the approach in ``check_PYL.py``. The ``directory_entry`` of</span>
+</span><span id=__span-0-69><span class=sd>    every subblock carries a unitless scale (physicalSize / logicalSize);</span>
+</span><span id=__span-0-70><span class=sd>    subblocks with ``is_pyramid=True`` have a scale &lt; 1.0 and belong to a</span>
+</span><span id=__span-0-71><span class=sd>    stored pyramid level. Files without a pyramid return ``[1.0]``.</span>
+</span><span id=__span-0-72>
+</span><span id=__span-0-73><span class=sd>    For URL paths (not supported by :mod:`czifile`), falls back to</span>
+</span><span id=__span-0-74><span class=sd>    :mod:`pylibCZIrw` enumeration restricted to scene 0's bounding rectangle</span>
+</span><span id=__span-0-75><span class=sd>    so that plate-wide thumbnail subblocks are excluded.</span>
+</span><span id=__span-0-76>
+</span><span id=__span-0-77><span class=sd>    Levels whose zoom is below :data:`_MIN_READ_ZOOM` (0.01) are dropped</span>
+</span><span id=__span-0-78><span class=sd>    because ``pylibCZIrw.CziReader.read`` clamps such zooms to 0.01.</span>
+</span><span id=__span-0-79>
+</span><span id=__span-0-80><span class=sd>    Args:</span>
+</span><span id=__span-0-81><span class=sd>        filepath: Path to the CZI file (local path or URL).</span>
+</span><span id=__span-0-82>
+</span><span id=__span-0-83><span class=sd>    Returns:</span>
+</span><span id=__span-0-84><span class=sd>        Sorted list of unique zoom factors, largest first — for example</span>
+</span><span id=__span-0-85><span class=sd>        ``[1.0, 0.5, 0.25, 0.125, 0.0625]`` for standard pyramids, or</span>
+</span><span id=__span-0-86><span class=sd>        ``[1.0, 0.333333]`` for ZEN's 3x pyramid variant.</span>
+</span><span id=__span-0-87><span class=sd>    """</span>
+</span><span id=__span-0-88>    <span class=n>path_str</span> <span class=o>=</span> <span class=nb>str</span><span class=p>(</span><span class=n>filepath</span><span class=p>)</span>
+</span><span id=__span-0-89>    <span class=n>is_url</span> <span class=o>=</span> <span class=n>path_str</span><span class=o>.</span><span class=n>startswith</span><span class=p>((</span><span class=s2>"http://"</span><span class=p>,</span> <span class=s2>"https://"</span><span class=p>))</span>
+</span><span id=__span-0-90>
+</span><span id=__span-0-91>    <span class=k>if</span> <span class=ow>not</span> <span class=n>is_url</span><span class=p>:</span>
+</span><span id=__span-0-92>        <span class=c1># czifile correctly identifies pyramid levels via directory_entry.is_pyramid</span>
+</span><span id=__span-0-93>        <span class=c1># and exposes them through scene.levels — same API used by check_PYL.py.</span>
+</span><span id=__span-0-94>        <span class=k>try</span><span class=p>:</span>
+</span><span id=__span-0-95>            <span class=k>with</span> <span class=n>czifile_module</span><span class=o>.</span><span class=n>CziFile</span><span class=p>(</span><span class=n>path_str</span><span class=p>)</span> <span class=k>as</span> <span class=n>czi</span><span class=p>:</span>
+</span><span id=__span-0-96>                <span class=n>scenes</span> <span class=o>=</span> <span class=n>czi</span><span class=o>.</span><span class=n>scenes</span>
+</span><span id=__span-0-97>                <span class=k>if</span> <span class=n>scenes</span> <span class=ow>and</span> <span class=n>scenes</span><span class=p>[</span><span class=mi>0</span><span class=p>]</span><span class=o>.</span><span class=n>levels</span><span class=p>:</span>
+</span><span id=__span-0-98>                    <span class=n>levels</span> <span class=o>=</span> <span class=n>scenes</span><span class=p>[</span><span class=mi>0</span><span class=p>]</span><span class=o>.</span><span class=n>levels</span>
+</span><span id=__span-0-99>                    <span class=n>base_x</span> <span class=o>=</span> <span class=n>levels</span><span class=p>[</span><span class=mi>0</span><span class=p>]</span><span class=o>.</span><span class=n>shape</span><span class=p>[</span><span class=o>-</span><span class=mi>1</span><span class=p>]</span>
+</span><span id=__span-0-100>                    <span class=k>if</span> <span class=n>base_x</span> <span class=o>&gt;</span> <span class=mi>0</span><span class=p>:</span>
+</span><span id=__span-0-101>                        <span class=n>zooms</span> <span class=o>=</span> <span class=p>{</span><span class=nb>round</span><span class=p>(</span><span class=nb>float</span><span class=p>(</span><span class=n>lvl</span><span class=o>.</span><span class=n>shape</span><span class=p>[</span><span class=o>-</span><span class=mi>1</span><span class=p>])</span> <span class=o>/</span> <span class=n>base_x</span><span class=p>,</span> <span class=n>_ZOOM_ROUND</span><span class=p>)</span> <span class=k>for</span> <span class=n>lvl</span> <span class=ow>in</span> <span class=n>levels</span><span class=p>}</span>
+</span><span id=__span-0-102>                        <span class=n>readable</span> <span class=o>=</span> <span class=nb>sorted</span><span class=p>((</span><span class=n>z</span> <span class=k>for</span> <span class=n>z</span> <span class=ow>in</span> <span class=n>zooms</span> <span class=k>if</span> <span class=n>z</span> <span class=o>&gt;=</span> <span class=n>_MIN_READ_ZOOM</span><span class=p>),</span> <span class=n>reverse</span><span class=o>=</span><span class=kc>True</span><span class=p>)</span>
+</span><span id=__span-0-103>                        <span class=k>return</span> <span class=n>readable</span> <span class=ow>or</span> <span class=p>[</span><span class=mf>1.0</span><span class=p>]</span>
+</span><span id=__span-0-104>        <span class=k>except</span> <span class=ne>Exception</span><span class=p>:</span>
+</span><span id=__span-0-105>            <span class=k>pass</span>  <span class=c1># fall through to pylibCZIrw</span>
+</span><span id=__span-0-106>
+</span><span id=__span-0-107>    <span class=c1># Fallback for URLs: pylibCZIrw enumeration filtered to scene 0's ROI.</span>
+</span><span id=__span-0-108>    <span class=n>readertype</span><span class=p>,</span> <span class=n>_</span> <span class=o>=</span> <span class=n>misc</span><span class=o>.</span><span class=n>get_pyczi_readertype</span><span class=p>(</span><span class=n>path_str</span><span class=p>)</span>
+</span><span id=__span-0-109>    <span class=n>zooms_pyl</span><span class=p>:</span> <span class=nb>set</span><span class=p>[</span><span class=nb>float</span><span class=p>]</span> <span class=o>=</span> <span class=nb>set</span><span class=p>()</span>
+</span><span id=__span-0-110>
+</span><span id=__span-0-111>    <span class=k>def</span><span class=w> </span><span class=nf>_collect</span><span class=p>(</span><span class=n>_idx</span><span class=p>:</span> <span class=nb>int</span><span class=p>,</span> <span class=n>info</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=nb>bool</span><span class=p>:</span>
+</span><span id=__span-0-112>        <span class=k>try</span><span class=p>:</span>
+</span><span id=__span-0-113>            <span class=n>zooms_pyl</span><span class=o>.</span><span class=n>add</span><span class=p>(</span><span class=nb>round</span><span class=p>(</span><span class=nb>float</span><span class=p>(</span><span class=n>info</span><span class=o>.</span><span class=n>get_zoom</span><span class=p>()),</span> <span class=n>_ZOOM_ROUND</span><span class=p>))</span>
+</span><span id=__span-0-114>        <span class=k>except</span> <span class=ne>Exception</span><span class=p>:</span>
+</span><span id=__span-0-115>            <span class=k>pass</span>
+</span><span id=__span-0-116>        <span class=k>return</span> <span class=kc>True</span>
+</span><span id=__span-0-117>
+</span><span id=__span-0-118>    <span class=k>with</span> <span class=n>pyczi</span><span class=o>.</span><span class=n>open_czi</span><span class=p>(</span><span class=n>path_str</span><span class=p>,</span> <span class=n>readertype</span><span class=p>)</span> <span class=k>as</span> <span class=n>doc</span><span class=p>:</span>
+</span><span id=__span-0-119>        <span class=n>scene_rects</span> <span class=o>=</span> <span class=n>doc</span><span class=o>.</span><span class=n>scenes_bounding_rectangle_no_pyramid</span>
+</span><span id=__span-0-120>        <span class=k>if</span> <span class=n>scene_rects</span><span class=p>:</span>
+</span><span id=__span-0-121>            <span class=n>s0</span> <span class=o>=</span> <span class=n>scene_rects</span><span class=p>[</span><span class=nb>min</span><span class=p>(</span><span class=n>scene_rects</span><span class=o>.</span><span class=n>keys</span><span class=p>())]</span>
+</span><span id=__span-0-122>            <span class=n>doc</span><span class=o>.</span><span class=n>enumerate_subblocks_subset</span><span class=p>(</span><span class=n>_collect</span><span class=p>,</span> <span class=n>roi</span><span class=o>=</span><span class=p>(</span><span class=n>s0</span><span class=o>.</span><span class=n>x</span><span class=p>,</span> <span class=n>s0</span><span class=o>.</span><span class=n>y</span><span class=p>,</span> <span class=n>s0</span><span class=o>.</span><span class=n>w</span><span class=p>,</span> <span class=n>s0</span><span class=o>.</span><span class=n>h</span><span class=p>))</span>
+</span><span id=__span-0-123>        <span class=k>else</span><span class=p>:</span>
+</span><span id=__span-0-124>            <span class=n>doc</span><span class=o>.</span><span class=n>enumerate_subblocks</span><span class=p>(</span><span class=n>_collect</span><span class=p>)</span>
+</span><span id=__span-0-125>
+</span><span id=__span-0-126>    <span class=n>readable</span> <span class=o>=</span> <span class=nb>sorted</span><span class=p>((</span><span class=n>z</span> <span class=k>for</span> <span class=n>z</span> <span class=ow>in</span> <span class=n>zooms_pyl</span> <span class=k>if</span> <span class=n>z</span> <span class=o>&gt;=</span> <span class=n>_MIN_READ_ZOOM</span><span class=p>),</span> <span class=n>reverse</span><span class=o>=</span><span class=kc>True</span><span class=p>)</span>
+</span><span id=__span-0-127>    <span class=k>return</span> <span class=n>readable</span> <span class=ow>or</span> <span class=p>[</span><span class=mf>1.0</span><span class=p>]</span>
 </span></code></pre></div></td></tr></table></div> </details> </div> </div> <div class="doc doc-object doc-function"> <h2 id=czitools.read_tools.read_6darray class="doc doc-heading"> <code class="doc-symbol doc-symbol-heading doc-symbol-function"></code> <span class="doc doc-object-name doc-function-name">read_6darray</span> <a href=#czitools.read_tools.read_6darray class=headerlink title="Permanent link">#</a></h2> <div class="language-python doc-signature highlight"><pre><span></span><code><span id=__span-0-1><span class=nf>read_6darray</span><span class=p>(</span>
 </span><span id=__span-0-2>    <span class=n><a class="autorefs autorefs-internal" title="filepath (czitools.read_tools.read_6darray(filepath))" href=#czitools.read_tools.read_6darray(filepath)>filepath</a></span><span class=p>:</span> <span class=n><span title=czitools.read_tools._helpers.CziPath>CziPath</span></span><span class=p>,</span>
 </span><span id=__span-0-3>    <span class=n><a class="autorefs autorefs-internal" title="use_dask (czitools.read_tools.read_6darray(use_dask))" href=#czitools.read_tools.read_6darray(use_dask)>use_dask</a></span><span class=p>:</span> <span class=n><a class="autorefs autorefs-external" href=https://docs.python.org/3/library/functions.html#bool>bool</a></span> <span class=o>=</span> <span class=kc>False</span><span class=p>,</span>
@@ -2435,31 +2483,7 @@
 
   
       dataclass
-   (czitools.metadata_tools.czi_metadata.CziMetadata)" href=../metadata_tools/czi_metadata/#czitools.metadata_tools.czi_metadata.CziMetadata>CziMetadata</a>]</code> – <div class=doc-md-description> <ul> <li><code>mdata</code>: shared :class:<code>CziMetadata</code> for the file.</li> </ul> </div> </li> </ul> <details class=notes open> <summary>Notes</summary> <p>Every returned dask array is lazy — nothing is read until napari (or the caller) triggers computation on the tiles it needs.</p> </details> <details class=mkdocstrings-source> <summary>Source code in <code>czitools/read_tools/pyramid.py</code></summary> <div class="language-python highlight"><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal>146</span>
-<span class=normal>147</span>
-<span class=normal>148</span>
-<span class=normal>149</span>
-<span class=normal>150</span>
-<span class=normal>151</span>
-<span class=normal>152</span>
-<span class=normal>153</span>
-<span class=normal>154</span>
-<span class=normal>155</span>
-<span class=normal>156</span>
-<span class=normal>157</span>
-<span class=normal>158</span>
-<span class=normal>159</span>
-<span class=normal>160</span>
-<span class=normal>161</span>
-<span class=normal>162</span>
-<span class=normal>163</span>
-<span class=normal>164</span>
-<span class=normal>165</span>
-<span class=normal>166</span>
-<span class=normal>167</span>
-<span class=normal>168</span>
-<span class=normal>169</span>
-<span class=normal>170</span>
+   (czitools.metadata_tools.czi_metadata.CziMetadata)" href=../metadata_tools/czi_metadata/#czitools.metadata_tools.czi_metadata.CziMetadata>CziMetadata</a>]</code> – <div class=doc-md-description> <ul> <li><code>mdata</code>: shared :class:<code>CziMetadata</code> for the file.</li> </ul> </div> </li> </ul> <details class=notes open> <summary>Notes</summary> <p>Every returned dask array is lazy — nothing is read until napari (or the caller) triggers computation on the tiles it needs.</p> </details> <details class=mkdocstrings-source> <summary>Source code in <code>czitools/read_tools/pyramid.py</code></summary> <div class="language-python highlight"><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal>170</span>
 <span class=normal>171</span>
 <span class=normal>172</span>
 <span class=normal>173</span>
@@ -2596,168 +2620,194 @@
 <span class=normal>304</span>
 <span class=normal>305</span>
 <span class=normal>306</span>
-<span class=normal>307</span></pre></div></td><td class=code><div><pre><span></span><code><span id=__span-0-146><span class=k>def</span><span class=w> </span><span class=nf>read_stacks_multiscale</span><span class=p>(</span>
-</span><span id=__span-0-147>    <span class=n>filepath</span><span class=p>:</span> <span class=n>CziPath</span><span class=p>,</span>
-</span><span id=__span-0-148>    <span class=n>use_xarray</span><span class=p>:</span> <span class=nb>bool</span> <span class=o>=</span> <span class=kc>True</span><span class=p>,</span>
-</span><span id=__span-0-149>    <span class=n>stack_scenes</span><span class=p>:</span> <span class=nb>bool</span> <span class=o>=</span> <span class=kc>True</span><span class=p>,</span>
-</span><span id=__span-0-150>    <span class=n>planes</span><span class=p>:</span> <span class=nb>dict</span><span class=p>[</span><span class=nb>str</span><span class=p>,</span> <span class=nb>tuple</span><span class=p>[</span><span class=nb>int</span><span class=p>,</span> <span class=nb>int</span><span class=p>]]</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span><span class=p>,</span>
-</span><span id=__span-0-151>    <span class=n>zooms</span><span class=p>:</span> <span class=nb>list</span><span class=p>[</span><span class=nb>float</span><span class=p>]</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span><span class=p>,</span>
-</span><span id=__span-0-152>    <span class=n>max_coarse_edge</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>8192</span><span class=p>,</span>
-</span><span id=__span-0-153>    <span class=n>tile_size</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>4096</span><span class=p>,</span>
-</span><span id=__span-0-154>    <span class=n>chunk_memory_limit</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>256</span> <span class=o>*</span> <span class=mi>1024</span> <span class=o>*</span> <span class=mi>1024</span><span class=p>,</span>
-</span><span id=__span-0-155>    <span class=n>lazy_read_strategy</span><span class=p>:</span> <span class=n>LazyReadStrategy</span> <span class=o>=</span> <span class=s2>"chunk"</span><span class=p>,</span>
-</span><span id=__span-0-156>    <span class=n>planes_per_chunk</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>64</span><span class=p>,</span>
-</span><span id=__span-0-157><span class=p>)</span> <span class=o>-&gt;</span> <span class=nb>tuple</span><span class=p>[</span>
-</span><span id=__span-0-158>    <span class=nb>list</span><span class=p>[</span><span class=n>StackArray</span> <span class=o>|</span> <span class=n>StackList</span><span class=p>],</span>
-</span><span id=__span-0-159>    <span class=nb>list</span><span class=p>[</span><span class=n>PyramidLevel</span><span class=p>],</span>
-</span><span id=__span-0-160>    <span class=nb>list</span><span class=p>[</span><span class=nb>str</span><span class=p>],</span>
-</span><span id=__span-0-161>    <span class=nb>int</span><span class=p>,</span>
-</span><span id=__span-0-162>    <span class=n>czimd</span><span class=o>.</span><span class=n>CziMetadata</span><span class=p>,</span>
-</span><span id=__span-0-163><span class=p>]:</span>
-</span><span id=__span-0-164><span class=w>    </span><span class=sd>"""Read a CZI as a multiscale pyramid ready for ``napari.add_image``.</span>
-</span><span id=__span-0-165>
-</span><span id=__span-0-166><span class=sd>    Each returned array shares the same S/T/C/Z shape but has progressively</span>
-</span><span id=__span-0-167><span class=sd>    smaller Y/X, matching the shape napari expects for</span>
-</span><span id=__span-0-168><span class=sd>    ``add_image(data, multiscale=True)``.</span>
-</span><span id=__span-0-169>
-</span><span id=__span-0-170><span class=sd>    Level selection:</span>
-</span><span id=__span-0-171>
-</span><span id=__span-0-172><span class=sd>    1. If ``zooms`` is not given, use :func:`get_pyramid_zooms` to detect the</span>
-</span><span id=__span-0-173><span class=sd>       levels stored on disk. Reads at those zooms are served directly from</span>
-</span><span id=__span-0-174><span class=sd>       the matching subblocks (fast, no resampling).</span>
-</span><span id=__span-0-175><span class=sd>    2. If the coarsest stored level is still larger than</span>
-</span><span id=__span-0-176><span class=sd>       ``max_coarse_edge`` on either edge, additional synthetic coarser</span>
-</span><span id=__span-0-177><span class=sd>       levels are appended by halving the zoom. These use libCZI's C++</span>
-</span><span id=__span-0-178><span class=sd>       resampler at read time — slower than stored levels but still cheaper</span>
-</span><span id=__span-0-179><span class=sd>       than materialising layer 0 in Python.</span>
-</span><span id=__span-0-180>
-</span><span id=__span-0-181><span class=sd>    Each level is built by delegating to :func:`read_stacks` with the chosen</span>
-</span><span id=__span-0-182><span class=sd>    zoom, so spatial Y/X tiling (item 3b) still applies per level.</span>
-</span><span id=__span-0-183>
-</span><span id=__span-0-184><span class=sd>    Args:</span>
-</span><span id=__span-0-185><span class=sd>        filepath: CZI file to read.</span>
-</span><span id=__span-0-186><span class=sd>        use_xarray: If True (default), levels are ``xarray.DataArray`` with</span>
-</span><span id=__span-0-187><span class=sd>            labelled dimensions. Pass False for raw ``dask.array``.</span>
-</span><span id=__span-0-188><span class=sd>        stack_scenes: Forwarded to :func:`read_stacks`. Set True to receive</span>
-</span><span id=__span-0-189><span class=sd>            one stacked array per level; set False for a per-scene list per</span>
-</span><span id=__span-0-190><span class=sd>            level.</span>
-</span><span id=__span-0-191><span class=sd>        planes: Optional S/T/C/Z subset (see :func:`read_stacks`).</span>
-</span><span id=__span-0-192><span class=sd>        zooms: Override the detected pyramid list entirely. Rarely needed;</span>
-</span><span id=__span-0-193><span class=sd>            useful for testing or when the file's stored pyramid metadata</span>
-</span><span id=__span-0-194><span class=sd>            is broken.</span>
-</span><span id=__span-0-195><span class=sd>        max_coarse_edge: If the coarsest stored level's longer edge exceeds</span>
-</span><span id=__span-0-196><span class=sd>            this, synthetic coarser levels are appended until the edge</span>
-</span><span id=__span-0-197><span class=sd>            fits. Default 8192 is safely under typical 16k GPU texture</span>
-</span><span id=__span-0-198><span class=sd>            limits.</span>
-</span><span id=__span-0-199><span class=sd>        tile_size: Forwarded to :func:`read_stacks`. Controls Y/X tile size</span>
-</span><span id=__span-0-200><span class=sd>            for very large planes.</span>
-</span><span id=__span-0-201><span class=sd>        chunk_memory_limit: Forwarded to :func:`read_stacks`. Threshold that</span>
-</span><span id=__span-0-202><span class=sd>            decides when Y/X tiling activates for a single plane.</span>
-</span><span id=__span-0-203><span class=sd>        lazy_read_strategy: Forwarded to :func:`read_stacks`.</span>
-</span><span id=__span-0-204><span class=sd>        planes_per_chunk: Forwarded to :func:`read_stacks`.</span>
-</span><span id=__span-0-205>
-</span><span id=__span-0-206><span class=sd>    Returns:</span>
-</span><span id=__span-0-207><span class=sd>        Tuple ``(levels, level_infos, dims, num_stacks, mdata)``:</span>
-</span><span id=__span-0-208>
-</span><span id=__span-0-209><span class=sd>        - ``levels``: list of arrays (or per-scene lists), coarsest last.</span>
-</span><span id=__span-0-210><span class=sd>        - ``level_infos``: matching :class:`PyramidLevel` descriptors.</span>
-</span><span id=__span-0-211><span class=sd>        - ``dims``: canonical dimension labels of each level.</span>
-</span><span id=__span-0-212><span class=sd>        - ``num_stacks``: number of scenes in the read (same for every level).</span>
-</span><span id=__span-0-213><span class=sd>        - ``mdata``: shared :class:`CziMetadata` for the file.</span>
-</span><span id=__span-0-214>
-</span><span id=__span-0-215><span class=sd>    Notes:</span>
-</span><span id=__span-0-216><span class=sd>        Every returned dask array is lazy — nothing is read until napari</span>
-</span><span id=__span-0-217><span class=sd>        (or the caller) triggers computation on the tiles it needs.</span>
-</span><span id=__span-0-218><span class=sd>    """</span>
-</span><span id=__span-0-219>    <span class=n>filepath</span> <span class=o>=</span> <span class=nb>str</span><span class=p>(</span><span class=n>filepath</span><span class=p>)</span>
-</span><span id=__span-0-220>
-</span><span id=__span-0-221>    <span class=c1># Detect stored levels once via subblock enumeration.</span>
-</span><span id=__span-0-222>    <span class=n>detected</span> <span class=o>=</span> <span class=n>get_pyramid_zooms</span><span class=p>(</span><span class=n>filepath</span><span class=p>)</span> <span class=k>if</span> <span class=n>zooms</span> <span class=ow>is</span> <span class=kc>None</span> <span class=k>else</span> <span class=nb>list</span><span class=p>(</span><span class=n>zooms</span><span class=p>)</span>
-</span><span id=__span-0-223>    <span class=k>if</span> <span class=ow>not</span> <span class=n>detected</span><span class=p>:</span>
-</span><span id=__span-0-224>        <span class=n>detected</span> <span class=o>=</span> <span class=p>[</span><span class=mf>1.0</span><span class=p>]</span>
-</span><span id=__span-0-225>    <span class=n>detected</span> <span class=o>=</span> <span class=nb>sorted</span><span class=p>({</span><span class=nb>round</span><span class=p>(</span><span class=nb>float</span><span class=p>(</span><span class=n>z</span><span class=p>),</span> <span class=n>_ZOOM_ROUND</span><span class=p>)</span> <span class=k>for</span> <span class=n>z</span> <span class=ow>in</span> <span class=n>detected</span><span class=p>},</span> <span class=n>reverse</span><span class=o>=</span><span class=kc>True</span><span class=p>)</span>
-</span><span id=__span-0-226>
-</span><span id=__span-0-227>    <span class=c1># Determine layer-0 edge so we know whether to synthesize extra levels.</span>
-</span><span id=__span-0-228>    <span class=c1># Reading a single plane's metadata is cheap and re-uses cached bounding</span>
-</span><span id=__span-0-229>    <span class=c1># boxes on subsequent read_stacks calls below.</span>
-</span><span id=__span-0-230>    <span class=n>mdata_probe</span> <span class=o>=</span> <span class=n>czimd</span><span class=o>.</span><span class=n>CziMetadata</span><span class=p>(</span><span class=n>filepath</span><span class=p>)</span>
-</span><span id=__span-0-231>    <span class=n>image</span> <span class=o>=</span> <span class=n>mdata_probe</span><span class=o>.</span><span class=n>image_required</span>
-</span><span id=__span-0-232>    <span class=n>layer0_y</span> <span class=o>=</span> <span class=nb>int</span><span class=p>(</span><span class=n>image</span><span class=o>.</span><span class=n>SizeY</span> <span class=ow>or</span> <span class=mi>0</span><span class=p>)</span>
-</span><span id=__span-0-233>    <span class=n>layer0_x</span> <span class=o>=</span> <span class=nb>int</span><span class=p>(</span><span class=n>image</span><span class=o>.</span><span class=n>SizeX</span> <span class=ow>or</span> <span class=mi>0</span><span class=p>)</span>
-</span><span id=__span-0-234>    <span class=n>layer0_edge</span> <span class=o>=</span> <span class=nb>max</span><span class=p>(</span><span class=n>layer0_y</span><span class=p>,</span> <span class=n>layer0_x</span><span class=p>)</span>
-</span><span id=__span-0-235>
-</span><span id=__span-0-236>    <span class=n>synth</span> <span class=o>=</span> <span class=n>_synthesize_coarser_zooms</span><span class=p>(</span><span class=n>detected</span><span class=p>,</span> <span class=n>layer0_edge</span><span class=p>,</span> <span class=n>max_coarse_edge</span><span class=p>)</span> <span class=k>if</span> <span class=n>layer0_edge</span> <span class=o>&gt;</span> <span class=mi>0</span> <span class=k>else</span> <span class=p>[]</span>
-</span><span id=__span-0-237>    <span class=n>all_zooms</span> <span class=o>=</span> <span class=n>detected</span> <span class=o>+</span> <span class=n>synth</span>
-</span><span id=__span-0-238>    <span class=k>if</span> <span class=n>synth</span><span class=p>:</span>
-</span><span id=__span-0-239>        <span class=n>logger</span><span class=o>.</span><span class=n>info</span><span class=p>(</span>
-</span><span id=__span-0-240>            <span class=s2>"read_stacks_multiscale: stored zooms=</span><span class=si>%s</span><span class=s2>; appended synthetic zooms=</span><span class=si>%s</span><span class=s2> "</span>
-</span><span id=__span-0-241>            <span class=s2>"so the coarsest level fits within max_coarse_edge=</span><span class=si>%d</span><span class=s2> px."</span><span class=p>,</span>
-</span><span id=__span-0-242>            <span class=n>detected</span><span class=p>,</span>
-</span><span id=__span-0-243>            <span class=n>synth</span><span class=p>,</span>
-</span><span id=__span-0-244>            <span class=n>max_coarse_edge</span><span class=p>,</span>
-</span><span id=__span-0-245>        <span class=p>)</span>
-</span><span id=__span-0-246>    <span class=k>else</span><span class=p>:</span>
-</span><span id=__span-0-247>        <span class=n>logger</span><span class=o>.</span><span class=n>info</span><span class=p>(</span><span class=s2>"read_stacks_multiscale: stored zooms=</span><span class=si>%s</span><span class=s2> (no synthesis needed)."</span><span class=p>,</span> <span class=n>detected</span><span class=p>)</span>
-</span><span id=__span-0-248>
-</span><span id=__span-0-249>    <span class=n>levels</span><span class=p>:</span> <span class=nb>list</span><span class=p>[</span><span class=n>StackArray</span> <span class=o>|</span> <span class=n>StackList</span><span class=p>]</span> <span class=o>=</span> <span class=p>[]</span>
-</span><span id=__span-0-250>    <span class=n>infos</span><span class=p>:</span> <span class=nb>list</span><span class=p>[</span><span class=n>PyramidLevel</span><span class=p>]</span> <span class=o>=</span> <span class=p>[]</span>
-</span><span id=__span-0-251>    <span class=n>dims_out</span><span class=p>:</span> <span class=nb>list</span><span class=p>[</span><span class=nb>str</span><span class=p>]</span> <span class=o>=</span> <span class=p>[]</span>
-</span><span id=__span-0-252>    <span class=n>num_stacks_out</span> <span class=o>=</span> <span class=mi>0</span>
-</span><span id=__span-0-253>    <span class=n>mdata_out</span><span class=p>:</span> <span class=n>czimd</span><span class=o>.</span><span class=n>CziMetadata</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span>
-</span><span id=__span-0-254>
-</span><span id=__span-0-255>    <span class=k>for</span> <span class=n>z</span> <span class=ow>in</span> <span class=n>all_zooms</span><span class=p>:</span>
-</span><span id=__span-0-256>        <span class=c1># Delegate the per-level read to the fully featured stack reader; it</span>
-</span><span id=__span-0-257>        <span class=c1># already handles scenes, tiling, planes selection, xarray labels,</span>
-</span><span id=__span-0-258>        <span class=c1># and coordinate scaling for the zoom factor.</span>
-</span><span id=__span-0-259>        <span class=n>result</span><span class=p>,</span> <span class=n>dims</span><span class=p>,</span> <span class=n>num_stacks</span><span class=p>,</span> <span class=n>mdata</span> <span class=o>=</span> <span class=n>read_stacks</span><span class=p>(</span>
-</span><span id=__span-0-260>            <span class=n>filepath</span><span class=o>=</span><span class=n>filepath</span><span class=p>,</span>
-</span><span id=__span-0-261>            <span class=n>use_dask</span><span class=o>=</span><span class=kc>True</span><span class=p>,</span>
-</span><span id=__span-0-262>            <span class=n>use_xarray</span><span class=o>=</span><span class=n>use_xarray</span><span class=p>,</span>
-</span><span id=__span-0-263>            <span class=n>stack_scenes</span><span class=o>=</span><span class=n>stack_scenes</span><span class=p>,</span>
-</span><span id=__span-0-264>            <span class=n>planes</span><span class=o>=</span><span class=n>planes</span><span class=p>,</span>
-</span><span id=__span-0-265>            <span class=n>zoom</span><span class=o>=</span><span class=n>z</span><span class=p>,</span>
-</span><span id=__span-0-266>            <span class=n>tile_size</span><span class=o>=</span><span class=n>tile_size</span><span class=p>,</span>
-</span><span id=__span-0-267>            <span class=n>chunk_memory_limit</span><span class=o>=</span><span class=n>chunk_memory_limit</span><span class=p>,</span>
-</span><span id=__span-0-268>            <span class=n>lazy_read_strategy</span><span class=o>=</span><span class=n>lazy_read_strategy</span><span class=p>,</span>
-</span><span id=__span-0-269>            <span class=n>planes_per_chunk</span><span class=o>=</span><span class=n>planes_per_chunk</span><span class=p>,</span>
+<span class=normal>307</span>
+<span class=normal>308</span>
+<span class=normal>309</span>
+<span class=normal>310</span>
+<span class=normal>311</span>
+<span class=normal>312</span>
+<span class=normal>313</span>
+<span class=normal>314</span>
+<span class=normal>315</span>
+<span class=normal>316</span>
+<span class=normal>317</span>
+<span class=normal>318</span>
+<span class=normal>319</span>
+<span class=normal>320</span>
+<span class=normal>321</span>
+<span class=normal>322</span>
+<span class=normal>323</span>
+<span class=normal>324</span>
+<span class=normal>325</span>
+<span class=normal>326</span>
+<span class=normal>327</span>
+<span class=normal>328</span>
+<span class=normal>329</span>
+<span class=normal>330</span>
+<span class=normal>331</span>
+<span class=normal>332</span></pre></div></td><td class=code><div><pre><span></span><code><span id=__span-0-170><span class=k>def</span><span class=w> </span><span class=nf>read_stacks_multiscale</span><span class=p>(</span>
+</span><span id=__span-0-171>    <span class=n>filepath</span><span class=p>:</span> <span class=n>CziPath</span><span class=p>,</span>
+</span><span id=__span-0-172>    <span class=n>use_xarray</span><span class=p>:</span> <span class=nb>bool</span> <span class=o>=</span> <span class=kc>True</span><span class=p>,</span>
+</span><span id=__span-0-173>    <span class=n>stack_scenes</span><span class=p>:</span> <span class=nb>bool</span> <span class=o>=</span> <span class=kc>True</span><span class=p>,</span>
+</span><span id=__span-0-174>    <span class=n>planes</span><span class=p>:</span> <span class=nb>dict</span><span class=p>[</span><span class=nb>str</span><span class=p>,</span> <span class=nb>tuple</span><span class=p>[</span><span class=nb>int</span><span class=p>,</span> <span class=nb>int</span><span class=p>]]</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span><span class=p>,</span>
+</span><span id=__span-0-175>    <span class=n>zooms</span><span class=p>:</span> <span class=nb>list</span><span class=p>[</span><span class=nb>float</span><span class=p>]</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span><span class=p>,</span>
+</span><span id=__span-0-176>    <span class=n>max_coarse_edge</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>8192</span><span class=p>,</span>
+</span><span id=__span-0-177>    <span class=n>tile_size</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>4096</span><span class=p>,</span>
+</span><span id=__span-0-178>    <span class=n>chunk_memory_limit</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>256</span> <span class=o>*</span> <span class=mi>1024</span> <span class=o>*</span> <span class=mi>1024</span><span class=p>,</span>
+</span><span id=__span-0-179>    <span class=n>lazy_read_strategy</span><span class=p>:</span> <span class=n>LazyReadStrategy</span> <span class=o>=</span> <span class=s2>"chunk"</span><span class=p>,</span>
+</span><span id=__span-0-180>    <span class=n>planes_per_chunk</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>64</span><span class=p>,</span>
+</span><span id=__span-0-181><span class=p>)</span> <span class=o>-&gt;</span> <span class=nb>tuple</span><span class=p>[</span>
+</span><span id=__span-0-182>    <span class=nb>list</span><span class=p>[</span><span class=n>StackArray</span> <span class=o>|</span> <span class=n>StackList</span><span class=p>],</span>
+</span><span id=__span-0-183>    <span class=nb>list</span><span class=p>[</span><span class=n>PyramidLevel</span><span class=p>],</span>
+</span><span id=__span-0-184>    <span class=nb>list</span><span class=p>[</span><span class=nb>str</span><span class=p>],</span>
+</span><span id=__span-0-185>    <span class=nb>int</span><span class=p>,</span>
+</span><span id=__span-0-186>    <span class=n>czimd</span><span class=o>.</span><span class=n>CziMetadata</span><span class=p>,</span>
+</span><span id=__span-0-187><span class=p>]:</span>
+</span><span id=__span-0-188><span class=w>    </span><span class=sd>"""Read a CZI as a multiscale pyramid ready for ``napari.add_image``.</span>
+</span><span id=__span-0-189>
+</span><span id=__span-0-190><span class=sd>    Each returned array shares the same S/T/C/Z shape but has progressively</span>
+</span><span id=__span-0-191><span class=sd>    smaller Y/X, matching the shape napari expects for</span>
+</span><span id=__span-0-192><span class=sd>    ``add_image(data, multiscale=True)``.</span>
+</span><span id=__span-0-193>
+</span><span id=__span-0-194><span class=sd>    Level selection:</span>
+</span><span id=__span-0-195>
+</span><span id=__span-0-196><span class=sd>    1. If ``zooms`` is not given, use :func:`get_pyramid_zooms` to detect the</span>
+</span><span id=__span-0-197><span class=sd>       levels stored on disk. Reads at those zooms are served directly from</span>
+</span><span id=__span-0-198><span class=sd>       the matching subblocks (fast, no resampling).</span>
+</span><span id=__span-0-199><span class=sd>    2. If the coarsest stored level is still larger than</span>
+</span><span id=__span-0-200><span class=sd>       ``max_coarse_edge`` on either edge, additional synthetic coarser</span>
+</span><span id=__span-0-201><span class=sd>       levels are appended by halving the zoom. These use libCZI's C++</span>
+</span><span id=__span-0-202><span class=sd>       resampler at read time — slower than stored levels but still cheaper</span>
+</span><span id=__span-0-203><span class=sd>       than materialising layer 0 in Python.</span>
+</span><span id=__span-0-204>
+</span><span id=__span-0-205><span class=sd>    Each level is built by delegating to :func:`read_stacks` with the chosen</span>
+</span><span id=__span-0-206><span class=sd>    zoom, so spatial Y/X tiling (item 3b) still applies per level.</span>
+</span><span id=__span-0-207>
+</span><span id=__span-0-208><span class=sd>    Args:</span>
+</span><span id=__span-0-209><span class=sd>        filepath: CZI file to read.</span>
+</span><span id=__span-0-210><span class=sd>        use_xarray: If True (default), levels are ``xarray.DataArray`` with</span>
+</span><span id=__span-0-211><span class=sd>            labelled dimensions. Pass False for raw ``dask.array``.</span>
+</span><span id=__span-0-212><span class=sd>        stack_scenes: Forwarded to :func:`read_stacks`. Set True to receive</span>
+</span><span id=__span-0-213><span class=sd>            one stacked array per level; set False for a per-scene list per</span>
+</span><span id=__span-0-214><span class=sd>            level.</span>
+</span><span id=__span-0-215><span class=sd>        planes: Optional S/T/C/Z subset (see :func:`read_stacks`).</span>
+</span><span id=__span-0-216><span class=sd>        zooms: Override the detected pyramid list entirely. Rarely needed;</span>
+</span><span id=__span-0-217><span class=sd>            useful for testing or when the file's stored pyramid metadata</span>
+</span><span id=__span-0-218><span class=sd>            is broken.</span>
+</span><span id=__span-0-219><span class=sd>        max_coarse_edge: If the coarsest stored level's longer edge exceeds</span>
+</span><span id=__span-0-220><span class=sd>            this, synthetic coarser levels are appended until the edge</span>
+</span><span id=__span-0-221><span class=sd>            fits. Default 8192 is safely under typical 16k GPU texture</span>
+</span><span id=__span-0-222><span class=sd>            limits.</span>
+</span><span id=__span-0-223><span class=sd>        tile_size: Forwarded to :func:`read_stacks`. Controls Y/X tile size</span>
+</span><span id=__span-0-224><span class=sd>            for very large planes.</span>
+</span><span id=__span-0-225><span class=sd>        chunk_memory_limit: Forwarded to :func:`read_stacks`. Threshold that</span>
+</span><span id=__span-0-226><span class=sd>            decides when Y/X tiling activates for a single plane.</span>
+</span><span id=__span-0-227><span class=sd>        lazy_read_strategy: Forwarded to :func:`read_stacks`.</span>
+</span><span id=__span-0-228><span class=sd>        planes_per_chunk: Forwarded to :func:`read_stacks`.</span>
+</span><span id=__span-0-229>
+</span><span id=__span-0-230><span class=sd>    Returns:</span>
+</span><span id=__span-0-231><span class=sd>        Tuple ``(levels, level_infos, dims, num_stacks, mdata)``:</span>
+</span><span id=__span-0-232>
+</span><span id=__span-0-233><span class=sd>        - ``levels``: list of arrays (or per-scene lists), coarsest last.</span>
+</span><span id=__span-0-234><span class=sd>        - ``level_infos``: matching :class:`PyramidLevel` descriptors.</span>
+</span><span id=__span-0-235><span class=sd>        - ``dims``: canonical dimension labels of each level.</span>
+</span><span id=__span-0-236><span class=sd>        - ``num_stacks``: number of scenes in the read (same for every level).</span>
+</span><span id=__span-0-237><span class=sd>        - ``mdata``: shared :class:`CziMetadata` for the file.</span>
+</span><span id=__span-0-238>
+</span><span id=__span-0-239><span class=sd>    Notes:</span>
+</span><span id=__span-0-240><span class=sd>        Every returned dask array is lazy — nothing is read until napari</span>
+</span><span id=__span-0-241><span class=sd>        (or the caller) triggers computation on the tiles it needs.</span>
+</span><span id=__span-0-242><span class=sd>    """</span>
+</span><span id=__span-0-243>    <span class=n>filepath</span> <span class=o>=</span> <span class=nb>str</span><span class=p>(</span><span class=n>filepath</span><span class=p>)</span>
+</span><span id=__span-0-244>
+</span><span id=__span-0-245>    <span class=c1># Detect stored levels once via subblock enumeration.</span>
+</span><span id=__span-0-246>    <span class=n>detected</span> <span class=o>=</span> <span class=n>get_pyramid_zooms</span><span class=p>(</span><span class=n>filepath</span><span class=p>)</span> <span class=k>if</span> <span class=n>zooms</span> <span class=ow>is</span> <span class=kc>None</span> <span class=k>else</span> <span class=nb>list</span><span class=p>(</span><span class=n>zooms</span><span class=p>)</span>
+</span><span id=__span-0-247>    <span class=k>if</span> <span class=ow>not</span> <span class=n>detected</span><span class=p>:</span>
+</span><span id=__span-0-248>        <span class=n>detected</span> <span class=o>=</span> <span class=p>[</span><span class=mf>1.0</span><span class=p>]</span>
+</span><span id=__span-0-249>    <span class=n>detected</span> <span class=o>=</span> <span class=nb>sorted</span><span class=p>({</span><span class=nb>round</span><span class=p>(</span><span class=nb>float</span><span class=p>(</span><span class=n>z</span><span class=p>),</span> <span class=n>_ZOOM_ROUND</span><span class=p>)</span> <span class=k>for</span> <span class=n>z</span> <span class=ow>in</span> <span class=n>detected</span><span class=p>},</span> <span class=n>reverse</span><span class=o>=</span><span class=kc>True</span><span class=p>)</span>
+</span><span id=__span-0-250>
+</span><span id=__span-0-251>    <span class=c1># Determine layer-0 edge so we know whether to synthesize extra levels.</span>
+</span><span id=__span-0-252>    <span class=c1># Use per-scene dimensions (SizeY_scene / SizeX_scene), not the total</span>
+</span><span id=__span-0-253>    <span class=c1># plate bounding box (SizeY / SizeX), which spans all scenes and would</span>
+</span><span id=__span-0-254>    <span class=c1># trigger unnecessary synthetic coarse levels for multi-scene files.</span>
+</span><span id=__span-0-255>    <span class=n>mdata_probe</span> <span class=o>=</span> <span class=n>czimd</span><span class=o>.</span><span class=n>CziMetadata</span><span class=p>(</span><span class=n>filepath</span><span class=p>)</span>
+</span><span id=__span-0-256>    <span class=n>image</span> <span class=o>=</span> <span class=n>mdata_probe</span><span class=o>.</span><span class=n>image_required</span>
+</span><span id=__span-0-257>    <span class=n>layer0_y</span> <span class=o>=</span> <span class=nb>int</span><span class=p>(</span><span class=n>image</span><span class=o>.</span><span class=n>SizeY_scene</span> <span class=ow>or</span> <span class=n>image</span><span class=o>.</span><span class=n>SizeY</span> <span class=ow>or</span> <span class=mi>0</span><span class=p>)</span>
+</span><span id=__span-0-258>    <span class=n>layer0_x</span> <span class=o>=</span> <span class=nb>int</span><span class=p>(</span><span class=n>image</span><span class=o>.</span><span class=n>SizeX_scene</span> <span class=ow>or</span> <span class=n>image</span><span class=o>.</span><span class=n>SizeX</span> <span class=ow>or</span> <span class=mi>0</span><span class=p>)</span>
+</span><span id=__span-0-259>    <span class=n>layer0_edge</span> <span class=o>=</span> <span class=nb>max</span><span class=p>(</span><span class=n>layer0_y</span><span class=p>,</span> <span class=n>layer0_x</span><span class=p>)</span>
+</span><span id=__span-0-260>
+</span><span id=__span-0-261>    <span class=n>synth</span> <span class=o>=</span> <span class=n>_synthesize_coarser_zooms</span><span class=p>(</span><span class=n>detected</span><span class=p>,</span> <span class=n>layer0_edge</span><span class=p>,</span> <span class=n>max_coarse_edge</span><span class=p>)</span> <span class=k>if</span> <span class=n>layer0_edge</span> <span class=o>&gt;</span> <span class=mi>0</span> <span class=k>else</span> <span class=p>[]</span>
+</span><span id=__span-0-262>    <span class=n>all_zooms</span> <span class=o>=</span> <span class=n>detected</span> <span class=o>+</span> <span class=n>synth</span>
+</span><span id=__span-0-263>    <span class=k>if</span> <span class=n>synth</span><span class=p>:</span>
+</span><span id=__span-0-264>        <span class=n>logger</span><span class=o>.</span><span class=n>info</span><span class=p>(</span>
+</span><span id=__span-0-265>            <span class=s2>"read_stacks_multiscale: stored zooms=</span><span class=si>%s</span><span class=s2>; appended synthetic zooms=</span><span class=si>%s</span><span class=s2> "</span>
+</span><span id=__span-0-266>            <span class=s2>"so the coarsest level fits within max_coarse_edge=</span><span class=si>%d</span><span class=s2> px."</span><span class=p>,</span>
+</span><span id=__span-0-267>            <span class=n>detected</span><span class=p>,</span>
+</span><span id=__span-0-268>            <span class=n>synth</span><span class=p>,</span>
+</span><span id=__span-0-269>            <span class=n>max_coarse_edge</span><span class=p>,</span>
 </span><span id=__span-0-270>        <span class=p>)</span>
-</span><span id=__span-0-271>        <span class=n>levels</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=n>result</span><span class=p>)</span>
-</span><span id=__span-0-272>        <span class=n>dims_out</span> <span class=o>=</span> <span class=n>dims</span>
-</span><span id=__span-0-273>        <span class=n>num_stacks_out</span> <span class=o>=</span> <span class=n>num_stacks</span>
-</span><span id=__span-0-274>        <span class=n>mdata_out</span> <span class=o>=</span> <span class=n>mdata</span>
-</span><span id=__span-0-275>
-</span><span id=__span-0-276>        <span class=c1># Extract level shape for the PyramidLevel record. Handle both the</span>
-</span><span id=__span-0-277>        <span class=c1># stacked-array and per-scene-list return shapes uniformly.</span>
-</span><span id=__span-0-278>        <span class=n>probe</span> <span class=o>=</span> <span class=n>result</span><span class=p>[</span><span class=mi>0</span><span class=p>]</span> <span class=k>if</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>result</span><span class=p>,</span> <span class=nb>list</span><span class=p>)</span> <span class=k>else</span> <span class=n>result</span>
-</span><span id=__span-0-279>        <span class=c1># Trailing dims of the array are (..., Y, X) for grayscale or</span>
-</span><span id=__span-0-280>        <span class=c1># (..., Y, X, A) for RGB; look up Y/X by name when using xarray, or</span>
-</span><span id=__span-0-281>        <span class=c1># by position otherwise.</span>
-</span><span id=__span-0-282>        <span class=k>if</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>probe</span><span class=p>,</span> <span class=n>xr</span><span class=o>.</span><span class=n>DataArray</span><span class=p>):</span>
-</span><span id=__span-0-283>            <span class=n>y_size</span> <span class=o>=</span> <span class=nb>int</span><span class=p>(</span><span class=n>probe</span><span class=o>.</span><span class=n>sizes</span><span class=o>.</span><span class=n>get</span><span class=p>(</span><span class=s2>"Y"</span><span class=p>,</span> <span class=mi>0</span><span class=p>))</span>
-</span><span id=__span-0-284>            <span class=n>x_size</span> <span class=o>=</span> <span class=nb>int</span><span class=p>(</span><span class=n>probe</span><span class=o>.</span><span class=n>sizes</span><span class=o>.</span><span class=n>get</span><span class=p>(</span><span class=s2>"X"</span><span class=p>,</span> <span class=mi>0</span><span class=p>))</span>
-</span><span id=__span-0-285>        <span class=k>else</span><span class=p>:</span>
-</span><span id=__span-0-286>            <span class=n>shape</span> <span class=o>=</span> <span class=nb>getattr</span><span class=p>(</span><span class=n>probe</span><span class=p>,</span> <span class=s2>"shape"</span><span class=p>,</span> <span class=p>())</span>
-</span><span id=__span-0-287>            <span class=c1># For RGB the last axis is A; grayscale ends with X.</span>
-</span><span id=__span-0-288>            <span class=k>if</span> <span class=nb>len</span><span class=p>(</span><span class=n>shape</span><span class=p>)</span> <span class=o>&gt;=</span> <span class=mi>3</span> <span class=ow>and</span> <span class=n>shape</span><span class=p>[</span><span class=o>-</span><span class=mi>1</span><span class=p>]</span> <span class=ow>in</span> <span class=p>(</span><span class=mi>3</span><span class=p>,</span> <span class=mi>4</span><span class=p>):</span>
-</span><span id=__span-0-289>                <span class=n>y_size</span><span class=p>,</span> <span class=n>x_size</span> <span class=o>=</span> <span class=nb>int</span><span class=p>(</span><span class=n>shape</span><span class=p>[</span><span class=o>-</span><span class=mi>3</span><span class=p>]),</span> <span class=nb>int</span><span class=p>(</span><span class=n>shape</span><span class=p>[</span><span class=o>-</span><span class=mi>2</span><span class=p>])</span>
-</span><span id=__span-0-290>            <span class=k>elif</span> <span class=nb>len</span><span class=p>(</span><span class=n>shape</span><span class=p>)</span> <span class=o>&gt;=</span> <span class=mi>2</span><span class=p>:</span>
-</span><span id=__span-0-291>                <span class=n>y_size</span><span class=p>,</span> <span class=n>x_size</span> <span class=o>=</span> <span class=nb>int</span><span class=p>(</span><span class=n>shape</span><span class=p>[</span><span class=o>-</span><span class=mi>2</span><span class=p>]),</span> <span class=nb>int</span><span class=p>(</span><span class=n>shape</span><span class=p>[</span><span class=o>-</span><span class=mi>1</span><span class=p>])</span>
-</span><span id=__span-0-292>            <span class=k>else</span><span class=p>:</span>
-</span><span id=__span-0-293>                <span class=n>y_size</span> <span class=o>=</span> <span class=n>x_size</span> <span class=o>=</span> <span class=mi>0</span>
-</span><span id=__span-0-294>
-</span><span id=__span-0-295>        <span class=n>infos</span><span class=o>.</span><span class=n>append</span><span class=p>(</span>
-</span><span id=__span-0-296>            <span class=n>PyramidLevel</span><span class=p>(</span>
-</span><span id=__span-0-297>                <span class=n>zoom</span><span class=o>=</span><span class=n>z</span><span class=p>,</span>
-</span><span id=__span-0-298>                <span class=n>stored</span><span class=o>=</span><span class=n>z</span> <span class=ow>in</span> <span class=nb>set</span><span class=p>(</span><span class=n>detected</span><span class=p>),</span>
-</span><span id=__span-0-299>                <span class=n>y</span><span class=o>=</span><span class=n>y_size</span><span class=p>,</span>
-</span><span id=__span-0-300>                <span class=n>x</span><span class=o>=</span><span class=n>x_size</span><span class=p>,</span>
-</span><span id=__span-0-301>            <span class=p>)</span>
-</span><span id=__span-0-302>        <span class=p>)</span>
-</span><span id=__span-0-303>
-</span><span id=__span-0-304>    <span class=c1># ``mdata_out`` can only be None when the loop didn't run, which cannot</span>
-</span><span id=__span-0-305>    <span class=c1># happen because ``all_zooms`` always contains at least the layer-0 entry.</span>
-</span><span id=__span-0-306>    <span class=k>assert</span> <span class=n>mdata_out</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span>
-</span><span id=__span-0-307>    <span class=k>return</span> <span class=n>levels</span><span class=p>,</span> <span class=n>infos</span><span class=p>,</span> <span class=n>dims_out</span><span class=p>,</span> <span class=n>num_stacks_out</span><span class=p>,</span> <span class=n>cast</span><span class=p>(</span><span class=n>czimd</span><span class=o>.</span><span class=n>CziMetadata</span><span class=p>,</span> <span class=n>mdata_out</span><span class=p>)</span>
+</span><span id=__span-0-271>    <span class=k>else</span><span class=p>:</span>
+</span><span id=__span-0-272>        <span class=n>logger</span><span class=o>.</span><span class=n>info</span><span class=p>(</span><span class=s2>"read_stacks_multiscale: stored zooms=</span><span class=si>%s</span><span class=s2> (no synthesis needed)."</span><span class=p>,</span> <span class=n>detected</span><span class=p>)</span>
+</span><span id=__span-0-273>
+</span><span id=__span-0-274>    <span class=n>levels</span><span class=p>:</span> <span class=nb>list</span><span class=p>[</span><span class=n>StackArray</span> <span class=o>|</span> <span class=n>StackList</span><span class=p>]</span> <span class=o>=</span> <span class=p>[]</span>
+</span><span id=__span-0-275>    <span class=n>infos</span><span class=p>:</span> <span class=nb>list</span><span class=p>[</span><span class=n>PyramidLevel</span><span class=p>]</span> <span class=o>=</span> <span class=p>[]</span>
+</span><span id=__span-0-276>    <span class=n>dims_out</span><span class=p>:</span> <span class=nb>list</span><span class=p>[</span><span class=nb>str</span><span class=p>]</span> <span class=o>=</span> <span class=p>[]</span>
+</span><span id=__span-0-277>    <span class=n>num_stacks_out</span> <span class=o>=</span> <span class=mi>0</span>
+</span><span id=__span-0-278>    <span class=n>mdata_out</span><span class=p>:</span> <span class=n>czimd</span><span class=o>.</span><span class=n>CziMetadata</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span>
+</span><span id=__span-0-279>
+</span><span id=__span-0-280>    <span class=k>for</span> <span class=n>z</span> <span class=ow>in</span> <span class=n>all_zooms</span><span class=p>:</span>
+</span><span id=__span-0-281>        <span class=c1># Delegate the per-level read to the fully featured stack reader; it</span>
+</span><span id=__span-0-282>        <span class=c1># already handles scenes, tiling, planes selection, xarray labels,</span>
+</span><span id=__span-0-283>        <span class=c1># and coordinate scaling for the zoom factor.</span>
+</span><span id=__span-0-284>        <span class=n>result</span><span class=p>,</span> <span class=n>dims</span><span class=p>,</span> <span class=n>num_stacks</span><span class=p>,</span> <span class=n>mdata</span> <span class=o>=</span> <span class=n>read_stacks</span><span class=p>(</span>
+</span><span id=__span-0-285>            <span class=n>filepath</span><span class=o>=</span><span class=n>filepath</span><span class=p>,</span>
+</span><span id=__span-0-286>            <span class=n>use_dask</span><span class=o>=</span><span class=kc>True</span><span class=p>,</span>
+</span><span id=__span-0-287>            <span class=n>use_xarray</span><span class=o>=</span><span class=n>use_xarray</span><span class=p>,</span>
+</span><span id=__span-0-288>            <span class=n>stack_scenes</span><span class=o>=</span><span class=n>stack_scenes</span><span class=p>,</span>
+</span><span id=__span-0-289>            <span class=n>planes</span><span class=o>=</span><span class=n>planes</span><span class=p>,</span>
+</span><span id=__span-0-290>            <span class=n>zoom</span><span class=o>=</span><span class=n>z</span><span class=p>,</span>
+</span><span id=__span-0-291>            <span class=n>tile_size</span><span class=o>=</span><span class=n>tile_size</span><span class=p>,</span>
+</span><span id=__span-0-292>            <span class=n>chunk_memory_limit</span><span class=o>=</span><span class=n>chunk_memory_limit</span><span class=p>,</span>
+</span><span id=__span-0-293>            <span class=n>lazy_read_strategy</span><span class=o>=</span><span class=n>lazy_read_strategy</span><span class=p>,</span>
+</span><span id=__span-0-294>            <span class=n>planes_per_chunk</span><span class=o>=</span><span class=n>planes_per_chunk</span><span class=p>,</span>
+</span><span id=__span-0-295>        <span class=p>)</span>
+</span><span id=__span-0-296>        <span class=n>levels</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=n>result</span><span class=p>)</span>
+</span><span id=__span-0-297>        <span class=n>dims_out</span> <span class=o>=</span> <span class=n>dims</span>
+</span><span id=__span-0-298>        <span class=n>num_stacks_out</span> <span class=o>=</span> <span class=n>num_stacks</span>
+</span><span id=__span-0-299>        <span class=n>mdata_out</span> <span class=o>=</span> <span class=n>mdata</span>
+</span><span id=__span-0-300>
+</span><span id=__span-0-301>        <span class=c1># Extract level shape for the PyramidLevel record. Handle both the</span>
+</span><span id=__span-0-302>        <span class=c1># stacked-array and per-scene-list return shapes uniformly.</span>
+</span><span id=__span-0-303>        <span class=n>probe</span> <span class=o>=</span> <span class=n>result</span><span class=p>[</span><span class=mi>0</span><span class=p>]</span> <span class=k>if</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>result</span><span class=p>,</span> <span class=nb>list</span><span class=p>)</span> <span class=k>else</span> <span class=n>result</span>
+</span><span id=__span-0-304>        <span class=c1># Trailing dims of the array are (..., Y, X) for grayscale or</span>
+</span><span id=__span-0-305>        <span class=c1># (..., Y, X, A) for RGB; look up Y/X by name when using xarray, or</span>
+</span><span id=__span-0-306>        <span class=c1># by position otherwise.</span>
+</span><span id=__span-0-307>        <span class=k>if</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>probe</span><span class=p>,</span> <span class=n>xr</span><span class=o>.</span><span class=n>DataArray</span><span class=p>):</span>
+</span><span id=__span-0-308>            <span class=n>y_size</span> <span class=o>=</span> <span class=nb>int</span><span class=p>(</span><span class=n>probe</span><span class=o>.</span><span class=n>sizes</span><span class=o>.</span><span class=n>get</span><span class=p>(</span><span class=s2>"Y"</span><span class=p>,</span> <span class=mi>0</span><span class=p>))</span>
+</span><span id=__span-0-309>            <span class=n>x_size</span> <span class=o>=</span> <span class=nb>int</span><span class=p>(</span><span class=n>probe</span><span class=o>.</span><span class=n>sizes</span><span class=o>.</span><span class=n>get</span><span class=p>(</span><span class=s2>"X"</span><span class=p>,</span> <span class=mi>0</span><span class=p>))</span>
+</span><span id=__span-0-310>        <span class=k>else</span><span class=p>:</span>
+</span><span id=__span-0-311>            <span class=n>shape</span> <span class=o>=</span> <span class=nb>getattr</span><span class=p>(</span><span class=n>probe</span><span class=p>,</span> <span class=s2>"shape"</span><span class=p>,</span> <span class=p>())</span>
+</span><span id=__span-0-312>            <span class=c1># For RGB the last axis is A; grayscale ends with X.</span>
+</span><span id=__span-0-313>            <span class=k>if</span> <span class=nb>len</span><span class=p>(</span><span class=n>shape</span><span class=p>)</span> <span class=o>&gt;=</span> <span class=mi>3</span> <span class=ow>and</span> <span class=n>shape</span><span class=p>[</span><span class=o>-</span><span class=mi>1</span><span class=p>]</span> <span class=ow>in</span> <span class=p>(</span><span class=mi>3</span><span class=p>,</span> <span class=mi>4</span><span class=p>):</span>
+</span><span id=__span-0-314>                <span class=n>y_size</span><span class=p>,</span> <span class=n>x_size</span> <span class=o>=</span> <span class=nb>int</span><span class=p>(</span><span class=n>shape</span><span class=p>[</span><span class=o>-</span><span class=mi>3</span><span class=p>]),</span> <span class=nb>int</span><span class=p>(</span><span class=n>shape</span><span class=p>[</span><span class=o>-</span><span class=mi>2</span><span class=p>])</span>
+</span><span id=__span-0-315>            <span class=k>elif</span> <span class=nb>len</span><span class=p>(</span><span class=n>shape</span><span class=p>)</span> <span class=o>&gt;=</span> <span class=mi>2</span><span class=p>:</span>
+</span><span id=__span-0-316>                <span class=n>y_size</span><span class=p>,</span> <span class=n>x_size</span> <span class=o>=</span> <span class=nb>int</span><span class=p>(</span><span class=n>shape</span><span class=p>[</span><span class=o>-</span><span class=mi>2</span><span class=p>]),</span> <span class=nb>int</span><span class=p>(</span><span class=n>shape</span><span class=p>[</span><span class=o>-</span><span class=mi>1</span><span class=p>])</span>
+</span><span id=__span-0-317>            <span class=k>else</span><span class=p>:</span>
+</span><span id=__span-0-318>                <span class=n>y_size</span> <span class=o>=</span> <span class=n>x_size</span> <span class=o>=</span> <span class=mi>0</span>
+</span><span id=__span-0-319>
+</span><span id=__span-0-320>        <span class=n>infos</span><span class=o>.</span><span class=n>append</span><span class=p>(</span>
+</span><span id=__span-0-321>            <span class=n>PyramidLevel</span><span class=p>(</span>
+</span><span id=__span-0-322>                <span class=n>zoom</span><span class=o>=</span><span class=n>z</span><span class=p>,</span>
+</span><span id=__span-0-323>                <span class=n>stored</span><span class=o>=</span><span class=n>z</span> <span class=ow>in</span> <span class=nb>set</span><span class=p>(</span><span class=n>detected</span><span class=p>),</span>
+</span><span id=__span-0-324>                <span class=n>y</span><span class=o>=</span><span class=n>y_size</span><span class=p>,</span>
+</span><span id=__span-0-325>                <span class=n>x</span><span class=o>=</span><span class=n>x_size</span><span class=p>,</span>
+</span><span id=__span-0-326>            <span class=p>)</span>
+</span><span id=__span-0-327>        <span class=p>)</span>
+</span><span id=__span-0-328>
+</span><span id=__span-0-329>    <span class=c1># ``mdata_out`` can only be None when the loop didn't run, which cannot</span>
+</span><span id=__span-0-330>    <span class=c1># happen because ``all_zooms`` always contains at least the layer-0 entry.</span>
+</span><span id=__span-0-331>    <span class=k>assert</span> <span class=n>mdata_out</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span>
+</span><span id=__span-0-332>    <span class=k>return</span> <span class=n>levels</span><span class=p>,</span> <span class=n>infos</span><span class=p>,</span> <span class=n>dims_out</span><span class=p>,</span> <span class=n>num_stacks_out</span><span class=p>,</span> <span class=n>cast</span><span class=p>(</span><span class=n>czimd</span><span class=o>.</span><span class=n>CziMetadata</span><span class=p>,</span> <span class=n>mdata_out</span><span class=p>)</span>
 </span></code></pre></div></td></tr></table></div> </details> </div> </div> <div class="doc doc-object doc-function"> <h2 id=czitools.read_tools.read_stacks_stacked class="doc doc-heading"> <code class="doc-symbol doc-symbol-heading doc-symbol-function"></code> <span class="doc doc-object-name doc-function-name">read_stacks_stacked</span> <a href=#czitools.read_tools.read_stacks_stacked class=headerlink title="Permanent link">#</a></h2> <div class="language-python doc-signature highlight"><pre><span></span><code><span id=__span-0-1><span class=nf>read_stacks_stacked</span><span class=p>(</span>
 </span><span id=__span-0-2>    <span class=n><span title=czitools.read_tools.read_stacks_stacked(filepath)>filepath</span></span><span class=p>:</span> <span class=n><span title=czitools.read_tools._helpers.CziPath>CziPath</span></span><span class=p>,</span>
 </span><span id=__span-0-3>    <span class=n><span title=czitools.read_tools.read_stacks_stacked(use_dask)>use_dask</span></span><span class=p>:</span> <span class=n><a class="autorefs autorefs-external" href=https://docs.python.org/3/library/functions.html#bool>bool</a></span> <span class=o>=</span> <span class=kc>False</span><span class=p>,</span>
