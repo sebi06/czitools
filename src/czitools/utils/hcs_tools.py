@@ -6,12 +6,15 @@ including plate hierarchy, sample metadata, and detailed field information.
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
 from rich.text import Text
 
-from czitools.metadata_tools import CziMetadata
+if TYPE_CHECKING:
+    from czitools.metadata_tools import CziMetadata
 
 # Initialize rich console with color support
 console = Console()
