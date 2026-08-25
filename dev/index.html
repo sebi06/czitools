@@ -30,17 +30,36 @@
 </span><span id=__span-4-5><span class=n>mdata</span> <span class=o>=</span> <span class=n>CziMetadata</span><span class=p>(</span><span class=s2>"path/to/file.czi"</span><span class=p>)</span>
 </span><span id=__span-4-6><span class=nb>print</span><span class=p>(</span><span class=n>mdata</span><span class=o>.</span><span class=n>image_required</span><span class=o>.</span><span class=n>SizeC</span><span class=p>)</span>
 </span><span id=__span-4-7><span class=nb>print</span><span class=p>(</span><span class=n>mdata</span><span class=o>.</span><span class=n>scale_required</span><span class=o>.</span><span class=n>X</span><span class=p>)</span>
-</span><span id=__span-4-8>
-</span><span id=__span-4-9><span class=c1># Read regular, equal-sized scenes eagerly as a labelled STCZYX(A) array.</span>
-</span><span id=__span-4-10><span class=n>array6d</span><span class=p>,</span> <span class=n>mdata</span> <span class=o>=</span> <span class=n>read_6darray</span><span class=p>(</span><span class=s2>"path/to/file.czi"</span><span class=p>,</span> <span class=n>use_xarray</span><span class=o>=</span><span class=kc>True</span><span class=p>)</span>
-</span><span id=__span-4-11>
-</span><span id=__span-4-12><span class=c1># For irregular scenes, keep genuinely lazy reads as a list.</span>
-</span><span id=__span-4-13><span class=n>scenes</span><span class=p>,</span> <span class=n>dims</span><span class=p>,</span> <span class=n>scene_count</span><span class=p>,</span> <span class=n>mdata</span> <span class=o>=</span> <span class=n>read_stacks_list</span><span class=p>(</span>
-</span><span id=__span-4-14>    <span class=s2>"path/to/file.czi"</span><span class=p>,</span>
-</span><span id=__span-4-15>    <span class=n>use_dask</span><span class=o>=</span><span class=kc>True</span><span class=p>,</span>
-</span><span id=__span-4-16>    <span class=n>use_xarray</span><span class=o>=</span><span class=kc>True</span><span class=p>,</span>
-</span><span id=__span-4-17><span class=p>)</span>
-</span><span id=__span-4-18><span class=n>first_plane</span> <span class=o>=</span> <span class=n>scenes</span><span class=p>[</span><span class=mi>0</span><span class=p>]</span><span class=o>.</span><span class=n>isel</span><span class=p>(</span><span class=n>T</span><span class=o>=</span><span class=mi>0</span><span class=p>,</span> <span class=n>C</span><span class=o>=</span><span class=mi>0</span><span class=p>,</span> <span class=n>Z</span><span class=o>=</span><span class=mi>0</span><span class=p>)</span><span class=o>.</span><span class=n>compute</span><span class=p>()</span>
+</span><span id=__span-4-8><span class=nb>print</span><span class=p>(</span><span class=n>mdata</span><span class=o>.</span><span class=n>scene_shape_is_consistent</span><span class=p>)</span>  <span class=c1># True when all scenes can be stacked</span>
+</span><span id=__span-4-9>
+</span><span id=__span-4-10><span class=c1># scene_shape_tolerance (default=1) controls the maximum allowed pixel</span>
+</span><span id=__span-4-11><span class=c1># difference in width or height between scenes before they are considered</span>
+</span><span id=__span-4-12><span class=c1># inconsistent. A value of 1 absorbs the ±1-pixel rounding that commonly</span>
+</span><span id=__span-4-13><span class=c1># occurs with HCS plate coordinates and allows those scenes to be stacked.</span>
+</span><span id=__span-4-14><span class=n>mdata_plate</span> <span class=o>=</span> <span class=n>CziMetadata</span><span class=p>(</span><span class=s2>"path/to/plate.czi"</span><span class=p>,</span> <span class=n>scene_shape_tolerance</span><span class=o>=</span><span class=mi>1</span><span class=p>)</span>
+</span><span id=__span-4-15>
+</span><span id=__span-4-16><span class=c1># Read regular, equal-sized scenes eagerly as a labelled STCZYX(A) array.</span>
+</span><span id=__span-4-17><span class=n>array6d</span><span class=p>,</span> <span class=n>mdata</span> <span class=o>=</span> <span class=n>read_6darray</span><span class=p>(</span><span class=s2>"path/to/file.czi"</span><span class=p>,</span> <span class=n>use_xarray</span><span class=o>=</span><span class=kc>True</span><span class=p>)</span>
+</span><span id=__span-4-18>
+</span><span id=__span-4-19><span class=c1># For HCS plate files whose scenes differ by ±1 pixel due to coordinate</span>
+</span><span id=__span-4-20><span class=c1># rounding, pass scene_stack_tolerance=1 so read_stacks crops them to a</span>
+</span><span id=__span-4-21><span class=c1># common shape and stacks them into one array (default=0, strict equality).</span>
+</span><span id=__span-4-22><span class=kn>from</span><span class=w> </span><span class=nn>czitools.read_tools</span><span class=w> </span><span class=kn>import</span> <span class=n>read_stacks</span>
+</span><span id=__span-4-23><span class=n>stacked</span><span class=p>,</span> <span class=n>dims</span><span class=p>,</span> <span class=n>n</span><span class=p>,</span> <span class=n>mdata</span> <span class=o>=</span> <span class=n>read_stacks</span><span class=p>(</span>
+</span><span id=__span-4-24>    <span class=s2>"path/to/plate.czi"</span><span class=p>,</span>
+</span><span id=__span-4-25>    <span class=n>use_dask</span><span class=o>=</span><span class=kc>True</span><span class=p>,</span>
+</span><span id=__span-4-26>    <span class=n>use_xarray</span><span class=o>=</span><span class=kc>True</span><span class=p>,</span>
+</span><span id=__span-4-27>    <span class=n>stack_scenes</span><span class=o>=</span><span class=kc>True</span><span class=p>,</span>
+</span><span id=__span-4-28>    <span class=n>scene_stack_tolerance</span><span class=o>=</span><span class=mi>1</span><span class=p>,</span>
+</span><span id=__span-4-29><span class=p>)</span>
+</span><span id=__span-4-30>
+</span><span id=__span-4-31><span class=c1># For irregular scenes, keep genuinely lazy reads as a list.</span>
+</span><span id=__span-4-32><span class=n>scenes</span><span class=p>,</span> <span class=n>dims</span><span class=p>,</span> <span class=n>scene_count</span><span class=p>,</span> <span class=n>mdata</span> <span class=o>=</span> <span class=n>read_stacks_list</span><span class=p>(</span>
+</span><span id=__span-4-33>    <span class=s2>"path/to/file.czi"</span><span class=p>,</span>
+</span><span id=__span-4-34>    <span class=n>use_dask</span><span class=o>=</span><span class=kc>True</span><span class=p>,</span>
+</span><span id=__span-4-35>    <span class=n>use_xarray</span><span class=o>=</span><span class=kc>True</span><span class=p>,</span>
+</span><span id=__span-4-36><span class=p>)</span>
+</span><span id=__span-4-37><span class=n>first_plane</span> <span class=o>=</span> <span class=n>scenes</span><span class=p>[</span><span class=mi>0</span><span class=p>]</span><span class=o>.</span><span class=n>isel</span><span class=p>(</span><span class=n>T</span><span class=o>=</span><span class=mi>0</span><span class=p>,</span> <span class=n>C</span><span class=o>=</span><span class=mi>0</span><span class=p>,</span> <span class=n>Z</span><span class=o>=</span><span class=mi>0</span><span class=p>)</span><span class=o>.</span><span class=n>compute</span><span class=p>()</span>
 </span></code></pre></div> <p><code>read_6darray(..., use_dask=True)</code> also provides genuinely lazy pixel access when the CZI has equal-sized scenes and consistent pixel types. <code>read_stacks(..., use_dask=True)</code> groups up to 64 planes per task by default to reduce file-open and scheduler overhead. Set <code>lazy_read_strategy="plane"</code> for the finest-grained random access, or tune the group with <code>planes_per_chunk</code>.</p> <p>For gigapixel CZIs (single planes over ~256 MB uncompressed) <code>read_stacks</code> automatically activates <strong>spatial Y/X tiling</strong>: each dask chunk becomes one ROI-based read via <code>pylibCZIrw</code>, so viewers such as napari only load the tiles that intersect the visible viewport instead of full planes. Tune the tile edge with <code>tile_size</code> (default 4096) or the trigger threshold with <code>chunk_memory_limit</code>. Small planes keep the fast whole-plane path.</p> <p>For interactive viewers that need a <strong>multiscale pyramid</strong> (napari's <code>add_image(..., multiscale=True)</code>, gigapixel whole-slide display, etc.) use <code>read_stacks_multiscale</code>:</p> <p><div class="language-python highlight"><pre><span></span><code><span id=__span-5-1><span class=kn>from</span><span class=w> </span><span class=nn>czitools.read_tools</span><span class=w> </span><span class=kn>import</span> <span class=n>get_pyramid_zooms</span><span class=p>,</span> <span class=n>read_stacks_multiscale</span>
 </span><span id=__span-5-2>
 </span><span id=__span-5-3><span class=c1># Inspect the stored pyramid without reading pixels.</span>
