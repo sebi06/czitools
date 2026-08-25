@@ -7565,6 +7565,7 @@ packages:
   - validators
   - zarr>=3.0
   - matplotlib
+  - rich
   - seaborn ; extra == 'all'
   - plotly ; extra == 'all'
   - qtpy ; extra == 'all'

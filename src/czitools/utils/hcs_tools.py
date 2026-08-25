@@ -11,6 +11,8 @@ from rich.panel import Panel
 from rich.table import Table
 from rich.text import Text
 
+from czitools.metadata_tools import CziMetadata
+
 # Initialize rich console with color support
 console = Console()
 
@@ -212,7 +214,7 @@ def print_well_fields(metadata: CziMetadata, well_name: str | None) -> None:
     else:
         try:
             well = plate.get_well(well_name)
-            print_section_header(f"🔎 Well Fields")
+            print_section_header("🔎 Well Fields")
         except KeyError:
             console.print(f"\n[red]❌ Error: Well {well_name!r} not found in plate.[/red]")
             available = [w.canonical_name for w in plate.wells]
