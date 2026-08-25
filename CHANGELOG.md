@@ -6,6 +6,36 @@ and the project adheres to [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [0.22.0] — 2026-08-25
+
+### Added
+
+- `czi_hcs_check` — New command-line tool for inspecting High-Content Screening
+  (HCS) well plates in CZI files. Provides rich-formatted terminal output showing
+  plate overview, well information, sample metadata, and detailed field listings.
+  Supports filtering by well name and optional suppression of the well summary
+  table.
+- `czitools.utils.hcs_tools` — Module providing rich-formatted display utilities
+  for HCS plate metadata. Includes functions for displaying plate information,
+  sample metadata, and well field details with colored terminal output.
+
+### Changed
+
+- Scene shape tolerance improved when dimensions differ by only a few pixels
+  (e.g., rounding errors across scenes). The reader now handles minor dimension
+  mismatches gracefully.
+
+### Fixed
+
+- Resolved circular import between `hcs_tools` and `metadata_tools` modules
+  using Python's standard `TYPE_CHECKING` pattern (PEP 484/563).
+- Fixed pyramid level enumeration to correctly identify all stored zoom levels.
+- Fixed all static analysis violations (ruff F821, F541) for enhanced code quality.
+
+See [_release_notes/v0.22.0.md](_release_notes/v0.22.0.md) for detailed release notes.
+
+---
+
 ## [0.21.0] — 2026-08-24
 
 ### Added
