@@ -1,11 +1,10 @@
 """CZI pyramid discovery and multiscale reading.
 
-Wraps :mod:`pylibCZIrw` for pyramid-level detection (via ``get_zoom()`` on
-subblock headers) and provides :func:`read_stacks_multiscale` — a list of
-one dask-backed array per level, ready for napari's ``add_image(...,
-multiscale=True)``. Reads at stored zoom factors are served directly from
-the corresponding subblocks; any synthetic coarser levels use libCZI's C++
-resampler.
+Pyramid-level detection uses :mod:`czifile`'s per-scene level structure
+(scene.levels + directory_entry.is_pyramid) for local files, which correctly
+distinguishes full-resolution subblocks from stored pyramid levels and
+plate-wide thumbnails. URL paths fall back to :mod:`pylibCZIrw` enumeration
+restricted to scene 0's bounding rectangle.
 """
 
 from __future__ import annotations
@@ -13,6 +12,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import cast
 
+import czifile as czifile_module
 import xarray as xr
 from pylibCZIrw import czi as pyczi
 
@@ -63,15 +63,19 @@ class PyramidLevel:
 def get_pyramid_zooms(filepath: CziPath) -> list[float]:
     """Return the zoom factors of pyramid levels stored in the CZI file.
 
-    Uses only :mod:`pylibCZIrw`. ``CziReader.enumerate_subblocks`` walks
-    subblock headers (no pixel I/O) and ``SubBlockInfo.get_zoom()`` reports
-    each level's zoom directly. Even multi-thousand-subblock gigapixel files
-    complete in well under a second. Files without an on-disk pyramid return
-    ``[1.0]``.
+    For local files uses :mod:`czifile`'s ``scene.levels`` structure.
+    Each level's zoom is derived from its stored X size relative to level 0,
+    matching the approach in ``check_PYL.py``. The ``directory_entry`` of
+    every subblock carries a unitless scale (physicalSize / logicalSize);
+    subblocks with ``is_pyramid=True`` have a scale < 1.0 and belong to a
+    stored pyramid level. Files without a pyramid return ``[1.0]``.
+
+    For URL paths (not supported by :mod:`czifile`), falls back to
+    :mod:`pylibCZIrw` enumeration restricted to scene 0's bounding rectangle
+    so that plate-wide thumbnail subblocks are excluded.
 
     Levels whose zoom is below :data:`_MIN_READ_ZOOM` (0.01) are dropped
-    because ``pylibCZIrw.CziReader.read`` clamps such zooms to 0.01 and
-    cannot serve their native pixels.
+    because ``pylibCZIrw.CziReader.read`` clamps such zooms to 0.01.
 
     Args:
         filepath: Path to the CZI file (local path or URL).
@@ -81,26 +85,46 @@ def get_pyramid_zooms(filepath: CziPath) -> list[float]:
         ``[1.0, 0.5, 0.25, 0.125, 0.0625]`` for standard pyramids, or
         ``[1.0, 0.333333]`` for ZEN's 3x pyramid variant.
     """
-    filepath = str(filepath)
-    readertype, _ = misc.get_pyczi_readertype(filepath)
+    path_str = str(filepath)
+    is_url = path_str.startswith(("http://", "https://"))
 
-    zooms: set[float] = set()
+    if not is_url:
+        # czifile correctly identifies pyramid levels via directory_entry.is_pyramid
+        # and exposes them through scene.levels — same API used by check_PYL.py.
+        try:
+            with czifile_module.CziFile(path_str) as czi:
+                scenes = czi.scenes
+                if scenes and scenes[0].levels:
+                    levels = scenes[0].levels
+                    base_x = levels[0].shape[-1]
+                    if base_x > 0:
+                        zooms = {round(float(lvl.shape[-1]) / base_x, _ZOOM_ROUND) for lvl in levels}
+                        readable = sorted((z for z in zooms if z >= _MIN_READ_ZOOM), reverse=True)
+                        return readable or [1.0]
+        except Exception:
+            pass  # fall through to pylibCZIrw
+
+    # Fallback for URLs: pylibCZIrw enumeration filtered to scene 0's ROI.
+    readertype, _ = misc.get_pyczi_readertype(path_str)
+    zooms_pyl: set[float] = set()
 
     def _collect(_idx: int, info) -> bool:
         try:
-            zooms.add(round(float(info.get_zoom()), _ZOOM_ROUND))
+            zooms_pyl.add(round(float(info.get_zoom()), _ZOOM_ROUND))
         except Exception:
-            # Skip malformed entries; other subblocks may still expose zooms.
             pass
         return True
 
-    with pyczi.open_czi(filepath, readertype) as doc:
-        doc.enumerate_subblocks(_collect)
+    with pyczi.open_czi(path_str, readertype) as doc:
+        scene_rects = doc.scenes_bounding_rectangle_no_pyramid
+        if scene_rects:
+            s0 = scene_rects[min(scene_rects.keys())]
+            doc.enumerate_subblocks_subset(_collect, roi=(s0.x, s0.y, s0.w, s0.h))
+        else:
+            doc.enumerate_subblocks(_collect)
 
-    readable = sorted((z for z in zooms if z >= _MIN_READ_ZOOM), reverse=True)
-    if not readable:
-        return [1.0]
-    return readable
+    readable = sorted((z for z in zooms_pyl if z >= _MIN_READ_ZOOM), reverse=True)
+    return readable or [1.0]
 
 
 def _synthesize_coarser_zooms(
@@ -225,12 +249,13 @@ def read_stacks_multiscale(
     detected = sorted({round(float(z), _ZOOM_ROUND) for z in detected}, reverse=True)
 
     # Determine layer-0 edge so we know whether to synthesize extra levels.
-    # Reading a single plane's metadata is cheap and re-uses cached bounding
-    # boxes on subsequent read_stacks calls below.
+    # Use per-scene dimensions (SizeY_scene / SizeX_scene), not the total
+    # plate bounding box (SizeY / SizeX), which spans all scenes and would
+    # trigger unnecessary synthetic coarse levels for multi-scene files.
     mdata_probe = czimd.CziMetadata(filepath)
     image = mdata_probe.image_required
-    layer0_y = int(image.SizeY or 0)
-    layer0_x = int(image.SizeX or 0)
+    layer0_y = int(image.SizeY_scene or image.SizeY or 0)
+    layer0_x = int(image.SizeX_scene or image.SizeX or 0)
     layer0_edge = max(layer0_y, layer0_x)
 
     synth = _synthesize_coarser_zooms(detected, layer0_edge, max_coarse_edge) if layer0_edge > 0 else []
