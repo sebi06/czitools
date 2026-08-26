@@ -153,16 +153,7 @@
 
   
       dataclass
-   (czitools.metadata_tools.czi_metadata.CziMetadata)" href=../metadata_tools/czi_metadata/#czitools.metadata_tools.czi_metadata.CziMetadata>CziMetadata</a></code> – <div class=doc-md-description> <p>CZI cannot be represented as a regular 6D array.</p> </div> </li> </ul> <details class=mkdocstrings-source> <summary>Source code in <code>czitools/read_tools/array6d.py</code></summary> <div class="language-python highlight"><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal>107</span>
-<span class=normal>108</span>
-<span class=normal>109</span>
-<span class=normal>110</span>
-<span class=normal>111</span>
-<span class=normal>112</span>
-<span class=normal>113</span>
-<span class=normal>114</span>
-<span class=normal>115</span>
-<span class=normal>116</span>
+   (czitools.metadata_tools.czi_metadata.CziMetadata)" href=../metadata_tools/czi_metadata/#czitools.metadata_tools.czi_metadata.CziMetadata>CziMetadata</a></code> – <div class=doc-md-description> <p>CZI cannot be represented as a regular 6D array.</p> </div> </li> </ul> <details class=notes open> <summary>Notes</summary> <p>Pixel reads are constrained to each selected scene's full-resolution, non-pyramid bounding rectangle. This keeps regular array shapes aligned with the layer-0 image when coarse pyramid coverage is rounded outward.</p> </details> <details class=mkdocstrings-source> <summary>Source code in <code>czitools/read_tools/array6d.py</code></summary> <div class="language-python highlight"><table class=highlighttable><tr><td class=linenos><div class=linenodiv><pre><span></span><span class=normal>116</span>
 <span class=normal>117</span>
 <span class=normal>118</span>
 <span class=normal>119</span>
@@ -378,232 +369,261 @@
 <span class=normal>329</span>
 <span class=normal>330</span>
 <span class=normal>331</span>
-<span class=normal>332</span></pre></div></td><td class=code><div><pre><span></span><code><span id=__span-0-107><span class=k>def</span><span class=w> </span><span class=nf>read_6darray</span><span class=p>(</span>
-</span><span id=__span-0-108>    <span class=n>filepath</span><span class=p>:</span> <span class=n>CziPath</span><span class=p>,</span>
-</span><span id=__span-0-109>    <span class=n>use_dask</span><span class=p>:</span> <span class=nb>bool</span> <span class=o>=</span> <span class=kc>False</span><span class=p>,</span>
-</span><span id=__span-0-110>    <span class=n>chunk_zyx</span><span class=p>:</span> <span class=nb>bool</span> <span class=o>=</span> <span class=kc>False</span><span class=p>,</span>
-</span><span id=__span-0-111>    <span class=n>planes</span><span class=p>:</span> <span class=nb>dict</span><span class=p>[</span><span class=nb>str</span><span class=p>,</span> <span class=nb>tuple</span><span class=p>[</span><span class=nb>int</span><span class=p>,</span> <span class=nb>int</span><span class=p>]]</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span><span class=p>,</span>
-</span><span id=__span-0-112>    <span class=n>zoom</span><span class=p>:</span> <span class=nb>float</span> <span class=o>=</span> <span class=mf>1.0</span><span class=p>,</span>
-</span><span id=__span-0-113>    <span class=n>use_xarray</span><span class=p>:</span> <span class=nb>bool</span> <span class=o>=</span> <span class=kc>True</span><span class=p>,</span>
-</span><span id=__span-0-114>    <span class=n>adapt_metadata</span><span class=p>:</span> <span class=nb>bool</span> <span class=o>=</span> <span class=kc>False</span><span class=p>,</span>
-</span><span id=__span-0-115><span class=p>)</span> <span class=o>-&gt;</span> <span class=nb>tuple</span><span class=p>[</span><span class=n>Array6D</span> <span class=o>|</span> <span class=kc>None</span><span class=p>,</span> <span class=n>czimd</span><span class=o>.</span><span class=n>CziMetadata</span><span class=p>]:</span>
-</span><span id=__span-0-116><span class=w>    </span><span class=sd>"""Read a CZI image file as an STCZYX(A) array.</span>
-</span><span id=__span-0-117>
-</span><span id=__span-0-118><span class=sd>    Only scenes with equal size and CZIs with consistent pixel types can be</span>
-</span><span id=__span-0-119><span class=sd>    represented by this regular array API.</span>
-</span><span id=__span-0-120>
-</span><span id=__span-0-121><span class=sd>    Args:</span>
-</span><span id=__span-0-122><span class=sd>        filepath: Path to the CZI image file.</span>
-</span><span id=__span-0-123><span class=sd>        use_dask: If True, return a genuinely lazy Dask-backed array. Pixel</span>
-</span><span id=__span-0-124><span class=sd>            planes are not read until the array is computed or indexed.</span>
-</span><span id=__span-0-125><span class=sd>        chunk_zyx: If True and use_dask=True, rechunk so each chunk contains a</span>
-</span><span id=__span-0-126><span class=sd>            complete ZYX block for one S/T/C position.</span>
-</span><span id=__span-0-127><span class=sd>        planes: Substack ranges for S, T, Z, and C as inclusive zero-based</span>
-</span><span id=__span-0-128><span class=sd>            (start, end) tuples.</span>
-</span><span id=__span-0-129><span class=sd>        zoom: Downscale factor for images in the range 0.01 through 1.0.</span>
-</span><span id=__span-0-130><span class=sd>        use_xarray: If True, wrap the NumPy or Dask array in xr.DataArray.</span>
-</span><span id=__span-0-131><span class=sd>        adapt_metadata: If True, update metadata dimensions to the selected</span>
-</span><span id=__span-0-132><span class=sd>            S/T/C/Z output sizes.</span>
-</span><span id=__span-0-133>
-</span><span id=__span-0-134><span class=sd>    Returns:</span>
-</span><span id=__span-0-135><span class=sd>        A tuple of the image array and CZI metadata. The array is None when the</span>
-</span><span id=__span-0-136><span class=sd>        CZI cannot be represented as a regular 6D array.</span>
-</span><span id=__span-0-137><span class=sd>    """</span>
-</span><span id=__span-0-138>    <span class=n>filepath</span> <span class=o>=</span> <span class=nb>str</span><span class=p>(</span><span class=n>filepath</span><span class=p>)</span>
-</span><span id=__span-0-139>    <span class=n>zoom</span> <span class=o>=</span> <span class=n>misc</span><span class=o>.</span><span class=n>_check_zoom</span><span class=p>(</span><span class=n>zoom</span><span class=o>=</span><span class=n>zoom</span><span class=p>)</span>
-</span><span id=__span-0-140>    <span class=n>dims</span> <span class=o>=</span> <span class=p>(</span><span class=s2>"S"</span><span class=p>,</span> <span class=s2>"T"</span><span class=p>,</span> <span class=s2>"C"</span><span class=p>,</span> <span class=s2>"Z"</span><span class=p>,</span> <span class=s2>"Y"</span><span class=p>,</span> <span class=s2>"X"</span><span class=p>,</span> <span class=s2>"A"</span><span class=p>)</span>
-</span><span id=__span-0-141>
-</span><span id=__span-0-142>    <span class=n>mdata</span> <span class=o>=</span> <span class=n>czimd</span><span class=o>.</span><span class=n>CziMetadata</span><span class=p>(</span><span class=n>filepath</span><span class=p>)</span>
-</span><span id=__span-0-143>    <span class=n>image</span> <span class=o>=</span> <span class=n>mdata</span><span class=o>.</span><span class=n>image_required</span>
-</span><span id=__span-0-144>    <span class=n>bbox</span> <span class=o>=</span> <span class=n>mdata</span><span class=o>.</span><span class=n>bbox_required</span>
-</span><span id=__span-0-145>    <span class=n>scale</span> <span class=o>=</span> <span class=n>mdata</span><span class=o>.</span><span class=n>scale_required</span>
+<span class=normal>332</span>
+<span class=normal>333</span>
+<span class=normal>334</span>
+<span class=normal>335</span>
+<span class=normal>336</span>
+<span class=normal>337</span>
+<span class=normal>338</span>
+<span class=normal>339</span>
+<span class=normal>340</span>
+<span class=normal>341</span>
+<span class=normal>342</span>
+<span class=normal>343</span>
+<span class=normal>344</span>
+<span class=normal>345</span>
+<span class=normal>346</span>
+<span class=normal>347</span>
+<span class=normal>348</span>
+<span class=normal>349</span>
+<span class=normal>350</span>
+<span class=normal>351</span></pre></div></td><td class=code><div><pre><span></span><code><span id=__span-0-116><span class=k>def</span><span class=w> </span><span class=nf>read_6darray</span><span class=p>(</span>
+</span><span id=__span-0-117>    <span class=n>filepath</span><span class=p>:</span> <span class=n>CziPath</span><span class=p>,</span>
+</span><span id=__span-0-118>    <span class=n>use_dask</span><span class=p>:</span> <span class=nb>bool</span> <span class=o>=</span> <span class=kc>False</span><span class=p>,</span>
+</span><span id=__span-0-119>    <span class=n>chunk_zyx</span><span class=p>:</span> <span class=nb>bool</span> <span class=o>=</span> <span class=kc>False</span><span class=p>,</span>
+</span><span id=__span-0-120>    <span class=n>planes</span><span class=p>:</span> <span class=nb>dict</span><span class=p>[</span><span class=nb>str</span><span class=p>,</span> <span class=nb>tuple</span><span class=p>[</span><span class=nb>int</span><span class=p>,</span> <span class=nb>int</span><span class=p>]]</span> <span class=o>|</span> <span class=kc>None</span> <span class=o>=</span> <span class=kc>None</span><span class=p>,</span>
+</span><span id=__span-0-121>    <span class=n>zoom</span><span class=p>:</span> <span class=nb>float</span> <span class=o>=</span> <span class=mf>1.0</span><span class=p>,</span>
+</span><span id=__span-0-122>    <span class=n>use_xarray</span><span class=p>:</span> <span class=nb>bool</span> <span class=o>=</span> <span class=kc>True</span><span class=p>,</span>
+</span><span id=__span-0-123>    <span class=n>adapt_metadata</span><span class=p>:</span> <span class=nb>bool</span> <span class=o>=</span> <span class=kc>False</span><span class=p>,</span>
+</span><span id=__span-0-124><span class=p>)</span> <span class=o>-&gt;</span> <span class=nb>tuple</span><span class=p>[</span><span class=n>Array6D</span> <span class=o>|</span> <span class=kc>None</span><span class=p>,</span> <span class=n>czimd</span><span class=o>.</span><span class=n>CziMetadata</span><span class=p>]:</span>
+</span><span id=__span-0-125><span class=w>    </span><span class=sd>"""Read a CZI image file as an STCZYX(A) array.</span>
+</span><span id=__span-0-126>
+</span><span id=__span-0-127><span class=sd>    Only scenes with equal size and CZIs with consistent pixel types can be</span>
+</span><span id=__span-0-128><span class=sd>    represented by this regular array API.</span>
+</span><span id=__span-0-129>
+</span><span id=__span-0-130><span class=sd>    Args:</span>
+</span><span id=__span-0-131><span class=sd>        filepath: Path to the CZI image file.</span>
+</span><span id=__span-0-132><span class=sd>        use_dask: If True, return a genuinely lazy Dask-backed array. Pixel</span>
+</span><span id=__span-0-133><span class=sd>            planes are not read until the array is computed or indexed.</span>
+</span><span id=__span-0-134><span class=sd>        chunk_zyx: If True and use_dask=True, rechunk so each chunk contains a</span>
+</span><span id=__span-0-135><span class=sd>            complete ZYX block for one S/T/C position.</span>
+</span><span id=__span-0-136><span class=sd>        planes: Substack ranges for S, T, Z, and C as inclusive zero-based</span>
+</span><span id=__span-0-137><span class=sd>            (start, end) tuples.</span>
+</span><span id=__span-0-138><span class=sd>        zoom: Downscale factor for images in the range 0.01 through 1.0.</span>
+</span><span id=__span-0-139><span class=sd>        use_xarray: If True, wrap the NumPy or Dask array in xr.DataArray.</span>
+</span><span id=__span-0-140><span class=sd>        adapt_metadata: If True, update metadata dimensions to the selected</span>
+</span><span id=__span-0-141><span class=sd>            S/T/C/Z output sizes.</span>
+</span><span id=__span-0-142>
+</span><span id=__span-0-143><span class=sd>    Returns:</span>
+</span><span id=__span-0-144><span class=sd>        A tuple of the image array and CZI metadata. The array is None when the</span>
+</span><span id=__span-0-145><span class=sd>        CZI cannot be represented as a regular 6D array.</span>
 </span><span id=__span-0-146>
-</span><span id=__span-0-147>    <span class=k>if</span> <span class=ow>not</span> <span class=n>mdata</span><span class=o>.</span><span class=n>consistent_pixeltypes</span><span class=p>:</span>
-</span><span id=__span-0-148>        <span class=n>logger</span><span class=o>.</span><span class=n>info</span><span class=p>(</span><span class=s2>"Detected PixelTypes are not consistent. Cannot create array6d"</span><span class=p>)</span>
-</span><span id=__span-0-149>        <span class=k>return</span> <span class=kc>None</span><span class=p>,</span> <span class=n>mdata</span>
-</span><span id=__span-0-150>
-</span><span id=__span-0-151>    <span class=n>scale</span><span class=o>.</span><span class=n>X_sf</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>round</span><span class=p>(</span><span class=n>_as_float</span><span class=p>(</span><span class=n>scale</span><span class=o>.</span><span class=n>X</span><span class=p>)</span> <span class=o>*</span> <span class=p>(</span><span class=mi>1</span> <span class=o>/</span> <span class=n>zoom</span><span class=p>),</span> <span class=mi>3</span><span class=p>)</span>
-</span><span id=__span-0-152>    <span class=n>scale</span><span class=o>.</span><span class=n>Y_sf</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>round</span><span class=p>(</span><span class=n>_as_float</span><span class=p>(</span><span class=n>scale</span><span class=o>.</span><span class=n>Y</span><span class=p>)</span> <span class=o>*</span> <span class=p>(</span><span class=mi>1</span> <span class=o>/</span> <span class=n>zoom</span><span class=p>),</span> <span class=mi>3</span><span class=p>)</span>
-</span><span id=__span-0-153>    <span class=k>if</span> <span class=n>scale</span><span class=o>.</span><span class=n>ratio</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>:</span>
-</span><span id=__span-0-154>        <span class=n>scale</span><span class=o>.</span><span class=n>ratio</span> <span class=o>=</span> <span class=p>{}</span>
-</span><span id=__span-0-155>    <span class=n>scale</span><span class=o>.</span><span class=n>ratio</span><span class=p>[</span><span class=s2>"zx_sf"</span><span class=p>]</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>round</span><span class=p>(</span><span class=n>_as_float</span><span class=p>(</span><span class=n>scale</span><span class=o>.</span><span class=n>Z</span><span class=p>)</span> <span class=o>/</span> <span class=n>_as_float</span><span class=p>(</span><span class=n>scale</span><span class=o>.</span><span class=n>X_sf</span><span class=p>),</span> <span class=mi>3</span><span class=p>)</span>
-</span><span id=__span-0-156>
-</span><span id=__span-0-157>    <span class=k>if</span> <span class=n>planes</span><span class=p>:</span>
-</span><span id=__span-0-158>        <span class=n>selected_planes</span> <span class=o>=</span> <span class=nb>dict</span><span class=p>(</span><span class=n>planes</span><span class=p>)</span>
-</span><span id=__span-0-159>        <span class=n>bbox_total</span> <span class=o>=</span> <span class=n>bbox</span><span class=o>.</span><span class=n>total_bounding_box</span> <span class=ow>or</span> <span class=p>{}</span>
-</span><span id=__span-0-160>        <span class=k>for</span> <span class=n>dim</span> <span class=ow>in</span> <span class=p>[</span><span class=s2>"S"</span><span class=p>,</span> <span class=s2>"T"</span><span class=p>,</span> <span class=s2>"C"</span><span class=p>,</span> <span class=s2>"Z"</span><span class=p>]:</span>
-</span><span id=__span-0-161>            <span class=k>if</span> <span class=n>dim</span> <span class=ow>in</span> <span class=n>selected_planes</span> <span class=ow>and</span> <span class=n>dim</span> <span class=ow>in</span> <span class=n>bbox_total</span><span class=p>:</span>
-</span><span id=__span-0-162>                <span class=k>if</span> <span class=n>bbox_total</span><span class=p>[</span><span class=n>dim</span><span class=p>][</span><span class=mi>1</span><span class=p>]</span> <span class=o>-</span> <span class=mi>1</span> <span class=o>&lt;</span> <span class=n>selected_planes</span><span class=p>[</span><span class=n>dim</span><span class=p>][</span><span class=mi>1</span><span class=p>]:</span>
-</span><span id=__span-0-163>                    <span class=n>logger</span><span class=o>.</span><span class=n>info</span><span class=p>(</span>
-</span><span id=__span-0-164>                        <span class=sa>f</span><span class=s2>"Planes indices (zero-based) for </span><span class=si>{</span><span class=n>selected_planes</span><span class=p>[</span><span class=n>dim</span><span class=p>]</span><span class=si>}</span><span class=s2> are invalid. "</span>
-</span><span id=__span-0-165>                        <span class=sa>f</span><span class=s2>"BBox for </span><span class=si>{</span><span class=p>[</span><span class=n>dim</span><span class=p>]</span><span class=si>}</span><span class=s2>: </span><span class=si>{</span><span class=n>bbox_total</span><span class=p>[</span><span class=n>dim</span><span class=p>]</span><span class=si>}</span><span class=s2>"</span>
-</span><span id=__span-0-166>                    <span class=p>)</span>
-</span><span id=__span-0-167>                    <span class=k>return</span> <span class=kc>None</span><span class=p>,</span> <span class=n>mdata</span>
-</span><span id=__span-0-168>    <span class=k>else</span><span class=p>:</span>
-</span><span id=__span-0-169>        <span class=n>selected_planes</span> <span class=o>=</span> <span class=p>{}</span>
-</span><span id=__span-0-170>        <span class=k>for</span> <span class=n>dim</span><span class=p>,</span> <span class=n>size_attr</span> <span class=ow>in</span> <span class=p>[</span>
-</span><span id=__span-0-171>            <span class=p>(</span><span class=s2>"S"</span><span class=p>,</span> <span class=n>image</span><span class=o>.</span><span class=n>SizeS</span><span class=p>),</span>
-</span><span id=__span-0-172>            <span class=p>(</span><span class=s2>"T"</span><span class=p>,</span> <span class=n>image</span><span class=o>.</span><span class=n>SizeT</span><span class=p>),</span>
-</span><span id=__span-0-173>            <span class=p>(</span><span class=s2>"C"</span><span class=p>,</span> <span class=n>image</span><span class=o>.</span><span class=n>SizeC</span><span class=p>),</span>
-</span><span id=__span-0-174>            <span class=p>(</span><span class=s2>"Z"</span><span class=p>,</span> <span class=n>image</span><span class=o>.</span><span class=n>SizeZ</span><span class=p>),</span>
-</span><span id=__span-0-175>        <span class=p>]:</span>
-</span><span id=__span-0-176>            <span class=n>selected_planes</span><span class=p>[</span><span class=n>dim</span><span class=p>]</span> <span class=o>=</span> <span class=p>(</span><span class=mi>0</span><span class=p>,</span> <span class=n>size_attr</span> <span class=o>-</span> <span class=mi>1</span><span class=p>)</span> <span class=k>if</span> <span class=n>size_attr</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span> <span class=k>else</span> <span class=p>(</span><span class=mi>0</span><span class=p>,</span> <span class=mi>0</span><span class=p>)</span>
-</span><span id=__span-0-177>
-</span><span id=__span-0-178>    <span class=k>for</span> <span class=n>dim</span><span class=p>,</span> <span class=n>size_attr</span> <span class=ow>in</span> <span class=p>[</span>
-</span><span id=__span-0-179>        <span class=p>(</span><span class=s2>"S"</span><span class=p>,</span> <span class=n>image</span><span class=o>.</span><span class=n>SizeS</span><span class=p>),</span>
-</span><span id=__span-0-180>        <span class=p>(</span><span class=s2>"T"</span><span class=p>,</span> <span class=n>image</span><span class=o>.</span><span class=n>SizeT</span><span class=p>),</span>
-</span><span id=__span-0-181>        <span class=p>(</span><span class=s2>"C"</span><span class=p>,</span> <span class=n>image</span><span class=o>.</span><span class=n>SizeC</span><span class=p>),</span>
-</span><span id=__span-0-182>        <span class=p>(</span><span class=s2>"Z"</span><span class=p>,</span> <span class=n>image</span><span class=o>.</span><span class=n>SizeZ</span><span class=p>),</span>
-</span><span id=__span-0-183>    <span class=p>]:</span>
-</span><span id=__span-0-184>        <span class=k>if</span> <span class=n>dim</span> <span class=ow>not</span> <span class=ow>in</span> <span class=n>selected_planes</span><span class=p>:</span>
-</span><span id=__span-0-185>            <span class=n>selected_planes</span><span class=p>[</span><span class=n>dim</span><span class=p>]</span> <span class=o>=</span> <span class=p>(</span><span class=mi>0</span><span class=p>,</span> <span class=n>size_attr</span> <span class=o>-</span> <span class=mi>1</span><span class=p>)</span> <span class=k>if</span> <span class=n>size_attr</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span> <span class=k>else</span> <span class=p>(</span><span class=mi>0</span><span class=p>,</span> <span class=mi>0</span><span class=p>)</span>
-</span><span id=__span-0-186>
-</span><span id=__span-0-187>    <span class=k>if</span> <span class=ow>not</span> <span class=n>mdata</span><span class=o>.</span><span class=n>scene_shape_is_consistent</span><span class=p>:</span>
-</span><span id=__span-0-188>        <span class=n>one_scene_selected</span> <span class=o>=</span> <span class=n>selected_planes</span><span class=p>[</span><span class=s2>"S"</span><span class=p>][</span><span class=mi>0</span><span class=p>]</span> <span class=o>==</span> <span class=n>selected_planes</span><span class=p>[</span><span class=s2>"S"</span><span class=p>][</span><span class=mi>1</span><span class=p>]</span>
-</span><span id=__span-0-189>        <span class=k>if</span> <span class=ow>not</span> <span class=n>one_scene_selected</span><span class=p>:</span>
-</span><span id=__span-0-190>            <span class=n>logger</span><span class=o>.</span><span class=n>warning</span><span class=p>(</span><span class=s2>"Scenes have inconsistent shape. Cannot read 6D array"</span><span class=p>)</span>
-</span><span id=__span-0-191>            <span class=k>return</span> <span class=kc>None</span><span class=p>,</span> <span class=n>mdata</span>
-</span><span id=__span-0-192>
-</span><span id=__span-0-193>    <span class=n>size_s</span> <span class=o>=</span> <span class=n>_as_int</span><span class=p>(</span><span class=n>misc</span><span class=o>.</span><span class=n>_check_dimsize</span><span class=p>(</span><span class=n>image</span><span class=o>.</span><span class=n>SizeS</span><span class=p>,</span> <span class=n>set2value</span><span class=o>=</span><span class=mi>1</span><span class=p>),</span> <span class=mi>1</span><span class=p>)</span>
-</span><span id=__span-0-194>    <span class=n>size_t</span> <span class=o>=</span> <span class=n>_as_int</span><span class=p>(</span><span class=n>misc</span><span class=o>.</span><span class=n>_check_dimsize</span><span class=p>(</span><span class=n>image</span><span class=o>.</span><span class=n>SizeT</span><span class=p>,</span> <span class=n>set2value</span><span class=o>=</span><span class=mi>1</span><span class=p>),</span> <span class=mi>1</span><span class=p>)</span>
-</span><span id=__span-0-195>    <span class=n>size_c</span> <span class=o>=</span> <span class=n>_as_int</span><span class=p>(</span><span class=n>misc</span><span class=o>.</span><span class=n>_check_dimsize</span><span class=p>(</span><span class=n>image</span><span class=o>.</span><span class=n>SizeC</span><span class=p>,</span> <span class=n>set2value</span><span class=o>=</span><span class=mi>1</span><span class=p>),</span> <span class=mi>1</span><span class=p>)</span>
-</span><span id=__span-0-196>    <span class=n>size_z</span> <span class=o>=</span> <span class=n>_as_int</span><span class=p>(</span><span class=n>misc</span><span class=o>.</span><span class=n>_check_dimsize</span><span class=p>(</span><span class=n>image</span><span class=o>.</span><span class=n>SizeZ</span><span class=p>,</span> <span class=n>set2value</span><span class=o>=</span><span class=mi>1</span><span class=p>),</span> <span class=mi>1</span><span class=p>)</span>
-</span><span id=__span-0-197>    <span class=n>starts</span> <span class=o>=</span> <span class=p>{</span><span class=s2>"S"</span><span class=p>:</span> <span class=mi>0</span><span class=p>,</span> <span class=s2>"T"</span><span class=p>:</span> <span class=mi>0</span><span class=p>,</span> <span class=s2>"C"</span><span class=p>:</span> <span class=mi>0</span><span class=p>,</span> <span class=s2>"Z"</span><span class=p>:</span> <span class=mi>0</span><span class=p>}</span>
-</span><span id=__span-0-198>
-</span><span id=__span-0-199>    <span class=k>for</span> <span class=n>dim</span><span class=p>,</span> <span class=n>size_attr</span> <span class=ow>in</span> <span class=p>[</span>
-</span><span id=__span-0-200>        <span class=p>(</span><span class=s2>"S"</span><span class=p>,</span> <span class=n>image</span><span class=o>.</span><span class=n>SizeS</span><span class=p>),</span>
-</span><span id=__span-0-201>        <span class=p>(</span><span class=s2>"T"</span><span class=p>,</span> <span class=n>image</span><span class=o>.</span><span class=n>SizeT</span><span class=p>),</span>
-</span><span id=__span-0-202>        <span class=p>(</span><span class=s2>"C"</span><span class=p>,</span> <span class=n>image</span><span class=o>.</span><span class=n>SizeC</span><span class=p>),</span>
-</span><span id=__span-0-203>        <span class=p>(</span><span class=s2>"Z"</span><span class=p>,</span> <span class=n>image</span><span class=o>.</span><span class=n>SizeZ</span><span class=p>),</span>
-</span><span id=__span-0-204>    <span class=p>]:</span>
-</span><span id=__span-0-205>        <span class=k>if</span> <span class=n>size_attr</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>:</span>
-</span><span id=__span-0-206>            <span class=k>continue</span>
-</span><span id=__span-0-207>        <span class=n>start</span><span class=p>,</span> <span class=n>end</span> <span class=o>=</span> <span class=n>selected_planes</span><span class=p>[</span><span class=n>dim</span><span class=p>]</span>
-</span><span id=__span-0-208>        <span class=n>selected_size</span> <span class=o>=</span> <span class=n>end</span> <span class=o>-</span> <span class=n>start</span> <span class=o>+</span> <span class=mi>1</span>
-</span><span id=__span-0-209>        <span class=n>starts</span><span class=p>[</span><span class=n>dim</span><span class=p>]</span> <span class=o>=</span> <span class=n>start</span>
-</span><span id=__span-0-210>        <span class=k>if</span> <span class=n>dim</span> <span class=o>==</span> <span class=s2>"S"</span><span class=p>:</span>
-</span><span id=__span-0-211>            <span class=n>size_s</span> <span class=o>=</span> <span class=n>selected_size</span>
-</span><span id=__span-0-212>            <span class=n>image</span><span class=o>.</span><span class=n>SizeS</span> <span class=o>=</span> <span class=n>selected_size</span>
-</span><span id=__span-0-213>        <span class=k>elif</span> <span class=n>dim</span> <span class=o>==</span> <span class=s2>"T"</span><span class=p>:</span>
-</span><span id=__span-0-214>            <span class=n>size_t</span> <span class=o>=</span> <span class=n>selected_size</span>
-</span><span id=__span-0-215>            <span class=n>image</span><span class=o>.</span><span class=n>SizeT</span> <span class=o>=</span> <span class=n>selected_size</span>
-</span><span id=__span-0-216>        <span class=k>elif</span> <span class=n>dim</span> <span class=o>==</span> <span class=s2>"C"</span><span class=p>:</span>
-</span><span id=__span-0-217>            <span class=n>size_c</span> <span class=o>=</span> <span class=n>selected_size</span>
-</span><span id=__span-0-218>            <span class=n>image</span><span class=o>.</span><span class=n>SizeC</span> <span class=o>=</span> <span class=n>selected_size</span>
-</span><span id=__span-0-219>        <span class=k>else</span><span class=p>:</span>
-</span><span id=__span-0-220>            <span class=n>size_z</span> <span class=o>=</span> <span class=n>selected_size</span>
-</span><span id=__span-0-221>            <span class=n>image</span><span class=o>.</span><span class=n>SizeZ</span> <span class=o>=</span> <span class=n>selected_size</span>
-</span><span id=__span-0-222>
-</span><span id=__span-0-223>    <span class=n>contains_rgb</span> <span class=o>=</span> <span class=nb>any</span><span class=p>((</span><span class=n>mdata</span><span class=o>.</span><span class=n>isRGB</span> <span class=ow>or</span> <span class=p>{})</span><span class=o>.</span><span class=n>values</span><span class=p>())</span>
-</span><span id=__span-0-224>    <span class=n>squeeze_grayscale</span> <span class=o>=</span> <span class=ow>not</span> <span class=n>contains_rgb</span>
-</span><span id=__span-0-225>    <span class=k>if</span> <span class=n>squeeze_grayscale</span><span class=p>:</span>
-</span><span id=__span-0-226>        <span class=n>dims</span> <span class=o>=</span> <span class=p>(</span><span class=s2>"S"</span><span class=p>,</span> <span class=s2>"T"</span><span class=p>,</span> <span class=s2>"C"</span><span class=p>,</span> <span class=s2>"Z"</span><span class=p>,</span> <span class=s2>"Y"</span><span class=p>,</span> <span class=s2>"X"</span><span class=p>)</span>
-</span><span id=__span-0-227>
-</span><span id=__span-0-228>    <span class=k>if</span> <span class=n>mdata</span><span class=o>.</span><span class=n>is_url</span><span class=p>:</span>
-</span><span id=__span-0-229>        <span class=n>logger</span><span class=o>.</span><span class=n>info</span><span class=p>(</span><span class=s2>"Reading pixel data via network from link location."</span><span class=p>)</span>
-</span><span id=__span-0-230>
-</span><span id=__span-0-231>    <span class=n>total_planes</span> <span class=o>=</span> <span class=n>size_s</span> <span class=o>*</span> <span class=n>size_t</span> <span class=o>*</span> <span class=n>size_c</span> <span class=o>*</span> <span class=n>size_z</span>
-</span><span id=__span-0-232>    <span class=n>logger</span><span class=o>.</span><span class=n>info</span><span class=p>(</span>
-</span><span id=__span-0-233>        <span class=sa>f</span><span class=s2>"read_6darray: </span><span class=si>{</span><span class=s1>'Scheduling'</span><span class=w> </span><span class=k>if</span><span class=w> </span><span class=n>use_dask</span><span class=w> </span><span class=k>else</span><span class=w> </span><span class=s1>'Reading'</span><span class=si>}</span><span class=s2> </span><span class=si>{</span><span class=n>total_planes</span><span class=si>}</span><span class=s2> planes "</span>
-</span><span id=__span-0-234>        <span class=sa>f</span><span class=s2>"(S=</span><span class=si>{</span><span class=n>size_s</span><span class=si>}</span><span class=s2>, T=</span><span class=si>{</span><span class=n>size_t</span><span class=si>}</span><span class=s2>, C=</span><span class=si>{</span><span class=n>size_c</span><span class=si>}</span><span class=s2>, Z=</span><span class=si>{</span><span class=n>size_z</span><span class=si>}</span><span class=s2>)"</span>
-</span><span id=__span-0-235>    <span class=p>)</span>
-</span><span id=__span-0-236>    <span class=k>if</span> <span class=n>total_planes</span> <span class=o>==</span> <span class=mi>0</span><span class=p>:</span>
-</span><span id=__span-0-237>        <span class=n>logger</span><span class=o>.</span><span class=n>warning</span><span class=p>(</span><span class=s2>"No planes were selected for read_6darray."</span><span class=p>)</span>
-</span><span id=__span-0-238>        <span class=k>return</span> <span class=kc>None</span><span class=p>,</span> <span class=n>mdata</span>
-</span><span id=__span-0-239>
-</span><span id=__span-0-240>    <span class=n>scene_for_shape</span> <span class=o>=</span> <span class=n>starts</span><span class=p>[</span><span class=s2>"S"</span><span class=p>]</span> <span class=k>if</span> <span class=n>mdata</span><span class=o>.</span><span class=n>has_scenes</span> <span class=k>else</span> <span class=mi>0</span>
-</span><span id=__span-0-241>    <span class=n>size_y</span><span class=p>,</span> <span class=n>size_x</span> <span class=o>=</span> <span class=n>_spatial_shape</span><span class=p>(</span><span class=n>mdata</span><span class=p>,</span> <span class=n>scene_for_shape</span><span class=p>,</span> <span class=n>zoom</span><span class=p>)</span>
-</span><span id=__span-0-242>    <span class=n>plane_shape</span> <span class=o>=</span> <span class=p>(</span><span class=n>size_y</span><span class=p>,</span> <span class=n>size_x</span><span class=p>,</span> <span class=mi>3</span><span class=p>)</span> <span class=k>if</span> <span class=n>contains_rgb</span> <span class=k>else</span> <span class=p>(</span><span class=n>size_y</span><span class=p>,</span> <span class=n>size_x</span><span class=p>)</span>
-</span><span id=__span-0-243>    <span class=n>sizes</span> <span class=o>=</span> <span class=p>(</span><span class=n>size_s</span><span class=p>,</span> <span class=n>size_t</span><span class=p>,</span> <span class=n>size_c</span><span class=p>,</span> <span class=n>size_z</span><span class=p>)</span>
-</span><span id=__span-0-244>    <span class=n>start_values</span> <span class=o>=</span> <span class=p>(</span><span class=n>starts</span><span class=p>[</span><span class=s2>"S"</span><span class=p>],</span> <span class=n>starts</span><span class=p>[</span><span class=s2>"T"</span><span class=p>],</span> <span class=n>starts</span><span class=p>[</span><span class=s2>"C"</span><span class=p>],</span> <span class=n>starts</span><span class=p>[</span><span class=s2>"Z"</span><span class=p>])</span>
-</span><span id=__span-0-245>    <span class=n>dtype</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>dtype</span><span class=p>((</span><span class=n>mdata</span><span class=o>.</span><span class=n>npdtype_list</span> <span class=ow>or</span> <span class=p>[</span><span class=n>np</span><span class=o>.</span><span class=n>uint16</span><span class=p>])[</span><span class=mi>0</span><span class=p>])</span>
-</span><span id=__span-0-246>
-</span><span id=__span-0-247>    <span class=k>if</span> <span class=n>use_dask</span><span class=p>:</span>
-</span><span id=__span-0-248>        <span class=n>array6d</span><span class=p>:</span> <span class=n>Array6D</span> <span class=o>=</span> <span class=n>_build_lazy_array</span><span class=p>(</span>
-</span><span id=__span-0-249>            <span class=n>filepath</span><span class=p>,</span>
-</span><span id=__span-0-250>            <span class=n>sizes</span><span class=p>,</span>
-</span><span id=__span-0-251>            <span class=n>start_values</span><span class=p>,</span>
-</span><span id=__span-0-252>            <span class=n>plane_shape</span><span class=p>,</span>
-</span><span id=__span-0-253>            <span class=n>dtype</span><span class=p>,</span>
-</span><span id=__span-0-254>            <span class=n>mdata</span><span class=o>.</span><span class=n>has_scenes</span><span class=p>,</span>
-</span><span id=__span-0-255>            <span class=n>zoom</span><span class=p>,</span>
-</span><span id=__span-0-256>            <span class=n>mdata</span><span class=o>.</span><span class=n>pyczi_readertype</span><span class=p>,</span>
-</span><span id=__span-0-257>            <span class=n>squeeze_grayscale</span><span class=p>,</span>
-</span><span id=__span-0-258>        <span class=p>)</span>
-</span><span id=__span-0-259>    <span class=k>else</span><span class=p>:</span>
-</span><span id=__span-0-260>        <span class=n>full_shape</span> <span class=o>=</span> <span class=n>sizes</span> <span class=o>+</span> <span class=n>plane_shape</span>
-</span><span id=__span-0-261>        <span class=n>eager_array</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>empty</span><span class=p>(</span><span class=n>full_shape</span><span class=p>,</span> <span class=n>dtype</span><span class=o>=</span><span class=n>dtype</span><span class=p>)</span>
-</span><span id=__span-0-262>        <span class=n>plane_iterator</span><span class=p>:</span> <span class=n>Any</span> <span class=o>=</span> <span class=n>itertools</span><span class=o>.</span><span class=n>product</span><span class=p>(</span>
-</span><span id=__span-0-263>            <span class=nb>enumerate</span><span class=p>(</span><span class=nb>range</span><span class=p>(</span><span class=n>starts</span><span class=p>[</span><span class=s2>"S"</span><span class=p>],</span> <span class=n>starts</span><span class=p>[</span><span class=s2>"S"</span><span class=p>]</span> <span class=o>+</span> <span class=n>size_s</span><span class=p>)),</span>
-</span><span id=__span-0-264>            <span class=nb>enumerate</span><span class=p>(</span><span class=nb>range</span><span class=p>(</span><span class=n>starts</span><span class=p>[</span><span class=s2>"T"</span><span class=p>],</span> <span class=n>starts</span><span class=p>[</span><span class=s2>"T"</span><span class=p>]</span> <span class=o>+</span> <span class=n>size_t</span><span class=p>)),</span>
-</span><span id=__span-0-265>            <span class=nb>enumerate</span><span class=p>(</span><span class=nb>range</span><span class=p>(</span><span class=n>starts</span><span class=p>[</span><span class=s2>"C"</span><span class=p>],</span> <span class=n>starts</span><span class=p>[</span><span class=s2>"C"</span><span class=p>]</span> <span class=o>+</span> <span class=n>size_c</span><span class=p>)),</span>
-</span><span id=__span-0-266>            <span class=nb>enumerate</span><span class=p>(</span><span class=nb>range</span><span class=p>(</span><span class=n>starts</span><span class=p>[</span><span class=s2>"Z"</span><span class=p>],</span> <span class=n>starts</span><span class=p>[</span><span class=s2>"Z"</span><span class=p>]</span> <span class=o>+</span> <span class=n>size_z</span><span class=p>)),</span>
-</span><span id=__span-0-267>        <span class=p>)</span>
-</span><span id=__span-0-268>        <span class=k>if</span> <span class=n>HAS_PROGRESSBAR</span><span class=p>:</span>
-</span><span id=__span-0-269>            <span class=n>widgets</span> <span class=o>=</span> <span class=p>[</span>
-</span><span id=__span-0-270>                <span class=n>progressbar</span><span class=o>.</span><span class=n>Percentage</span><span class=p>(),</span>
-</span><span id=__span-0-271>                <span class=s2>" "</span><span class=p>,</span>
-</span><span id=__span-0-272>                <span class=n>progressbar</span><span class=o>.</span><span class=n>Bar</span><span class=p>(),</span>
-</span><span id=__span-0-273>                <span class=s2>" "</span><span class=p>,</span>
-</span><span id=__span-0-274>                <span class=n>progressbar</span><span class=o>.</span><span class=n>ETA</span><span class=p>(),</span>
-</span><span id=__span-0-275>                <span class=s2>" "</span><span class=p>,</span>
-</span><span id=__span-0-276>                <span class=n>progressbar</span><span class=o>.</span><span class=n>SimpleProgress</span><span class=p>(),</span>
-</span><span id=__span-0-277>            <span class=p>]</span>
-</span><span id=__span-0-278>            <span class=n>plane_iterator</span> <span class=o>=</span> <span class=n>progressbar</span><span class=o>.</span><span class=n>progressbar</span><span class=p>(</span>
-</span><span id=__span-0-279>                <span class=n>plane_iterator</span><span class=p>,</span>
-</span><span id=__span-0-280>                <span class=n>widgets</span><span class=o>=</span><span class=n>widgets</span><span class=p>,</span>
-</span><span id=__span-0-281>                <span class=n>max_value</span><span class=o>=</span><span class=n>total_planes</span><span class=p>,</span>
-</span><span id=__span-0-282>                <span class=n>term_width</span><span class=o>=</span><span class=mi>80</span><span class=p>,</span>
-</span><span id=__span-0-283>            <span class=p>)</span>
-</span><span id=__span-0-284>
-</span><span id=__span-0-285>        <span class=k>with</span> <span class=n>pyczi</span><span class=o>.</span><span class=n>open_czi</span><span class=p>(</span><span class=n>filepath</span><span class=p>,</span> <span class=n>mdata</span><span class=o>.</span><span class=n>pyczi_readertype</span><span class=p>)</span> <span class=k>as</span> <span class=n>czidoc</span><span class=p>:</span>
-</span><span id=__span-0-286>            <span class=k>for</span> <span class=n>s</span><span class=p>,</span> <span class=n>t</span><span class=p>,</span> <span class=n>c</span><span class=p>,</span> <span class=n>z</span> <span class=ow>in</span> <span class=n>plane_iterator</span><span class=p>:</span>
-</span><span id=__span-0-287>                <span class=n>plane</span> <span class=o>=</span> <span class=p>{</span><span class=s2>"T"</span><span class=p>:</span> <span class=n>t</span><span class=p>[</span><span class=mi>1</span><span class=p>],</span> <span class=s2>"Z"</span><span class=p>:</span> <span class=n>z</span><span class=p>[</span><span class=mi>1</span><span class=p>],</span> <span class=s2>"C"</span><span class=p>:</span> <span class=n>c</span><span class=p>[</span><span class=mi>1</span><span class=p>]}</span>
-</span><span id=__span-0-288>                <span class=k>if</span> <span class=n>mdata</span><span class=o>.</span><span class=n>has_scenes</span><span class=p>:</span>
-</span><span id=__span-0-289>                    <span class=n>image2d</span> <span class=o>=</span> <span class=n>czidoc</span><span class=o>.</span><span class=n>read</span><span class=p>(</span><span class=n>plane</span><span class=o>=</span><span class=n>plane</span><span class=p>,</span> <span class=n>scene</span><span class=o>=</span><span class=n>s</span><span class=p>[</span><span class=mi>1</span><span class=p>],</span> <span class=n>zoom</span><span class=o>=</span><span class=n>zoom</span><span class=p>)</span>
-</span><span id=__span-0-290>                <span class=k>else</span><span class=p>:</span>
-</span><span id=__span-0-291>                    <span class=n>image2d</span> <span class=o>=</span> <span class=n>czidoc</span><span class=o>.</span><span class=n>read</span><span class=p>(</span><span class=n>plane</span><span class=o>=</span><span class=n>plane</span><span class=p>,</span> <span class=n>zoom</span><span class=o>=</span><span class=n>zoom</span><span class=p>)</span>
-</span><span id=__span-0-292>                <span class=k>if</span> <span class=n>squeeze_grayscale</span><span class=p>:</span>
-</span><span id=__span-0-293>                    <span class=n>image2d</span> <span class=o>=</span> <span class=n>image2d</span><span class=p>[</span><span class=o>...</span><span class=p>,</span> <span class=mi>0</span><span class=p>]</span>
-</span><span id=__span-0-294>                <span class=n>eager_array</span><span class=p>[</span><span class=n>s</span><span class=p>[</span><span class=mi>0</span><span class=p>],</span> <span class=n>t</span><span class=p>[</span><span class=mi>0</span><span class=p>],</span> <span class=n>c</span><span class=p>[</span><span class=mi>0</span><span class=p>],</span> <span class=n>z</span><span class=p>[</span><span class=mi>0</span><span class=p>],</span> <span class=o>...</span><span class=p>]</span> <span class=o>=</span> <span class=n>image2d</span>
-</span><span id=__span-0-295>        <span class=n>array6d</span> <span class=o>=</span> <span class=n>eager_array</span>
-</span><span id=__span-0-296>
-</span><span id=__span-0-297>    <span class=k>if</span> <span class=n>contains_rgb</span> <span class=ow>and</span> <span class=n>array6d</span><span class=o>.</span><span class=n>shape</span><span class=p>[</span><span class=o>-</span><span class=mi>1</span><span class=p>]</span> <span class=o>==</span> <span class=mi>3</span><span class=p>:</span>
-</span><span id=__span-0-298>        <span class=n>array6d</span> <span class=o>=</span> <span class=n>array6d</span><span class=p>[</span><span class=o>...</span><span class=p>,</span> <span class=p>::</span><span class=o>-</span><span class=mi>1</span><span class=p>]</span>
-</span><span id=__span-0-299>
-</span><span id=__span-0-300>    <span class=k>if</span> <span class=n>use_dask</span> <span class=ow>and</span> <span class=n>chunk_zyx</span> <span class=ow>and</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>array6d</span><span class=p>,</span> <span class=n>da</span><span class=o>.</span><span class=n>Array</span><span class=p>):</span>
-</span><span id=__span-0-301>        <span class=n>chunks</span> <span class=o>=</span> <span class=p>(</span><span class=mi>1</span><span class=p>,</span> <span class=mi>1</span><span class=p>,</span> <span class=mi>1</span><span class=p>,</span> <span class=n>size_z</span><span class=p>,</span> <span class=n>size_y</span><span class=p>,</span> <span class=n>size_x</span><span class=p>)</span>
-</span><span id=__span-0-302>        <span class=k>if</span> <span class=n>contains_rgb</span><span class=p>:</span>
-</span><span id=__span-0-303>            <span class=n>chunks</span> <span class=o>+=</span> <span class=p>(</span><span class=mi>3</span><span class=p>,)</span>
-</span><span id=__span-0-304>        <span class=n>array6d</span> <span class=o>=</span> <span class=n>cast</span><span class=p>(</span><span class=n>Any</span><span class=p>,</span> <span class=n>array6d</span><span class=p>)</span><span class=o>.</span><span class=n>rechunk</span><span class=p>(</span><span class=n>chunks</span><span class=o>=</span><span class=n>chunks</span><span class=p>)</span>
-</span><span id=__span-0-305>
-</span><span id=__span-0-306>    <span class=n>mdata</span><span class=o>.</span><span class=n>array6d_size</span> <span class=o>=</span> <span class=n>array6d</span><span class=o>.</span><span class=n>shape</span>
-</span><span id=__span-0-307>
-</span><span id=__span-0-308>    <span class=k>if</span> <span class=n>use_xarray</span><span class=p>:</span>
-</span><span id=__span-0-309>        <span class=n>coords</span> <span class=o>=</span> <span class=p>{</span><span class=n>dim</span><span class=p>:</span> <span class=nb>range</span><span class=p>(</span><span class=n>array6d</span><span class=o>.</span><span class=n>shape</span><span class=p>[</span><span class=n>index</span><span class=p>])</span> <span class=k>for</span> <span class=n>index</span><span class=p>,</span> <span class=n>dim</span> <span class=ow>in</span> <span class=nb>enumerate</span><span class=p>(</span><span class=n>dims</span><span class=p>)}</span>
-</span><span id=__span-0-310>        <span class=n>array6d</span> <span class=o>=</span> <span class=n>xr</span><span class=o>.</span><span class=n>DataArray</span><span class=p>(</span><span class=n>array6d</span><span class=p>,</span> <span class=n>dims</span><span class=o>=</span><span class=n>dims</span><span class=p>,</span> <span class=n>coords</span><span class=o>=</span><span class=n>coords</span><span class=p>)</span>
-</span><span id=__span-0-311>        <span class=n>spatial_coords</span> <span class=o>=</span> <span class=p>{</span>
-</span><span id=__span-0-312>            <span class=n>axis</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>arange</span><span class=p>(</span><span class=n>array6d</span><span class=o>.</span><span class=n>sizes</span><span class=p>[</span><span class=n>axis</span><span class=p>])</span> <span class=o>*</span> <span class=n>_get_axis_coord_step</span><span class=p>(</span><span class=n>mdata</span><span class=o>.</span><span class=n>scale</span><span class=p>,</span> <span class=n>axis</span><span class=p>,</span> <span class=n>zoom</span><span class=p>)</span>
-</span><span id=__span-0-313>            <span class=k>for</span> <span class=n>axis</span> <span class=ow>in</span> <span class=s2>"ZYX"</span>
-</span><span id=__span-0-314>        <span class=p>}</span>
-</span><span id=__span-0-315>        <span class=n>array6d</span> <span class=o>=</span> <span class=n>array6d</span><span class=o>.</span><span class=n>assign_coords</span><span class=p>(</span>
-</span><span id=__span-0-316>            <span class=n>C</span><span class=o>=</span><span class=n>_channel_names_or_default</span><span class=p>(</span><span class=n>mdata</span><span class=p>,</span> <span class=n>array6d</span><span class=o>.</span><span class=n>sizes</span><span class=p>[</span><span class=s2>"C"</span><span class=p>]),</span>
-</span><span id=__span-0-317>            <span class=o>**</span><span class=n>cast</span><span class=p>(</span><span class=n>Any</span><span class=p>,</span> <span class=n>spatial_coords</span><span class=p>),</span>
-</span><span id=__span-0-318>        <span class=p>)</span>
-</span><span id=__span-0-319>        <span class=n>array6d</span><span class=o>.</span><span class=n>attrs</span> <span class=o>=</span> <span class=p>{</span>
-</span><span id=__span-0-320>            <span class=s2>"description"</span><span class=p>:</span> <span class=s2>"6D image data from CZI file"</span><span class=p>,</span>
-</span><span id=__span-0-321>            <span class=s2>"source"</span><span class=p>:</span> <span class=n>mdata</span><span class=o>.</span><span class=n>filepath</span><span class=p>,</span>
-</span><span id=__span-0-322>            <span class=s2>"axes"</span><span class=p>:</span> <span class=s2>""</span><span class=o>.</span><span class=n>join</span><span class=p>(</span><span class=n>dims</span><span class=p>),</span>
-</span><span id=__span-0-323>            <span class=s2>"subset_planes"</span><span class=p>:</span> <span class=n>selected_planes</span><span class=p>,</span>
-</span><span id=__span-0-324>        <span class=p>}</span>
+</span><span id=__span-0-147><span class=sd>    Notes:</span>
+</span><span id=__span-0-148><span class=sd>        Pixel reads are constrained to each selected scene's full-resolution,</span>
+</span><span id=__span-0-149><span class=sd>        non-pyramid bounding rectangle. This keeps regular array shapes aligned</span>
+</span><span id=__span-0-150><span class=sd>        with the layer-0 image when coarse pyramid coverage is rounded outward.</span>
+</span><span id=__span-0-151><span class=sd>    """</span>
+</span><span id=__span-0-152>    <span class=n>filepath</span> <span class=o>=</span> <span class=nb>str</span><span class=p>(</span><span class=n>filepath</span><span class=p>)</span>
+</span><span id=__span-0-153>    <span class=n>zoom</span> <span class=o>=</span> <span class=n>misc</span><span class=o>.</span><span class=n>_check_zoom</span><span class=p>(</span><span class=n>zoom</span><span class=o>=</span><span class=n>zoom</span><span class=p>)</span>
+</span><span id=__span-0-154>    <span class=n>dims</span> <span class=o>=</span> <span class=p>(</span><span class=s2>"S"</span><span class=p>,</span> <span class=s2>"T"</span><span class=p>,</span> <span class=s2>"C"</span><span class=p>,</span> <span class=s2>"Z"</span><span class=p>,</span> <span class=s2>"Y"</span><span class=p>,</span> <span class=s2>"X"</span><span class=p>,</span> <span class=s2>"A"</span><span class=p>)</span>
+</span><span id=__span-0-155>
+</span><span id=__span-0-156>    <span class=n>mdata</span> <span class=o>=</span> <span class=n>czimd</span><span class=o>.</span><span class=n>CziMetadata</span><span class=p>(</span><span class=n>filepath</span><span class=p>)</span>
+</span><span id=__span-0-157>    <span class=n>image</span> <span class=o>=</span> <span class=n>mdata</span><span class=o>.</span><span class=n>image_required</span>
+</span><span id=__span-0-158>    <span class=n>bbox</span> <span class=o>=</span> <span class=n>mdata</span><span class=o>.</span><span class=n>bbox_required</span>
+</span><span id=__span-0-159>    <span class=n>scale</span> <span class=o>=</span> <span class=n>mdata</span><span class=o>.</span><span class=n>scale_required</span>
+</span><span id=__span-0-160>
+</span><span id=__span-0-161>    <span class=k>if</span> <span class=ow>not</span> <span class=n>mdata</span><span class=o>.</span><span class=n>consistent_pixeltypes</span><span class=p>:</span>
+</span><span id=__span-0-162>        <span class=n>logger</span><span class=o>.</span><span class=n>info</span><span class=p>(</span><span class=s2>"Detected PixelTypes are not consistent. Cannot create array6d"</span><span class=p>)</span>
+</span><span id=__span-0-163>        <span class=k>return</span> <span class=kc>None</span><span class=p>,</span> <span class=n>mdata</span>
+</span><span id=__span-0-164>
+</span><span id=__span-0-165>    <span class=n>scale</span><span class=o>.</span><span class=n>X_sf</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>round</span><span class=p>(</span><span class=n>_as_float</span><span class=p>(</span><span class=n>scale</span><span class=o>.</span><span class=n>X</span><span class=p>)</span> <span class=o>*</span> <span class=p>(</span><span class=mi>1</span> <span class=o>/</span> <span class=n>zoom</span><span class=p>),</span> <span class=mi>3</span><span class=p>)</span>
+</span><span id=__span-0-166>    <span class=n>scale</span><span class=o>.</span><span class=n>Y_sf</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>round</span><span class=p>(</span><span class=n>_as_float</span><span class=p>(</span><span class=n>scale</span><span class=o>.</span><span class=n>Y</span><span class=p>)</span> <span class=o>*</span> <span class=p>(</span><span class=mi>1</span> <span class=o>/</span> <span class=n>zoom</span><span class=p>),</span> <span class=mi>3</span><span class=p>)</span>
+</span><span id=__span-0-167>    <span class=k>if</span> <span class=n>scale</span><span class=o>.</span><span class=n>ratio</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>:</span>
+</span><span id=__span-0-168>        <span class=n>scale</span><span class=o>.</span><span class=n>ratio</span> <span class=o>=</span> <span class=p>{}</span>
+</span><span id=__span-0-169>    <span class=n>scale</span><span class=o>.</span><span class=n>ratio</span><span class=p>[</span><span class=s2>"zx_sf"</span><span class=p>]</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>round</span><span class=p>(</span><span class=n>_as_float</span><span class=p>(</span><span class=n>scale</span><span class=o>.</span><span class=n>Z</span><span class=p>)</span> <span class=o>/</span> <span class=n>_as_float</span><span class=p>(</span><span class=n>scale</span><span class=o>.</span><span class=n>X_sf</span><span class=p>),</span> <span class=mi>3</span><span class=p>)</span>
+</span><span id=__span-0-170>
+</span><span id=__span-0-171>    <span class=k>if</span> <span class=n>planes</span><span class=p>:</span>
+</span><span id=__span-0-172>        <span class=n>selected_planes</span> <span class=o>=</span> <span class=nb>dict</span><span class=p>(</span><span class=n>planes</span><span class=p>)</span>
+</span><span id=__span-0-173>        <span class=n>bbox_total</span> <span class=o>=</span> <span class=n>bbox</span><span class=o>.</span><span class=n>total_bounding_box</span> <span class=ow>or</span> <span class=p>{}</span>
+</span><span id=__span-0-174>        <span class=k>for</span> <span class=n>dim</span> <span class=ow>in</span> <span class=p>[</span><span class=s2>"S"</span><span class=p>,</span> <span class=s2>"T"</span><span class=p>,</span> <span class=s2>"C"</span><span class=p>,</span> <span class=s2>"Z"</span><span class=p>]:</span>
+</span><span id=__span-0-175>            <span class=k>if</span> <span class=n>dim</span> <span class=ow>in</span> <span class=n>selected_planes</span> <span class=ow>and</span> <span class=n>dim</span> <span class=ow>in</span> <span class=n>bbox_total</span><span class=p>:</span>
+</span><span id=__span-0-176>                <span class=k>if</span> <span class=n>bbox_total</span><span class=p>[</span><span class=n>dim</span><span class=p>][</span><span class=mi>1</span><span class=p>]</span> <span class=o>-</span> <span class=mi>1</span> <span class=o>&lt;</span> <span class=n>selected_planes</span><span class=p>[</span><span class=n>dim</span><span class=p>][</span><span class=mi>1</span><span class=p>]:</span>
+</span><span id=__span-0-177>                    <span class=n>logger</span><span class=o>.</span><span class=n>info</span><span class=p>(</span>
+</span><span id=__span-0-178>                        <span class=sa>f</span><span class=s2>"Planes indices (zero-based) for </span><span class=si>{</span><span class=n>selected_planes</span><span class=p>[</span><span class=n>dim</span><span class=p>]</span><span class=si>}</span><span class=s2> are invalid. "</span>
+</span><span id=__span-0-179>                        <span class=sa>f</span><span class=s2>"BBox for </span><span class=si>{</span><span class=p>[</span><span class=n>dim</span><span class=p>]</span><span class=si>}</span><span class=s2>: </span><span class=si>{</span><span class=n>bbox_total</span><span class=p>[</span><span class=n>dim</span><span class=p>]</span><span class=si>}</span><span class=s2>"</span>
+</span><span id=__span-0-180>                    <span class=p>)</span>
+</span><span id=__span-0-181>                    <span class=k>return</span> <span class=kc>None</span><span class=p>,</span> <span class=n>mdata</span>
+</span><span id=__span-0-182>    <span class=k>else</span><span class=p>:</span>
+</span><span id=__span-0-183>        <span class=n>selected_planes</span> <span class=o>=</span> <span class=p>{}</span>
+</span><span id=__span-0-184>        <span class=k>for</span> <span class=n>dim</span><span class=p>,</span> <span class=n>size_attr</span> <span class=ow>in</span> <span class=p>[</span>
+</span><span id=__span-0-185>            <span class=p>(</span><span class=s2>"S"</span><span class=p>,</span> <span class=n>image</span><span class=o>.</span><span class=n>SizeS</span><span class=p>),</span>
+</span><span id=__span-0-186>            <span class=p>(</span><span class=s2>"T"</span><span class=p>,</span> <span class=n>image</span><span class=o>.</span><span class=n>SizeT</span><span class=p>),</span>
+</span><span id=__span-0-187>            <span class=p>(</span><span class=s2>"C"</span><span class=p>,</span> <span class=n>image</span><span class=o>.</span><span class=n>SizeC</span><span class=p>),</span>
+</span><span id=__span-0-188>            <span class=p>(</span><span class=s2>"Z"</span><span class=p>,</span> <span class=n>image</span><span class=o>.</span><span class=n>SizeZ</span><span class=p>),</span>
+</span><span id=__span-0-189>        <span class=p>]:</span>
+</span><span id=__span-0-190>            <span class=n>selected_planes</span><span class=p>[</span><span class=n>dim</span><span class=p>]</span> <span class=o>=</span> <span class=p>(</span><span class=mi>0</span><span class=p>,</span> <span class=n>size_attr</span> <span class=o>-</span> <span class=mi>1</span><span class=p>)</span> <span class=k>if</span> <span class=n>size_attr</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span> <span class=k>else</span> <span class=p>(</span><span class=mi>0</span><span class=p>,</span> <span class=mi>0</span><span class=p>)</span>
+</span><span id=__span-0-191>
+</span><span id=__span-0-192>    <span class=k>for</span> <span class=n>dim</span><span class=p>,</span> <span class=n>size_attr</span> <span class=ow>in</span> <span class=p>[</span>
+</span><span id=__span-0-193>        <span class=p>(</span><span class=s2>"S"</span><span class=p>,</span> <span class=n>image</span><span class=o>.</span><span class=n>SizeS</span><span class=p>),</span>
+</span><span id=__span-0-194>        <span class=p>(</span><span class=s2>"T"</span><span class=p>,</span> <span class=n>image</span><span class=o>.</span><span class=n>SizeT</span><span class=p>),</span>
+</span><span id=__span-0-195>        <span class=p>(</span><span class=s2>"C"</span><span class=p>,</span> <span class=n>image</span><span class=o>.</span><span class=n>SizeC</span><span class=p>),</span>
+</span><span id=__span-0-196>        <span class=p>(</span><span class=s2>"Z"</span><span class=p>,</span> <span class=n>image</span><span class=o>.</span><span class=n>SizeZ</span><span class=p>),</span>
+</span><span id=__span-0-197>    <span class=p>]:</span>
+</span><span id=__span-0-198>        <span class=k>if</span> <span class=n>dim</span> <span class=ow>not</span> <span class=ow>in</span> <span class=n>selected_planes</span><span class=p>:</span>
+</span><span id=__span-0-199>            <span class=n>selected_planes</span><span class=p>[</span><span class=n>dim</span><span class=p>]</span> <span class=o>=</span> <span class=p>(</span><span class=mi>0</span><span class=p>,</span> <span class=n>size_attr</span> <span class=o>-</span> <span class=mi>1</span><span class=p>)</span> <span class=k>if</span> <span class=n>size_attr</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span> <span class=k>else</span> <span class=p>(</span><span class=mi>0</span><span class=p>,</span> <span class=mi>0</span><span class=p>)</span>
+</span><span id=__span-0-200>
+</span><span id=__span-0-201>    <span class=k>if</span> <span class=ow>not</span> <span class=n>mdata</span><span class=o>.</span><span class=n>scene_shape_is_consistent</span><span class=p>:</span>
+</span><span id=__span-0-202>        <span class=n>one_scene_selected</span> <span class=o>=</span> <span class=n>selected_planes</span><span class=p>[</span><span class=s2>"S"</span><span class=p>][</span><span class=mi>0</span><span class=p>]</span> <span class=o>==</span> <span class=n>selected_planes</span><span class=p>[</span><span class=s2>"S"</span><span class=p>][</span><span class=mi>1</span><span class=p>]</span>
+</span><span id=__span-0-203>        <span class=k>if</span> <span class=ow>not</span> <span class=n>one_scene_selected</span><span class=p>:</span>
+</span><span id=__span-0-204>            <span class=n>logger</span><span class=o>.</span><span class=n>warning</span><span class=p>(</span><span class=s2>"Scenes have inconsistent shape. Cannot read 6D array"</span><span class=p>)</span>
+</span><span id=__span-0-205>            <span class=k>return</span> <span class=kc>None</span><span class=p>,</span> <span class=n>mdata</span>
+</span><span id=__span-0-206>
+</span><span id=__span-0-207>    <span class=n>size_s</span> <span class=o>=</span> <span class=n>_as_int</span><span class=p>(</span><span class=n>misc</span><span class=o>.</span><span class=n>_check_dimsize</span><span class=p>(</span><span class=n>image</span><span class=o>.</span><span class=n>SizeS</span><span class=p>,</span> <span class=n>set2value</span><span class=o>=</span><span class=mi>1</span><span class=p>),</span> <span class=mi>1</span><span class=p>)</span>
+</span><span id=__span-0-208>    <span class=n>size_t</span> <span class=o>=</span> <span class=n>_as_int</span><span class=p>(</span><span class=n>misc</span><span class=o>.</span><span class=n>_check_dimsize</span><span class=p>(</span><span class=n>image</span><span class=o>.</span><span class=n>SizeT</span><span class=p>,</span> <span class=n>set2value</span><span class=o>=</span><span class=mi>1</span><span class=p>),</span> <span class=mi>1</span><span class=p>)</span>
+</span><span id=__span-0-209>    <span class=n>size_c</span> <span class=o>=</span> <span class=n>_as_int</span><span class=p>(</span><span class=n>misc</span><span class=o>.</span><span class=n>_check_dimsize</span><span class=p>(</span><span class=n>image</span><span class=o>.</span><span class=n>SizeC</span><span class=p>,</span> <span class=n>set2value</span><span class=o>=</span><span class=mi>1</span><span class=p>),</span> <span class=mi>1</span><span class=p>)</span>
+</span><span id=__span-0-210>    <span class=n>size_z</span> <span class=o>=</span> <span class=n>_as_int</span><span class=p>(</span><span class=n>misc</span><span class=o>.</span><span class=n>_check_dimsize</span><span class=p>(</span><span class=n>image</span><span class=o>.</span><span class=n>SizeZ</span><span class=p>,</span> <span class=n>set2value</span><span class=o>=</span><span class=mi>1</span><span class=p>),</span> <span class=mi>1</span><span class=p>)</span>
+</span><span id=__span-0-211>    <span class=n>starts</span> <span class=o>=</span> <span class=p>{</span><span class=s2>"S"</span><span class=p>:</span> <span class=mi>0</span><span class=p>,</span> <span class=s2>"T"</span><span class=p>:</span> <span class=mi>0</span><span class=p>,</span> <span class=s2>"C"</span><span class=p>:</span> <span class=mi>0</span><span class=p>,</span> <span class=s2>"Z"</span><span class=p>:</span> <span class=mi>0</span><span class=p>}</span>
+</span><span id=__span-0-212>
+</span><span id=__span-0-213>    <span class=k>for</span> <span class=n>dim</span><span class=p>,</span> <span class=n>size_attr</span> <span class=ow>in</span> <span class=p>[</span>
+</span><span id=__span-0-214>        <span class=p>(</span><span class=s2>"S"</span><span class=p>,</span> <span class=n>image</span><span class=o>.</span><span class=n>SizeS</span><span class=p>),</span>
+</span><span id=__span-0-215>        <span class=p>(</span><span class=s2>"T"</span><span class=p>,</span> <span class=n>image</span><span class=o>.</span><span class=n>SizeT</span><span class=p>),</span>
+</span><span id=__span-0-216>        <span class=p>(</span><span class=s2>"C"</span><span class=p>,</span> <span class=n>image</span><span class=o>.</span><span class=n>SizeC</span><span class=p>),</span>
+</span><span id=__span-0-217>        <span class=p>(</span><span class=s2>"Z"</span><span class=p>,</span> <span class=n>image</span><span class=o>.</span><span class=n>SizeZ</span><span class=p>),</span>
+</span><span id=__span-0-218>    <span class=p>]:</span>
+</span><span id=__span-0-219>        <span class=k>if</span> <span class=n>size_attr</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>:</span>
+</span><span id=__span-0-220>            <span class=k>continue</span>
+</span><span id=__span-0-221>        <span class=n>start</span><span class=p>,</span> <span class=n>end</span> <span class=o>=</span> <span class=n>selected_planes</span><span class=p>[</span><span class=n>dim</span><span class=p>]</span>
+</span><span id=__span-0-222>        <span class=n>selected_size</span> <span class=o>=</span> <span class=n>end</span> <span class=o>-</span> <span class=n>start</span> <span class=o>+</span> <span class=mi>1</span>
+</span><span id=__span-0-223>        <span class=n>starts</span><span class=p>[</span><span class=n>dim</span><span class=p>]</span> <span class=o>=</span> <span class=n>start</span>
+</span><span id=__span-0-224>        <span class=k>if</span> <span class=n>dim</span> <span class=o>==</span> <span class=s2>"S"</span><span class=p>:</span>
+</span><span id=__span-0-225>            <span class=n>size_s</span> <span class=o>=</span> <span class=n>selected_size</span>
+</span><span id=__span-0-226>            <span class=n>image</span><span class=o>.</span><span class=n>SizeS</span> <span class=o>=</span> <span class=n>selected_size</span>
+</span><span id=__span-0-227>        <span class=k>elif</span> <span class=n>dim</span> <span class=o>==</span> <span class=s2>"T"</span><span class=p>:</span>
+</span><span id=__span-0-228>            <span class=n>size_t</span> <span class=o>=</span> <span class=n>selected_size</span>
+</span><span id=__span-0-229>            <span class=n>image</span><span class=o>.</span><span class=n>SizeT</span> <span class=o>=</span> <span class=n>selected_size</span>
+</span><span id=__span-0-230>        <span class=k>elif</span> <span class=n>dim</span> <span class=o>==</span> <span class=s2>"C"</span><span class=p>:</span>
+</span><span id=__span-0-231>            <span class=n>size_c</span> <span class=o>=</span> <span class=n>selected_size</span>
+</span><span id=__span-0-232>            <span class=n>image</span><span class=o>.</span><span class=n>SizeC</span> <span class=o>=</span> <span class=n>selected_size</span>
+</span><span id=__span-0-233>        <span class=k>else</span><span class=p>:</span>
+</span><span id=__span-0-234>            <span class=n>size_z</span> <span class=o>=</span> <span class=n>selected_size</span>
+</span><span id=__span-0-235>            <span class=n>image</span><span class=o>.</span><span class=n>SizeZ</span> <span class=o>=</span> <span class=n>selected_size</span>
+</span><span id=__span-0-236>
+</span><span id=__span-0-237>    <span class=n>contains_rgb</span> <span class=o>=</span> <span class=nb>any</span><span class=p>((</span><span class=n>mdata</span><span class=o>.</span><span class=n>isRGB</span> <span class=ow>or</span> <span class=p>{})</span><span class=o>.</span><span class=n>values</span><span class=p>())</span>
+</span><span id=__span-0-238>    <span class=n>squeeze_grayscale</span> <span class=o>=</span> <span class=ow>not</span> <span class=n>contains_rgb</span>
+</span><span id=__span-0-239>    <span class=k>if</span> <span class=n>squeeze_grayscale</span><span class=p>:</span>
+</span><span id=__span-0-240>        <span class=n>dims</span> <span class=o>=</span> <span class=p>(</span><span class=s2>"S"</span><span class=p>,</span> <span class=s2>"T"</span><span class=p>,</span> <span class=s2>"C"</span><span class=p>,</span> <span class=s2>"Z"</span><span class=p>,</span> <span class=s2>"Y"</span><span class=p>,</span> <span class=s2>"X"</span><span class=p>)</span>
+</span><span id=__span-0-241>
+</span><span id=__span-0-242>    <span class=k>if</span> <span class=n>mdata</span><span class=o>.</span><span class=n>is_url</span><span class=p>:</span>
+</span><span id=__span-0-243>        <span class=n>logger</span><span class=o>.</span><span class=n>info</span><span class=p>(</span><span class=s2>"Reading pixel data via network from link location."</span><span class=p>)</span>
+</span><span id=__span-0-244>
+</span><span id=__span-0-245>    <span class=n>total_planes</span> <span class=o>=</span> <span class=n>size_s</span> <span class=o>*</span> <span class=n>size_t</span> <span class=o>*</span> <span class=n>size_c</span> <span class=o>*</span> <span class=n>size_z</span>
+</span><span id=__span-0-246>    <span class=n>logger</span><span class=o>.</span><span class=n>info</span><span class=p>(</span>
+</span><span id=__span-0-247>        <span class=sa>f</span><span class=s2>"read_6darray: </span><span class=si>{</span><span class=s1>'Scheduling'</span><span class=w> </span><span class=k>if</span><span class=w> </span><span class=n>use_dask</span><span class=w> </span><span class=k>else</span><span class=w> </span><span class=s1>'Reading'</span><span class=si>}</span><span class=s2> </span><span class=si>{</span><span class=n>total_planes</span><span class=si>}</span><span class=s2> planes "</span>
+</span><span id=__span-0-248>        <span class=sa>f</span><span class=s2>"(S=</span><span class=si>{</span><span class=n>size_s</span><span class=si>}</span><span class=s2>, T=</span><span class=si>{</span><span class=n>size_t</span><span class=si>}</span><span class=s2>, C=</span><span class=si>{</span><span class=n>size_c</span><span class=si>}</span><span class=s2>, Z=</span><span class=si>{</span><span class=n>size_z</span><span class=si>}</span><span class=s2>)"</span>
+</span><span id=__span-0-249>    <span class=p>)</span>
+</span><span id=__span-0-250>    <span class=k>if</span> <span class=n>total_planes</span> <span class=o>==</span> <span class=mi>0</span><span class=p>:</span>
+</span><span id=__span-0-251>        <span class=n>logger</span><span class=o>.</span><span class=n>warning</span><span class=p>(</span><span class=s2>"No planes were selected for read_6darray."</span><span class=p>)</span>
+</span><span id=__span-0-252>        <span class=k>return</span> <span class=kc>None</span><span class=p>,</span> <span class=n>mdata</span>
+</span><span id=__span-0-253>
+</span><span id=__span-0-254>    <span class=n>selected_scenes</span> <span class=o>=</span> <span class=nb>range</span><span class=p>(</span><span class=n>starts</span><span class=p>[</span><span class=s2>"S"</span><span class=p>],</span> <span class=n>starts</span><span class=p>[</span><span class=s2>"S"</span><span class=p>]</span> <span class=o>+</span> <span class=n>size_s</span><span class=p>)</span> <span class=k>if</span> <span class=n>mdata</span><span class=o>.</span><span class=n>has_scenes</span> <span class=k>else</span> <span class=p>(</span><span class=mi>0</span><span class=p>,)</span>
+</span><span id=__span-0-255>    <span class=n>spatial_regions</span> <span class=o>=</span> <span class=p>{</span><span class=n>scene</span><span class=p>:</span> <span class=n>_spatial_region</span><span class=p>(</span><span class=n>mdata</span><span class=p>,</span> <span class=n>scene</span><span class=p>,</span> <span class=n>zoom</span><span class=p>)</span> <span class=k>for</span> <span class=n>scene</span> <span class=ow>in</span> <span class=n>selected_scenes</span><span class=p>}</span>
+</span><span id=__span-0-256>    <span class=n>scene_for_shape</span> <span class=o>=</span> <span class=n>starts</span><span class=p>[</span><span class=s2>"S"</span><span class=p>]</span> <span class=k>if</span> <span class=n>mdata</span><span class=o>.</span><span class=n>has_scenes</span> <span class=k>else</span> <span class=mi>0</span>
+</span><span id=__span-0-257>    <span class=n>_</span><span class=p>,</span> <span class=p>(</span><span class=n>size_y</span><span class=p>,</span> <span class=n>size_x</span><span class=p>)</span> <span class=o>=</span> <span class=n>spatial_regions</span><span class=p>[</span><span class=n>scene_for_shape</span><span class=p>]</span>
+</span><span id=__span-0-258>    <span class=n>spatial_rois</span> <span class=o>=</span> <span class=p>{(</span><span class=n>scene</span> <span class=k>if</span> <span class=n>mdata</span><span class=o>.</span><span class=n>has_scenes</span> <span class=k>else</span> <span class=kc>None</span><span class=p>):</span> <span class=n>region</span><span class=p>[</span><span class=mi>0</span><span class=p>]</span> <span class=k>for</span> <span class=n>scene</span><span class=p>,</span> <span class=n>region</span> <span class=ow>in</span> <span class=n>spatial_regions</span><span class=o>.</span><span class=n>items</span><span class=p>()}</span>
+</span><span id=__span-0-259>    <span class=n>plane_shape</span> <span class=o>=</span> <span class=p>(</span><span class=n>size_y</span><span class=p>,</span> <span class=n>size_x</span><span class=p>,</span> <span class=mi>3</span><span class=p>)</span> <span class=k>if</span> <span class=n>contains_rgb</span> <span class=k>else</span> <span class=p>(</span><span class=n>size_y</span><span class=p>,</span> <span class=n>size_x</span><span class=p>)</span>
+</span><span id=__span-0-260>    <span class=n>sizes</span> <span class=o>=</span> <span class=p>(</span><span class=n>size_s</span><span class=p>,</span> <span class=n>size_t</span><span class=p>,</span> <span class=n>size_c</span><span class=p>,</span> <span class=n>size_z</span><span class=p>)</span>
+</span><span id=__span-0-261>    <span class=n>start_values</span> <span class=o>=</span> <span class=p>(</span><span class=n>starts</span><span class=p>[</span><span class=s2>"S"</span><span class=p>],</span> <span class=n>starts</span><span class=p>[</span><span class=s2>"T"</span><span class=p>],</span> <span class=n>starts</span><span class=p>[</span><span class=s2>"C"</span><span class=p>],</span> <span class=n>starts</span><span class=p>[</span><span class=s2>"Z"</span><span class=p>])</span>
+</span><span id=__span-0-262>    <span class=n>dtype</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>dtype</span><span class=p>((</span><span class=n>mdata</span><span class=o>.</span><span class=n>npdtype_list</span> <span class=ow>or</span> <span class=p>[</span><span class=n>np</span><span class=o>.</span><span class=n>uint16</span><span class=p>])[</span><span class=mi>0</span><span class=p>])</span>
+</span><span id=__span-0-263>
+</span><span id=__span-0-264>    <span class=k>if</span> <span class=n>use_dask</span><span class=p>:</span>
+</span><span id=__span-0-265>        <span class=n>array6d</span><span class=p>:</span> <span class=n>Array6D</span> <span class=o>=</span> <span class=n>_build_lazy_array</span><span class=p>(</span>
+</span><span id=__span-0-266>            <span class=n>filepath</span><span class=p>,</span>
+</span><span id=__span-0-267>            <span class=n>sizes</span><span class=p>,</span>
+</span><span id=__span-0-268>            <span class=n>start_values</span><span class=p>,</span>
+</span><span id=__span-0-269>            <span class=n>plane_shape</span><span class=p>,</span>
+</span><span id=__span-0-270>            <span class=n>dtype</span><span class=p>,</span>
+</span><span id=__span-0-271>            <span class=n>mdata</span><span class=o>.</span><span class=n>has_scenes</span><span class=p>,</span>
+</span><span id=__span-0-272>            <span class=n>spatial_rois</span><span class=p>,</span>
+</span><span id=__span-0-273>            <span class=n>zoom</span><span class=p>,</span>
+</span><span id=__span-0-274>            <span class=n>mdata</span><span class=o>.</span><span class=n>pyczi_readertype</span><span class=p>,</span>
+</span><span id=__span-0-275>            <span class=n>squeeze_grayscale</span><span class=p>,</span>
+</span><span id=__span-0-276>        <span class=p>)</span>
+</span><span id=__span-0-277>    <span class=k>else</span><span class=p>:</span>
+</span><span id=__span-0-278>        <span class=n>full_shape</span> <span class=o>=</span> <span class=n>sizes</span> <span class=o>+</span> <span class=n>plane_shape</span>
+</span><span id=__span-0-279>        <span class=n>eager_array</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>empty</span><span class=p>(</span><span class=n>full_shape</span><span class=p>,</span> <span class=n>dtype</span><span class=o>=</span><span class=n>dtype</span><span class=p>)</span>
+</span><span id=__span-0-280>        <span class=n>plane_iterator</span><span class=p>:</span> <span class=n>Any</span> <span class=o>=</span> <span class=n>itertools</span><span class=o>.</span><span class=n>product</span><span class=p>(</span>
+</span><span id=__span-0-281>            <span class=nb>enumerate</span><span class=p>(</span><span class=nb>range</span><span class=p>(</span><span class=n>starts</span><span class=p>[</span><span class=s2>"S"</span><span class=p>],</span> <span class=n>starts</span><span class=p>[</span><span class=s2>"S"</span><span class=p>]</span> <span class=o>+</span> <span class=n>size_s</span><span class=p>)),</span>
+</span><span id=__span-0-282>            <span class=nb>enumerate</span><span class=p>(</span><span class=nb>range</span><span class=p>(</span><span class=n>starts</span><span class=p>[</span><span class=s2>"T"</span><span class=p>],</span> <span class=n>starts</span><span class=p>[</span><span class=s2>"T"</span><span class=p>]</span> <span class=o>+</span> <span class=n>size_t</span><span class=p>)),</span>
+</span><span id=__span-0-283>            <span class=nb>enumerate</span><span class=p>(</span><span class=nb>range</span><span class=p>(</span><span class=n>starts</span><span class=p>[</span><span class=s2>"C"</span><span class=p>],</span> <span class=n>starts</span><span class=p>[</span><span class=s2>"C"</span><span class=p>]</span> <span class=o>+</span> <span class=n>size_c</span><span class=p>)),</span>
+</span><span id=__span-0-284>            <span class=nb>enumerate</span><span class=p>(</span><span class=nb>range</span><span class=p>(</span><span class=n>starts</span><span class=p>[</span><span class=s2>"Z"</span><span class=p>],</span> <span class=n>starts</span><span class=p>[</span><span class=s2>"Z"</span><span class=p>]</span> <span class=o>+</span> <span class=n>size_z</span><span class=p>)),</span>
+</span><span id=__span-0-285>        <span class=p>)</span>
+</span><span id=__span-0-286>        <span class=k>if</span> <span class=n>HAS_PROGRESSBAR</span><span class=p>:</span>
+</span><span id=__span-0-287>            <span class=n>widgets</span> <span class=o>=</span> <span class=p>[</span>
+</span><span id=__span-0-288>                <span class=n>progressbar</span><span class=o>.</span><span class=n>Percentage</span><span class=p>(),</span>
+</span><span id=__span-0-289>                <span class=s2>" "</span><span class=p>,</span>
+</span><span id=__span-0-290>                <span class=n>progressbar</span><span class=o>.</span><span class=n>Bar</span><span class=p>(),</span>
+</span><span id=__span-0-291>                <span class=s2>" "</span><span class=p>,</span>
+</span><span id=__span-0-292>                <span class=n>progressbar</span><span class=o>.</span><span class=n>ETA</span><span class=p>(),</span>
+</span><span id=__span-0-293>                <span class=s2>" "</span><span class=p>,</span>
+</span><span id=__span-0-294>                <span class=n>progressbar</span><span class=o>.</span><span class=n>SimpleProgress</span><span class=p>(),</span>
+</span><span id=__span-0-295>            <span class=p>]</span>
+</span><span id=__span-0-296>            <span class=n>plane_iterator</span> <span class=o>=</span> <span class=n>progressbar</span><span class=o>.</span><span class=n>progressbar</span><span class=p>(</span>
+</span><span id=__span-0-297>                <span class=n>plane_iterator</span><span class=p>,</span>
+</span><span id=__span-0-298>                <span class=n>widgets</span><span class=o>=</span><span class=n>widgets</span><span class=p>,</span>
+</span><span id=__span-0-299>                <span class=n>max_value</span><span class=o>=</span><span class=n>total_planes</span><span class=p>,</span>
+</span><span id=__span-0-300>                <span class=n>term_width</span><span class=o>=</span><span class=mi>80</span><span class=p>,</span>
+</span><span id=__span-0-301>            <span class=p>)</span>
+</span><span id=__span-0-302>
+</span><span id=__span-0-303>        <span class=k>with</span> <span class=n>pyczi</span><span class=o>.</span><span class=n>open_czi</span><span class=p>(</span><span class=n>filepath</span><span class=p>,</span> <span class=n>mdata</span><span class=o>.</span><span class=n>pyczi_readertype</span><span class=p>)</span> <span class=k>as</span> <span class=n>czidoc</span><span class=p>:</span>
+</span><span id=__span-0-304>            <span class=k>for</span> <span class=n>s</span><span class=p>,</span> <span class=n>t</span><span class=p>,</span> <span class=n>c</span><span class=p>,</span> <span class=n>z</span> <span class=ow>in</span> <span class=n>plane_iterator</span><span class=p>:</span>
+</span><span id=__span-0-305>                <span class=n>plane</span> <span class=o>=</span> <span class=p>{</span><span class=s2>"T"</span><span class=p>:</span> <span class=n>t</span><span class=p>[</span><span class=mi>1</span><span class=p>],</span> <span class=s2>"Z"</span><span class=p>:</span> <span class=n>z</span><span class=p>[</span><span class=mi>1</span><span class=p>],</span> <span class=s2>"C"</span><span class=p>:</span> <span class=n>c</span><span class=p>[</span><span class=mi>1</span><span class=p>]}</span>
+</span><span id=__span-0-306>                <span class=n>scene</span> <span class=o>=</span> <span class=n>s</span><span class=p>[</span><span class=mi>1</span><span class=p>]</span> <span class=k>if</span> <span class=n>mdata</span><span class=o>.</span><span class=n>has_scenes</span> <span class=k>else</span> <span class=kc>None</span>
+</span><span id=__span-0-307>                <span class=n>roi</span> <span class=o>=</span> <span class=n>spatial_rois</span><span class=p>[</span><span class=n>scene</span><span class=p>]</span>
+</span><span id=__span-0-308>                <span class=k>if</span> <span class=n>mdata</span><span class=o>.</span><span class=n>has_scenes</span><span class=p>:</span>
+</span><span id=__span-0-309>                    <span class=n>image2d</span> <span class=o>=</span> <span class=n>czidoc</span><span class=o>.</span><span class=n>read</span><span class=p>(</span><span class=n>plane</span><span class=o>=</span><span class=n>plane</span><span class=p>,</span> <span class=n>scene</span><span class=o>=</span><span class=n>s</span><span class=p>[</span><span class=mi>1</span><span class=p>],</span> <span class=n>roi</span><span class=o>=</span><span class=n>roi</span><span class=p>,</span> <span class=n>zoom</span><span class=o>=</span><span class=n>zoom</span><span class=p>)</span>
+</span><span id=__span-0-310>                <span class=k>else</span><span class=p>:</span>
+</span><span id=__span-0-311>                    <span class=n>image2d</span> <span class=o>=</span> <span class=n>czidoc</span><span class=o>.</span><span class=n>read</span><span class=p>(</span><span class=n>plane</span><span class=o>=</span><span class=n>plane</span><span class=p>,</span> <span class=n>roi</span><span class=o>=</span><span class=n>roi</span><span class=p>,</span> <span class=n>zoom</span><span class=o>=</span><span class=n>zoom</span><span class=p>)</span>
+</span><span id=__span-0-312>                <span class=k>if</span> <span class=n>squeeze_grayscale</span><span class=p>:</span>
+</span><span id=__span-0-313>                    <span class=n>image2d</span> <span class=o>=</span> <span class=n>image2d</span><span class=p>[</span><span class=o>...</span><span class=p>,</span> <span class=mi>0</span><span class=p>]</span>
+</span><span id=__span-0-314>                <span class=n>eager_array</span><span class=p>[</span><span class=n>s</span><span class=p>[</span><span class=mi>0</span><span class=p>],</span> <span class=n>t</span><span class=p>[</span><span class=mi>0</span><span class=p>],</span> <span class=n>c</span><span class=p>[</span><span class=mi>0</span><span class=p>],</span> <span class=n>z</span><span class=p>[</span><span class=mi>0</span><span class=p>],</span> <span class=o>...</span><span class=p>]</span> <span class=o>=</span> <span class=n>image2d</span>
+</span><span id=__span-0-315>        <span class=n>array6d</span> <span class=o>=</span> <span class=n>eager_array</span>
+</span><span id=__span-0-316>
+</span><span id=__span-0-317>    <span class=k>if</span> <span class=n>contains_rgb</span> <span class=ow>and</span> <span class=n>array6d</span><span class=o>.</span><span class=n>shape</span><span class=p>[</span><span class=o>-</span><span class=mi>1</span><span class=p>]</span> <span class=o>==</span> <span class=mi>3</span><span class=p>:</span>
+</span><span id=__span-0-318>        <span class=n>array6d</span> <span class=o>=</span> <span class=n>array6d</span><span class=p>[</span><span class=o>...</span><span class=p>,</span> <span class=p>::</span><span class=o>-</span><span class=mi>1</span><span class=p>]</span>
+</span><span id=__span-0-319>
+</span><span id=__span-0-320>    <span class=k>if</span> <span class=n>use_dask</span> <span class=ow>and</span> <span class=n>chunk_zyx</span> <span class=ow>and</span> <span class=nb>isinstance</span><span class=p>(</span><span class=n>array6d</span><span class=p>,</span> <span class=n>da</span><span class=o>.</span><span class=n>Array</span><span class=p>):</span>
+</span><span id=__span-0-321>        <span class=n>chunks</span> <span class=o>=</span> <span class=p>(</span><span class=mi>1</span><span class=p>,</span> <span class=mi>1</span><span class=p>,</span> <span class=mi>1</span><span class=p>,</span> <span class=n>size_z</span><span class=p>,</span> <span class=n>size_y</span><span class=p>,</span> <span class=n>size_x</span><span class=p>)</span>
+</span><span id=__span-0-322>        <span class=k>if</span> <span class=n>contains_rgb</span><span class=p>:</span>
+</span><span id=__span-0-323>            <span class=n>chunks</span> <span class=o>+=</span> <span class=p>(</span><span class=mi>3</span><span class=p>,)</span>
+</span><span id=__span-0-324>        <span class=n>array6d</span> <span class=o>=</span> <span class=n>cast</span><span class=p>(</span><span class=n>Any</span><span class=p>,</span> <span class=n>array6d</span><span class=p>)</span><span class=o>.</span><span class=n>rechunk</span><span class=p>(</span><span class=n>chunks</span><span class=o>=</span><span class=n>chunks</span><span class=p>)</span>
 </span><span id=__span-0-325>
-</span><span id=__span-0-326>    <span class=k>if</span> <span class=n>adapt_metadata</span><span class=p>:</span>
-</span><span id=__span-0-327>        <span class=n>image</span><span class=o>.</span><span class=n>SizeS</span> <span class=o>=</span> <span class=n>selected_planes</span><span class=p>[</span><span class=s2>"S"</span><span class=p>][</span><span class=mi>1</span><span class=p>]</span> <span class=o>-</span> <span class=n>selected_planes</span><span class=p>[</span><span class=s2>"S"</span><span class=p>][</span><span class=mi>0</span><span class=p>]</span> <span class=o>+</span> <span class=mi>1</span>
-</span><span id=__span-0-328>        <span class=n>image</span><span class=o>.</span><span class=n>SizeT</span> <span class=o>=</span> <span class=n>selected_planes</span><span class=p>[</span><span class=s2>"T"</span><span class=p>][</span><span class=mi>1</span><span class=p>]</span> <span class=o>-</span> <span class=n>selected_planes</span><span class=p>[</span><span class=s2>"T"</span><span class=p>][</span><span class=mi>0</span><span class=p>]</span> <span class=o>+</span> <span class=mi>1</span>
-</span><span id=__span-0-329>        <span class=n>image</span><span class=o>.</span><span class=n>SizeC</span> <span class=o>=</span> <span class=n>selected_planes</span><span class=p>[</span><span class=s2>"C"</span><span class=p>][</span><span class=mi>1</span><span class=p>]</span> <span class=o>-</span> <span class=n>selected_planes</span><span class=p>[</span><span class=s2>"C"</span><span class=p>][</span><span class=mi>0</span><span class=p>]</span> <span class=o>+</span> <span class=mi>1</span>
-</span><span id=__span-0-330>        <span class=n>image</span><span class=o>.</span><span class=n>SizeZ</span> <span class=o>=</span> <span class=n>selected_planes</span><span class=p>[</span><span class=s2>"Z"</span><span class=p>][</span><span class=mi>1</span><span class=p>]</span> <span class=o>-</span> <span class=n>selected_planes</span><span class=p>[</span><span class=s2>"Z"</span><span class=p>][</span><span class=mi>0</span><span class=p>]</span> <span class=o>+</span> <span class=mi>1</span>
-</span><span id=__span-0-331>
-</span><span id=__span-0-332>    <span class=k>return</span> <span class=n>array6d</span><span class=p>,</span> <span class=n>mdata</span>
+</span><span id=__span-0-326>    <span class=n>mdata</span><span class=o>.</span><span class=n>array6d_size</span> <span class=o>=</span> <span class=n>array6d</span><span class=o>.</span><span class=n>shape</span>
+</span><span id=__span-0-327>
+</span><span id=__span-0-328>    <span class=k>if</span> <span class=n>use_xarray</span><span class=p>:</span>
+</span><span id=__span-0-329>        <span class=n>coords</span> <span class=o>=</span> <span class=p>{</span><span class=n>dim</span><span class=p>:</span> <span class=nb>range</span><span class=p>(</span><span class=n>array6d</span><span class=o>.</span><span class=n>shape</span><span class=p>[</span><span class=n>index</span><span class=p>])</span> <span class=k>for</span> <span class=n>index</span><span class=p>,</span> <span class=n>dim</span> <span class=ow>in</span> <span class=nb>enumerate</span><span class=p>(</span><span class=n>dims</span><span class=p>)}</span>
+</span><span id=__span-0-330>        <span class=n>array6d</span> <span class=o>=</span> <span class=n>xr</span><span class=o>.</span><span class=n>DataArray</span><span class=p>(</span><span class=n>array6d</span><span class=p>,</span> <span class=n>dims</span><span class=o>=</span><span class=n>dims</span><span class=p>,</span> <span class=n>coords</span><span class=o>=</span><span class=n>coords</span><span class=p>)</span>
+</span><span id=__span-0-331>        <span class=n>spatial_coords</span> <span class=o>=</span> <span class=p>{</span>
+</span><span id=__span-0-332>            <span class=n>axis</span><span class=p>:</span> <span class=n>np</span><span class=o>.</span><span class=n>arange</span><span class=p>(</span><span class=n>array6d</span><span class=o>.</span><span class=n>sizes</span><span class=p>[</span><span class=n>axis</span><span class=p>])</span> <span class=o>*</span> <span class=n>_get_axis_coord_step</span><span class=p>(</span><span class=n>mdata</span><span class=o>.</span><span class=n>scale</span><span class=p>,</span> <span class=n>axis</span><span class=p>,</span> <span class=n>zoom</span><span class=p>)</span> <span class=k>for</span> <span class=n>axis</span> <span class=ow>in</span> <span class=s2>"ZYX"</span>
+</span><span id=__span-0-333>        <span class=p>}</span>
+</span><span id=__span-0-334>        <span class=n>array6d</span> <span class=o>=</span> <span class=n>array6d</span><span class=o>.</span><span class=n>assign_coords</span><span class=p>(</span>
+</span><span id=__span-0-335>            <span class=n>C</span><span class=o>=</span><span class=n>_channel_names_or_default</span><span class=p>(</span><span class=n>mdata</span><span class=p>,</span> <span class=n>array6d</span><span class=o>.</span><span class=n>sizes</span><span class=p>[</span><span class=s2>"C"</span><span class=p>]),</span>
+</span><span id=__span-0-336>            <span class=o>**</span><span class=n>cast</span><span class=p>(</span><span class=n>Any</span><span class=p>,</span> <span class=n>spatial_coords</span><span class=p>),</span>
+</span><span id=__span-0-337>        <span class=p>)</span>
+</span><span id=__span-0-338>        <span class=n>array6d</span><span class=o>.</span><span class=n>attrs</span> <span class=o>=</span> <span class=p>{</span>
+</span><span id=__span-0-339>            <span class=s2>"description"</span><span class=p>:</span> <span class=s2>"6D image data from CZI file"</span><span class=p>,</span>
+</span><span id=__span-0-340>            <span class=s2>"source"</span><span class=p>:</span> <span class=n>mdata</span><span class=o>.</span><span class=n>filepath</span><span class=p>,</span>
+</span><span id=__span-0-341>            <span class=s2>"axes"</span><span class=p>:</span> <span class=s2>""</span><span class=o>.</span><span class=n>join</span><span class=p>(</span><span class=n>dims</span><span class=p>),</span>
+</span><span id=__span-0-342>            <span class=s2>"subset_planes"</span><span class=p>:</span> <span class=n>selected_planes</span><span class=p>,</span>
+</span><span id=__span-0-343>        <span class=p>}</span>
+</span><span id=__span-0-344>
+</span><span id=__span-0-345>    <span class=k>if</span> <span class=n>adapt_metadata</span><span class=p>:</span>
+</span><span id=__span-0-346>        <span class=n>image</span><span class=o>.</span><span class=n>SizeS</span> <span class=o>=</span> <span class=n>selected_planes</span><span class=p>[</span><span class=s2>"S"</span><span class=p>][</span><span class=mi>1</span><span class=p>]</span> <span class=o>-</span> <span class=n>selected_planes</span><span class=p>[</span><span class=s2>"S"</span><span class=p>][</span><span class=mi>0</span><span class=p>]</span> <span class=o>+</span> <span class=mi>1</span>
+</span><span id=__span-0-347>        <span class=n>image</span><span class=o>.</span><span class=n>SizeT</span> <span class=o>=</span> <span class=n>selected_planes</span><span class=p>[</span><span class=s2>"T"</span><span class=p>][</span><span class=mi>1</span><span class=p>]</span> <span class=o>-</span> <span class=n>selected_planes</span><span class=p>[</span><span class=s2>"T"</span><span class=p>][</span><span class=mi>0</span><span class=p>]</span> <span class=o>+</span> <span class=mi>1</span>
+</span><span id=__span-0-348>        <span class=n>image</span><span class=o>.</span><span class=n>SizeC</span> <span class=o>=</span> <span class=n>selected_planes</span><span class=p>[</span><span class=s2>"C"</span><span class=p>][</span><span class=mi>1</span><span class=p>]</span> <span class=o>-</span> <span class=n>selected_planes</span><span class=p>[</span><span class=s2>"C"</span><span class=p>][</span><span class=mi>0</span><span class=p>]</span> <span class=o>+</span> <span class=mi>1</span>
+</span><span id=__span-0-349>        <span class=n>image</span><span class=o>.</span><span class=n>SizeZ</span> <span class=o>=</span> <span class=n>selected_planes</span><span class=p>[</span><span class=s2>"Z"</span><span class=p>][</span><span class=mi>1</span><span class=p>]</span> <span class=o>-</span> <span class=n>selected_planes</span><span class=p>[</span><span class=s2>"Z"</span><span class=p>][</span><span class=mi>0</span><span class=p>]</span> <span class=o>+</span> <span class=mi>1</span>
+</span><span id=__span-0-350>
+</span><span id=__span-0-351>    <span class=k>return</span> <span class=n>array6d</span><span class=p>,</span> <span class=n>mdata</span>
 </span></code></pre></div></td></tr></table></div> </details> </div> </div> <div class="doc doc-object doc-function"> <h2 id=czitools.read_tools.read_attachments class="doc doc-heading"> <code class="doc-symbol doc-symbol-heading doc-symbol-function"></code> <span class="doc doc-object-name doc-function-name">read_attachments</span> <a href=#czitools.read_tools.read_attachments class=headerlink title="Permanent link">#</a></h2> <div class="language-python doc-signature highlight"><pre><span></span><code><span id=__span-0-1><span class=nf>read_attachments</span><span class=p>(</span>
 </span><span id=__span-0-2>    <span class=n><a class="autorefs autorefs-internal" title="czi_filepath (czitools.read_tools.read_attachments(czi_filepath))" href=#czitools.read_tools.read_attachments(czi_filepath)>czi_filepath</a></span><span class=p>:</span> <span class=n><a class="autorefs autorefs-external" href=https://docs.python.org/3/library/stdtypes.html#str>str</a></span> <span class=o>|</span> <span class=n><a class="autorefs autorefs-external" title=os.PathLike href=https://docs.python.org/3/library/os.html#os.PathLike>PathLike</a></span><span class=p>,</span>
 </span><span id=__span-0-3>    <span class=n><a class="autorefs autorefs-internal" title="attachment_type (czitools.read_tools.read_attachments(attachment_type))" href=#czitools.read_tools.read_attachments(attachment_type)>attachment_type</a></span><span class=p>:</span> <span class=n><a class="autorefs autorefs-internal" title="            AttachmentType (czitools.metadata_tools.helper.AttachmentType)" href=../metadata_tools/helper/#czitools.metadata_tools.helper.AttachmentType>AttachmentType</a></span> <span class=o>=</span> <span class=n><span title=czitools.metadata_tools.helper.AttachmentType.SlidePreview>SlidePreview</span></span><span class=p>,</span>
