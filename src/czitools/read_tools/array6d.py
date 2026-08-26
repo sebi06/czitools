@@ -30,8 +30,12 @@ except ImportError:
     HAS_PROGRESSBAR = False
 
 
-def _spatial_shape(mdata: czimd.CziMetadata, scene: int, zoom: float) -> tuple[int, int]:
-    """Return the zoomed YX plane shape from CZI bounding rectangles."""
+def _spatial_region(
+    mdata: czimd.CziMetadata,
+    scene: int,
+    zoom: float,
+) -> tuple[tuple[int, int, int, int], tuple[int, int]]:
+    """Return the layer-0 ROI and zoomed YX shape for one scene."""
     bbox = mdata.bbox_required
     rect = None
 
@@ -44,13 +48,16 @@ def _spatial_shape(mdata: czimd.CziMetadata, scene: int, zoom: float) -> tuple[i
     if rect is None:
         raise ValueError("Cannot determine the CZI plane shape from its bounding rectangles.")
 
-    return max(1, int(rect.h * zoom)), max(1, int(rect.w * zoom))
+    roi = (int(rect.x), int(rect.y), int(rect.w), int(rect.h))
+    shape = (max(1, int(rect.h * zoom)), max(1, int(rect.w * zoom)))
+    return roi, shape
 
 
 def _read_plane(
     filepath: str,
     plane: dict[str, int],
     scene: int | None,
+    roi: tuple[int, int, int, int],
     zoom: float,
     readertype: pyczi.ReaderFileInputTypes,
     squeeze_grayscale: bool,
@@ -58,9 +65,9 @@ def _read_plane(
     """Read one plane; Dask schedules this function only during computation."""
     with pyczi.open_czi(filepath, readertype) as czidoc:
         if scene is None:
-            image2d = czidoc.read(plane=plane, zoom=zoom)
+            image2d = czidoc.read(plane=plane, roi=roi, zoom=zoom)
         else:
-            image2d = czidoc.read(plane=plane, scene=scene, zoom=zoom)
+            image2d = czidoc.read(plane=plane, scene=scene, roi=roi, zoom=zoom)
 
     if squeeze_grayscale:
         image2d = image2d[..., 0]
@@ -74,6 +81,7 @@ def _build_lazy_array(
     plane_shape: tuple[int, ...],
     dtype: np.dtype,
     has_scenes: bool,
+    spatial_rois: dict[int | None, tuple[int, int, int, int]],
     zoom: float,
     readertype: pyczi.ReaderFileInputTypes,
     squeeze_grayscale: bool,
@@ -90,6 +98,7 @@ def _build_lazy_array(
                 filepath,
                 plane,
                 scene,
+                spatial_rois[scene],
                 zoom,
                 readertype,
                 squeeze_grayscale,
@@ -134,6 +143,11 @@ def read_6darray(
     Returns:
         A tuple of the image array and CZI metadata. The array is None when the
         CZI cannot be represented as a regular 6D array.
+
+    Notes:
+        Pixel reads are constrained to each selected scene's full-resolution,
+        non-pyramid bounding rectangle. This keeps regular array shapes aligned
+        with the layer-0 image when coarse pyramid coverage is rounded outward.
     """
     filepath = str(filepath)
     zoom = misc._check_zoom(zoom=zoom)
@@ -237,8 +251,11 @@ def read_6darray(
         logger.warning("No planes were selected for read_6darray.")
         return None, mdata
 
+    selected_scenes = range(starts["S"], starts["S"] + size_s) if mdata.has_scenes else (0,)
+    spatial_regions = {scene: _spatial_region(mdata, scene, zoom) for scene in selected_scenes}
     scene_for_shape = starts["S"] if mdata.has_scenes else 0
-    size_y, size_x = _spatial_shape(mdata, scene_for_shape, zoom)
+    _, (size_y, size_x) = spatial_regions[scene_for_shape]
+    spatial_rois = {(scene if mdata.has_scenes else None): region[0] for scene, region in spatial_regions.items()}
     plane_shape = (size_y, size_x, 3) if contains_rgb else (size_y, size_x)
     sizes = (size_s, size_t, size_c, size_z)
     start_values = (starts["S"], starts["T"], starts["C"], starts["Z"])
@@ -252,6 +269,7 @@ def read_6darray(
             plane_shape,
             dtype,
             mdata.has_scenes,
+            spatial_rois,
             zoom,
             mdata.pyczi_readertype,
             squeeze_grayscale,
@@ -285,10 +303,12 @@ def read_6darray(
         with pyczi.open_czi(filepath, mdata.pyczi_readertype) as czidoc:
             for s, t, c, z in plane_iterator:
                 plane = {"T": t[1], "Z": z[1], "C": c[1]}
+                scene = s[1] if mdata.has_scenes else None
+                roi = spatial_rois[scene]
                 if mdata.has_scenes:
-                    image2d = czidoc.read(plane=plane, scene=s[1], zoom=zoom)
+                    image2d = czidoc.read(plane=plane, scene=s[1], roi=roi, zoom=zoom)
                 else:
-                    image2d = czidoc.read(plane=plane, zoom=zoom)
+                    image2d = czidoc.read(plane=plane, roi=roi, zoom=zoom)
                 if squeeze_grayscale:
                     image2d = image2d[..., 0]
                 eager_array[s[0], t[0], c[0], z[0], ...] = image2d
@@ -309,8 +329,7 @@ def read_6darray(
         coords = {dim: range(array6d.shape[index]) for index, dim in enumerate(dims)}
         array6d = xr.DataArray(array6d, dims=dims, coords=coords)
         spatial_coords = {
-            axis: np.arange(array6d.sizes[axis]) * _get_axis_coord_step(mdata.scale, axis, zoom)
-            for axis in "ZYX"
+            axis: np.arange(array6d.sizes[axis]) * _get_axis_coord_step(mdata.scale, axis, zoom) for axis in "ZYX"
         }
         array6d = array6d.assign_coords(
             C=_channel_names_or_default(mdata, array6d.sizes["C"]),

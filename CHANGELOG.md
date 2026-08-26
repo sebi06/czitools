@@ -6,6 +6,15 @@ and the project adheres to [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [Unreleased]
+
+### Fixed
+
+- `read_6darray` now constrains eager and lazy plane reads to scene-aware,
+  non-pyramid layer-0 bounding rectangles. This prevents rounded coarse-pyramid
+  coverage from returning padded planes that cannot fit the regular STCZYX(A)
+  array shape.
+
 ## [0.22.0] — 2026-08-25
 
 ### Added

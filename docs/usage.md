@@ -346,6 +346,13 @@ subset, mdata = read_6darray(
     corresponding Dask task is computed. Use `read_stacks(..., use_dask=True)`
     when scenes may have different shapes or extra dimensions.
 
+!!! note "Full-resolution bounds"
+  Eager and lazy `read_6darray` reads are constrained to each selected
+  scene's non-pyramid bounding rectangle in native layer-0 coordinates.
+  Coarse pyramid tiles can round their logical coverage outward by a few
+  pixels; those storage-level overhangs do not change the regular array's
+  Y/X shape.
+
 ### `read_stacks` — Scene-Wise Reading
 
 `read_stacks` supports all CZI dimensions and optionally stacks compatible

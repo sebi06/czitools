@@ -116,6 +116,9 @@ first_plane = scenes[0].isel(T=0, C=0, Z=0).compute()
 
 `read_6darray(..., use_dask=True)` also provides genuinely lazy pixel access
 when the CZI has equal-sized scenes and consistent pixel types.
+Both eager and lazy reads use each scene's full-resolution, non-pyramid
+bounding rectangle, so rounded pyramid coverage cannot pad or change the
+regular STCZYX(A) shape.
 `read_stacks(..., use_dask=True)` groups up to 64 planes per task by default to
 reduce file-open and scheduler overhead. Set `lazy_read_strategy="plane"` for
 the finest-grained random access, or tune the group with `planes_per_chunk`.
