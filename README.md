@@ -219,11 +219,11 @@ print_well_fields(mdata, well_name="B4")
 ### OME-Zarr Converter GUI
 
 The experimental converter GUI exports individual CZI images and HCS plates
-using either `ome-zarr-py` or `ngff-zarr`. It provides controls for compression,
-Zarr v3 output, supported single-file `.ozx` workflows, parallel I/O, and
-optional napari viewing. The metadata preview lets you verify the detected
-dimensions and scenes before starting the conversion, while the log panel shows
-its progress.
+using either `ome-zarr-py` or `ngff-zarr`. All conversions use Zarr v3. The GUI
+provides controls for compression, supported single-file `.ozx` workflows,
+parallel I/O, and optional napari viewing. The metadata preview lets you verify
+the detected dimensions and scenes before starting the conversion, while the
+log panel shows its progress.
 
 Install and launch it with:
 

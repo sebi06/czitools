@@ -86,7 +86,7 @@ These are installed automatically with `pip install czitools`:
 | `pylibCZIrw>=5`       | Reading and writing CZI files     |
 | `czifile`             | Subblock-level CZI access         |
 | `numpy`               | Array operations                  |
-| `dask`                | Chunked and lazy arrays            |
+| `dask`                | Chunked and lazy arrays           |
 | `xarray`              | Labelled multi-dimensional arrays |
 | `pandas`              | Planetable data manipulation      |
 | `python-box[all]`     | Attribute-style metadata access   |
@@ -112,13 +112,13 @@ These are installed automatically with `pip install czitools`:
 
 Required by `czitools.export_tools` for CZI → OME-Zarr conversion and validation:
 
-| Package                       | Purpose                                              |
-| ----------------------------- | ---------------------------------------------------- |
-| `ngff-zarr>=0.39.0`           | Primary write backend (OME-NGFF v0.5)                |
-| `ome-zarr>=0.16.0`            | Secondary write backend (Zarr v3 or v2)              |
-| `zarr>=3.0`                   | Zarr storage backend                                 |
-| `ome-zarr-models>=1.7,<2`     | OME-NGFF schema validation                           |
-| `tensorstore`                 | Optional asynchronous/parallel chunk writing backend |
+| Package                   | Purpose                                              |
+| ------------------------- | ---------------------------------------------------- |
+| `ngff-zarr>=0.39.0`       | Primary write backend (OME-NGFF v0.5)                |
+| `ome-zarr>=0.16.0`        | Secondary write backend (Zarr v3)                    |
+| `zarr>=3.0`               | Zarr storage backend                                 |
+| `ome-zarr-models>=1.7,<2` | OME-NGFF schema validation                           |
+| `tensorstore`             | Optional asynchronous/parallel chunk writing backend |
 
 ### GUI dependencies (`[omezarr-gui]`)
 
