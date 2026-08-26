@@ -775,7 +775,7 @@ from pathlib import Path
 
 from czitools.export_tools import (
     convert_czi2hcs_ngff,      # ngff-zarr backend, OME-NGFF v0.5
-    convert_czi2hcs_omezarr,   # ome-zarr-py backend, Zarr v3 by default
+    convert_czi2hcs_omezarr,   # ome-zarr-py backend, Zarr v3
     validate_ome_zarr,
 )
 
@@ -791,18 +791,8 @@ out = convert_czi2hcs_ngff(
 assert validate_ome_zarr(out)
 ```
 
-The ome-zarr-py backend can write its default Zarr v3 store or a legacy
-OME-NGFF v0.4/Zarr v2 store:
-
-```python
-# Use zarr_format=2 only when a legacy reader requires Zarr v2.
-legacy_out = convert_czi2hcs_omezarr(
-    "path/to/plate.czi",
-    overwrite=True,
-    zarr_format=2,
-)
-assert validate_ome_zarr(legacy_out)
-```
+Both export backends write Zarr v3 stores and retain the pyramid paths produced
+by their underlying writer libraries.
 
 Both backends route through a canonical layout resolver that prefers the Stage 1
 HCS model (`CziMetadata.hcs`) and falls back to `CziSampleInfo` only when it is
@@ -837,7 +827,7 @@ array = array.squeeze("S")  # 6D -> 5D (T, C, Z, Y, X)
 # ngff-zarr backend (multi-scale pyramid, OME-NGFF v0.5)
 write_omezarr_ngff(array, "image_ngff.ome.zarr", mdata, scale_factors=[2, 4], overwrite=True)
 
-# ome-zarr-py backend (Zarr v3 by default; pass zarr_format=2 for legacy v2)
+# ome-zarr-py backend (Zarr v3)
 write_omezarr(array, zarr_path="image.ome.zarr", metadata=mdata, overwrite=True)
 ```
 
@@ -845,10 +835,9 @@ write_omezarr(array, zarr_path="image.ome.zarr", metadata=mdata, overwrite=True)
 
 The experimental CZI to OME-Zarr converter provides a graphical interface for
 exporting individual images and HCS plates. It supports the `ome-zarr-py` and
-`ngff-zarr` backends, compression selection, legacy OME-NGFF v0.4/Zarr v2
-output, and single-file `.ozx` output where supported. Optional controls expose
-parallel tensorstore I/O, pyramid-path normalization for compatibility testing,
-and opening the result in napari.
+`ngff-zarr` backends, Zarr v3 output, compression selection, and single-file
+`.ozx` output where supported. Optional controls expose parallel tensorstore
+I/O and opening the result in napari.
 
 Install the GUI extra and launch the application with its console command:
 

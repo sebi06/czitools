@@ -44,13 +44,17 @@ def setup_logging(
         logging.Logger: The configured root logger.
     """
     root_logger = logging.getLogger()
+    package_logger = logging.getLogger("czitools")
 
-    has_file_handler = any(
-        isinstance(h, logging.FileHandler) for h in root_logger.handlers
-    )
+    # Several core modules configure the package logger during import. Export
+    # logging also needs a root file handler, so retaining that package console
+    # handler would emit every propagated record twice.
+    package_logger.handlers.clear()
+    package_logger.propagate = True
+
+    has_file_handler = any(isinstance(h, logging.FileHandler) for h in root_logger.handlers)
     has_console_handler = any(
-        isinstance(h, logging.StreamHandler) and not isinstance(h, logging.FileHandler)
-        for h in root_logger.handlers
+        isinstance(h, logging.StreamHandler) and not isinstance(h, logging.FileHandler) for h in root_logger.handlers
     )
 
     # Reconfigure if the target log file changed (different conversion run).
@@ -70,9 +74,7 @@ def setup_logging(
         for handler in root_logger.handlers[:]:
             root_logger.removeHandler(handler)
 
-        formatter = logging.Formatter(
-            "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-        )
+        formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 
         console_handler = logging.StreamHandler()
         console_handler.setFormatter(formatter)

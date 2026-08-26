@@ -1,22 +1,14 @@
 """Core CZI -> OME-Zarr conversion functions.
 
-Adapted from ``czi_omezarr_utils.conversion`` in the ``omezarr_playground``
-repository. The two HCS pipelines now consume the canonical layout produced by
-:func:`czitools.export_tools.resolver.resolve_hcs_layout`, so they support the
-Stage 1 HCS model (preferred), a ``CziSampleInfo`` fallback, sparse plates, and
-variable field counts per well.
-
-  - ``convert_czi2hcs_omezarr`` — HCS pipeline using ome-zarr-py (OME-NGFF v0.4)
-  - ``convert_czi2hcs_ngff``    — HCS pipeline using ngff-zarr (OME-NGFF v0.5)
-  - ``write_omezarr``           — write a single 5D image using ome-zarr-py
-  - ``write_omezarr_ngff``      — write a single 5D image using ngff-zarr with pyramid
+The HCS pipelines consume the canonical layout produced by
+:func:`czitools.export_tools.resolver.resolve_hcs_layout`, supporting the
+Stage 1 HCS model, sparse plates, and variable field counts per well. All
+OME-Zarr outputs use Zarr 3 and retain their backend's native pyramid paths.
 """
 
 import gc
-import json
 import logging
 import os
-import re
 import shutil
 import sys
 import time
@@ -46,15 +38,6 @@ from .resolver import resolve_hcs_layout
 
 logger = logging.getLogger(__name__)
 
-# Optional progress bar (progressbar2) for long-running steps. Guarded so the
-# module still imports if the package is unavailable.
-try:
-    import progressbar  # type: ignore
-
-    HAS_PROGRESSBAR = True
-except ImportError:  # pragma: no cover
-    HAS_PROGRESSBAR = False
-
 # Optional tensorstore backend for ngff-zarr writes (async parallel chunk I/O).
 # Enabled automatically when the package is installed; harmless when absent.
 try:
@@ -78,19 +61,15 @@ def _to_ome_zarr_image(array: np.ndarray | xr.DataArray | da.Array) -> np.ndarra
 def _retry_io(func, *args, _attempts: int = 5, _base_delay: float = 0.2, **kwargs):
     """Run a file-writing callable, retrying on transient Windows ``PermissionError``.
 
-    Windows can raise ``PermissionError`` (WinError 5, "Access is denied") during
-    zarr's atomic rename (``os.replace`` of a ``.partial`` file onto the target
-    ``.zgroup`` / ``.zattrs`` / chunk file) when antivirus or the search indexer
-    briefly holds a handle to the just-written file. These locks clear within
-    milliseconds, so a short exponential backoff makes the write robust. The
-    wrapped operations here are idempotent (metadata attrs and chunk writes are
-    overwrites), so retrying is safe.
+    Windows can raise ``PermissionError`` during zarr's atomic rename when
+    antivirus or the search indexer briefly holds a handle to a newly written
+    file. A short exponential backoff makes idempotent writes robust.
 
     Args:
         func: The file-writing callable to invoke.
         *args: Positional arguments forwarded to ``func``.
         _attempts (int): Maximum number of attempts before giving up.
-        _base_delay (float): Base delay (seconds) for exponential backoff.
+        _base_delay (float): Base delay in seconds for exponential backoff.
         **kwargs: Keyword arguments forwarded to ``func``.
 
     Returns:
@@ -122,23 +101,17 @@ def _retry_io(func, *args, _attempts: int = 5, _base_delay: float = 0.2, **kwarg
 
 
 def _read_single_scene(czi_path: str | os.PathLike | Path, scene_index: int) -> xr.DataArray:
-    """Read a single CZI scene as a 6D (S=1, T, C, Z, Y, X) xarray DataArray.
-
-    HCS plates frequently have scenes (wells/fields) with slightly different Y/X
-    sizes. :func:`czitools.read_tools.read_6darray` returns ``None`` when asked to
-    read a whole plate with inconsistent scene shapes, so each scene must be read
-    on its own via the ``planes={"S": (i, i)}`` selection. This also bounds peak
-    memory to a single scene rather than the entire plate.
+    """Read a single CZI scene as a 6D xarray DataArray.
 
     Args:
-        czi_path (Union[str, os.PathLike, Path]): Path to the input CZI file.
+        czi_path (str | os.PathLike | Path): Path to the input CZI file.
         scene_index (int): Zero-based scene index to read.
 
     Returns:
-        xr.DataArray: 6D array with a length-1 ``S`` dimension for the scene.
+        xr.DataArray: Array with a length-one scene dimension.
 
     Raises:
-        ValueError: If the scene could not be read as an xarray DataArray.
+        TypeError: If the scene cannot be read as an xarray DataArray.
     """
     array6d, _ = read_tools.read_6darray(str(czi_path), planes={"S": (scene_index, scene_index)}, use_xarray=True)
     if not isinstance(array6d, xr.DataArray):
@@ -156,39 +129,30 @@ def _write_image_delayed(
     scale: dict[str, float] | None = None,
     axes_units: dict[str, str] | None = None,
 ) -> list:
-    """Schedule an ome-zarr-py image write as parallel (dask) chunk-write tasks.
-
-    The array is wrapped in a dask array (chunked to ``chunks``) so ome-zarr-py's
-    ``compute=False`` path produces a chunk-parallel write graph instead of writing
-    synchronously. The returned dask-delayed tasks are NOT executed here -- the
-    caller batches them and runs a single :func:`dask.compute`, which parallelizes
-    chunk writes (and compression, which releases the GIL) across threads.
+    """Schedule an ome-zarr-py image write as parallel Dask tasks.
 
     Args:
-        image: Array data (numpy or dask) for one image.
-        group: Target zarr group.
-        axes (str): Axis string, e.g. ``"tczyx"``.
-        chunks (tuple): Chunk shape used for both the dask array and zarr storage.
-        fmt: ome-zarr ``Format`` instance.
-        scale (Optional[Dict[str, float]]): Physical pixel sizes per axis (e.g.
-            ``{"z": 1.0, "y": 0.325, "x": 0.325}``). Written as
-            ``coordinateTransformations`` in the OME-NGFF multiscales metadata.
-        axes_units (Optional[Dict[str, str]]): Unit per spatial/temporal axis (e.g.
-            ``{"z": "micrometer", "y": "micrometer", "x": "micrometer"}``).
+        image: Array data for one image.
+        group: Target Zarr group.
+        axes (str): Axis string, such as ``"tczyx"``.
+        chunks (str | tuple[int, ...]): Dask and Zarr chunk shape.
+        compression (compression_type | None): Compression selection.
+        fmt: OME-Zarr format instance.
+        scale (dict[str, float] | None): Physical pixel sizes by axis.
+        axes_units (dict[str, str] | None): Units by axis.
 
     Returns:
-        list: A list of dask-delayed write tasks (possibly empty).
+        list: Delayed write tasks, possibly empty.
     """
     if not isinstance(image, da.Array):
         image = da.from_array(image, chunks=chunks)  # type: ignore[arg-type]
 
-    # Convert compression_type enum to actual codec instance
     compressor = None
     if compression == compression_type.BLOSC:
         compressor = Blosc()
     elif compression == compression_type.ZSTD:
         compressor = Zstd()
-    # compression_type.NONE or None → compressor stays None
+    # compression_type.NONE or None leaves compression disabled.
 
     delayed = _retry_io(
         ome_zarr.writer.write_image,
@@ -228,238 +192,6 @@ def _ensure_plate_version_metadata(zarr_path: str | os.PathLike | Path, version:
     _retry_io(root.attrs.update, attrs)
 
 
-def _normalize_multiscale_level_names_v2(store_path: str | os.PathLike | Path) -> None:
-    """Rename zarr v2 multiscale levels from ``sN`` to ``N`` in a directory store.
-
-    ome-zarr 0.18 names multiscale datasets ``s0, s1, ...``. Some legacy OME-NGFF
-    v0.4 viewers (notably vizarr-based web tools such as Find-Nuclei) only resolve
-    numeric level names (``0, 1, ...``). This walks a directory-based (zarr v2)
-    store, renames each ``sN`` level directory to ``N`` and rewrites the matching
-    ``multiscales[].datasets[].path`` entries in every group's ``.zattrs``.
-
-    Args:
-        store_path (Union[str, os.PathLike, Path]): Path to the zarr v2 store root.
-    """
-    root = Path(store_path)
-    pattern = re.compile(r"^s(\d+)$")
-    zattrs_paths = list(root.rglob(".zattrs"))
-    total = len(zattrs_paths)
-
-    logger.info("Finalizing v2 legacy store: normalizing %d group(s) (renaming pyramid levels sN -> N)...", total)
-
-    iterator: object = zattrs_paths
-    if HAS_PROGRESSBAR and total > 0:
-        widgets = [
-            "Finalizing v2 store ",
-            progressbar.Percentage(),
-            " ",
-            progressbar.Bar(),
-            " ",
-            progressbar.SimpleProgress(),
-        ]
-        iterator = progressbar.progressbar(zattrs_paths, widgets=widgets, max_value=total, term_width=80)
-
-    for zattrs_path in iterator:  # type: ignore[assignment]
-        try:
-            attrs = json.loads(zattrs_path.read_text(encoding="utf-8"))  # type: ignore[attr-defined]
-        except (OSError, ValueError):
-            continue
-        multiscales = attrs.get("multiscales")
-        if not multiscales:
-            continue
-        group_dir = zattrs_path.parent  # type: ignore[attr-defined]
-        changed = False
-        for multiscale in multiscales:
-            for dataset in multiscale.get("datasets", []):
-                match = pattern.match(str(dataset.get("path", "")))
-                if match is None:
-                    continue
-                new_name = match.group(1)
-                src = group_dir / dataset["path"]
-                dst = group_dir / new_name
-                if src.is_dir() and not dst.exists():
-                    src.rename(dst)
-                dataset["path"] = new_name
-                changed = True
-        if changed:
-            zattrs_path.write_text(json.dumps(attrs), encoding="utf-8")  # type: ignore[attr-defined]
-
-
-def _normalize_multiscale_level_names_v3(store_path: str | os.PathLike | Path) -> None:
-    """Rename zarr v3 multiscale levels from ``sN`` to ``N`` in a directory store.
-
-    ome-zarr-py hardcodes ``s0, s1, ...`` as pyramid level names inside
-    ``_write_pyramid_to_zarr`` (not overridable via any public API parameter).
-    The OME-NGFF v0.5 specification examples and all reference implementations
-    (e.g. IDR/EBI datasets created with ``ome2024-ngff-challenge``) use plain
-    numeric names (``0, 1, ...``). This walks a directory-based zarr v3 store,
-    renames each ``sN`` level directory to ``N`` and rewrites the matching
-    ``multiscales[].datasets[].path`` entries in every field group's
-    ``zarr.json``.
-
-    Args:
-        store_path (Union[str, os.PathLike, Path]): Path to the zarr v3 store root.
-    """
-    root = Path(store_path)
-    pattern = re.compile(r"^s(\d+)$")
-    zarr_json_paths = list(root.rglob("zarr.json"))
-    total = len(zarr_json_paths)
-
-    logger.info(
-        "Finalizing v3 store: normalizing %d node(s) (renaming pyramid levels sN -> N)...",
-        total,
-    )
-
-    iterator: object = zarr_json_paths
-    if HAS_PROGRESSBAR and total > 0:
-        widgets = [
-            "Finalizing v3 store ",
-            progressbar.Percentage(),
-            " ",
-            progressbar.Bar(),
-            " ",
-            progressbar.SimpleProgress(),
-        ]
-        iterator = progressbar.progressbar(zarr_json_paths, widgets=widgets, max_value=total, term_width=80)
-
-    for zarr_json_path in iterator:  # type: ignore[assignment]
-        try:
-            data = json.loads(zarr_json_path.read_text(encoding="utf-8"))  # type: ignore[attr-defined]
-        except (OSError, ValueError):
-            continue
-        # Only process group nodes; array nodes (the pyramid levels themselves)
-        # don't have multiscales metadata.
-        if data.get("node_type") != "group":
-            continue
-        ome_attrs = data.get("attributes", {}).get("ome", {})
-        multiscales = ome_attrs.get("multiscales")
-        if not multiscales:
-            continue
-        group_dir = zarr_json_path.parent  # type: ignore[attr-defined]
-        changed = False
-        for multiscale in multiscales:
-            for dataset in multiscale.get("datasets", []):
-                match = pattern.match(str(dataset.get("path", "")))
-                if match is None:
-                    continue
-                new_name = match.group(1)
-                src = group_dir / dataset["path"]
-                dst = group_dir / new_name
-                if src.is_dir() and not dst.exists():
-                    src.rename(dst)
-                dataset["path"] = new_name
-                changed = True
-        if changed:
-            zarr_json_path.write_text(json.dumps(data), encoding="utf-8")  # type: ignore[attr-defined]
-
-
-def _normalize_multiscale_level_names_ngff(store_path: str | os.PathLike | Path) -> None:
-    """Rename ngff-zarr pyramid levels from ``scaleN/image-name`` to ``N``.
-
-    ngff-zarr hardcodes ``scaleN/{NgffImage.name}`` as the on-disk path for
-    every pyramid level — ``scaleN`` is an intermediate zarr group and
-    ``{name}`` is the array itself one level deeper. This 2-level structure is
-    incompatible with the OME-NGFF v0.5 convention used by every reference
-    implementation (IDR/EBI, ome2024-ngff-challenge), which stores each level
-    directly at a plain numeric path (``0``, ``1``, …) relative to the field
-    group.
-
-    The function:
-    1. Walks all ``zarr.json`` files in the store.
-    2. For each field-group node that has ``ome.multiscales`` with paths
-       matching ``scaleN/…``: moves the array directory (``scaleN/name/``) to
-       the flat numeric path (``N/``), deletes the now-empty ``scaleN/``
-       scaffold, and updates the ``datasets[].path`` entries in the JSON.
-    3. Rewrites the ``consolidated_metadata`` keys embedded in the same
-       ``zarr.json`` so that ``scaleN`` intermediate-group entries are dropped
-       and ``scaleN/name`` array entries are renamed to ``N``.
-
-    Args:
-        store_path (Union[str, os.PathLike, Path]): Path to the zarr v3 store root.
-    """
-    root = Path(store_path)
-    # Match "scale0", "scale0/anything" etc. — capture the level index N.
-    scale_prefix_re = re.compile(r"^scale(\d+)")
-    intermediate_group_re = re.compile(r"^scale\d+$")
-    zarr_json_paths = list(root.rglob("zarr.json"))
-    total = len(zarr_json_paths)
-
-    logger.info(
-        "Finalizing ngff-zarr store: normalizing %d node(s) (renaming scaleN/name -> N)...",
-        total,
-    )
-
-    iterator: object = zarr_json_paths
-    if HAS_PROGRESSBAR and total > 0:
-        widgets = [
-            "Finalizing ngff store ",
-            progressbar.Percentage(),
-            " ",
-            progressbar.Bar(),
-            " ",
-            progressbar.SimpleProgress(),
-        ]
-        iterator = progressbar.progressbar(zarr_json_paths, widgets=widgets, max_value=total, term_width=80)
-
-    for zarr_json_path in iterator:  # type: ignore[assignment]
-        try:
-            data = json.loads(zarr_json_path.read_text(encoding="utf-8"))  # type: ignore[attr-defined]
-        except (OSError, ValueError):
-            continue
-        if data.get("node_type") != "group":
-            continue
-        ome_attrs = data.get("attributes", {}).get("ome", {})
-        multiscales = ome_attrs.get("multiscales")
-        if not multiscales:
-            continue
-
-        group_dir = zarr_json_path.parent  # type: ignore[attr-defined]
-        changed = False
-
-        for multiscale in multiscales:
-            for dataset in multiscale.get("datasets", []):
-                old_path = str(dataset.get("path", ""))
-                match = scale_prefix_re.match(old_path)
-                if match is None:
-                    continue
-                new_name = match.group(1)  # "0", "1", ...
-
-                # old_path is 2-level: "scaleN/image-name" → the array dir
-                src = group_dir / Path(old_path)
-                dst = group_dir / new_name
-                if src.is_dir() and not dst.exists():
-                    shutil.move(str(src), str(dst))
-                    # Remove the now-vacated intermediate "scaleN/" scaffold.
-                    # It may still contain a zarr.json group metadata file.
-                    scale_dir = group_dir / Path(old_path).parts[0]
-                    if scale_dir.is_dir():
-                        shutil.rmtree(scale_dir, ignore_errors=True)
-
-                dataset["path"] = new_name
-                changed = True
-
-        if not changed:
-            continue
-
-        # Rewrite the consolidated_metadata embedded in this zarr.json:
-        # drop "scaleN" intermediate-group entries; rename "scaleN/name" → "N".
-        consol = data.get("consolidated_metadata", {})
-        if isinstance(consol, dict) and "metadata" in consol:
-            old_meta: dict = consol["metadata"]
-            new_meta: dict = {}
-            for key, val in old_meta.items():
-                m = scale_prefix_re.match(key)
-                if m is None:
-                    new_meta[key] = val
-                elif intermediate_group_re.match(key):
-                    pass  # drop the "scaleN" intermediate-group entry
-                else:
-                    new_meta[m.group(1)] = val  # "scaleN/name" → "N"
-            consol["metadata"] = new_meta
-
-        zarr_json_path.write_text(json.dumps(data), encoding="utf-8")  # type: ignore[attr-defined]
-
-
 # ---------------------------------------------------------------------------
 # ome-zarr-py HCS conversion
 # ---------------------------------------------------------------------------
@@ -470,9 +202,7 @@ def convert_czi2hcs_omezarr(
     overwrite: bool = True,
     log_file_path: str | os.PathLike | Path | None = None,
     pad_columns: bool = True,
-    zarr_format: int = 3,
     compression: compression_type | None = compression_type.BLOSC,
-    normalize_level_paths: bool = True,
 ) -> Path:
     """Convert a CZI file to OME-Zarr HCS format using the ome-zarr-py backend.
 
@@ -482,20 +212,12 @@ def convert_czi2hcs_omezarr(
         log_file_path (Optional[Union[str, os.PathLike, Path]]): Log file path.
             Defaults to ``<stem>_hcs_omezarr.log``.
         pad_columns (bool): Zero-pad column numbers in well paths (e.g. ``"04"``).
-        zarr_format (int): Zarr storage format to write. ``3`` (default) writes a
-            zarr v3 store; ``2`` writes an OME-NGFF v0.4 / zarr v2 store for
-            compatibility with legacy readers (e.g. vizarr-based web viewers) that
-            do not yet support zarr v3.
         compression (Optional[compression_type]): Chunk compression type.
             Defaults to ``compression_type.BLOSC``. Set to ``None`` for no compression
-        normalize_level_paths (bool): Rename pyramid level directories from the
-            ome-zarr-py convention (``sN``) to the OME-NGFF v0.5 / IDR convention
-            (plain integers ``N``). Defaults to ``True``. Set to ``False`` to keep
-            the raw ome-zarr-py output for debugging or compatibility testing.
 
     Returns:
-        Path: Output OME-Zarr HCS directory (``<stem>_HCSplate_zarr2.ome.zarr`` or
-            ``<stem>_HCSplate_zarr3.ome.zarr``).
+        Path: Output OME-Zarr HCS directory
+            (``<stem>_HCSplate_zarr3.ome.zarr``).
     """
     czi_path = Path(czi_filepath)
     if log_file_path is None:
@@ -510,8 +232,7 @@ def convert_czi2hcs_omezarr(
     logger.info("=" * 80)
     logger.info(f"Input CZI file: {czi_path.absolute()}")
 
-    zarr_suffix = "zarr2" if zarr_format == 2 else "zarr3"
-    zarr_output_path = czi_path.parent / f"{czi_path.stem}_HCSplate_{zarr_suffix}.ome.zarr"
+    zarr_output_path = czi_path.parent / f"{czi_path.stem}_HCSplate_zarr3.ome.zarr"
 
     if zarr_output_path.exists():
         if overwrite:
@@ -529,12 +250,8 @@ def convert_czi2hcs_omezarr(
     layout = resolve_hcs_layout(mdata, pad_columns=pad_columns)
     logger.info(f"Resolved plate layout from '{layout.source}': {len(layout.wells)} well(s)")
 
-    # Select the OME-Zarr format. FormatV04 forces an OME-NGFF v0.4 / zarr v2 store
-    # (legacy-reader compatible); CurrentFormat() is ome-zarr's default (zarr v3).
-    # fmt is threaded through every writer call so the whole store is written in a
-    # single, consistent format.
-    _fmt = ome_zarr.format.FormatV04() if zarr_format == 2 else ome_zarr.format.CurrentFormat()
-    logger.info(f"Zarr storage format: v{zarr_format}" + (" (OME-NGFF v0.4)" if zarr_format == 2 else ""))
+    _fmt = ome_zarr.format.CurrentFormat()
+    logger.info("Zarr storage format: v3")
 
     parsed = parse_url(zarr_output_path, mode="w", fmt=_fmt)
     assert parsed is not None, f"Failed to open zarr store at {zarr_output_path}"
@@ -607,18 +324,6 @@ def convert_czi2hcs_omezarr(
         logger.info("Writing %d field-pyramid task(s) in parallel (dask)...", len(delayed_writes))
         _retry_io(dask.compute, *delayed_writes)
 
-    if normalize_level_paths:
-        if zarr_format == 2:
-            # Normalize multiscale level names (sN -> N) for legacy v0.4 readers.
-            _normalize_multiscale_level_names_v2(zarr_output_path)
-        else:
-            # Normalize multiscale level names (sN -> N) to match OME-NGFF v0.5
-            # convention: ome-zarr-py hardcodes "s0", "s1" internally but all
-            # reference implementations (IDR/EBI) use plain numeric "0", "1".
-            _normalize_multiscale_level_names_v3(zarr_output_path)
-    else:
-        logger.info("Skipping pyramid level path normalization (normalize_level_paths=False).")
-
     logger.info("=" * 80)
     logger.info("Conversion completed successfully!")
     logger.info(f"Output HCS OME-ZARR file: {zarr_output_path}")
@@ -642,7 +347,6 @@ def convert_czi2hcs_ngff(
     output_dir: str | os.PathLike | Path | None = None,
     pad_columns: bool = True,
     compression: compression_type | None = compression_type.BLOSC,
-    normalize_level_paths: bool = True,
 ) -> Path:
     """Convert a CZI file to OME-Zarr HCS format using the ngff-zarr backend.
 
@@ -659,12 +363,6 @@ def convert_czi2hcs_ngff(
         pad_columns (bool): Zero-pad column numbers in well paths (e.g. ``"04"``).
         compression (Optional[compression_type]): Chunk compression type.
             Defaults to ``compression_type.BLOSC``. Set to ``None`` for no compression.
-        normalize_level_paths (bool): Rename pyramid level directories from the
-            ngff-zarr convention (``scaleN/image-name``) to the OME-NGFF v0.5 / IDR
-            convention (plain integers ``N``). Defaults to ``True``. Set to
-            ``False`` to keep the raw ngff-zarr output for debugging or
-            compatibility testing.
-
     Returns:
         Path: Output HCS directory (``<stem>_ngff_plate_zarr3.ome.zarr``) or ``.ozx`` file.
     """
@@ -784,13 +482,6 @@ def convert_czi2hcs_ngff(
 
     _ensure_plate_version_metadata(write_path, version)
 
-    if normalize_level_paths:
-        # Normalize pyramid level paths: ngff-zarr writes "scaleN/image-name" but
-        # OME-NGFF v0.5 convention expects plain numeric paths "0", "1", …
-        _normalize_multiscale_level_names_ngff(write_path)
-    else:
-        logger.info("Skipping pyramid level path normalization (normalize_level_paths=False).")
-
     if _win_ozx_workaround:
         logger.info("Converting intermediate .ome.zarr to .ozx (Windows workaround)...")
         gc.collect()
@@ -818,7 +509,6 @@ def write_omezarr(
     metadata: CziMetadata,
     overwrite: bool = False,
     log_file_path: str | Path | None = None,
-    zarr_format: int = 3,
     compression: compression_type | None = compression_type.BLOSC,
 ) -> Path | None:
     """Write a single 5D image to OME-Zarr using the ome-zarr-py backend.
@@ -831,9 +521,6 @@ def write_omezarr(
         overwrite (bool): Remove existing output if True.
         log_file_path (Optional[Union[str, Path]]): Log file path. Defaults to
             ``<stem>_omezarr.log``.
-        zarr_format (int): Zarr storage format to write. ``3`` (default) writes a
-            zarr v3 store; ``2`` writes an OME-NGFF v0.4 / zarr v2 store for
-            compatibility with legacy readers that do not yet support zarr v3.
         compression (Optional[compression_type]): Chunk compression type.
             Defaults to ``compression_type.BLOSC``. Set to ``None`` for no compression
 
@@ -870,21 +557,12 @@ def write_omezarr(
         logger.info(f"File already exists at {zarr_path}. Set overwrite=True to remove.")
         return None
 
-    # FormatV04 forces an OME-NGFF v0.4 / zarr v2 store; CurrentFormat() is the
-    # ome-zarr default (zarr v3). fmt must be passed to parse_url so the group is
-    # created in the matching zarr format (otherwise write_image(fmt=...) raises
-    # "Group is zarr_format: 3 but OME-Zarr 0.4 is 2").
-    _fmt = ome_zarr.format.FormatV04() if zarr_format == 2 else ome_zarr.format.CurrentFormat()
-    logger.info(f"Zarr storage format: v{zarr_format}" + (" (OME-NGFF v0.4)" if zarr_format == 2 else ""))
+    _fmt = ome_zarr.format.CurrentFormat()
+    logger.info("Zarr storage format: v3")
 
     parsed = parse_url(zarr_path, mode="w", fmt=_fmt)
     assert parsed is not None, f"Failed to open zarr store at {zarr_path}"
-    # Do NOT pass overwrite=overwrite here: in zarr 3.x that recreates the group
-    # with the default zarr_format (3), overriding the v2 store from parse_url and
-    # causing "Group is zarr_format: 3 but OME-Zarr 0.4 is 2". Any existing store
-    # was already removed above when overwrite=True. Set zarr_format explicitly to
-    # match the chosen OME-Zarr format.
-    root = zarr.group(store=parsed.store, zarr_format=(2 if zarr_format == 2 else 3))
+    root = zarr.group(store=parsed.store, zarr_format=3)
 
     # Chunk the full Z-stack per (T, C) instead of one XY plane per chunk. Single-
     # plane chunks explode the file count (T*C*Z chunks/level), which makes writing
@@ -937,10 +615,6 @@ def write_omezarr(
         },
         fmt=_fmt,
     )
-
-    if zarr_format == 2:
-        # Normalize multiscale level names (sN -> N) for legacy v0.4 readers.
-        _normalize_multiscale_level_names_v2(zarr_path)
 
     logger.info("OME-ZARR writing completed successfully!")
     logger.info(f"Output file: {zarr_path}")
@@ -1029,8 +703,14 @@ def write_omezarr_ngff(
     _scale = metadata.scale
     _filename = metadata.filename or "image.czi"
 
+    image_data = array5d.data if isinstance(array5d, xr.DataArray) else array5d
+    if isinstance(image_data, da.Array):
+        image_data = image_data.rechunk({1: 1})
+    else:
+        image_data = da.from_array(image_data, chunks={1: 1})  # type: ignore[arg-type]
+
     image = nz.to_ngff_image(
-        array5d.data if isinstance(array5d, xr.DataArray) else array5d,  # type: ignore[arg-type]
+        image_data,
         dims=["t", "c", "z", "y", "x"],
         scale={
             "t": 1.0,

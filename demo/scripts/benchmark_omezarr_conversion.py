@@ -82,7 +82,7 @@ def _measure_read(czi: str, repeats: int) -> tuple[float, float, tuple, np.dtype
     return best, mean, shape, dtype, size_mb
 
 
-def _time_convert(kind: str, czi: str, repeats: int, zarr_format: int = 3) -> float:
+def _time_convert(kind: str, czi: str, repeats: int) -> float:
     """Time a full HCS conversion, isolating each run in a fresh temp dir.
 
     The CZI is copied into a unique temp directory (untimed) so every timed run
@@ -100,7 +100,7 @@ def _time_convert(kind: str, czi: str, repeats: int, zarr_format: int = 3) -> fl
         if kind == "ngff":
             convert_czi2hcs_ngff(czi_filepath=str(czi_copy), overwrite=True)
         else:
-            convert_czi2hcs_omezarr(czi_filepath=str(czi_copy), overwrite=True, zarr_format=zarr_format)
+            convert_czi2hcs_omezarr(czi_filepath=str(czi_copy), overwrite=True)
         timings.append(time.perf_counter() - start)
         shutil.rmtree(work, ignore_errors=True)
     return min(timings)
@@ -116,7 +116,7 @@ def _is_hcs(czi: str) -> bool:
         return False
 
 
-def _time_standard(kind: str, array5d, mdata, repeats: int, zarr_format: int = 3) -> float:
+def _time_standard(kind: str, array5d, mdata, repeats: int) -> float:
     """Time a standard (single-image) write using a pre-read 5D array.
 
     The array is already in memory, so this measures write-only time directly
@@ -132,7 +132,7 @@ def _time_standard(kind: str, array5d, mdata, repeats: int, zarr_format: int = 3
         if kind == "ngff":
             write_omezarr_ngff(array5d, out, mdata, scale_factors=None, overwrite=True)
         else:
-            write_omezarr(array5d, zarr_path=out, metadata=mdata, overwrite=True, zarr_format=zarr_format)
+            write_omezarr(array5d, zarr_path=out, metadata=mdata, overwrite=True)
         timings.append(time.perf_counter() - start)
         shutil.rmtree(work, ignore_errors=True)
     return min(timings)
@@ -168,15 +168,14 @@ def _run() -> None:
 
     if is_hcs:
         # ---- HCS: measure full convert, subtract standalone read ------------
-        backends: list[tuple[str, str, int]] = [
-            ("ngff-zarr HCS (v0.5 / zarr v3)", "ngff", 3),
-            ("ome-zarr-py HCS (v0.4-attrs / zarr v3)", "omezarr", 3),
-            ("ome-zarr-py HCS (v0.4 / zarr v2)", "omezarr", 2),
+        backends: list[tuple[str, str]] = [
+            ("ngff-zarr HCS (v0.5 / zarr v3)", "ngff"),
+            ("ome-zarr-py HCS (zarr v3)", "omezarr"),
         ]
         print(f"{'Backend':40s} {'total(s)':>9s} {'write~(s)':>10s} {'write%':>7s}")
         print("-" * 78)
-        for name, kind, zfmt in backends:
-            t_best = _time_convert(kind, czi, repeats, zarr_format=zfmt)
+        for name, kind in backends:
+            t_best = _time_convert(kind, czi, repeats)
             write_s = max(0.0, t_best - r_best)
             write_pct = 100.0 * write_s / t_best if t_best > 0 else 0.0
             print(f"{name:40s} {t_best:9.3f} {write_s:10.3f} {write_pct:6.1f}%")
@@ -184,15 +183,14 @@ def _run() -> None:
         # ---- Standard: read once, then measure write directly (clean split) -
         array6d, mdata = read_tools.read_6darray(czi, use_xarray=True)
         array5d = array6d.squeeze("S") if "S" in getattr(array6d, "dims", ()) else array6d
-        backends_std: list[tuple[str, str, int]] = [
-            ("ngff-zarr (v0.5 / zarr v3)", "ngff", 3),
-            ("ome-zarr-py (v0.4-attrs / zarr v3)", "omezarr", 3),
-            ("ome-zarr-py (v0.4 / zarr v2)", "omezarr", 2),
+        backends_std: list[tuple[str, str]] = [
+            ("ngff-zarr (v0.5 / zarr v3)", "ngff"),
+            ("ome-zarr-py (zarr v3)", "omezarr"),
         ]
         print(f"{'Backend':40s} {'write(s)':>9s}  (read={r_best:.2f}s, {'write%':>6s})")
         print("-" * 78)
-        for name, kind, zfmt in backends_std:
-            w_best = _time_standard(kind, array5d, mdata, repeats, zarr_format=zfmt)
+        for name, kind in backends_std:
+            w_best = _time_standard(kind, array5d, mdata, repeats)
             total = w_best + r_best
             write_pct = 100.0 * w_best / total if total > 0 else 0.0
             print(f"{name:40s} {w_best:9.3f}  ({write_pct:6.1f}% of read+write)")

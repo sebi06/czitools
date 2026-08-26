@@ -167,20 +167,14 @@ def read_czi_metadata(filepath: Path) -> tuple[CziMetadata | None, int]:
 
         # Determine number of scenes
         image = mdata.image
-        num_scenes = (
-            image.SizeS if (image is not None and hasattr(image, "SizeS")) else None
-        )
+        num_scenes = image.SizeS if (image is not None and hasattr(image, "SizeS")) else None
 
         # Calculate max_scenes: if None or 0, default to 1
         max_scenes = num_scenes if num_scenes and num_scenes > 0 else 1
 
         # Build a dimension summary from available CziDimensions attributes
         _dim_keys = ("SizeS", "SizeT", "SizeC", "SizeZ", "SizeY", "SizeX")
-        _dims = {
-            k: getattr(image, k, None)
-            for k in _dim_keys
-            if getattr(image, k, None) is not None
-        }
+        _dims = {k: getattr(image, k, None) for k in _dim_keys if getattr(image, k, None) is not None}
         _dims_str = ", ".join(f"{k}={v}" for k, v in _dims.items())
 
         logger.info("Metadata loaded successfully")
@@ -203,10 +197,8 @@ def perform_conversion(
     scene_id: int,
     write_ozx_directly: bool,
     write_ozx_afterwards: bool,
-    zarr_format: int = 3,
     use_tensorstore: bool = True,
     compression_choice: compression_type | None = compression_type.BLOSC,
-    normalize_level_paths: bool = False,
 ) -> str | None:
     """
     Perform the CZI to OME-ZARR conversion with specified parameters.
@@ -219,16 +211,10 @@ def perform_conversion(
         write_ozx_afterwards: Convert to OZX after writing (NGFF-ZARR only)
         package_choice: Backend package (OME_ZARR or NGFF_ZARR)
         scene_id: Scene index to convert (for non-HCS mode with multiple scenes)
-        zarr_format: Zarr storage format for the ome-zarr-py backend (2 = OME-NGFF
-            v0.4 / zarr v2 for legacy viewers, 3 = zarr v3, default). Ignored by the
-            ngff-zarr backend, which always writes OME-NGFF v0.5 / zarr v3.
         use_tensorstore: Use the tensorstore backend for parallel chunk I/O in the
             ngff-zarr single-image path. Ignored by the ome-zarr-py backend and by
             the HCS ngff path.
         compression_choice: Compression type for OME-ZARR output (default: Blosc).
-        normalize_level_paths: Rename pyramid level directories to plain integers
-            (0, 1, 2 …) to check for issues with older viewers.
-
     Returns:
         str: Path to output OME-ZARR file, or None if conversion failed
     """
@@ -250,18 +236,14 @@ def perform_conversion(
 
         # ========== HCS Format Conversion ==========
         if write_hcs:
-            logger.info(
-                "Converting to HCS-ZARR format using %s...", package_choice.name
-            )
+            logger.info("Converting to HCS-ZARR format using %s...", package_choice.name)
 
             if package_choice == omezarr_package.OME_ZARR:
                 output_path = convert_czi2hcs_omezarr(
                     czi_filepath=str(filepath),
                     overwrite=True,
                     log_file_path=str(log_file_path),
-                    zarr_format=zarr_format,
                     compression=compression_choice,
-                    normalize_level_paths=normalize_level_paths,
                 )
             elif package_choice == omezarr_package.NGFF_ZARR:
                 if use_ozx_format and write_ozx_afterwards and not write_ozx_directly:
@@ -277,7 +259,6 @@ def perform_conversion(
                             log_file_path=str(log_file_path),
                             output_dir=tmp_dir,
                             compression=compression_choice,
-                            normalize_level_paths=normalize_level_paths,
                         )
                         # Zip the temp zarr to an ozx also inside tmp_dir
                         tmp_ozx = convert_hcs_omezarr2ozx(tmp_zarr, remove_omezarr=True)
@@ -295,7 +276,6 @@ def perform_conversion(
                         overwrite=True,
                         write_ozx_directly=write_ozx_directly,
                         log_file_path=str(log_file_path),
-                        normalize_level_paths=normalize_level_paths,
                     )
 
             logger.info("HCS-ZARR created: %s", output_path)
@@ -309,21 +289,15 @@ def perform_conversion(
             )
 
             # Read the CZI file as a 6D array
-            array, mdata = read_tools.read_6darray(
-                str(filepath), planes={"S": (scene_id, scene_id)}, use_xarray=True
-            )
+            array, mdata = read_tools.read_6darray(str(filepath), planes={"S": (scene_id, scene_id)}, use_xarray=True)
 
             # Extract the specified scene (remove Scene dimension to get 5D array)
-            assert isinstance(
-                array, xr.DataArray
-            ), "Expected xarray DataArray from read_6darray with use_xarray=True"
+            assert isinstance(array, xr.DataArray), "Expected xarray DataArray from read_6darray with use_xarray=True"
             array = array.squeeze("S")
             logger.info("Array shape: %s, dtype: %s", array.shape, array.dtype)
 
             if package_choice == omezarr_package.OME_ZARR:
-                # Generate output path with zarr format suffix for ome-zarr-py backend
-                zarr_suffix = "zarr2" if zarr_format == 2 else "zarr3"
-                zarr_output_path = Path(str(filepath)[:-4] + f"_{zarr_suffix}.ome.zarr")
+                zarr_output_path = Path(str(filepath)[:-4] + "_zarr3.ome.zarr")
 
                 # Write OME-ZARR using ome-zarr-py backend
 
@@ -332,7 +306,7 @@ def perform_conversion(
                     zarr_path=str(zarr_output_path),
                     metadata=mdata,
                     overwrite=True,
-                    zarr_format=zarr_format,
+                    log_file_path=str(log_file_path),
                 )
 
                 logger.info("OME-ZARR created: %s", output_path)
@@ -344,9 +318,7 @@ def perform_conversion(
                     zarr_output_path: Path = Path(str(filepath)[:-4] + "_ngff.ozx")
                 else:
                     # Generate output path with _ngff_zarr3.ome.zarr extension (ngff-zarr always writes v3)
-                    zarr_output_path: Path = Path(
-                        str(filepath)[:-4] + "_ngff_zarr3.ome.zarr"
-                    )
+                    zarr_output_path: Path = Path(str(filepath)[:-4] + "_ngff_zarr3.ome.zarr")
 
                 # Write OME-ZARR using ngff-zarr backend.
                 # scale_factors=None -> size-aware, Y/X-only pyramid depth derived
@@ -357,6 +329,7 @@ def perform_conversion(
                     mdata,
                     scale_factors=None,
                     overwrite=True,
+                    log_file_path=str(log_file_path),
                     use_tensorstore=use_tensorstore,
                 )
 
@@ -384,9 +357,7 @@ def perform_conversion(
                     if is_valid:
                         logger.info("Validation result: VALID [OK]")
                     else:
-                        logger.warning(
-                            "Validation result: INVALID ❌ (see messages above)"
-                        )
+                        logger.warning("Validation result: INVALID ❌ (see messages above)")
                 except Exception as ve:
                     logger.error("Validation raised an error: %s", ve, exc_info=True)
 
@@ -448,25 +419,11 @@ def perform_conversion(
         ],
         "tooltip": "Choose the compression method for OME-ZARR output (default: Blosc)",
     },
-    use_zarr_v2={
-        "label": "Write zarr v2 (legacy / OME-NGFF v0.4)",
-        "tooltip": (
-            "Write an OME-NGFF v0.4 / zarr v2 store instead of zarr v3, for legacy "
-            "viewers that do not support zarr v3 (ome-zarr-py backend only)."
-        ),
-    },
     use_tensorstore={
         "label": "Use tensorstore (parallel I/O)",
         "tooltip": (
             "Use the tensorstore backend for async/parallel chunk writes "
             "(ngff-zarr backend, non-HCS only; requires the tensorstore package)."
-        ),
-    },
-    normalize_level_paths={
-        "label": "Normalize pyramid level paths (sN / scaleN → N)",
-        "tooltip": (
-            "Rename pyramid level directories to plain integers (0, 1, 2 …) to debug "
-            "issues with older viewers. Enable only for debugging raw library output."
         ),
     },
     scene_id={
@@ -489,9 +446,7 @@ def czi_to_omezarr_converter(
     use_ozx_write_directly: bool = False,
     use_ozx_after_writing: bool = False,
     compression_choice: compression_type | None = compression_type.BLOSC,
-    use_zarr_v2: bool = False,
     use_tensorstore: bool = False,
-    normalize_level_paths: bool = False,
     scene_id: int = 0,
     show_napari: bool = False,
 ):
@@ -632,9 +587,7 @@ Ready to convert
     info_display.value = info_text
 
 
-def finish_conversion(
-    output_path: str | None, should_open_napari: bool = False
-) -> None:
+def finish_conversion(output_path: str | None, should_open_napari: bool = False) -> None:
     """Finalize conversion process and update UI state.
 
     This function is called from the main Qt thread after the background conversion
@@ -686,12 +639,7 @@ def finish_conversion(
                 try:
                     with open(zarr_json_path, "r", encoding="utf-8") as f:
                         meta = json.load(f)
-                    channels = (
-                        meta.get("attributes", {})
-                        .get("ome", {})
-                        .get("omero", {})
-                        .get("channels", [])
-                    )
+                    channels = meta.get("attributes", {}).get("ome", {}).get("omero", {}).get("channels", [])
                     for layer, ch in zip(viewer.layers, channels):
                         hex_color = ch.get("color", "FFFFFF")
                         r = int(hex_color[0:2], 16) / 255
@@ -743,10 +691,8 @@ def on_convert_clicked() -> None:
     show_napari = czi_to_omezarr_converter.show_napari.value
     package_choice = czi_to_omezarr_converter.package_choice.value
     scene_id = czi_to_omezarr_converter.scene_id.value
-    use_zarr_v2 = czi_to_omezarr_converter.use_zarr_v2.value
     compression = czi_to_omezarr_converter.compression_choice.value
     use_tensorstore = czi_to_omezarr_converter.use_tensorstore.value
-    normalize_level_paths = czi_to_omezarr_converter.normalize_level_paths.value
 
     # Validate that file exists
     if not czi_file.exists():
@@ -764,8 +710,7 @@ def on_convert_clicked() -> None:
         _write_afterwards = czi_to_omezarr_converter.use_ozx_after_writing.value
         if not _write_directly and not _write_afterwards:
             info_display.value = (
-                "⚠️ 'Use Single-File OME-ZARR (.ozx)' is enabled — "
-                "select at least one OZX write option."
+                "⚠️ 'Use Single-File OME-ZARR (.ozx)' is enabled — " "select at least one OZX write option."
             )
             return
 
@@ -802,9 +747,7 @@ def on_convert_clicked() -> None:
 
         # Check if conversion is complete
         if conversion_result["completed"]:
-            finish_conversion(
-                conversion_result["output_path"], conversion_result["show_napari"]
-            )
+            finish_conversion(conversion_result["output_path"], conversion_result["show_napari"])
 
     log_timer.timeout.connect(check_conversion_status)
     log_timer.start(500)  # Poll every 500ms
@@ -827,10 +770,8 @@ def on_convert_clicked() -> None:
             write_hcs=write_hcs,
             package_choice=package_choice,
             scene_id=scene_id,
-            zarr_format=(2 if use_zarr_v2 else 3),
             use_tensorstore=use_tensorstore,
             compression_choice=compression,
-            normalize_level_paths=normalize_level_paths,
         )
 
         # Store result and mark as complete
@@ -906,8 +847,7 @@ def update_show_napari_enabled_state() -> None:
     the conversion is configured to produce an .ozx file.
     """
     will_produce_ozx = czi_to_omezarr_converter.use_ozx_format.value and (
-        czi_to_omezarr_converter.use_ozx_write_directly.value
-        or czi_to_omezarr_converter.use_ozx_after_writing.value
+        czi_to_omezarr_converter.use_ozx_write_directly.value or czi_to_omezarr_converter.use_ozx_after_writing.value
     )
 
     czi_to_omezarr_converter.show_napari.enabled = not will_produce_ozx
@@ -928,23 +868,6 @@ def update_use_ozx_format_enabled_state() -> None:
         czi_to_omezarr_converter.use_ozx_format.value = False
 
     update_ozx_child_states()
-    update_zarr_v2_enabled_state()
-
-
-def update_zarr_v2_enabled_state() -> None:
-    """Enable the zarr v2 option only for the ome-zarr-py backend.
-
-    The ngff-zarr backend always writes OME-NGFF v0.5 / zarr v3, so the zarr v2
-    legacy option is disabled (and unchecked) whenever it is selected.
-    """
-    is_ome_zarr = (
-        czi_to_omezarr_converter.package_choice.value == omezarr_package.OME_ZARR
-    )
-    czi_to_omezarr_converter.use_zarr_v2.enabled = is_ome_zarr
-
-    if not is_ome_zarr and czi_to_omezarr_converter.use_zarr_v2.value:
-        czi_to_omezarr_converter.use_zarr_v2.value = False
-
     # tensorstore parallel I/O only applies to the ngff-zarr backend.
     is_ngff = czi_to_omezarr_converter.package_choice.value == omezarr_package.NGFF_ZARR
     czi_to_omezarr_converter.use_tensorstore.enabled = is_ngff
@@ -1070,12 +993,8 @@ convert_button.clicked.connect(on_convert_clicked)
 czi_to_omezarr_converter.write_hcs.changed.connect(on_write_hcs_changed)
 czi_to_omezarr_converter.package_choice.changed.connect(on_package_choice_changed)
 czi_to_omezarr_converter.use_ozx_format.changed.connect(on_use_ozx_format_changed)
-czi_to_omezarr_converter.use_ozx_write_directly.changed.connect(
-    on_use_ozx_write_directly_changed
-)
-czi_to_omezarr_converter.use_ozx_after_writing.changed.connect(
-    on_use_ozx_after_writing_changed
-)
+czi_to_omezarr_converter.use_ozx_write_directly.changed.connect(on_use_ozx_write_directly_changed)
+czi_to_omezarr_converter.use_ozx_after_writing.changed.connect(on_use_ozx_after_writing_changed)
 czi_to_omezarr_converter.czi_file.changed.connect(on_file_changed)
 
 
@@ -1154,7 +1073,7 @@ def run_gui() -> None:
     Blocks until the window is closed. This is the entry point used by the
     ``czitools-omezarr-gui`` console script and the demo launcher.
     """
-    logging.basicConfig(level=logging.INFO, format="%(levelname)s - %(message)s")
+    setup_logging(force_reconfigure=True)
 
     gui = create_gui()
 

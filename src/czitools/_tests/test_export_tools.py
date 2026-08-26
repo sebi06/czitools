@@ -4,11 +4,14 @@ These tests are skipped automatically when the optional export dependencies
 (``ngff-zarr``, ``ome-zarr``, ``ome-zarr-models``, ``zarr``) are not installed.
 """
 
+import ast
+from inspect import signature
 from pathlib import Path
 from types import SimpleNamespace
 
 import numpy as np
 import pytest
+from dask.array import Array as DaskArray
 
 pytest.importorskip("ngff_zarr")
 pytest.importorskip("ome_zarr")
@@ -25,6 +28,32 @@ from czitools.metadata_tools.czi_metadata import CziMetadata
 
 BASEDIR = Path(__file__).resolve().parents[3]
 WELLPLATE = BASEDIR / "data" / "WP96_4Pos_B4-10_DAPI.czi"
+
+
+def test_legacy_export_options_are_not_public() -> None:
+    assert "zarr_format" not in signature(conversion.write_omezarr).parameters
+    assert "zarr_format" not in signature(conversion.convert_czi2hcs_omezarr).parameters
+    assert "normalize_level_paths" not in signature(conversion.convert_czi2hcs_omezarr).parameters
+    assert "normalize_level_paths" not in signature(conversion.convert_czi2hcs_ngff).parameters
+
+
+def test_gui_single_image_writers_share_conversion_log() -> None:
+    gui_path = BASEDIR / "src" / "czitools" / "export_tools" / "gui.py"
+    tree = ast.parse(gui_path.read_text(encoding="utf-8"))
+    writer_names = {"write_omezarr", "write_omezarr_ngff"}
+    writer_calls = [
+        node
+        for node in ast.walk(tree)
+        if isinstance(node, ast.Call) and isinstance(node.func, ast.Name) and node.func.id in writer_names
+    ]
+
+    assert {call.func.id for call in writer_calls} == writer_names
+    for call in writer_calls:
+        log_keywords = [keyword for keyword in call.keywords if keyword.arg == "log_file_path"]
+        assert len(log_keywords) == 1
+        assert isinstance(log_keywords[0].value, ast.Call)
+        assert isinstance(log_keywords[0].value.func, ast.Name)
+        assert log_keywords[0].value.func.id == "str"
 
 
 def test_resolve_layout_prefers_stage1_model() -> None:
@@ -75,7 +104,11 @@ def test_write_omezarr_ngff_to_local_path(tmp_path: Path, monkeypatch: pytest.Mo
     multiscales = SimpleNamespace(metadata=SimpleNamespace(omero=None))
     captured: dict = {}
 
-    monkeypatch.setattr(conversion.nz, "to_ngff_image", lambda *args, **kwargs: "image")
+    def capture_image(data, *args, **kwargs) -> str:
+        captured["image_data"] = data
+        return "image"
+
+    monkeypatch.setattr(conversion.nz, "to_ngff_image", capture_image)
     monkeypatch.setattr(conversion.nz, "to_multiscales", lambda *args, **kwargs: multiscales)
 
     def capture_write(store, **kwargs) -> None:
@@ -85,7 +118,7 @@ def test_write_omezarr_ngff_to_local_path(tmp_path: Path, monkeypatch: pytest.Mo
     monkeypatch.setattr(conversion.nz, "to_ngff_zarr", capture_write)
 
     image = write_omezarr_ngff(
-        np.zeros((1, 1, 1, 8, 8), dtype=np.uint16),
+        np.zeros((1, 3, 1, 8, 8), dtype=np.uint16),
         output,
         metadata,
         scale_factors=[2],
@@ -96,6 +129,8 @@ def test_write_omezarr_ngff_to_local_path(tmp_path: Path, monkeypatch: pytest.Mo
     )
 
     assert image == "image"
+    assert isinstance(captured["image_data"], DaskArray)
+    assert captured["image_data"].chunks[1] == (1, 1, 1)
     assert captured["store"] == output
     assert captured["compressor"] is not None
     assert "storage_options" not in captured
