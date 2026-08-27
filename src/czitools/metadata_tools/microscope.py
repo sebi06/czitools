@@ -4,9 +4,11 @@ Provides `CziMicroscope`, which extracts the microscope system name and
 identifier from CZI metadata.
 """
 
-from dataclasses import dataclass, field
-from box import Box
 import os
+from dataclasses import dataclass, field
+
+from box import Box
+
 from czitools.utils import logging_tools
 from czitools.utils.box import get_czimd_box
 
@@ -26,27 +28,29 @@ class CziMicroscope:
     """
 
     czisource: str | os.PathLike[str] | Box
-    Id: str | None = field(init=False)
-    Name: str | None = field(init=False)
-    System: str | None = field(init=False)
+    Id: str | None = field(init=False, default=None)
+    Name: str | None = field(init=False, default=None)
+    System: str | None = field(init=False, default=None)
     verbose: bool = False
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         if self.verbose:
             logger.info("Reading Microscope Information from CZI image data.")
 
-        if isinstance(self.czisource, Box):
-            czi_box = self.czisource
-        else:
-            czi_box = get_czimd_box(self.czisource)
+        czi_box = self.czisource if isinstance(self.czisource, Box) else get_czimd_box(self.czisource)
 
-        if czi_box.ImageDocument.Metadata.Information.Instrument is None:
-            self.Id = None
-            self.Name = None
-            self.System = None
-            logger.info("No Microscope information found.")
+        image_document = getattr(czi_box, "ImageDocument", None)
+        metadata = getattr(image_document, "Metadata", None)
+        information = getattr(metadata, "Information", None)
+        instrument = getattr(information, "Instrument", None)
+        microscopes = getattr(instrument, "Microscopes", None)
+        microscope = getattr(microscopes, "Microscope", None)
 
-        else:
-            self.Id = czi_box.ImageDocument.Metadata.Information.Instrument.Microscopes.Microscope.Id
-            self.Name = czi_box.ImageDocument.Metadata.Information.Instrument.Microscopes.Microscope.Name
-            self.System = czi_box.ImageDocument.Metadata.Information.Instrument.Microscopes.Microscope.System
+        if microscope is None:
+            if self.verbose:
+                logger.info("No Microscope information found.")
+            return
+
+        self.Id = getattr(microscope, "Id", None)
+        self.Name = getattr(microscope, "Name", None)
+        self.System = getattr(microscope, "System", None)
