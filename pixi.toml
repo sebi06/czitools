@@ -57,7 +57,7 @@ pyqtgraph    = "*"
 
 # --- Data validation ---------------------------------------------------------
 pydantic     = "*"
-ome-zarr-models = ">=1.7,<2"
+ome-zarr-models = ">=1.8,<2"
 
 # --- Logging & progress ------------------------------------------------------
 colorlog     = "*"
@@ -104,7 +104,7 @@ plotly       = "*"
 napari       = ">=0.8.0"
 magicgui     = "*"
 superqt      = "*"
-napari-ome-zarr = ">=0.8.0"
+napari-ome-zarr = ">=0.10.0"
 ndv          = { version = ">=0.5.0", extras = ["vispy", "pyqt"] }
 
 # --- Optional extras: [omezarr] ----------------------------------------------

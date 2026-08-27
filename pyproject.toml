@@ -57,8 +57,8 @@ all = [
     "ome-zarr>=0.18.0",
     "ome-zarr-models>=1.7,<2",
     "magicgui",
-    "napari>=0.8.0",
-    "napari-ome-zarr>=0.8.0",
+    "napari>=0.9.0",
+    "napari-ome-zarr>=0.10.0",
     "bioio",
     "bioio-czi",
     "bioio-ome-zarr",
@@ -70,7 +70,7 @@ all = [
 omezarr = [
     "ngff-zarr[dask-image,validate]>=0.39.0",
     "ome-zarr>=0.18.0",
-    "ome-zarr-models>=1.7,<2",
+    "ome-zarr-models>=1.8,<2",
     "tensorstore",  # optional async/parallel chunk I/O backend for ngff-zarr writes
 ]
 # OME-Zarr export plus the MagicGUI converter application.
@@ -78,8 +78,8 @@ omezarr-gui = [
     "czitools[omezarr]",
     "magicgui",
     "qtpy",
-    "napari>=0.8.0",
-    "napari-ome-zarr>=0.8.0",
+    "napari>=0.9.0",
+    "napari-ome-zarr>=0.10.0",
 ]
 # HCS analysis + plate visualization (czitools.analysis_tools).
 #   process_hcs_omezarr reads HCS OME-Zarr via ngff-zarr (hence czitools[omezarr]).
@@ -109,7 +109,7 @@ docs = [
     "ngff-zarr>=0.39.0",
     "ome-zarr>=0.18.0",
     "zarr>=3.0",
-    "ome-zarr-models>=1.7,<2",
+    "ome-zarr-models>=1.8,<2",
     "magicgui",
     "qtpy",
 ]
