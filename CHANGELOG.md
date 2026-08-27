@@ -8,12 +8,22 @@ and the project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.22.1] — 2026-08-27
+
 ### Fixed
 
+- `CziMicroscope` now handles missing or partial nested microscope metadata.
+  Files whose `Instrument.Microscopes` node is absent now return `None` for
+  microscope fields instead of raising `AttributeError`.
 - `read_6darray` now constrains eager and lazy plane reads to scene-aware,
   non-pyramid layer-0 bounding rectangles. This prevents rounded coarse-pyramid
   coverage from returning padded planes that cannot fit the regular STCZYX(A)
   array shape.
+
+### Changed
+
+- Simplified legacy and archived code while retaining the supported read,
+  metadata, export, and GUI APIs.
 
 ## [0.22.0] — 2026-08-25
 
