@@ -10,7 +10,6 @@ import gc
 import logging
 import os
 import shutil
-import sys
 import time
 from pathlib import Path
 
@@ -22,8 +21,10 @@ import ome_zarr.format
 import ome_zarr.writer
 import xarray as xr
 import zarr
-from ngff_zarr.hcs import HCSPlate, HCSPlateWriter, to_hcs_zarr
+from ngff_zarr.hcs import HCSPlateWriter
 from ngff_zarr.v04.zarr_metadata import Plate, PlateColumn, PlateRow, PlateWell
+from numcodecs import Blosc as NumcodecsBlosc
+from numcodecs import Zstd as NumcodecsZstd
 from ome_zarr.io import parse_url
 from ome_zarr.writer import write_plate_metadata, write_well_metadata
 from zarr.codecs import Blosc, Zstd
@@ -33,7 +34,6 @@ from czitools.read_tools import read_tools
 
 from ._logging import compression_type, setup_logging
 from .display import compute_pyramid_scale_factors, create_channel_list, create_ngff_omero_channels, get_fieldimage
-from .plate import convert_hcs_omezarr2ozx
 from .resolver import resolve_hcs_layout
 
 logger = logging.getLogger(__name__)
@@ -437,33 +437,11 @@ def convert_czi2hcs_ngff(
         version=version,
     )
 
-    # TODO: check if this issue is actually already fixed with: https://github.com/fideus-labs/ngff-zarr/pull/518
-
-    # On Windows, HCSPlateWriter.__exit__ zips while the temp store is still open,
-    # causing a PermissionError (ngff-zarr issue #241). Workaround: write a .ome.zarr
-    # directory first, then zip afterwards.
-    _win_ozx_workaround = write_ozx_directly and sys.platform == "win32"
-    if _win_ozx_workaround:
-        logger.warning(
-            "write_ozx_directly=True is not supported on Windows (ngff-zarr issue #241). "
-            "Writing to .ome.zarr first, then converting to .ozx."
-        )
-        write_path = base_dir / f"{stem}_ngff_plate_zarr3.ome.zarr"
-        if write_path.exists():
-            shutil.rmtree(write_path)
-            gc.collect()
-            time.sleep(0.2)
-    else:
-        write_path = zarr_output_path
-
-    hcs_plate = HCSPlate(store=write_path, plate_metadata=plate_metadata)
-    to_hcs_zarr(hcs_plate, write_path)
-
     # OMERO channel metadata attached to each field image so readers such as ngio /
     # napari-ome-zarr-navigator can resolve per-channel display settings.
     omero_channels = create_ngff_omero_channels(mdata)
 
-    with HCSPlateWriter(str(write_path), plate_metadata) as writer:
+    with HCSPlateWriter(str(zarr_output_path), plate_metadata, overwrite=overwrite) as writer:
         for well in layout.wells:
             logger.info(f"Creating Well: {well.well_id} (Row: {well.row}, Column: {well.column})")
             for field_index, scene_index in well.fields:
@@ -480,15 +458,8 @@ def convert_czi2hcs_ngff(
                     field_index=field_index,
                 )
 
-    _ensure_plate_version_metadata(write_path, version)
-
-    if _win_ozx_workaround:
-        logger.info("Converting intermediate .ome.zarr to .ozx (Windows workaround)...")
-        gc.collect()
-        time.sleep(0.5)
-        result = convert_hcs_omezarr2ozx(write_path, remove_omezarr=True)
-        if result is not None:
-            zarr_output_path = result
+    if not write_ozx_directly:
+        _ensure_plate_version_metadata(zarr_output_path, version)
 
     logger.info("=" * 80)
     logger.info("Conversion completed successfully!")
@@ -760,9 +731,9 @@ def write_omezarr_ngff(
     # Convert compression_type enum to actual codec instance
     compressor = None
     if compression == compression_type.BLOSC:
-        compressor = Blosc()
+        compressor = NumcodecsBlosc()
     elif compression == compression_type.ZSTD:
-        compressor = Zstd()
+        compressor = NumcodecsZstd()
     # compression_type.NONE or None → compressor stays None
 
     nz.to_ngff_zarr(

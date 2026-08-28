@@ -54,7 +54,14 @@ python demo/scripts/czi_hcs_check.py --help
 python demo/scripts/czi_hcs_check.py -f plate.czi --no-well-table
 ```
 
-The `--no-well-table` flag hides the well summary table, which is useful for large plates with many wells where the table output can be lengthy.
+The `--no-well-table` flag omits the per-well summary table while retaining
+the plate information, sample metadata, and selected well's field details.
+This is useful for large plates where the summary would make terminal output
+unnecessarily long. It can be combined with `--well`:
+
+```bash
+python demo/scripts/czi_hcs_check.py -f plate.czi --well B4 --no-well-table
+```
 
 **Example output** (showing HCS plate information with rich formatting):
 

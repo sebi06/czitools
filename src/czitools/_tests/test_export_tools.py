@@ -5,6 +5,7 @@ These tests are skipped automatically when the optional export dependencies
 """
 
 import ast
+import zipfile
 from inspect import signature
 from pathlib import Path
 from types import SimpleNamespace
@@ -12,6 +13,7 @@ from types import SimpleNamespace
 import numpy as np
 import pytest
 from dask.array import Array as DaskArray
+from numcodecs import Blosc as NumcodecsBlosc
 
 pytest.importorskip("ngff_zarr")
 pytest.importorskip("ome_zarr")
@@ -92,6 +94,22 @@ def test_convert_czi2hcs_ngff_and_validate(tmp_path: Path) -> None:
     assert validate_ome_zarr(output) is True
 
 
+def test_convert_czi2hcs_ngff_direct_ozx(tmp_path: Path) -> None:
+    output = convert_czi2hcs_ngff(
+        WELLPLATE,
+        overwrite=True,
+        output_dir=tmp_path,
+        write_ozx_directly=True,
+    )
+
+    assert output.is_file()
+    assert output.name == "WP96_4Pos_B4-10_DAPI_ngff_plate.ozx"
+    assert zipfile.is_zipfile(output)
+    with zipfile.ZipFile(output) as archive:
+        assert archive.testzip() is None
+        assert "zarr.json" in archive.namelist()
+
+
 def test_write_omezarr_ngff_to_local_path(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     """Compression options must not be forwarded as FSSpec storage options."""
     metadata = SimpleNamespace(
@@ -132,5 +150,5 @@ def test_write_omezarr_ngff_to_local_path(tmp_path: Path, monkeypatch: pytest.Mo
     assert isinstance(captured["image_data"], DaskArray)
     assert captured["image_data"].chunks[1] == (1, 1, 1)
     assert captured["store"] == output
-    assert captured["compressor"] is not None
+    assert isinstance(captured["compressor"], NumcodecsBlosc)
     assert "storage_options" not in captured

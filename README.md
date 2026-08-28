@@ -185,21 +185,25 @@ plate → well → field image → multiscale level.
 
 ### HCS Plate Inspection CLI
 
-Quickly inspect CZI well-plate metadata from the command line:
+Use `demo/scripts/czi_hcs_check.py` to inspect CZI well-plate metadata from
+the command line with colorized output:
 
 ```bash
 # Inspect entire plate (all wells and fields)
-python -m czitools.demo.scripts.czi_hcs_check -f plate.czi
+python demo/scripts/czi_hcs_check.py -f plate.czi
 
 # Inspect a specific well
-python -m czitools.demo.scripts.czi_hcs_check -f plate.czi --well B4
+python demo/scripts/czi_hcs_check.py -f plate.czi --well B4
 
-# Hide the well summary table (useful for large plates)
-python -m czitools.demo.scripts.czi_hcs_check -f plate.czi --no-well-table
+# Omit the well summary table while retaining plate, sample, and field details
+python demo/scripts/czi_hcs_check.py -f plate.czi --no-well-table
 
 # Get help
-python -m czitools.demo.scripts.czi_hcs_check --help
+python demo/scripts/czi_hcs_check.py --help
 ```
+
+Use `--no-well-table` for large plates when the per-well summary would make
+the terminal output unnecessarily long.
 
 Or use the utility functions in Python:
 
@@ -223,10 +227,13 @@ print_well_fields(mdata, well_name="B4")
 
 The experimental converter GUI exports individual CZI images and HCS plates
 using either `ome-zarr-py` or `ngff-zarr`. All conversions use Zarr v3. The GUI
-provides controls for compression, supported single-file `.ozx` workflows,
-parallel I/O, and optional napari viewing. The metadata preview lets you verify
-the detected dimensions and scenes before starting the conversion, while the
-log panel shows its progress.
+loads the selected file's metadata automatically and enables **Write HCS
+layout** when a plate layout is detected. For multi-scene, non-HCS files, the
+**Scene ID** selector appears directly below the HCS option. A single **Create
+Single-File OME-ZARR (.ozx)** checkbox selects archive output for both HCS and
+non-HCS conversions. Additional controls configure compression, parallel I/O,
+and optional napari viewing. The metadata preview shows the detected dimensions
+and scenes before conversion, while the log panel reports progress.
 
 Install and launch it with:
 
