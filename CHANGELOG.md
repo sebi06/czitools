@@ -8,6 +8,34 @@ and the project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.23.0] — 2026-08-28
+
+### Added
+
+- **OME-ZARR GUI improvements**: Unified single-file `.ozx` checkbox for both
+  HCS and non-HCS conversions, automatic metadata loading, and improved Scene ID
+  visibility controls.
+- **HCS plate inspection tool** (`czi_hcs_check`): Provides rich-formatted
+  terminal output for plate overview, well information, and field listings with
+  optional filtering and table suppression.
+- **ngff-zarr compressor compatibility**: Fixed codec object construction for
+  zarrista layer compatibility, ensuring valid OZX archive generation.
+
+### Changed
+
+- OME-ZARR converter GUI now auto-loads metadata and shows HCS mode/Scene ID
+  controls conditionally based on file content.
+- Scene ID selector moves directly below the HCS checkbox for improved UX.
+- Single `.ozx` output option replaces mode-specific timing controls.
+
+### Fixed
+
+- 3D rendering issues in napari viewer integration.
+- Multiscale pyramid handling and level constraints.
+- Non-pyramid bounds enforcement for regular 6D reads ensures compatible array
+  shapes.
+- ngff-zarr Blosc/Zstd compressor codec compatibility with zarrista layer.
+
 ## [0.22.1] — 2026-08-27
 
 ### Fixed
