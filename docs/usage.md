@@ -850,8 +850,9 @@ write_omezarr(array, zarr_path="image.ome.zarr", metadata=mdata, overwrite=True)
 The experimental CZI to OME-Zarr converter provides a graphical interface for
 exporting individual images and HCS plates. It supports the `ome-zarr-py` and
 `ngff-zarr` backends, Zarr v3 output, compression selection, and single-file
-`.ozx` output where supported. Optional controls expose parallel tensorstore
-I/O and opening the result in napari.
+`.ozx` output where supported. ngff-zarr 0.45 uses its zarrista backend
+automatically; no storage-engine control is required. The GUI can optionally
+open directory outputs in napari.
 
 Install the GUI extra and launch the application with its console command:
 

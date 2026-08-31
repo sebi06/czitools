@@ -8,6 +8,14 @@ and the project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Changed
+
+- Raised the optional `ngff-zarr` dependency floor to 0.45.0 and migrated
+  exports to its always-on zarrista backend.
+- Removed the obsolete TensorStore dependency, writer argument, and converter
+  GUI option. The independent ome-zarr-py backend and direct `zarr` dependency
+  remain supported.
+
 ## [0.23.0] — 2026-08-28
 
 ### Added

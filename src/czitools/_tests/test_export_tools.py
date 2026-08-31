@@ -37,6 +37,7 @@ def test_legacy_export_options_are_not_public() -> None:
     assert "zarr_format" not in signature(conversion.convert_czi2hcs_omezarr).parameters
     assert "normalize_level_paths" not in signature(conversion.convert_czi2hcs_omezarr).parameters
     assert "normalize_level_paths" not in signature(conversion.convert_czi2hcs_ngff).parameters
+    assert "use_tensorstore" not in signature(conversion.write_omezarr_ngff).parameters
 
 
 def test_gui_single_image_writers_share_conversion_log() -> None:
@@ -143,7 +144,6 @@ def test_write_omezarr_ngff_to_local_path(tmp_path: Path, monkeypatch: pytest.Mo
         chunks=(1, 1, 1, 4, 4),
         chunks_per_shard=None,
         overwrite=True,
-        use_tensorstore=False,
     )
 
     assert image == "image"
@@ -152,3 +152,4 @@ def test_write_omezarr_ngff_to_local_path(tmp_path: Path, monkeypatch: pytest.Mo
     assert captured["store"] == output
     assert isinstance(captured["compressor"], NumcodecsBlosc)
     assert "storage_options" not in captured
+    assert "use_tensorstore" not in captured

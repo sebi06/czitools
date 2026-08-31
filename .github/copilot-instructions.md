@@ -12,8 +12,9 @@ data to OME-Zarr or analyses HCS plates.
 
 - Core: `pylibCZIrw`, `czifile`, `numpy`, `dask`, `xarray`, `pandas`,
   `python-box`, `pydantic`, `requests`, `validators`, and `zarr`.
-- OME-Zarr export: `ngff-zarr`, `ome-zarr`, `ome-zarr-models`, and
-  `tensorstore` (install with `czitools[omezarr]`).
+- OME-Zarr export: `ngff-zarr>=0.45`, `ome-zarr`, `ome-zarr-models`, and
+  `zarr` (install with `czitools[omezarr]`). ngff-zarr uses zarrista; do not
+  add TensorStore options or pass zarr-python store objects to ngff-zarr.
 - Analysis and visualization: `scikit-image`, `matplotlib`, `seaborn`,
   `napari`, and `ndv` (install the relevant extra or `czitools[all]`).
 

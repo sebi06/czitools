@@ -114,11 +114,16 @@ Required by `czitools.export_tools` for CZI → OME-Zarr conversion and validati
 
 | Package                   | Purpose                                              |
 | ------------------------- | ---------------------------------------------------- |
-| `ngff-zarr>=0.39.0`       | Primary write backend (OME-NGFF v0.5)                |
-| `ome-zarr>=0.16.0`        | Secondary write backend (Zarr v3)                    |
-| `zarr>=3.0`               | Zarr storage backend                                 |
-| `ome-zarr-models>=1.7,<2` | OME-NGFF schema validation                           |
-| `tensorstore`             | Optional asynchronous/parallel chunk writing backend |
+| `ngff-zarr>=0.45.0`       | Primary write backend using zarrista (OME-NGFF v0.5) |
+| `ome-zarr>=0.18.0`        | Secondary write backend (Zarr v3)                    |
+| `zarr>=3.0`               | Direct dependency used by the ome-zarr backend       |
+| `ome-zarr-models>=1.8,<2` | OME-NGFF schema validation                           |
+
+ngff-zarr 0.45 uses zarrista for its read and write paths. TensorStore is no
+longer an ngff-zarr extra or a configurable export backend. czitools writes to
+local paths (or `.ozx` archives) and passes paths directly to ngff-zarr; the
+separate ome-zarr-py backend remains available and uses the direct `zarr`
+dependency above.
 
 ### GUI dependencies (`[omezarr-gui]`)
 

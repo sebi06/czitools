@@ -38,15 +38,6 @@ from .resolver import resolve_hcs_layout
 
 logger = logging.getLogger(__name__)
 
-# Optional tensorstore backend for ngff-zarr writes (async parallel chunk I/O).
-# Enabled automatically when the package is installed; harmless when absent.
-try:
-    import tensorstore  # type: ignore  # noqa: F401
-
-    HAS_TENSORSTORE = True
-except ImportError:  # pragma: no cover
-    HAS_TENSORSTORE = False
-
 
 def _to_ome_zarr_image(array: np.ndarray | xr.DataArray | da.Array) -> np.ndarray | da.Array:
     """Return an array type accepted by ome-zarr writer functions."""
@@ -166,7 +157,6 @@ def _write_image_delayed(
         scale=scale,
         axes_units=axes_units,
         compute=False,
-        storage_options_kwargs={"use_tensorstore": HAS_TENSORSTORE},
     )
     return list(delayed) if delayed else []
 
@@ -611,7 +601,6 @@ def write_omezarr_ngff(
     log_file_path: Path | str | None = None,
     min_size: int = 512,
     max_levels: int = 6,
-    use_tensorstore: bool | None = None,
 ) -> "nz.NgffImage | None":
     """Write a single 5D image to OME-Zarr NGFF format with multi-scale pyramids.
 
@@ -635,10 +624,6 @@ def write_omezarr_ngff(
             only when ``scale_factors`` is None. Defaults to 512.
         max_levels (int): Hard cap on the number of pyramid levels, used only when
             ``scale_factors`` is None. Defaults to 6.
-        use_tensorstore (Optional[bool]): Use the tensorstore backend for async
-            parallel chunk I/O. When None (default), it is enabled automatically if
-            the ``tensorstore`` package is installed, otherwise disabled.
-
     Returns:
         Optional[nz.NgffImage]: The written NgffImage, or ``None`` on failure.
     """
@@ -725,8 +710,7 @@ def write_omezarr_ngff(
         channels.append(omero_channel)
     multiscales.metadata.omero = nz.Omero(channels=channels)
 
-    _use_ts = HAS_TENSORSTORE if use_tensorstore is None else bool(use_tensorstore)
-    logger.info("Writing NGFF pyramid (tensorstore=%s)...", _use_ts)
+    logger.info("Writing NGFF pyramid with the zarrista backend...")
 
     # Convert compression_type enum to actual codec instance
     compressor = None
@@ -741,7 +725,6 @@ def write_omezarr_ngff(
         version=version,
         chunks_per_shard=chunks_per_shard,
         compressor=compressor,
-        use_tensorstore=_use_ts,
         multiscales=multiscales,
     )
 

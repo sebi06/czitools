@@ -190,7 +190,6 @@ def perform_conversion(
     write_hcs: bool,
     package_choice: omezarr_package,
     scene_id: int,
-    use_tensorstore: bool = True,
     compression_choice: compression_type | None = compression_type.BLOSC,
 ) -> str | None:
     """
@@ -202,9 +201,6 @@ def perform_conversion(
         write_hcs: Enable HCS (multi-well plate) layout
         package_choice: Backend package (OME_ZARR or NGFF_ZARR)
         scene_id: Scene index to convert (for non-HCS mode with multiple scenes)
-        use_tensorstore: Use the tensorstore backend for parallel chunk I/O in the
-            ngff-zarr single-image path. Ignored by the ome-zarr-py backend and by
-            the HCS ngff path.
         compression_choice: Compression type for OME-ZARR output (default: Blosc).
     Returns:
         str: Path to output OME-ZARR file, or None if conversion failed
@@ -297,7 +293,6 @@ def perform_conversion(
                     scale_factors=None,
                     overwrite=True,
                     log_file_path=str(log_file_path),
-                    use_tensorstore=use_tensorstore,
                 )
 
                 output_path = str(zarr_output_path)
@@ -378,13 +373,6 @@ def perform_conversion(
         ],
         "tooltip": "Choose the compression method for OME-ZARR output (default: Blosc)",
     },
-    use_tensorstore={
-        "label": "Use tensorstore (parallel I/O)",
-        "tooltip": (
-            "Use the tensorstore backend for async/parallel chunk writes "
-            "(ngff-zarr backend, non-HCS only; requires the tensorstore package)."
-        ),
-    },
     scene_id={
         "label": "Scene ID",
         "min": 0,
@@ -403,7 +391,6 @@ def czi_to_omezarr_converter(
     write_hcs: bool = False,
     use_ozx_format: bool = False,
     compression_choice: compression_type | None = compression_type.BLOSC,
-    use_tensorstore: bool = False,
     scene_id: int = 0,
     show_napari: bool = False,
 ):
@@ -475,7 +462,6 @@ def _conversion_controls() -> tuple[widgets.Widget, ...]:
         czi_to_omezarr_converter.write_hcs,
         czi_to_omezarr_converter.use_ozx_format,
         czi_to_omezarr_converter.compression_choice,
-        czi_to_omezarr_converter.use_tensorstore,
         czi_to_omezarr_converter.scene_id,
         czi_to_omezarr_converter.show_napari,
         convert_button,
@@ -727,7 +713,6 @@ def on_convert_clicked() -> None:
     package_choice = czi_to_omezarr_converter.package_choice.value
     scene_id = czi_to_omezarr_converter.scene_id.value
     compression = czi_to_omezarr_converter.compression_choice.value
-    use_tensorstore = czi_to_omezarr_converter.use_tensorstore.value
 
     # Validate that file exists
     if not czi_file.exists():
@@ -793,7 +778,6 @@ def on_convert_clicked() -> None:
             write_hcs=write_hcs,
             package_choice=package_choice,
             scene_id=scene_id,
-            use_tensorstore=use_tensorstore,
             compression_choice=compression,
         )
 
@@ -836,9 +820,6 @@ def update_use_ozx_format_enabled_state() -> None:
         czi_to_omezarr_converter.use_ozx_format.value = False
 
     update_show_napari_enabled_state()
-    # tensorstore parallel I/O only applies to the ngff-zarr backend.
-    is_ngff = czi_to_omezarr_converter.package_choice.value == omezarr_package.NGFF_ZARR
-    czi_to_omezarr_converter.use_tensorstore.enabled = metadata_ready and is_ngff
 
 
 def on_use_ozx_format_changed(_: bool) -> None:
@@ -974,7 +955,6 @@ def create_gui() -> widgets.Container:
             czi_to_omezarr_converter.scene_id,
             czi_to_omezarr_converter.use_ozx_format,
             czi_to_omezarr_converter.compression_choice,
-            czi_to_omezarr_converter.use_tensorstore,
             czi_to_omezarr_converter.show_napari,
         ],
         labels=True,

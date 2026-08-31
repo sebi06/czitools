@@ -1,6 +1,7 @@
 """Tests for the optional CZI to OME-Zarr converter GUI."""
 
 import os
+from inspect import signature
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -13,6 +14,7 @@ gui = pytest.importorskip("czitools.export_tools.gui")
 
 def test_ngff_zarr_is_default_backend() -> None:
     assert gui.czi_to_omezarr_converter.package_choice.value == gui.omezarr_package.NGFF_ZARR
+    assert "use_tensorstore" not in signature(gui.perform_conversion).parameters
 
 
 def test_controls_require_selected_czi() -> None:
@@ -153,3 +155,5 @@ def test_metadata_display_precedes_conversion_options() -> None:
     assert conversion_options[1] is gui.czi_to_omezarr_converter.scene_id
     assert conversion_options[2] is gui.czi_to_omezarr_converter.use_ozx_format
     assert conversion_options[3] is gui.czi_to_omezarr_converter.compression_choice
+    assert conversion_options[4] is gui.czi_to_omezarr_converter.show_napari
+    assert not hasattr(gui.czi_to_omezarr_converter, "use_tensorstore")
