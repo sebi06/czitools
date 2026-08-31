@@ -8,6 +8,8 @@ and the project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.23.1] — 2026-08-31
+
 ### Changed
 
 - Raised the optional `ngff-zarr` dependency floor to 0.45.0 and migrated

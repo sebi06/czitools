@@ -231,9 +231,10 @@ loads the selected file's metadata automatically and enables **Write HCS
 layout** when a plate layout is detected. For multi-scene, non-HCS files, the
 **Scene ID** selector appears directly below the HCS option. A single **Create
 Single-File OME-ZARR (.ozx)** checkbox selects archive output for both HCS and
-non-HCS conversions. Additional controls configure compression, parallel I/O,
-and optional napari viewing. The metadata preview shows the detected dimensions
-and scenes before conversion, while the log panel reports progress.
+non-HCS conversions. Additional controls configure compression and optional
+napari viewing. The `ngff-zarr` backend uses zarrista automatically. The
+metadata preview shows the detected dimensions and scenes before conversion,
+while the log panel reports progress.
 
 Install and launch it with:
 
