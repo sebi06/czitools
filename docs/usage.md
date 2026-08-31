@@ -808,6 +808,10 @@ assert validate_ome_zarr(out)
 Both export backends write Zarr v3 stores and retain the pyramid paths produced
 by their underlying writer libraries.
 
+See [HCS NGFF Conversion Workflow](hcs-ngff-conversion.md) for the optimized
+reader/writer pipeline, Mermaid architecture diagrams, sharding behavior, and
+bounded-concurrency memory guidance.
+
 Both backends route through a canonical layout resolver that prefers the Stage 1
 HCS model (`CziMetadata.hcs`) and falls back to `CziSampleInfo` only when it is
 complete and unambiguous. Sparse plates and variable field counts per well are

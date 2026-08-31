@@ -10,8 +10,13 @@ import gc
 import logging
 import os
 import shutil
+import sys
+import threading
 import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from contextlib import contextmanager
 from pathlib import Path
+from typing import Iterator
 
 import dask
 import dask.array as da
@@ -22,7 +27,17 @@ import ome_zarr.writer
 import xarray as xr
 import zarr
 from ngff_zarr.hcs import HCSPlateWriter
-from ngff_zarr.v04.zarr_metadata import Plate, PlateColumn, PlateRow, PlateWell
+from ngff_zarr.v04.zarr_metadata import (
+    Axis,
+    Dataset,
+    Metadata,
+    Plate,
+    PlateColumn,
+    PlateRow,
+    PlateWell,
+    Scale,
+    Translation,
+)
 from numcodecs import Blosc as NumcodecsBlosc
 from numcodecs import Zstd as NumcodecsZstd
 from ome_zarr.io import parse_url
@@ -33,10 +48,136 @@ from czitools.metadata_tools.czi_metadata import CziMetadata
 from czitools.read_tools import read_tools
 
 from ._logging import compression_type, setup_logging
-from .display import compute_pyramid_scale_factors, create_channel_list, create_ngff_omero_channels, get_fieldimage
+from .display import compute_pyramid_scale_factors, create_channel_list, create_ngff_omero_channels
 from .resolver import resolve_hcs_layout
 
 logger = logging.getLogger(__name__)
+
+
+class _LoggedNgffProgress:
+    """Adapt ngff-zarr progress updates to the conversion log."""
+
+    def __init__(self, label: str, started: float) -> None:
+        self.label = label
+        self.started = started
+        self.completed = 0
+        self.total = 0
+        self.width = 30
+
+    def add_multiscales_task(self, description: str, scales: int) -> None:
+        del description
+        self.total = scales
+        self._log_progress()
+
+    def update_multiscales_task_completed(self, completed: int) -> None:
+        # ngff-zarr sends the one-based scale index before writing that scale.
+        self.completed = min(max(completed - 1, 0), self.total)
+        self._log_progress(active_scale=completed)
+
+    def _log_progress(self, active_scale: int | None = None) -> None:
+        if self.total:
+            percent = round(100 * self.completed / self.total)
+            filled = self.width * self.completed // self.total
+            bar = "=" * filled + "." * (self.width - filled)
+            scale_status = f", scale {active_scale}/{self.total}" if active_scale else ""
+            logger.info(
+                "%s progress: [%s] %d%% (%d/%d scales%s, elapsed %.1f s)",
+                self.label,
+                bar,
+                percent,
+                self.completed,
+                self.total,
+                scale_status,
+                time.perf_counter() - self.started,
+            )
+        else:
+            logger.info(
+                "%s progress: [>%s] elapsed %.1f s",
+                self.label,
+                "." * (self.width - 1),
+                time.perf_counter() - self.started,
+            )
+
+
+@contextmanager
+def _logged_progress_bar(label: str, update_interval: float = 5.0) -> Iterator[_LoggedNgffProgress]:
+    """Log scale progress and periodic elapsed-time updates."""
+    started = time.perf_counter()
+    stopped = threading.Event()
+    progress = _LoggedNgffProgress(label, started)
+
+    def log_updates() -> None:
+        while not stopped.wait(update_interval):
+            progress._log_progress()
+
+    progress._log_progress()
+    progress_thread = threading.Thread(target=log_updates, daemon=True)
+    progress_thread.start()
+    try:
+        yield progress
+    finally:
+        stopped.set()
+        progress_thread.join()
+
+    logger.info(
+        "%s progress: [%s] 100%% (elapsed %.1f s)",
+        label,
+        "=" * progress.width,
+        time.perf_counter() - started,
+    )
+
+
+@contextmanager
+def _hcs_plate_writer(
+    zarr_output_path: Path,
+    plate_metadata: Plate,
+    overwrite: bool,
+    write_ozx_directly: bool,
+    version: str,
+) -> Iterator[HCSPlateWriter]:
+    """Open an HCS writer and report otherwise-silent OZX finalization."""
+    writer = HCSPlateWriter(
+        str(zarr_output_path),
+        plate_metadata,
+        version=version,
+        overwrite=overwrite,
+    )
+    writer.__enter__()
+    try:
+        yield writer
+    except BaseException:
+        writer.__exit__(*sys.exc_info())
+        raise
+    else:
+        if not write_ozx_directly:
+            writer.__exit__(None, None, None)
+            return
+
+        logger.info("All HCS fields written. Finalizing the OZX archive...")
+        try:
+            with _logged_progress_bar("OZX archive finalization"):
+                writer.__exit__(None, None, None)
+        except BaseException:
+            if zarr_output_path.is_file():
+                zarr_output_path.unlink()
+                logger.warning("Removed incomplete OZX archive: %s", zarr_output_path)
+            raise
+
+
+def _log_hcs_progress(completed: int, total: int, started: float) -> None:
+    """Log completed HCS fields as a determinate progress bar."""
+    width = 30
+    percent = round(100 * completed / total) if total else 100
+    filled = width * completed // total if total else width
+    bar = "=" * filled + "." * (width - filled)
+    logger.info(
+        "HCS conversion progress: [%s] %d%% (%d/%d fields, elapsed %.1f s)",
+        bar,
+        percent,
+        completed,
+        total,
+        time.perf_counter() - started,
+    )
 
 
 def _to_ome_zarr_image(array: np.ndarray | xr.DataArray | da.Array) -> np.ndarray | da.Array:
@@ -108,6 +249,114 @@ def _read_single_scene(czi_path: str | os.PathLike | Path, scene_index: int) -> 
     if not isinstance(array6d, xr.DataArray):
         raise TypeError(f"Failed to read scene {scene_index} from {czi_path} as an xarray DataArray")
     return array6d
+
+
+def _read_single_scene_multiscales(
+    czi_path: str | os.PathLike | Path,
+    scene_index: int,
+    metadata: CziMetadata,
+    pyramid_zooms: list[float],
+    spatial_chunk_size: int,
+    planes_per_chunk: int,
+) -> nz.NgffMultiscales:
+    """Read a scene's stored CZI pyramid levels as NGFF multiscales."""
+    levels, level_infos, _, _, _ = read_tools.read_stacks_multiscale(
+        filepath=czi_path,
+        use_xarray=True,
+        stack_scenes=True,
+        planes={"S": (scene_index, scene_index)},
+        zooms=pyramid_zooms,
+        max_coarse_edge=512,
+        planes_per_chunk=planes_per_chunk,
+        metadata=metadata,
+    )
+
+    level_arrays: list[xr.DataArray] = []
+    for level in levels:
+        if isinstance(level, list):
+            if len(level) != 1 or not isinstance(level[0], xr.DataArray):
+                raise TypeError(f"Failed to read scene {scene_index} pyramid level as an xarray DataArray")
+            level_array = level[0]
+        elif isinstance(level, xr.DataArray):
+            level_array = level.isel(S=0, drop=True) if "S" in level.dims else level
+        else:
+            raise TypeError(f"Failed to read scene {scene_index} pyramid level as an xarray DataArray")
+        level_arrays.append(
+            level_array.chunk({dim: spatial_chunk_size if dim in {"Y", "X"} else 1 for dim in level_array.dims})
+        )
+
+    if not level_arrays:
+        raise ValueError(f"No pyramid levels found for scene {scene_index} in {czi_path}")
+
+    dims = [str(dim).lower() for dim in level_arrays[0].dims]
+    unsupported_dims = set(dims) - {"t", "c", "z", "y", "x"}
+    if unsupported_dims:
+        raise ValueError(f"Unsupported HCS image dimensions: {sorted(unsupported_dims)}")
+
+    physical_scale = metadata.scale
+    base_scale = {
+        "t": 1.0,
+        "c": 1.0,
+        "z": float(physical_scale.Z) if physical_scale is not None and physical_scale.Z is not None else 1.0,
+        "y": float(physical_scale.Y) if physical_scale is not None and physical_scale.Y is not None else 1.0,
+        "x": float(physical_scale.X) if physical_scale is not None and physical_scale.X is not None else 1.0,
+    }
+    axes_units = {"t": "second", "z": "micrometer", "y": "micrometer", "x": "micrometer"}
+    base_shape = dict(zip(dims, level_arrays[0].shape))
+    images: list[nz.NgffImage] = []
+    datasets: list[Dataset] = []
+    image_name = metadata.filename or "image.czi"
+
+    for index, level_array in enumerate(level_arrays):
+        level_shape = dict(zip(dims, level_array.shape))
+        scale = dict(base_scale)
+        translation = dict.fromkeys(dims, 0.0)
+        for dim in ("y", "x"):
+            if dim in level_shape:
+                factor = base_shape[dim] / level_shape[dim]
+                scale[dim] = base_scale[dim] * factor
+                translation[dim] = 0.5 * (factor - 1.0) * base_scale[dim]
+
+        image = nz.NgffImage(
+            data=level_array.data,
+            dims=dims,
+            scale={dim: scale[dim] for dim in dims},
+            translation=translation,
+            name=image_name,
+            axes_units={dim: unit for dim, unit in axes_units.items() if dim in dims},
+        )
+        images.append(image)
+        datasets.append(
+            Dataset(
+                path=f"scale{index}/{image_name}",
+                coordinateTransformations=[
+                    Scale([image.scale[dim] for dim in dims]),
+                    Translation([image.translation[dim] for dim in dims]),
+                ],
+            )
+        )
+
+    axes = [
+        Axis(
+            name=dim,
+            type="space" if dim in {"z", "y", "x"} else "channel" if dim == "c" else "time",
+            unit=axes_units.get(dim),
+        )
+        for dim in dims
+    ]
+    multiscales_metadata = Metadata(
+        axes=axes,
+        datasets=datasets,
+        coordinateTransformations=None,
+        name=image_name,
+    )
+    logger.info(
+        "Using %d CZI-backed pyramid level(s) for scene %d: %s",
+        len(level_infos),
+        scene_index,
+        [f"{level.zoom:g} ({'stored' if level.stored else 'native zoom'})" for level in level_infos],
+    )
+    return nz.NgffMultiscales(images=images, metadata=multiscales_metadata)
 
 
 def _write_image_delayed(
@@ -337,6 +586,10 @@ def convert_czi2hcs_ngff(
     output_dir: str | os.PathLike | Path | None = None,
     pad_columns: bool = True,
     compression: compression_type | None = compression_type.BLOSC,
+    spatial_chunk_size: int = 512,
+    chunks_per_shard: dict[str, int] | int | tuple[int, ...] | None = {"y": 4, "x": 4},
+    planes_per_chunk: int = 64,
+    max_workers: int = 4,
 ) -> Path:
     """Convert a CZI file to OME-Zarr HCS format using the ngff-zarr backend.
 
@@ -353,9 +606,27 @@ def convert_czi2hcs_ngff(
         pad_columns (bool): Zero-pad column numbers in well paths (e.g. ``"04"``).
         compression (Optional[compression_type]): Chunk compression type.
             Defaults to ``compression_type.BLOSC``. Set to ``None`` for no compression.
+        spatial_chunk_size (int): Y/X chunk edge in pixels. Defaults to 512.
+        chunks_per_shard (Optional[Union[dict[str, int], int, tuple[int, ...]]]):
+            Number of chunks per shard. Defaults to four chunks along Y and X,
+            yielding one spatial shard for a typical 2000 x 2000 field.
+        planes_per_chunk (int): Maximum T/C/Z planes read per CZI file open.
+            Defaults to 64.
+        max_workers (int): Maximum number of fields read and written concurrently.
+            Defaults to 4 to overlap CZI reads, compression, and writes while
+            keeping memory bounded to a small number of fields. Use 1 for very
+            large fields or deep T/Z stacks when minimizing peak memory matters.
     Returns:
         Path: Output HCS directory (``<stem>_ngff_plate_zarr3.ome.zarr``) or ``.ozx`` file.
     """
+    conversion_started = time.perf_counter()
+    if spatial_chunk_size < 1:
+        raise ValueError("spatial_chunk_size must be at least 1.")
+    if planes_per_chunk < 1:
+        raise ValueError("planes_per_chunk must be at least 1.")
+    if max_workers < 1:
+        raise ValueError("max_workers must be at least 1.")
+
     czi_path = Path(czi_filepath)
     output_path_obj: Path | None = Path(output_dir) if output_dir is not None else None
 
@@ -372,6 +643,14 @@ def convert_czi2hcs_ngff(
     logger.info("=" * 80)
     logger.info(f"Input CZI file: {czi_path.absolute()}")
     logger.info(f"Plate name: {plate_name}")
+    logger.info(
+        "NGFF HCS tuning: chunk=%dx%d, chunks_per_shard=%s, " "planes_per_chunk=%d, max_workers=%d",
+        spatial_chunk_size,
+        spatial_chunk_size,
+        chunks_per_shard,
+        planes_per_chunk,
+        max_workers,
+    )
 
     stem = czi_path.stem
     suffix = "_ngff_plate.ozx" if write_ozx_directly else "_ngff_plate_zarr3.ome.zarr"
@@ -430,23 +709,68 @@ def convert_czi2hcs_ngff(
     # OMERO channel metadata attached to each field image so readers such as ngio /
     # napari-ome-zarr-navigator can resolve per-channel display settings.
     omero_channels = create_ngff_omero_channels(mdata)
+    pyramid_zooms = read_tools.get_pyramid_zooms(czi_path)
+    logger.info("Detected stored CZI pyramid zooms: %s", pyramid_zooms)
+    if pyramid_zooms == [1.0]:
+        logger.warning(
+            "The CZI has no stored lower-resolution pyramid levels. "
+            "Coarse levels will be read with libCZI native zoom instead of Gaussian resampling."
+        )
 
-    with HCSPlateWriter(str(zarr_output_path), plate_metadata, overwrite=overwrite) as writer:
+    total_fields = sum(len(well.fields) for well in layout.wells)
+    completed_fields = 0
+    _log_hcs_progress(completed_fields, total_fields, conversion_started)
+
+    compressor = None
+    if compression == compression_type.BLOSC:
+        compressor = NumcodecsBlosc()
+    elif compression == compression_type.ZSTD:
+        compressor = NumcodecsZstd()
+
+    write_options = {"compressor": compressor}
+    if version != "0.4":
+        write_options["chunks_per_shard"] = chunks_per_shard
+
+    with _hcs_plate_writer(
+        zarr_output_path,
+        plate_metadata,
+        overwrite,
+        write_ozx_directly,
+        version,
+    ) as writer:
+        field_jobs = []
         for well in layout.wells:
             logger.info(f"Creating Well: {well.well_id} (Row: {well.row}, Column: {well.column})")
             for field_index, scene_index in well.fields:
-                logger.info(f"Writing Well: {well.path}, Field: {field_index}, Scene Index: {scene_index}")
-                # Read one scene at a time (scenes may differ in Y/X size across the plate).
-                array6d_scene = _read_single_scene(czi_path, scene_index)
-                multiscales = get_fieldimage(array6d_scene, 0, mdata)
-                if omero_channels:
-                    multiscales.metadata.omero = nz.Omero(channels=omero_channels)
-                writer.write_well_image(
-                    multiscales=multiscales,
-                    row_name=well.row,
-                    column_name=well.column,
-                    field_index=field_index,
-                )
+                field_jobs.append((well, field_index, scene_index))
+
+        def write_field(well, field_index: int, scene_index: int) -> None:
+            logger.info(f"Writing Well: {well.path}, Field: {field_index}, Scene Index: {scene_index}")
+            multiscales = _read_single_scene_multiscales(
+                czi_path,
+                scene_index,
+                mdata,
+                pyramid_zooms,
+                spatial_chunk_size,
+                planes_per_chunk,
+            )
+            if omero_channels:
+                multiscales.metadata.omero = nz.Omero(channels=omero_channels)
+            writer.write_well_image(
+                multiscales=multiscales,
+                row_name=well.row,
+                column_name=well.column,
+                field_index=field_index,
+                **write_options,
+            )
+
+        logger.info("Writing %d HCS fields with up to %d workers...", total_fields, max_workers)
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            futures = [executor.submit(write_field, *job) for job in field_jobs]
+            for future in as_completed(futures):
+                future.result()
+                completed_fields += 1
+                _log_hcs_progress(completed_fields, total_fields, conversion_started)
 
     if not write_ozx_directly:
         _ensure_plate_version_metadata(zarr_output_path, version)
@@ -454,6 +778,7 @@ def convert_czi2hcs_ngff(
     logger.info("=" * 80)
     logger.info("Conversion completed successfully!")
     logger.info(f"Output HCS OME-ZARR file: {zarr_output_path}")
+    logger.info("Total conversion time: %.2f seconds", time.perf_counter() - conversion_started)
     logger.info("=" * 80)
 
     return zarr_output_path
@@ -627,6 +952,8 @@ def write_omezarr_ngff(
     Returns:
         Optional[nz.NgffImage]: The written NgffImage, or ``None`` on failure.
     """
+    conversion_started = time.perf_counter()
+
     if scale_factors is None:
         # Size-aware, Y/X-only pyramid depth derived from the plane size.
         scale_factors = compute_pyramid_scale_factors(
@@ -720,15 +1047,18 @@ def write_omezarr_ngff(
         compressor = NumcodecsZstd()
     # compression_type.NONE or None → compressor stays None
 
-    nz.to_ngff_zarr(
-        zarr_path,
-        version=version,
-        chunks_per_shard=chunks_per_shard,
-        compressor=compressor,
-        multiscales=multiscales,
-    )
+    with _logged_progress_bar("NGFF write") as progress:
+        nz.to_ngff_zarr(
+            zarr_path,
+            version=version,
+            chunks_per_shard=chunks_per_shard,
+            compressor=compressor,
+            multiscales=multiscales,
+            progress=progress,
+        )
 
     logger.info("NGFF OME-ZARR writing completed successfully!")
     logger.info(f"Output file: {zarr_path}")
+    logger.info("Total conversion time: %.2f seconds", time.perf_counter() - conversion_started)
 
     return image

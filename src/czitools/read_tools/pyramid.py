@@ -179,6 +179,7 @@ def read_stacks_multiscale(
     lazy_read_strategy: LazyReadStrategy = "chunk",
     planes_per_chunk: int = 64,
     scene_stack_tolerance: int = 0,
+    metadata: czimd.CziMetadata | None = None,
 ) -> tuple[
     list[StackArray | StackList],
     list[PyramidLevel],
@@ -227,6 +228,9 @@ def read_stacks_multiscale(
             decides when Y/X tiling activates for a single plane.
         lazy_read_strategy: Forwarded to :func:`read_stacks`.
         planes_per_chunk: Forwarded to :func:`read_stacks`.
+        metadata: Optional preloaded CZI metadata reused while constructing
+            every level. This avoids repeated metadata parsing for callers
+            that iterate many scenes from one file.
 
     Returns:
         Tuple ``(levels, level_infos, dims, num_stacks, mdata)``:
@@ -253,7 +257,7 @@ def read_stacks_multiscale(
     # Use per-scene dimensions (SizeY_scene / SizeX_scene), not the total
     # plate bounding box (SizeY / SizeX), which spans all scenes and would
     # trigger unnecessary synthetic coarse levels for multi-scene files.
-    mdata_probe = czimd.CziMetadata(filepath)
+    mdata_probe = metadata if metadata is not None else czimd.CziMetadata(filepath)
     image = mdata_probe.image_required
     layer0_y = int(image.SizeY_scene or image.SizeY or 0)
     layer0_x = int(image.SizeX_scene or image.SizeX or 0)
@@ -294,6 +298,7 @@ def read_stacks_multiscale(
             lazy_read_strategy=lazy_read_strategy,
             planes_per_chunk=planes_per_chunk,
             scene_stack_tolerance=scene_stack_tolerance,
+            metadata=mdata_probe,
         )
         levels.append(result)
         dims_out = dims

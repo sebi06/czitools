@@ -8,6 +8,23 @@ and the project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+
+- Non-HCS `ngff-zarr` conversions now log an always-visible scale progress bar,
+  periodic elapsed-time updates, and the total conversion time on completion.
+- HCS conversions now report field progress and total time. Direct `.ozx`
+  output also reports archive-finalization activity and removes incomplete
+  archives when finalization is interrupted.
+- NGFF HCS conversion now reuses pyramid levels stored in the CZI instead of
+  regenerating every lower-resolution level with Gaussian downsampling. When
+  no lower levels are stored, coarse levels use libCZI's native zoom reader.
+- NGFF HCS conversion now uses larger spatial chunks, 4-by-4 Zarr v3 spatial
+  sharding tuned for typical 2000-by-2000 fields, grouped CZI plane reads,
+  preloaded metadata across fields and levels without deeply copying the full
+  parsed metadata graph, and up to four concurrent field writes by default.
+  Set `max_workers=1` for very large fields or deep T/Z stacks to minimize peak
+  memory use.
+
 ## [0.23.1] — 2026-08-31
 
 ### Changed

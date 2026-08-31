@@ -1,5 +1,6 @@
 """Read CZI scenes as regular or irregular eager/lazy stacks."""
 
+import copy
 import itertools
 import math
 from typing import Any, cast
@@ -419,6 +420,7 @@ def read_stacks(
     planes_per_chunk: int = 64,
     tile_size: int = 4096,
     scene_stack_tolerance: int = 0,
+    metadata: czimd.CziMetadata | None = None,
 ) -> ReadStacksWithMetaReturn:
     """Read all 2D planes from a CZI file, grouped per stack.
 
@@ -486,6 +488,10 @@ def read_stacks(
             grids can be composed with ``dask.array.block``. The requested
             edge is halved iteratively so a single tile stays within
             ``chunk_memory_limit``. Defaults to 4096.
+        metadata: Optional preloaded CZI metadata. Only the metadata objects
+            mutated by this function are copied. Supplying it avoids repeatedly
+            parsing or deeply copying metadata when reading many scenes or
+            pyramid levels from the same CZI.
 
     Returns:
         Tuple of (arrays_or_list, dims, num_stacks, metadata):
@@ -525,7 +531,14 @@ def read_stacks(
         logger.info("read_stacks: Reading from URL - using Curl reader")
 
     # Validate/create planes using CziMetadata (same rules as read_6darray)
-    mdata = czimd.CziMetadata(filepath)
+    if metadata is None:
+        mdata = czimd.CziMetadata(filepath)
+    else:
+        mdata = copy.copy(metadata)
+        mdata.scale = copy.copy(metadata.scale_required)
+        mdata.scale.ratio = dict(metadata.scale_required.ratio or {})
+        if adapt_metadata:
+            mdata.image = copy.copy(metadata.image_required)
     image = mdata.image_required
     bbox = mdata.bbox_required
     scale = mdata.scale_required
