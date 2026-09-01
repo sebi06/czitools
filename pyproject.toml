@@ -159,6 +159,18 @@ markers = [
 ]
 
 [tool.ruff]
+exclude = [
+    ".git",
+    ".ipynb_checkpoints",
+    "*.ipynb",
+    "__pycache__",
+    "build",
+    "dist",
+    "demo",
+    "_archive",
+    "_notes",
+    "_release_notes",
+]
 target-version = "py312"
 line-length = 120
 extend-exclude = ["build", "old"]

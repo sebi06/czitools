@@ -7,7 +7,6 @@ These tests are skipped automatically when the optional export dependencies
 import ast
 import json
 import logging
-import time
 import zipfile
 from inspect import signature
 from pathlib import Path
