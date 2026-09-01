@@ -541,11 +541,7 @@ def test_logged_progress_reports_ten_percent_increments(caplog: pytest.LogCaptur
             for completed in range(101):
                 progress.update(task_id, total=100, completed=completed)
 
-    task_records = [
-        record.message
-        for record in caplog.records
-        if "tasks, Writing scale 1 of 1" in record.message
-    ]
+    task_records = [record.message for record in caplog.records if "tasks, Writing scale 1 of 1" in record.message]
     assert [message.split("] ", 1)[1].split("%", 1)[0] for message in task_records] == [
         "0",
         "10",

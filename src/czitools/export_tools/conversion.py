@@ -150,8 +150,7 @@ class _LoggedNgffProgress(NgffProgressCallback):
             )
         elif self._finalizing_storage:
             logger.info(
-                "%s progress: [%s.] finalizing storage "
-                "(Dask tasks complete, elapsed %.1f s)",
+                "%s progress: [%s.] finalizing storage " "(Dask tasks complete, elapsed %.1f s)",
                 self.label,
                 "=" * (self.width - 1),
                 time.perf_counter() - self.started,
