@@ -27,10 +27,33 @@ class compression_type(Enum):
     NONE = 3
 
 
+class _ExportLogFilter(logging.Filter):
+    """Keep basic export logs concise without hiding warnings or errors."""
+
+    def __init__(self, include_internal_info: bool) -> None:
+        super().__init__()
+        self.include_internal_info = include_internal_info
+
+    def filter(self, record: logging.LogRecord) -> bool:
+        return (
+            self.include_internal_info
+            or record.levelno >= logging.WARNING
+            or record.name.startswith("czitools.export_tools")
+        )
+
+
+def _set_export_filter(handler: logging.Handler, include_internal_info: bool) -> None:
+    """Replace this module's filter while preserving unrelated filters."""
+    handler.filters = [item for item in handler.filters if not isinstance(item, _ExportLogFilter)]
+    handler.addFilter(_ExportLogFilter(include_internal_info))
+
+
 def setup_logging(
     log_file_path: str | Path | None = None,
     log_level: int = logging.INFO,
     force_reconfigure: bool = False,
+    include_internal_info: bool = False,
+    truncate_log_file: bool = False,
 ) -> logging.Logger:
     """Set up logging consistently across the export functions.
 
@@ -39,6 +62,10 @@ def setup_logging(
             only a console handler is added.
         log_level (int): Logging level. Defaults to ``logging.INFO``.
         force_reconfigure (bool): Reconfigure even if logging is already set up.
+        include_internal_info (bool): Include informational records from core
+            readers and third-party libraries. Defaults to False.
+        truncate_log_file (bool): Replace an existing log file when configuring
+            its handler. Defaults to False.
 
     Returns:
         logging.Logger: The configured root logger.
@@ -66,6 +93,8 @@ def setup_logging(
                 break
 
     if has_file_handler and has_console_handler and not force_reconfigure:
+        for handler in root_logger.handlers:
+            _set_export_filter(handler, include_internal_info)
         return root_logger
 
     root_logger.setLevel(log_level)
@@ -78,6 +107,7 @@ def setup_logging(
 
         console_handler = logging.StreamHandler()
         console_handler.setFormatter(formatter)
+        _set_export_filter(console_handler, include_internal_info)
         # Force UTF-8 on Windows where the default console encoding is cp1252.
         # This prevents UnicodeEncodeError when log messages contain non-ASCII
         # characters (e.g. the micro sign in "um" or emoji in validation messages).
@@ -90,8 +120,10 @@ def setup_logging(
 
         if log_file_path:
             Path(log_file_path).parent.mkdir(parents=True, exist_ok=True)
-            file_handler = logging.FileHandler(str(log_file_path), encoding="utf-8")
+            file_mode = "w" if truncate_log_file else "a"
+            file_handler = logging.FileHandler(str(log_file_path), mode=file_mode, encoding="utf-8")
             file_handler.setFormatter(formatter)
+            _set_export_filter(file_handler, include_internal_info)
             root_logger.addHandler(file_handler)
 
     return root_logger

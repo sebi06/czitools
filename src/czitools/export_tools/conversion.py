@@ -11,12 +11,11 @@ import logging
 import os
 import shutil
 import sys
-import threading
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from contextlib import contextmanager
 from pathlib import Path
-from typing import Iterator
+from typing import Iterator, Literal
 
 import dask
 import dask.array as da
@@ -27,6 +26,7 @@ import ome_zarr.writer
 import xarray as xr
 import zarr
 from ngff_zarr.hcs import HCSPlateWriter
+from ngff_zarr.rich_dask_progress import NgffProgressCallback
 from ngff_zarr.v04.zarr_metadata import (
     Axis,
     Dataset,
@@ -53,16 +53,74 @@ from .resolver import resolve_hcs_layout
 
 logger = logging.getLogger(__name__)
 
+LoggingDetail = Literal["basic", "full"]
 
-class _LoggedNgffProgress:
-    """Adapt ngff-zarr progress updates to the conversion log."""
+
+def _validate_logging_detail(logging_detail: LoggingDetail) -> bool:
+    """Return whether full HCS logging is enabled."""
+    if logging_detail not in {"basic", "full"}:
+        raise ValueError("logging_detail must be 'basic' or 'full'.")
+    return logging_detail == "full"
+
+
+class _LoggedNgffProgress(NgffProgressCallback):
+    """Adapt ngff-zarr scale and Dask task updates to the conversion log."""
 
     def __init__(self, label: str, started: float) -> None:
+        super().__init__(self)
         self.label = label
         self.started = started
         self.completed = 0
         self.total = 0
         self.width = 30
+        self._task_counter = 0
+        self._task_description = ""
+        self._task_completed = 0
+        self._task_total = 0
+        self._task_visible = False
+        self._finalizing_storage = False
+        self._last_task_percent = -1
+
+    def add_task(self, description: str, total: int | None = None) -> int:
+        """Create a log-backed task for ngff-zarr's Dask callback."""
+        self._task_counter += 1
+        self._task_description = description.replace("[green]", "")
+        self._task_completed = 0
+        self._task_total = total or 0
+        self._task_visible = True
+        self._finalizing_storage = False
+        self._last_task_percent = -1
+        return self._task_counter
+
+    def update(
+        self,
+        task_id: int,
+        *,
+        total: int | None = None,
+        completed: int | None = None,
+        visible: bool | None = None,
+        **kwargs,
+    ) -> None:
+        """Receive task updates from ngff-zarr's registered Dask callback."""
+        del task_id, kwargs
+        if total is not None:
+            self._task_total = total
+        if completed is not None:
+            self._task_completed = completed
+        if visible is not None:
+            self._task_visible = visible
+            if not visible and self._task_total:
+                self._finalizing_storage = True
+                self._log_progress()
+                return
+
+        if self._task_visible and self._task_total:
+            percent = min(99, 100 * self._task_completed // self._task_total)
+            crossed_ten_percent = percent // 10 > self._last_task_percent // 10
+            reached_final_task_percent = percent == 99 and self._last_task_percent != 99
+            if self._last_task_percent < 0 or crossed_ten_percent or reached_final_task_percent:
+                self._last_task_percent = percent
+                self._log_progress()
 
     def add_multiscales_task(self, description: str, scales: int) -> None:
         del description
@@ -75,7 +133,30 @@ class _LoggedNgffProgress:
         self._log_progress(active_scale=completed)
 
     def _log_progress(self, active_scale: int | None = None) -> None:
-        if self.total:
+        if self._task_visible and self._task_total:
+            completed = min(self._task_completed, self._task_total)
+            percent = min(99, 100 * completed // self._task_total)
+            filled = min(self.width - 1, self.width * completed // self._task_total)
+            bar = "=" * filled + "." * (self.width - filled)
+            logger.info(
+                "%s progress: [%s] %d%% (%d/%d tasks, %s, elapsed %.1f s)",
+                self.label,
+                bar,
+                percent,
+                completed,
+                self._task_total,
+                self._task_description,
+                time.perf_counter() - self.started,
+            )
+        elif self._finalizing_storage:
+            logger.info(
+                "%s progress: [%s.] finalizing storage "
+                "(Dask tasks complete, elapsed %.1f s)",
+                self.label,
+                "=" * (self.width - 1),
+                time.perf_counter() - self.started,
+            )
+        elif self.total:
             percent = round(100 * self.completed / self.total)
             filled = self.width * self.completed // self.total
             bar = "=" * filled + "." * (self.width - filled)
@@ -100,24 +181,17 @@ class _LoggedNgffProgress:
 
 
 @contextmanager
-def _logged_progress_bar(label: str, update_interval: float = 5.0) -> Iterator[_LoggedNgffProgress]:
-    """Log scale progress and periodic elapsed-time updates."""
+def _logged_progress_bar(label: str) -> Iterator[_LoggedNgffProgress]:
+    """Log meaningful NGFF progress transitions without periodic duplicates."""
     started = time.perf_counter()
-    stopped = threading.Event()
     progress = _LoggedNgffProgress(label, started)
 
-    def log_updates() -> None:
-        while not stopped.wait(update_interval):
-            progress._log_progress()
-
     progress._log_progress()
-    progress_thread = threading.Thread(target=log_updates, daemon=True)
-    progress_thread.start()
+    progress.register()
     try:
         yield progress
     finally:
-        stopped.set()
-        progress_thread.join()
+        progress.unregister()
 
     logger.info(
         "%s progress: [%s] 100%% (elapsed %.1f s)",
@@ -164,8 +238,14 @@ def _hcs_plate_writer(
             raise
 
 
-def _log_hcs_progress(completed: int, total: int, started: float) -> None:
-    """Log completed HCS fields as a determinate progress bar."""
+def _log_hcs_progress(completed: int, total: int, started: float, full_logging: bool = False) -> None:
+    """Log HCS field progress, limiting basic mode to ten-percent steps."""
+    if not full_logging and 0 < completed < total:
+        current_step = completed * 10 // total
+        previous_step = (completed - 1) * 10 // total
+        if current_step == previous_step:
+            return
+
     width = 30
     percent = round(100 * completed / total) if total else 100
     filled = width * completed // total if total else width
@@ -251,6 +331,31 @@ def _read_single_scene(czi_path: str | os.PathLike | Path, scene_index: int) -> 
     return array6d
 
 
+def _validate_h_size(size_h: int | None, location: str) -> None:
+    """Reject CZI phase dimensions that cannot be exported interoperably."""
+    if size_h is None or size_h <= 1:
+        return
+    raise ValueError(
+        f"CZI {location} has SizeH={size_h}. The H dimension is a CZI-specific phase axis "
+        "that cannot be represented alongside the channel axis in a standard OME-NGFF multiscale image, "
+        "and common OME-Zarr viewers do not support it. Only SizeH=1 is supported and dropped during export."
+    )
+
+
+def _validate_metadata_h_dimension(metadata: CziMetadata) -> None:
+    """Validate the H dimension reported by CZI metadata before writing."""
+    image = metadata.image
+    _validate_h_size(image.SizeH if image is not None else None, "metadata")
+
+
+def _normalize_h_dimension(array: xr.DataArray, scene_index: int) -> xr.DataArray:
+    """Drop a singleton CZI H dimension or reject unsupported H phases."""
+    if "H" not in array.dims:
+        return array
+    _validate_h_size(array.sizes["H"], f"scene {scene_index}")
+    return array.isel(H=0, drop=True)
+
+
 def _read_single_scene_multiscales(
     czi_path: str | os.PathLike | Path,
     scene_index: int,
@@ -258,6 +363,7 @@ def _read_single_scene_multiscales(
     pyramid_zooms: list[float],
     spatial_chunk_size: int,
     planes_per_chunk: int,
+    full_logging: bool = False,
 ) -> nz.NgffMultiscales:
     """Read a scene's stored CZI pyramid levels as NGFF multiscales."""
     levels, level_infos, _, _, _ = read_tools.read_stacks_multiscale(
@@ -281,6 +387,7 @@ def _read_single_scene_multiscales(
             level_array = level.isel(S=0, drop=True) if "S" in level.dims else level
         else:
             raise TypeError(f"Failed to read scene {scene_index} pyramid level as an xarray DataArray")
+        level_array = _normalize_h_dimension(level_array, scene_index)
         level_arrays.append(
             level_array.chunk({dim: spatial_chunk_size if dim in {"Y", "X"} else 1 for dim in level_array.dims})
         )
@@ -350,12 +457,13 @@ def _read_single_scene_multiscales(
         coordinateTransformations=None,
         name=image_name,
     )
-    logger.info(
-        "Using %d CZI-backed pyramid level(s) for scene %d: %s",
-        len(level_infos),
-        scene_index,
-        [f"{level.zoom:g} ({'stored' if level.stored else 'native zoom'})" for level in level_infos],
-    )
+    if full_logging:
+        logger.info(
+            "Using %d CZI-backed pyramid level(s) for scene %d: %s",
+            len(level_infos),
+            scene_index,
+            [f"{level.zoom:g} ({'stored' if level.stored else 'native zoom'})" for level in level_infos],
+        )
     return nz.NgffMultiscales(images=images, metadata=multiscales_metadata)
 
 
@@ -442,6 +550,7 @@ def convert_czi2hcs_omezarr(
     log_file_path: str | os.PathLike | Path | None = None,
     pad_columns: bool = True,
     compression: compression_type | None = compression_type.BLOSC,
+    logging_detail: LoggingDetail = "basic",
 ) -> Path:
     """Convert a CZI file to OME-Zarr HCS format using the ome-zarr-py backend.
 
@@ -453,18 +562,22 @@ def convert_czi2hcs_omezarr(
         pad_columns (bool): Zero-pad column numbers in well paths (e.g. ``"04"``).
         compression (Optional[compression_type]): Chunk compression type.
             Defaults to ``compression_type.BLOSC``. Set to ``None`` for no compression
+        logging_detail (Literal["basic", "full"]): Logging detail. Basic logging
+            reports milestones; full logging also reports every field. Defaults
+            to ``"basic"``.
 
     Returns:
         Path: Output OME-Zarr HCS directory
             (``<stem>_HCSplate_zarr3.ome.zarr``).
     """
+    full_logging = _validate_logging_detail(logging_detail)
     czi_path = Path(czi_filepath)
     if log_file_path is None:
         log_file_path = czi_path.parent / f"{czi_path.stem}_hcs_omezarr.log"
     else:
         log_file_path = Path(log_file_path)
 
-    setup_logging(log_file_path)
+    setup_logging(log_file_path, include_internal_info=full_logging)
 
     logger.info("=" * 80)
     logger.info("CZI to HCS OME-ZARR Conversion Started (ome-zarr-py backend)")
@@ -485,6 +598,7 @@ def convert_czi2hcs_omezarr(
     # plates with inconsistent scene shapes (variable well/field sizes) are
     # supported -- reading the whole plate at once returns None in that case.
     mdata = CziMetadata(str(czi_path))
+    _validate_metadata_h_dimension(mdata)
 
     layout = resolve_hcs_layout(mdata, pad_columns=pad_columns)
     logger.info(f"Resolved plate layout from '{layout.source}': {len(layout.wells)} well(s)")
@@ -535,7 +649,8 @@ def convert_czi2hcs_omezarr(
 
         for field_index, scene_index in well.fields:
             image_group = well_group.require_group(str(field_index))
-            logger.info(f"Scheduling Well: {well.path}, Field: {field_index}, Scene Index: {scene_index}")
+            if full_logging:
+                logger.info(f"Scheduling Well: {well.path}, Field: {field_index}, Scene Index: {scene_index}")
             # Read one scene at a time (scenes may differ in Y/X size across the plate).
             image = _read_single_scene(czi_path, scene_index).isel(S=0)
             # Full Z-stack per (T, C); computed per scene since sizes may vary.
@@ -590,6 +705,7 @@ def convert_czi2hcs_ngff(
     chunks_per_shard: dict[str, int] | int | tuple[int, ...] | None = {"y": 4, "x": 4},
     planes_per_chunk: int = 64,
     max_workers: int = 4,
+    logging_detail: LoggingDetail = "basic",
 ) -> Path:
     """Convert a CZI file to OME-Zarr HCS format using the ngff-zarr backend.
 
@@ -616,10 +732,14 @@ def convert_czi2hcs_ngff(
             Defaults to 4 to overlap CZI reads, compression, and writes while
             keeping memory bounded to a small number of fields. Use 1 for very
             large fields or deep T/Z stacks when minimizing peak memory matters.
+        logging_detail (Literal["basic", "full"]): Logging detail. Basic logging
+            reports milestones and bounded progress; full logging also reports
+            every well, field, and scene pyramid. Defaults to ``"basic"``.
     Returns:
         Path: Output HCS directory (``<stem>_ngff_plate_zarr3.ome.zarr``) or ``.ozx`` file.
     """
     conversion_started = time.perf_counter()
+    full_logging = _validate_logging_detail(logging_detail)
     if spatial_chunk_size < 1:
         raise ValueError("spatial_chunk_size must be at least 1.")
     if planes_per_chunk < 1:
@@ -636,7 +756,7 @@ def convert_czi2hcs_ngff(
     else:
         log_file_path = Path(log_file_path)
 
-    setup_logging(log_file_path)
+    setup_logging(log_file_path, include_internal_info=full_logging)
 
     logger.info("=" * 80)
     logger.info("CZI to HCS OME-ZARR Conversion Started (ngff-zarr backend)")
@@ -674,6 +794,7 @@ def convert_czi2hcs_ngff(
     # plates with inconsistent scene shapes (variable well/field sizes) are
     # supported -- reading the whole plate at once returns None in that case.
     mdata = CziMetadata(str(czi_path))
+    _validate_metadata_h_dimension(mdata)
 
     layout = resolve_hcs_layout(mdata, pad_columns=pad_columns)
     logger.info(f"Resolved plate layout from '{layout.source}': {len(layout.wells)} well(s)")
@@ -719,7 +840,7 @@ def convert_czi2hcs_ngff(
 
     total_fields = sum(len(well.fields) for well in layout.wells)
     completed_fields = 0
-    _log_hcs_progress(completed_fields, total_fields, conversion_started)
+    _log_hcs_progress(completed_fields, total_fields, conversion_started, full_logging)
 
     compressor = None
     if compression == compression_type.BLOSC:
@@ -740,12 +861,14 @@ def convert_czi2hcs_ngff(
     ) as writer:
         field_jobs = []
         for well in layout.wells:
-            logger.info(f"Creating Well: {well.well_id} (Row: {well.row}, Column: {well.column})")
+            if full_logging:
+                logger.info(f"Creating Well: {well.well_id} (Row: {well.row}, Column: {well.column})")
             for field_index, scene_index in well.fields:
                 field_jobs.append((well, field_index, scene_index))
 
         def write_field(well, field_index: int, scene_index: int) -> None:
-            logger.info(f"Writing Well: {well.path}, Field: {field_index}, Scene Index: {scene_index}")
+            if full_logging:
+                logger.info(f"Writing Well: {well.path}, Field: {field_index}, Scene Index: {scene_index}")
             multiscales = _read_single_scene_multiscales(
                 czi_path,
                 scene_index,
@@ -753,6 +876,7 @@ def convert_czi2hcs_ngff(
                 pyramid_zooms,
                 spatial_chunk_size,
                 planes_per_chunk,
+                full_logging,
             )
             if omero_channels:
                 multiscales.metadata.omero = nz.Omero(channels=omero_channels)
@@ -770,7 +894,7 @@ def convert_czi2hcs_ngff(
             for future in as_completed(futures):
                 future.result()
                 completed_fields += 1
-                _log_hcs_progress(completed_fields, total_fields, conversion_started)
+                _log_hcs_progress(completed_fields, total_fields, conversion_started, full_logging)
 
     if not write_ozx_directly:
         _ensure_plate_version_metadata(zarr_output_path, version)
@@ -926,6 +1050,7 @@ def write_omezarr_ngff(
     log_file_path: Path | str | None = None,
     min_size: int = 512,
     max_levels: int = 6,
+    downsampling_method: "nz.Methods" = nz.Methods.DASK_IMAGE_GAUSSIAN,
 ) -> "nz.NgffImage | None":
     """Write a single 5D image to OME-Zarr NGFF format with multi-scale pyramids.
 
@@ -939,7 +1064,8 @@ def write_omezarr_ngff(
             size via :func:`compute_pyramid_scale_factors` (``min_size``/``max_levels``).
         overwrite (bool): Remove existing output if True.
         version (str): NGFF version string. Defaults to ``"0.5"``.
-        chunks (Union[tuple, None]): Explicit chunk shape (auto-computed if None).
+        chunks (Union[tuple, None]): Explicit ``TCZYX`` chunk shape. Defaults
+            to one T/C/Z plane and at most 512 x 512 pixels per chunk.
         chunks_per_shard (Union[Dict[str, int], int, None]): Chunks per shard.
         compression (Optional[compression_type]): Chunk compression type. Defaults to
             ``compression_type.BLOSC``. Set to ``None`` for no compression.
@@ -949,6 +1075,8 @@ def write_omezarr_ngff(
             only when ``scale_factors`` is None. Defaults to 512.
         max_levels (int): Hard cap on the number of pyramid levels, used only when
             ``scale_factors`` is None. Defaults to 6.
+        downsampling_method (nz.Methods): Pyramid downsampling method. Defaults
+            to ``DASK_IMAGE_GAUSSIAN``.
     Returns:
         Optional[nz.NgffImage]: The written NgffImage, or ``None`` on failure.
     """
@@ -972,25 +1100,40 @@ def write_omezarr_ngff(
     logger.info(f"Input array shape: {array5d.shape}")
     logger.info(f"Output path: {zarr_path}")
     logger.info(f"Scale factors: {scale_factors}")
+    logger.info("Downsampling method: %s", downsampling_method.value)
 
     if len(array5d.shape) > 5:
         logger.info("Input array has more than 5 dimensions.")
         return None
 
-    if Path(zarr_path).exists() and overwrite:
-        shutil.rmtree(zarr_path)
-    elif Path(zarr_path).exists() and not overwrite:
+    output_path = Path(zarr_path)
+    if output_path.exists() and overwrite:
+        if output_path.is_dir():
+            shutil.rmtree(output_path)
+        else:
+            output_path.unlink()
+    elif output_path.exists() and not overwrite:
         logger.info(f"File already exists at {zarr_path}. Set overwrite=True to remove.")
         return None
 
     _scale = metadata.scale
     _filename = metadata.filename or "image.czi"
 
+    if chunks is None:
+        chunks = (
+            1,
+            1,
+            1,
+            min(512, int(array5d.shape[-2])),
+            min(512, int(array5d.shape[-1])),
+        )
+    logger.info("Chunk shape (TCZYX): %s", chunks)
+
     image_data = array5d.data if isinstance(array5d, xr.DataArray) else array5d
     if isinstance(image_data, da.Array):
-        image_data = image_data.rechunk({1: 1})
+        image_data = image_data.rechunk(chunks)
     else:
-        image_data = da.from_array(image_data, chunks={1: 1})  # type: ignore[arg-type]
+        image_data = da.from_array(image_data, chunks=chunks)  # type: ignore[arg-type]
 
     image = nz.to_ngff_image(
         image_data,
@@ -1011,14 +1154,11 @@ def write_omezarr_ngff(
         name=_filename[:-4] + ".ome.zarr",
     )
 
-    if chunks is None:
-        chunks = (1, array5d.shape[1], array5d.shape[2], array5d.shape[3], array5d.shape[4])  # type: ignore[misc]
-
     multiscales = nz.to_multiscales(
         image,
         scale_factors=scale_factors,
         chunks=chunks,
-        method=nz.Methods.DASK_IMAGE_GAUSSIAN,  # type: ignore[attr-defined]
+        method=downsampling_method,
     )
 
     channels_list = create_channel_list(metadata)

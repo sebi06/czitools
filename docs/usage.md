@@ -837,7 +837,7 @@ existing export must be preserved.
 
 ```python
 from czitools.read_tools import read_6darray
-from czitools.export_tools import write_omezarr_ngff, write_omezarr
+from czitools.export_tools import compression_type, write_omezarr, write_omezarr_ngff
 
 array, mdata = read_6darray("image.czi", planes={"S": (0, 0)}, use_xarray=True)
 array = array.squeeze("S")  # 6D -> 5D (T, C, Z, Y, X)
@@ -848,6 +848,62 @@ write_omezarr_ngff(array, "image_ngff.ome.zarr", mdata, scale_factors=[2, 4], ov
 # ome-zarr-py backend (Zarr v3)
 write_omezarr(array, zarr_path="image.ome.zarr", metadata=mdata, overwrite=True)
 ```
+
+For both directory-backed `.ome.zarr` stores and file-backed `.ozx` archives,
+omitting `chunks` makes `write_omezarr_ngff()` use bounded TCZYX chunks:
+`(1, 1, 1, min(512, Y), min(512, X))`. Each time point, channel, and Z plane
+is chunked independently, while large spatial planes are divided into tiles no
+larger than 512 x 512 pixels. This avoids passing a complete multidimensional
+image volume to Blosc as one compression buffer and keeps large exports within
+the codec's supported chunk size.
+
+Pass `chunks=(T, C, Z, Y, X)` to override the automatic policy. Explicit
+chunks are preserved and applied consistently to the source Dask array and
+generated multiscales. Choose values that keep each uncompressed chunk well
+below available memory and codec limits; for example:
+
+```python
+write_omezarr_ngff(
+  array,
+  "image_ngff.ome.zarr",
+  mdata,
+  chunks=(1, 1, 1, 256, 256),
+  overwrite=True,
+)
+```
+
+For a faster intensity-image conversion with balanced storage granularity,
+use bin-shrink pyramids, larger chunks, and spatial-only sharding:
+
+```python
+import ngff_zarr as nz
+
+write_omezarr_ngff(
+  array,
+  "image_fast.ome.zarr",
+  mdata,
+  chunks=(1, 1, 4, 1024, 1024),
+  chunks_per_shard={"y": 2, "x": 2},
+  compression=compression_type.BLOSC,
+  downsampling_method=nz.Methods.DASK_BIN_SHRINK,
+  overwrite=True,
+)
+```
+
+The converter GUI uses this configuration by default as the **Fast balanced**
+preset for non-HCS ngff-zarr exports. It supports both directory-backed
+`.ome.zarr` and single-file `.ozx` output, enforces Blosc compression, and
+disables the conflicting compression control. Select **Quality** to retain
+512 x 512 spatial chunks and Dask Gaussian pyramids. Bin-shrink computes local
+means and is appropriate for intensity images, but Gaussian downsampling
+generally produces fewer aliasing artifacts. OZX conversion remains slower
+than directory output because ngff-zarr packages a temporary directory store
+into the final archive after writing the pyramid.
+
+For file-backed `.ozx` output, `overwrite=True` removes either a completed or
+incomplete existing archive before writing. This makes retries after an
+interrupted or failed conversion behave the same as retries for directory
+stores.
 
 ### OME-Zarr Converter GUI
 

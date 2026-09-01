@@ -21,6 +21,7 @@ optional dependencies are missing)::
         convert_hcs_omezarr2ozx,
         validate_ome_zarr,
         resolve_hcs_layout,
+        compression_type,
         omezarr_package,
         setup_logging,
         run_gui,
@@ -40,6 +41,7 @@ _INSTALL_HINT = (
 
 # public name -> submodule that defines it
 _EXPORTS = {
+    "compression_type": "_logging",
     "omezarr_package": "_logging",
     "setup_logging": "_logging",
     "extract_well_coordinates": "plate",

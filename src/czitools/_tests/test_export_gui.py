@@ -5,7 +5,9 @@ from inspect import signature
 from pathlib import Path
 from types import SimpleNamespace
 
+import numpy as np
 import pytest
+import xarray as xr
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
@@ -14,6 +16,7 @@ gui = pytest.importorskip("czitools.export_tools.gui")
 
 def test_ngff_zarr_is_default_backend() -> None:
     assert gui.czi_to_omezarr_converter.package_choice.value == gui.omezarr_package.NGFF_ZARR
+    assert gui.czi_to_omezarr_converter.conversion_preset.value is gui.NgffConversionPreset.FAST_BALANCED
     assert "use_tensorstore" not in signature(gui.perform_conversion).parameters
 
 
@@ -105,6 +108,65 @@ def test_hcs_mode_allows_single_ozx_option(
     assert not gui.czi_to_omezarr_converter.show_napari.enabled
 
 
+def test_fast_balanced_preset_allows_ozx_and_enforces_blosc(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(gui, "metadata", object())
+    monkeypatch.setattr(gui, "selected_file", tmp_path / "image.czi")
+    gui.czi_to_omezarr_converter.package_choice.value = gui.omezarr_package.NGFF_ZARR
+    gui.czi_to_omezarr_converter.write_hcs.value = False
+    gui.czi_to_omezarr_converter.use_ozx_format.value = True
+    gui.czi_to_omezarr_converter.compression_choice.value = gui.compression_type.NONE
+
+    gui.czi_to_omezarr_converter.conversion_preset.value = gui.NgffConversionPreset.FAST_BALANCED
+    gui.update_use_ozx_format_enabled_state()
+
+    assert gui.czi_to_omezarr_converter.use_ozx_format.value
+    assert gui.czi_to_omezarr_converter.use_ozx_format.enabled
+    assert gui.czi_to_omezarr_converter.compression_choice.value is gui.compression_type.BLOSC
+    assert not gui.czi_to_omezarr_converter.compression_choice.enabled
+
+
+def test_fast_balanced_preset_forwards_writer_settings(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    filepath = tmp_path / "image.czi"
+    filepath.touch()
+    array = xr.DataArray(
+        np.zeros((1, 1, 1, 2, 8, 8), dtype=np.uint16),
+        dims=("S", "T", "C", "Z", "Y", "X"),
+    )
+    captured: dict = {}
+    monkeypatch.setattr(gui.read_tools, "read_6darray", lambda *args, **kwargs: (array, object()))
+
+    def capture_writer(*args, **kwargs) -> str:
+        captured["path"] = args[1]
+        captured.update(kwargs)
+        return "image"
+
+    monkeypatch.setattr(gui, "write_omezarr_ngff", capture_writer)
+    monkeypatch.setattr(gui, "validate_ome_zarr", lambda _: True)
+
+    output = gui.perform_conversion(
+        filepath=filepath,
+        use_ozx_format=True,
+        write_hcs=False,
+        package_choice=gui.omezarr_package.NGFF_ZARR,
+        scene_id=0,
+        compression_choice=gui.compression_type.NONE,
+        conversion_preset=gui.NgffConversionPreset.FAST_BALANCED,
+    )
+
+    assert output is not None and output.endswith("_ngff.ozx")
+    assert captured["path"] == Path(output)
+    assert captured["compression"] is gui.compression_type.BLOSC
+    assert captured["chunks"] == (1, 1, 4, 1024, 1024)
+    assert captured["chunks_per_shard"] == {"y": 2, "x": 2}
+    assert captured["downsampling_method"] is gui.nz.Methods.DASK_BIN_SHRINK
+
+
 def test_hcs_details_are_plain_text() -> None:
     field = SimpleNamespace(
         field_index=0,
@@ -153,7 +215,8 @@ def test_metadata_display_precedes_conversion_options() -> None:
     assert conversion_options.labels
     assert conversion_options[0] is gui.czi_to_omezarr_converter.write_hcs
     assert conversion_options[1] is gui.czi_to_omezarr_converter.scene_id
-    assert conversion_options[2] is gui.czi_to_omezarr_converter.use_ozx_format
-    assert conversion_options[3] is gui.czi_to_omezarr_converter.compression_choice
-    assert conversion_options[4] is gui.czi_to_omezarr_converter.show_napari
+    assert conversion_options[2] is gui.czi_to_omezarr_converter.conversion_preset
+    assert conversion_options[3] is gui.czi_to_omezarr_converter.use_ozx_format
+    assert conversion_options[4] is gui.czi_to_omezarr_converter.compression_choice
+    assert conversion_options[5] is gui.czi_to_omezarr_converter.show_napari
     assert not hasattr(gui.czi_to_omezarr_converter, "use_tensorstore")

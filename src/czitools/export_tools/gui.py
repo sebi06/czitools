@@ -23,6 +23,7 @@ files to OME-ZARR format with support for:
 import logging
 import os
 import threading
+from enum import Enum
 from importlib.metadata import version
 from pathlib import Path
 
@@ -52,6 +53,13 @@ from .conversion import (
 from .validation import validate_ome_zarr
 
 logger = logging.getLogger(__name__)
+
+
+class NgffConversionPreset(Enum):
+    """Performance presets for non-HCS ngff-zarr conversion."""
+
+    QUALITY = "quality"
+    FAST_BALANCED = "fast_balanced"
 
 
 # ============================================================================
@@ -191,6 +199,7 @@ def perform_conversion(
     package_choice: omezarr_package,
     scene_id: int,
     compression_choice: compression_type | None = compression_type.BLOSC,
+    conversion_preset: NgffConversionPreset = NgffConversionPreset.QUALITY,
 ) -> str | None:
     """
     Perform the CZI to OME-ZARR conversion with specified parameters.
@@ -202,13 +211,22 @@ def perform_conversion(
         package_choice: Backend package (OME_ZARR or NGFF_ZARR)
         scene_id: Scene index to convert (for non-HCS mode with multiple scenes)
         compression_choice: Compression type for OME-ZARR output (default: Blosc).
+        conversion_preset: Performance preset for non-HCS ngff-zarr output.
     Returns:
         str: Path to output OME-ZARR file, or None if conversion failed
     """
     try:
+        fast_balanced = (
+            conversion_preset is NgffConversionPreset.FAST_BALANCED
+            and package_choice is omezarr_package.NGFF_ZARR
+            and not write_hcs
+        )
+        if fast_balanced:
+            compression_choice = compression_type.BLOSC
+
         # Setup logging
         log_file_path = filepath.parent / f"{filepath.stem}_conversion.log"
-        setup_logging(str(log_file_path), force_reconfigure=True)
+        setup_logging(str(log_file_path), force_reconfigure=True, truncate_log_file=True)
 
         logger.info("=" * 80)
         logger.info("CZI to OME-ZARR Conversion Started")
@@ -217,6 +235,7 @@ def perform_conversion(
         logger.info(f"Package: {package_choice.name}")
         logger.info(f"HCS mode: {write_hcs}")
         logger.info(f"Single-file (.ozx): {use_ozx_format}")
+        logger.info("Conversion preset: %s", conversion_preset.value)
         logger.info(f"Scene ID: {scene_id}")
 
         output_path = None
@@ -231,6 +250,7 @@ def perform_conversion(
                     overwrite=True,
                     log_file_path=str(log_file_path),
                     compression=compression_choice,
+                    logging_detail="basic",
                 )
             elif package_choice == omezarr_package.NGFF_ZARR:
                 output_path = convert_czi2hcs_ngff(
@@ -239,6 +259,7 @@ def perform_conversion(
                     write_ozx_directly=use_ozx_format,
                     log_file_path=str(log_file_path),
                     compression=compression_choice,
+                    logging_detail="basic",
                 )
 
             logger.info("HCS-ZARR created: %s", output_path)
@@ -292,6 +313,12 @@ def perform_conversion(
                     mdata,
                     scale_factors=None,
                     overwrite=True,
+                    chunks=(1, 1, 4, 1024, 1024) if fast_balanced else None,
+                    chunks_per_shard={"y": 2, "x": 2} if fast_balanced else 2,
+                    compression=compression_choice,
+                    downsampling_method=(
+                        nz.Methods.DASK_BIN_SHRINK if fast_balanced else nz.Methods.DASK_IMAGE_GAUSSIAN
+                    ),
                     log_file_path=str(log_file_path),
                 )
 
@@ -364,6 +391,14 @@ def perform_conversion(
         "label": "Create Single-File OME-ZARR (.ozx)",
         "tooltip": "Create an RFC-9 single-file OZX archive (ngff-zarr only)",
     },
+    conversion_preset={
+        "label": "NGFF Conversion Preset",
+        "choices": [
+            ("Quality", NgffConversionPreset.QUALITY),
+            ("Fast balanced", NgffConversionPreset.FAST_BALANCED),
+        ],
+        "tooltip": "Choose pyramid quality or faster directory-based conversion",
+    },
     compression_choice={
         "label": "Compression",
         "choices": [
@@ -390,6 +425,7 @@ def czi_to_omezarr_converter(
     package_choice: omezarr_package = omezarr_package.NGFF_ZARR,
     write_hcs: bool = False,
     use_ozx_format: bool = False,
+    conversion_preset: NgffConversionPreset = NgffConversionPreset.FAST_BALANCED,
     compression_choice: compression_type | None = compression_type.BLOSC,
     scene_id: int = 0,
     show_napari: bool = False,
@@ -460,6 +496,7 @@ def _conversion_controls() -> tuple[widgets.Widget, ...]:
     return (
         czi_to_omezarr_converter.package_choice,
         czi_to_omezarr_converter.write_hcs,
+        czi_to_omezarr_converter.conversion_preset,
         czi_to_omezarr_converter.use_ozx_format,
         czi_to_omezarr_converter.compression_choice,
         czi_to_omezarr_converter.scene_id,
@@ -713,6 +750,7 @@ def on_convert_clicked() -> None:
     package_choice = czi_to_omezarr_converter.package_choice.value
     scene_id = czi_to_omezarr_converter.scene_id.value
     compression = czi_to_omezarr_converter.compression_choice.value
+    conversion_preset = czi_to_omezarr_converter.conversion_preset.value
 
     # Validate that file exists
     if not czi_file.exists():
@@ -779,6 +817,7 @@ def on_convert_clicked() -> None:
             package_choice=package_choice,
             scene_id=scene_id,
             compression_choice=compression,
+            conversion_preset=conversion_preset,
         )
 
         # Store result and mark as complete
@@ -811,10 +850,20 @@ def update_use_ozx_format_enabled_state() -> None:
     """Enable or disable OZX controls based on backend capabilities."""
 
     package_choice = czi_to_omezarr_converter.package_choice.value
+    write_hcs = czi_to_omezarr_converter.write_hcs.value
     metadata_ready = metadata is not None and selected_file is not None
+    preset_supported = metadata_ready and package_choice is omezarr_package.NGFF_ZARR and not write_hcs
+    czi_to_omezarr_converter.conversion_preset.enabled = preset_supported
+    fast_balanced = (
+        preset_supported and czi_to_omezarr_converter.conversion_preset.value is NgffConversionPreset.FAST_BALANCED
+    )
+
+    if fast_balanced:
+        czi_to_omezarr_converter.compression_choice.value = compression_type.BLOSC
 
     can_use_ozx = metadata_ready and package_choice != omezarr_package.OME_ZARR
     czi_to_omezarr_converter.use_ozx_format.enabled = can_use_ozx
+    czi_to_omezarr_converter.compression_choice.enabled = metadata_ready and not fast_balanced
 
     if not can_use_ozx and czi_to_omezarr_converter.use_ozx_format.value:
         czi_to_omezarr_converter.use_ozx_format.value = False
@@ -825,6 +874,11 @@ def update_use_ozx_format_enabled_state() -> None:
 def on_use_ozx_format_changed(_: bool) -> None:
     """React to OZX output changes."""
     update_show_napari_enabled_state()
+
+
+def on_conversion_preset_changed(_: NgffConversionPreset) -> None:
+    """Apply output constraints associated with the selected preset."""
+    update_use_ozx_format_enabled_state()
 
 
 def on_write_hcs_changed(value: bool) -> None:
@@ -923,6 +977,7 @@ _set_conversion_controls_enabled(False)
 convert_button.clicked.connect(on_convert_clicked)
 czi_to_omezarr_converter.write_hcs.changed.connect(on_write_hcs_changed)
 czi_to_omezarr_converter.package_choice.changed.connect(on_package_choice_changed)
+czi_to_omezarr_converter.conversion_preset.changed.connect(on_conversion_preset_changed)
 czi_to_omezarr_converter.use_ozx_format.changed.connect(on_use_ozx_format_changed)
 czi_to_omezarr_converter.czi_file.changed.connect(on_file_changed)
 
@@ -953,6 +1008,7 @@ def create_gui() -> widgets.Container:
         widgets=[
             czi_to_omezarr_converter.write_hcs,
             czi_to_omezarr_converter.scene_id,
+            czi_to_omezarr_converter.conversion_preset,
             czi_to_omezarr_converter.use_ozx_format,
             czi_to_omezarr_converter.compression_choice,
             czi_to_omezarr_converter.show_napari,

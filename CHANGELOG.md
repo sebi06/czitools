@@ -10,6 +10,15 @@ and the project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- The converter GUI now offers a **Fast balanced** preset for non-HCS
+  `ngff-zarr` exports. It uses Blosc compression,
+  `(1, 1, 4, 1024, 1024)` TCZYX chunks, 2-by-2 spatial sharding, and Dask
+  bin-shrink pyramids and is selected by default. The existing Gaussian path
+  remains available as the **Quality** preset. Both directory-backed
+  `.ome.zarr` and single-file `.ozx` output are supported.
+- `write_omezarr_ngff()` now accepts a `downsampling_method` argument using
+  `ngff_zarr.Methods`, allowing Python callers to select bin-shrink, Gaussian,
+  or another method supported by ngff-zarr.
 - Non-HCS `ngff-zarr` conversions now log an always-visible scale progress bar,
   periodic elapsed-time updates, and the total conversion time on completion.
 - HCS conversions now report field progress and total time. Direct `.ozx`
@@ -24,6 +33,18 @@ and the project adheres to [Semantic Versioning](https://semver.org/).
   parsed metadata graph, and up to four concurrent field writes by default.
   Set `max_workers=1` for very large fields or deep T/Z stacks to minimize peak
   memory use.
+
+### Fixed
+
+- Non-HCS `ngff-zarr` exports, for both directory-backed `.ome.zarr` stores
+  and file-backed `.ozx` archives, now default to bounded TCZYX chunks of
+  `(1, 1, 1, min(512, Y), min(512, X))` instead of compressing an entire
+  C/Z/Y/X volume as one chunk. This prevents Blosc failures for chunks larger
+  than its supported buffer size and keeps large-image writes memory-bounded.
+  Explicit `chunks` values remain supported and are applied unchanged.
+- Retrying a non-HCS `.ozx` export with `overwrite=True` now removes an
+  existing or incomplete file-backed archive correctly. Directory-backed
+  Zarr stores continue to be removed recursively.
 
 ## [0.23.1] — 2026-08-31
 

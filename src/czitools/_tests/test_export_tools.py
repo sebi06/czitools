@@ -31,6 +31,7 @@ from czitools.export_tools import (
     write_omezarr_ngff,
 )
 from czitools.export_tools import conversion
+from czitools.export_tools import _logging as export_logging
 from czitools.metadata_tools.czi_metadata import CziMetadata
 
 BASEDIR = Path(__file__).resolve().parents[3]
@@ -45,6 +46,51 @@ def test_legacy_export_options_are_not_public() -> None:
     assert "use_tensorstore" not in signature(conversion.write_omezarr_ngff).parameters
     assert signature(conversion.convert_czi2hcs_ngff).parameters["chunks_per_shard"].default == {"y": 4, "x": 4}
     assert signature(conversion.convert_czi2hcs_ngff).parameters["max_workers"].default == 4
+    assert signature(conversion.convert_czi2hcs_omezarr).parameters["logging_detail"].default == "basic"
+    assert signature(conversion.convert_czi2hcs_ngff).parameters["logging_detail"].default == "basic"
+
+
+def test_hcs_basic_logging_bounds_progress_messages(caplog: pytest.LogCaptureFixture) -> None:
+    with caplog.at_level(logging.INFO, logger=conversion.__name__):
+        for completed in range(101):
+            conversion._log_hcs_progress(completed, 100, 0.0)
+
+    progress_records = [record for record in caplog.records if record.message.startswith("HCS conversion progress:")]
+    assert len(progress_records) == 11
+    assert "(0/100 fields" in progress_records[0].message
+    assert "(100/100 fields" in progress_records[-1].message
+
+
+def test_hcs_full_logging_reports_every_field(caplog: pytest.LogCaptureFixture) -> None:
+    with caplog.at_level(logging.INFO, logger=conversion.__name__):
+        for completed in range(6):
+            conversion._log_hcs_progress(completed, 5, 0.0, full_logging=True)
+
+    progress_records = [record for record in caplog.records if record.message.startswith("HCS conversion progress:")]
+    assert len(progress_records) == 6
+
+
+@pytest.mark.parametrize(
+    ("include_internal_info", "logger_name", "level", "expected"),
+    [
+        (False, "czitools.export_tools.conversion", logging.INFO, True),
+        (False, "czitools", logging.INFO, False),
+        (False, "root", logging.INFO, False),
+        (False, "czitools", logging.WARNING, True),
+        (True, "czitools", logging.INFO, True),
+        (True, "root", logging.INFO, True),
+    ],
+)
+def test_export_log_filter(
+    include_internal_info: bool,
+    logger_name: str,
+    level: int,
+    expected: bool,
+) -> None:
+    record = logging.LogRecord(logger_name, level, __file__, 1, "message", (), None)
+    log_filter = export_logging._ExportLogFilter(include_internal_info)
+
+    assert bool(log_filter.filter(record)) is expected
 
 
 def test_gui_single_image_writers_share_conversion_log() -> None:
@@ -64,6 +110,40 @@ def test_gui_single_image_writers_share_conversion_log() -> None:
         assert isinstance(log_keywords[0].value, ast.Call)
         assert isinstance(log_keywords[0].value.func, ast.Name)
         assert log_keywords[0].value.func.id == "str"
+
+
+def test_gui_hcs_converters_use_basic_logging() -> None:
+    gui_path = BASEDIR / "src" / "czitools" / "export_tools" / "gui.py"
+    tree = ast.parse(gui_path.read_text(encoding="utf-8"))
+    converter_names = {"convert_czi2hcs_omezarr", "convert_czi2hcs_ngff"}
+    converter_calls = [
+        node
+        for node in ast.walk(tree)
+        if isinstance(node, ast.Call) and isinstance(node.func, ast.Name) and node.func.id in converter_names
+    ]
+
+    assert {call.func.id for call in converter_calls} == converter_names
+    for call in converter_calls:
+        detail_keywords = [keyword for keyword in call.keywords if keyword.arg == "logging_detail"]
+        assert len(detail_keywords) == 1
+        assert isinstance(detail_keywords[0].value, ast.Constant)
+        assert detail_keywords[0].value.value == "basic"
+
+
+def test_gui_starts_each_conversion_with_fresh_log() -> None:
+    gui_path = BASEDIR / "src" / "czitools" / "export_tools" / "gui.py"
+    tree = ast.parse(gui_path.read_text(encoding="utf-8"))
+    setup_calls = [
+        node
+        for node in ast.walk(tree)
+        if isinstance(node, ast.Call) and isinstance(node.func, ast.Name) and node.func.id == "setup_logging"
+    ]
+    conversion_setup = next(call for call in setup_calls if call.args)
+    truncate_keywords = [keyword for keyword in conversion_setup.keywords if keyword.arg == "truncate_log_file"]
+
+    assert len(truncate_keywords) == 1
+    assert isinstance(truncate_keywords[0].value, ast.Constant)
+    assert truncate_keywords[0].value.value is True
 
 
 def test_resolve_layout_prefers_stage1_model() -> None:
@@ -185,6 +265,66 @@ def test_hcs_multiscales_reuse_stored_czi_levels(monkeypatch: pytest.MonkeyPatch
     assert multiscales.method is None
 
 
+def test_hcs_multiscales_drop_singleton_h_dimension(monkeypatch: pytest.MonkeyPatch) -> None:
+    dims = ("S", "H", "T", "C", "Z", "Y", "X")
+    data = da.arange(3, chunks=1).reshape((1, 1, 1, 3, 1, 1, 1))
+    level = xr.DataArray(data, dims=dims)
+
+    monkeypatch.setattr(
+        conversion.read_tools,
+        "read_stacks_multiscale",
+        lambda **kwargs: ([level], [SimpleNamespace(zoom=1.0, stored=True)], list(dims), 1, None),
+    )
+    metadata = SimpleNamespace(
+        filename="airy.czi",
+        scale=SimpleNamespace(X=1.0, Y=1.0, Z=1.0),
+    )
+
+    multiscales = conversion._read_single_scene_multiscales(
+        "airy.czi",
+        scene_index=0,
+        metadata=metadata,
+        pyramid_zooms=[1.0],
+        spatial_chunk_size=512,
+        planes_per_chunk=64,
+    )
+
+    assert multiscales.images[0].dims == ["t", "c", "z", "y", "x"]
+    assert multiscales.images[0].data.shape == (1, 3, 1, 1, 1)
+    np.testing.assert_array_equal(multiscales.images[0].data.compute().ravel(), np.arange(3))
+
+
+def test_hcs_multiscales_reject_multiple_h_phases(monkeypatch: pytest.MonkeyPatch) -> None:
+    dims = ("S", "H", "T", "C", "Z", "Y", "X")
+    level = xr.DataArray(da.zeros((1, 2, 1, 1, 1, 1, 1), chunks=1), dims=dims)
+    monkeypatch.setattr(
+        conversion.read_tools,
+        "read_stacks_multiscale",
+        lambda **kwargs: ([level], [SimpleNamespace(zoom=1.0, stored=True)], list(dims), 1, None),
+    )
+    metadata = SimpleNamespace(
+        filename="airy.czi",
+        scale=SimpleNamespace(X=1.0, Y=1.0, Z=1.0),
+    )
+
+    with pytest.raises(ValueError, match=r"scene 4 has SizeH=2.*CZI-specific phase axis.*Only SizeH=1"):
+        conversion._read_single_scene_multiscales(
+            "airy.czi",
+            scene_index=4,
+            metadata=metadata,
+            pyramid_zooms=[1.0],
+            spatial_chunk_size=512,
+            planes_per_chunk=64,
+        )
+
+
+def test_hcs_rejects_multiple_h_phases_from_metadata() -> None:
+    metadata = SimpleNamespace(image=SimpleNamespace(SizeH=3))
+
+    with pytest.raises(ValueError, match=r"metadata has SizeH=3.*common OME-Zarr viewers do not support it"):
+        conversion._validate_metadata_h_dimension(metadata)
+
+
 def test_write_omezarr_ngff_to_local_path(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     """Compression options must not be forwarded as FSSpec storage options."""
     metadata = SimpleNamespace(
@@ -229,6 +369,79 @@ def test_write_omezarr_ngff_to_local_path(tmp_path: Path, monkeypatch: pytest.Mo
     assert "use_tensorstore" not in captured
 
 
+def test_write_omezarr_ngff_directory_uses_bounded_default_chunks(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    metadata = SimpleNamespace(
+        filename="large.czi",
+        scale=SimpleNamespace(X=1.0, Y=1.0, Z=1.0),
+        image=None,
+        channelinfo=None,
+    )
+    captured: dict = {}
+    multiscales = SimpleNamespace(metadata=SimpleNamespace(omero=None))
+
+    def capture_image(data, *args, **kwargs) -> str:
+        captured["image_data"] = data
+        return "image"
+
+    def capture_multiscales(*args, **kwargs):
+        captured["chunks"] = kwargs["chunks"]
+        captured["method"] = kwargs["method"]
+        return multiscales
+
+    def capture_write(store, **kwargs) -> None:
+        captured["store"] = store
+
+    monkeypatch.setattr(conversion.nz, "to_ngff_image", capture_image)
+    monkeypatch.setattr(conversion.nz, "to_multiscales", capture_multiscales)
+    monkeypatch.setattr(conversion.nz, "to_ngff_zarr", capture_write)
+
+    output = tmp_path / "large.ome.zarr"
+    write_omezarr_ngff(
+        np.zeros((1, 4, 2, 600, 700), dtype=np.uint16),
+        output,
+        metadata,
+        scale_factors=[2],
+        downsampling_method=conversion.nz.Methods.DASK_BIN_SHRINK,
+        overwrite=True,
+    )
+
+    assert captured["chunks"] == (1, 1, 1, 512, 512)
+    assert captured["method"] is conversion.nz.Methods.DASK_BIN_SHRINK
+    assert captured["image_data"].chunksize == (1, 1, 1, 512, 512)
+    assert captured["store"] == output
+
+
+def test_write_omezarr_ngff_overwrites_ozx_file(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    output = tmp_path / "image.ozx"
+    output.write_bytes(b"incomplete archive")
+    metadata = SimpleNamespace(
+        filename="test.czi",
+        scale=SimpleNamespace(X=1.0, Y=1.0, Z=1.0),
+        image=None,
+        channelinfo=None,
+    )
+    multiscales = SimpleNamespace(metadata=SimpleNamespace(omero=None))
+    monkeypatch.setattr(conversion.nz, "to_ngff_image", lambda *args, **kwargs: "image")
+    monkeypatch.setattr(conversion.nz, "to_multiscales", lambda *args, **kwargs: multiscales)
+    monkeypatch.setattr(conversion.nz, "to_ngff_zarr", lambda *args, **kwargs: None)
+
+    write_omezarr_ngff(
+        np.zeros((1, 1, 1, 8, 8), dtype=np.uint16),
+        output,
+        metadata,
+        scale_factors=[2],
+        overwrite=True,
+    )
+
+    assert not output.exists()
+
+
 def test_write_omezarr_ngff_logs_progress_and_total_time(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -269,13 +482,80 @@ def test_write_omezarr_ngff_logs_progress_and_total_time(
     assert "Total conversion time:" in log_text
 
 
-def test_logged_progress_bar_updates_during_write(caplog: pytest.LogCaptureFixture) -> None:
+def test_logged_progress_bar_logs_transitions_only(caplog: pytest.LogCaptureFixture) -> None:
     with caplog.at_level(logging.INFO):
-        with conversion._logged_progress_bar("Test write", update_interval=0.005) as progress:
+        with conversion._logged_progress_bar("Test write") as progress:
             progress.add_multiscales_task("Writing scales", 2)
             progress.update_multiscales_task_completed(1)
-            time.sleep(0.02)
 
     progress_records = [record for record in caplog.records if "Test write progress" in record.message]
-    assert len(progress_records) >= 3
+    assert len(progress_records) == 4
     assert "100%" in progress_records[-1].message
+
+
+def test_logged_progress_bar_reports_within_scale_tasks(caplog: pytest.LogCaptureFixture) -> None:
+    with caplog.at_level(logging.INFO):
+        with conversion._logged_progress_bar("Test write") as progress:
+            progress.add_multiscales_task("Writing scales", 1)
+            progress.update_multiscales_task_completed(1)
+            description = "[green]Writing scale 1 of 1"
+            progress.add_callback_task(description)
+            task_id = progress.tasks[description]
+            assert task_id is not None
+            progress.update(task_id, total=100, completed=40)
+            progress._log_progress()
+
+    progress_records = [record for record in caplog.records if "Test write progress" in record.message]
+    assert any("40% (40/100 tasks, Writing scale 1 of 1" in record.message for record in progress_records)
+
+
+def test_logged_progress_does_not_round_up_or_regress(caplog: pytest.LogCaptureFixture) -> None:
+    with caplog.at_level(logging.INFO):
+        with conversion._logged_progress_bar("Test write") as progress:
+            progress.add_multiscales_task("Writing scales", 1)
+            progress.update_multiscales_task_completed(1)
+            description = "[green]Writing scale 1 of 1"
+            progress.add_callback_task(description)
+            task_id = progress.tasks[description]
+            assert task_id is not None
+            progress.update(task_id, total=10873, completed=10872)
+            progress.update(task_id, total=10873, completed=10873)
+            progress.update(task_id, visible=False)
+
+    progress_records = [record.message for record in caplog.records if "Test write progress" in record.message]
+    assert any("99% (10872/10873 tasks" in message for message in progress_records)
+    finalizing_records = [
+        message for message in progress_records if "finalizing storage (Dask tasks complete" in message
+    ]
+    assert len(finalizing_records) == 1
+    assert "100%" in progress_records[-1]
+
+
+def test_logged_progress_reports_ten_percent_increments(caplog: pytest.LogCaptureFixture) -> None:
+    with caplog.at_level(logging.INFO):
+        with conversion._logged_progress_bar("Test write") as progress:
+            description = "[green]Writing scale 1 of 1"
+            progress.add_callback_task(description)
+            task_id = progress.tasks[description]
+            assert task_id is not None
+            for completed in range(101):
+                progress.update(task_id, total=100, completed=completed)
+
+    task_records = [
+        record.message
+        for record in caplog.records
+        if "tasks, Writing scale 1 of 1" in record.message
+    ]
+    assert [message.split("] ", 1)[1].split("%", 1)[0] for message in task_records] == [
+        "0",
+        "10",
+        "20",
+        "30",
+        "40",
+        "50",
+        "60",
+        "70",
+        "80",
+        "90",
+        "99",
+    ]
