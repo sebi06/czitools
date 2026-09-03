@@ -126,16 +126,7 @@
 <span class=normal>113</span>
 <span class=normal>114</span>
 <span class=normal>115</span>
-<span class=normal>116</span>
-<span class=normal>117</span>
-<span class=normal>118</span>
-<span class=normal>119</span>
-<span class=normal>120</span>
-<span class=normal>121</span>
-<span class=normal>122</span>
-<span class=normal>123</span>
-<span class=normal>124</span>
-<span class=normal>125</span></pre></div></td><td class=code><div><pre><span></span><code><span id=__span-0-93><span class=k>def</span><span class=w> </span><span class=nf>check_scenes_shape</span><span class=p>(</span><span class=n>czidoc</span><span class=p>:</span> <span class=n>pyczi</span><span class=o>.</span><span class=n>CziReader</span><span class=p>,</span> <span class=n>size_s</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=kc>None</span><span class=p>,</span> <span class=n>tolerance</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>1</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=nb>bool</span><span class=p>:</span>
+<span class=normal>116</span></pre></div></td><td class=code><div><pre><span></span><code><span id=__span-0-93><span class=k>def</span><span class=w> </span><span class=nf>check_scenes_shape</span><span class=p>(</span><span class=n>czidoc</span><span class=p>:</span> <span class=n>pyczi</span><span class=o>.</span><span class=n>CziReader</span><span class=p>,</span> <span class=n>size_s</span><span class=p>:</span> <span class=nb>int</span> <span class=o>|</span> <span class=kc>None</span><span class=p>,</span> <span class=n>tolerance</span><span class=p>:</span> <span class=nb>int</span> <span class=o>=</span> <span class=mi>1</span><span class=p>)</span> <span class=o>-&gt;</span> <span class=nb>bool</span><span class=p>:</span>
 </span><span id=__span-0-94><span class=w>    </span><span class=sd>"""Check if all scenes have the same shape within a pixel tolerance.</span>
 </span><span id=__span-0-95>
 </span><span id=__span-0-96><span class=sd>    Args:</span>
@@ -148,26 +139,17 @@
 </span><span id=__span-0-103><span class=sd>    Returns:</span>
 </span><span id=__span-0-104><span class=sd>        bool: True if all scenes have XY shapes within ``tolerance`` pixels</span>
 </span><span id=__span-0-105><span class=sd>    """</span>
-</span><span id=__span-0-106>    <span class=n>scene_width</span> <span class=o>=</span> <span class=p>[]</span>
-</span><span id=__span-0-107>    <span class=n>scene_height</span> <span class=o>=</span> <span class=p>[]</span>
-</span><span id=__span-0-108>    <span class=n>scene_shape_is_consistent</span> <span class=o>=</span> <span class=kc>False</span>
-</span><span id=__span-0-109>
-</span><span id=__span-0-110>    <span class=k>if</span> <span class=n>size_s</span> <span class=ow>is</span> <span class=ow>not</span> <span class=kc>None</span><span class=p>:</span>
-</span><span id=__span-0-111>        <span class=k>for</span> <span class=n>s</span> <span class=ow>in</span> <span class=nb>range</span><span class=p>(</span><span class=n>size_s</span><span class=p>):</span>
-</span><span id=__span-0-112>            <span class=n>scene_width</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=n>czidoc</span><span class=o>.</span><span class=n>scenes_bounding_rectangle</span><span class=p>[</span><span class=n>s</span><span class=p>]</span><span class=o>.</span><span class=n>w</span><span class=p>)</span>
-</span><span id=__span-0-113>            <span class=n>scene_height</span><span class=o>.</span><span class=n>append</span><span class=p>(</span><span class=n>czidoc</span><span class=o>.</span><span class=n>scenes_bounding_rectangle</span><span class=p>[</span><span class=n>s</span><span class=p>]</span><span class=o>.</span><span class=n>h</span><span class=p>)</span>
-</span><span id=__span-0-114>
-</span><span id=__span-0-115>        <span class=c1># check if all entries are within the allowed tolerance</span>
-</span><span id=__span-0-116>        <span class=n>sw</span> <span class=o>=</span> <span class=p>(</span><span class=nb>max</span><span class=p>(</span><span class=n>scene_width</span><span class=p>)</span> <span class=o>-</span> <span class=nb>min</span><span class=p>(</span><span class=n>scene_width</span><span class=p>))</span> <span class=o>&lt;=</span> <span class=n>tolerance</span>
-</span><span id=__span-0-117>        <span class=n>sh</span> <span class=o>=</span> <span class=p>(</span><span class=nb>max</span><span class=p>(</span><span class=n>scene_height</span><span class=p>)</span> <span class=o>-</span> <span class=nb>min</span><span class=p>(</span><span class=n>scene_height</span><span class=p>))</span> <span class=o>&lt;=</span> <span class=n>tolerance</span>
-</span><span id=__span-0-118>
-</span><span id=__span-0-119>        <span class=k>if</span> <span class=n>sw</span> <span class=ow>and</span> <span class=n>sh</span><span class=p>:</span>
-</span><span id=__span-0-120>            <span class=n>scene_shape_is_consistent</span> <span class=o>=</span> <span class=kc>True</span>
-</span><span id=__span-0-121>
-</span><span id=__span-0-122>    <span class=k>else</span><span class=p>:</span>
-</span><span id=__span-0-123>        <span class=n>scene_shape_is_consistent</span> <span class=o>=</span> <span class=kc>True</span>
-</span><span id=__span-0-124>
-</span><span id=__span-0-125>    <span class=k>return</span> <span class=n>scene_shape_is_consistent</span>
+</span><span id=__span-0-106>    <span class=k>if</span> <span class=n>size_s</span> <span class=ow>is</span> <span class=kc>None</span><span class=p>:</span>
+</span><span id=__span-0-107>        <span class=k>return</span> <span class=kc>True</span>
+</span><span id=__span-0-108>
+</span><span id=__span-0-109>    <span class=n>scene_rectangles</span> <span class=o>=</span> <span class=n>czidoc</span><span class=o>.</span><span class=n>scenes_bounding_rectangle_no_pyramid</span> <span class=ow>or</span> <span class=n>czidoc</span><span class=o>.</span><span class=n>scenes_bounding_rectangle</span>
+</span><span id=__span-0-110>    <span class=k>if</span> <span class=ow>not</span> <span class=n>scene_rectangles</span><span class=p>:</span>
+</span><span id=__span-0-111>        <span class=k>return</span> <span class=kc>True</span>
+</span><span id=__span-0-112>
+</span><span id=__span-0-113>    <span class=n>scene_width</span> <span class=o>=</span> <span class=p>[</span><span class=n>rectangle</span><span class=o>.</span><span class=n>w</span> <span class=k>for</span> <span class=n>rectangle</span> <span class=ow>in</span> <span class=n>scene_rectangles</span><span class=o>.</span><span class=n>values</span><span class=p>()]</span>
+</span><span id=__span-0-114>    <span class=n>scene_height</span> <span class=o>=</span> <span class=p>[</span><span class=n>rectangle</span><span class=o>.</span><span class=n>h</span> <span class=k>for</span> <span class=n>rectangle</span> <span class=ow>in</span> <span class=n>scene_rectangles</span><span class=o>.</span><span class=n>values</span><span class=p>()]</span>
+</span><span id=__span-0-115>
+</span><span id=__span-0-116>    <span class=k>return</span> <span class=p>(</span><span class=nb>max</span><span class=p>(</span><span class=n>scene_width</span><span class=p>)</span> <span class=o>-</span> <span class=nb>min</span><span class=p>(</span><span class=n>scene_width</span><span class=p>))</span> <span class=o>&lt;=</span> <span class=n>tolerance</span> <span class=ow>and</span> <span class=p>(</span><span class=nb>max</span><span class=p>(</span><span class=n>scene_height</span><span class=p>)</span> <span class=o>-</span> <span class=nb>min</span><span class=p>(</span><span class=n>scene_height</span><span class=p>))</span> <span class=o>&lt;=</span> <span class=n>tolerance</span>
 </span></code></pre></div></td></tr></table></div> </details> </div> </div> <div class="doc doc-object doc-function"> <h2 id=czitools.utils.display_xarray_in_napari class="doc doc-heading"> <code class="doc-symbol doc-symbol-heading doc-symbol-function"></code> <span class="doc doc-object-name doc-function-name">display_xarray_in_napari</span> <a href=#czitools.utils.display_xarray_in_napari class=headerlink title="Permanent link">#</a></h2> <div class="language-python doc-signature highlight"><pre><span></span><code><span id=__span-0-1><span class=nf>display_xarray_in_napari</span><span class=p>(</span>
 </span><span id=__span-0-2>    <span class=n><a class="autorefs autorefs-internal" title="array6d (czitools.utils.display_xarray_in_napari(array6d))" href=#czitools.utils.display_xarray_in_napari(array6d)>array6d</a></span><span class=p>:</span> <span class=n><a class="autorefs autorefs-external" title=typing.Any href=https://docs.python.org/3/library/typing.html#typing.Any>Any</a></span><span class=p>,</span>
 </span><span id=__span-0-3>    <span class=n><a class="autorefs autorefs-internal" title="mdata (czitools.utils.display_xarray_in_napari(mdata))" href=#czitools.utils.display_xarray_in_napari(mdata)>mdata</a></span><span class=p>:</span> <span class=n><a class="autorefs autorefs-external" title=typing.Any href=https://docs.python.org/3/library/typing.html#typing.Any>Any</a></span><span class=p>,</span>
