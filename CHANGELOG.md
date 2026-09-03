@@ -10,6 +10,13 @@ and the project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- The `czi_hcs_check` inspector now displays all full-resolution,
+  subblock-derived dimension sizes and the first stored scene's Y/X size.
+- HCS metadata can be filtered to physically stored global scene indices with
+  `filter_hcs_to_stored_scenes=True`. The complete XML model remains available
+  as `hcs_declared`, and `stored_scene_indices` exposes the layer-0 `S` keys.
+- The HCS inspector now shows physically stored fields by default;
+  `--show-declared` displays the complete XML-declared acquisition model.
 - The converter GUI now offers a **Fast balanced** preset for non-HCS
   `ngff-zarr` exports. It uses Blosc compression,
   `(1, 1, 4, 1024, 1024)` TCZYX chunks, 2-by-2 spatial sharding, and Dask
@@ -36,6 +43,9 @@ and the project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- Dimension sizes now come from full-resolution CZI subblocks instead of
+  numeric XML `Size*` declarations. Scene-shape checks support sparse global
+  scene indices, as found in split-acquisition child files.
 - Non-HCS `ngff-zarr` exports, for both directory-backed `.ome.zarr` stores
   and file-backed `.ozx` archives, now default to bounded TCZYX chunks of
   `(1, 1, 1, min(512, Y), min(512, X))` instead of compressing an entire

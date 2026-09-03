@@ -40,6 +40,7 @@ from czitools.metadata_tools.hcs import (
     CziPlate,
     build_hcs_metadata,
     enrich_hcs_with_planetable,
+    filter_hcs_by_scene_indices,
 )
 from czitools.metadata_tools.helper import DictObj
 from czitools.metadata_tools.microscope import CziMicroscope
@@ -94,9 +95,14 @@ class CziMetadata:
         microscope (Optional[CziMicroscope]): Microscope information.
         sample (Optional[CziSampleInfo]): Sample information.
         hcs (Optional[CziPlate]): Validated plate/well/field hierarchy, when detected.
+        hcs_declared (Optional[CziPlate]): Complete XML-declared HCS hierarchy.
         hcs_status (CziHcsResult): HCS detection result and explanatory reason.
+        stored_scene_indices (Tuple[int, ...]): Global scene indices found in
+            layer-0 subblocks.
         add_metadata (Optional[CziAddMetaData]): Additional metadata.
         scene_size_consistent (Optional[Tuple[int]]): Consistency of scene sizes.
+        filter_hcs_to_stored_scenes (bool): Restrict ``hcs`` to physically stored
+            scenes while preserving the complete model in ``hcs_declared``.
         verbose (bool): Verbose output for logging.
     """
 
@@ -137,14 +143,17 @@ class CziMetadata:
     microscope: CziMicroscope | None = field(init=False, default=None)
     sample: CziSampleInfo | None = field(init=False, default=None)
     hcs: CziPlate | None = field(init=False, default=None)
+    hcs_declared: CziPlate | None = field(init=False, default=None)
     hcs_status: CziHcsResult = field(
         init=False, default_factory=lambda: CziHcsResult(False, "HCS detection has not run.")
     )
+    stored_scene_indices: tuple[int, ...] = field(init=False, default_factory=tuple)
     add_metadata: CziAddMetaData | None = field(init=False, default=None)
     scene_size_consistent: tuple[int, ...] | None = field(init=False, default_factory=lambda: ())
     scene_shape_is_consistent: bool = field(init=False, default=True)
     array6d_size: tuple[int, ...] | None = field(init=False, default=None)
     scene_shape_tolerance: int = 1
+    filter_hcs_to_stored_scenes: bool = False
     verbose: bool = False
 
     def __post_init__(self):
@@ -198,6 +207,22 @@ class CziMetadata:
             self.scene_shape_is_consistent = pixels.check_scenes_shape(
                 czidoc, size_s=self.image.SizeS, tolerance=self.scene_shape_tolerance
             )
+
+            stored_scene_indices: set[int] = set()
+
+            def collect_scene_index(_index, info):
+                coordinate = info.coordinate.to_dict()
+                if "S" in coordinate:
+                    stored_scene_indices.add(int(coordinate["S"]))
+                return True
+
+            enumerate_layer0 = getattr(czidoc, "enumerate_subblocks_subset", None)
+            if enumerate_layer0 is not None:
+                enumerate_layer0(collect_scene_index, only_layer0=True)
+            else:
+                scene_rectangles = czidoc.scenes_bounding_rectangle_no_pyramid
+                stored_scene_indices.update(scene_rectangles)
+            self.stored_scene_indices = tuple(sorted(stored_scene_indices))
 
         if not self.is_url:
             # get additional dimension info using czifile (replaces aicspylibczi)
@@ -329,7 +354,19 @@ class CziMetadata:
         # Build the normalized HCS hierarchy from scene XML only. This does not
         # scan subblocks or depend on the legacy sample-list sentinel values.
         self.hcs_status = build_hcs_metadata(self.czi_box)
-        self.hcs = self.hcs_status.plate
+        self.hcs_declared = self.hcs_status.plate
+        self.hcs = self.hcs_declared
+
+        if self.filter_hcs_to_stored_scenes and self.hcs_declared is not None:
+            declared_field_count = sum(len(well.fields) for well in self.hcs_declared.wells)
+            self.hcs = filter_hcs_by_scene_indices(self.hcs_declared, self.stored_scene_indices)
+            stored_field_count = sum(len(well.fields) for well in self.hcs.wells)
+            self.hcs_status = CziHcsResult(
+                True,
+                "HCS fields filtered to physically stored layer-0 subblocks "
+                f"({stored_field_count} of {declared_field_count} declared fields).",
+                self.hcs,
+            )
 
         # get additional metainformation
         self.add_metadata = CziAddMetaData(self.czi_box, verbose=self.verbose)

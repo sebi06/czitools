@@ -16,7 +16,7 @@ import re
 from dataclasses import dataclass, replace
 from pathlib import Path
 from statistics import median
-from typing import Any, cast
+from typing import Any, Collection, cast
 
 from box import Box, BoxList
 
@@ -296,6 +296,38 @@ def build_hcs_metadata(czi_box: Box) -> CziHcsResult:
     )
 
     return CziHcsResult(True, "Complete and consistent CZI well metadata was found.", plate)
+
+
+def filter_hcs_by_scene_indices(plate: CziPlate, scene_indices: Collection[int]) -> CziPlate:
+    """Return an HCS plate containing only fields from selected scenes.
+
+    Global CZI scene indices are preserved, while well-local field indices are
+    reassigned contiguously. Empty wells are omitted. The input plate remains
+    unchanged.
+
+    Args:
+        plate (CziPlate): Complete XML-derived HCS plate.
+        scene_indices (Collection[int]): Global scene indices to retain.
+
+    Returns:
+        CziPlate: An immutable plate containing the selected stored fields.
+    """
+
+    selected_indices = set(scene_indices)
+    wells: list[CziWell] = []
+
+    for well in plate.wells:
+        matching_fields = [field for field in well.fields if field.scene_index in selected_indices]
+        if matching_fields:
+            fields = tuple(replace(field, field_index=field_index) for field_index, field in enumerate(matching_fields))
+            wells.append(replace(well, fields=fields))
+
+    return replace(
+        plate,
+        observed_row_indices=tuple(sorted({well.row_index for well in wells})),
+        observed_column_indices=tuple(sorted({well.column_index for well in wells})),
+        wells=tuple(wells),
+    )
 
 
 def _get_scenes(czi_box: Box) -> list[Box]:

@@ -16,13 +16,31 @@ filepath = Path("data/WP96_4Pos_B4-10_DAPI.czi")
 
 ### Command-Line Tool
 
-The `czi_hcs_check.py` script provides a convenient way to inspect CZI well-plate metadata from the terminal with rich, colorized output:
+The `czi_hcs_check.py` script provides a convenient way to inspect CZI
+well-plate metadata from the terminal with rich, colorized output. It first
+shows every full-resolution dimension size derived from stored subblocks. The
+HCS plate view contains only physically stored fields by default.
 
 #### Inspect entire plate
 
 ```bash
 python demo/scripts/czi_hcs_check.py plate.czi
 ```
+
+For split acquisitions, the default output may contain fewer fields than the
+XML declares. The split child files retain global scene indices, so a child
+that stores only scene `S=3` is matched to scene 3 in the XML-derived HCS
+model. The inspector reports the stored and declared field counts when they
+differ.
+
+#### Show the complete XML-declared acquisition
+
+```bash
+python demo/scripts/czi_hcs_check.py plate.czi --show-declared
+```
+
+`--show-declared` disables payload filtering and shows every HCS field in the
+acquisition plan, including fields stored in other split files.
 
 #### Inspect a specific well
 
@@ -31,6 +49,7 @@ python demo/scripts/czi_hcs_check.py -f plate.czi --well B4
 ```
 
 When you specify a well with `--well`, the tool displays:
+
 - The requested well's field information in the **Well Fields** section
 - The **First Scene Details** from that specific well (not the overall first scene)
 
@@ -65,7 +84,19 @@ python demo/scripts/czi_hcs_check.py -f plate.czi --well B4 --no-well-table
 
 **Example output** (showing HCS plate information with rich formatting):
 
-```
+```text
+Full-Resolution Subblock Dimensions
+Dimension  Meaning       Size
+S          Scene         1
+T          Time          1
+C          Channel       2
+Z          Z-slice       5
+Y          Height        1024
+X          Width         1024
+M          Mosaic        not present
+R/I/H/V/B                 not present
+First stored scene Y × X: 1024 × 1024 px
+
 ╭─────────────────────────────────────────────────────────────────╮
 │ 🔬 High-Content Screening (HCS) Plate Information              │
 ╰─────────────────────────────────────────────────────────────────╯
@@ -126,7 +157,7 @@ The optional `well_name` parameter shows the first scene from that specific well
 
 **Example output** (sample metadata):
 
-```
+```text
 ╭─────────────────────────────────────────────────────────────────╮
 │ 📊 Sample Metadata                                              │
 ╰─────────────────────────────────────────────────────────────────╯
@@ -166,7 +197,7 @@ print_well_fields(mdata, well_name="B4")
 
 **Example output** (well fields):
 
-```
+```text
 ╭─────────────────────────────────────────────────────────────────╮
 │ 🔎 Well Fields                                                  │
 ╰─────────────────────────────────────────────────────────────────╯
@@ -206,8 +237,6 @@ if plate is not None:
               f"Center: ({field.scene_center_x}, {field.scene_center_y}) µm")
 ```
 
-
-
 ## General Metadata Access
 
 For most workflows, create one `CziMetadata` object and use its grouped
@@ -229,19 +258,43 @@ print(mdata.pixeltypes)
 print(mdata.scene_shape_is_consistent)
 ```
 
+`CziDimensions` obtains index ranges and spatial extents from
+`pylibCZIrw`'s full-resolution, non-pyramid subblock-derived bounding boxes.
+The numeric XML `Size*` values are not authoritative. `SizeS` is the number of
+stored scene rectangles, not the largest scene index plus one; global scene
+keys can therefore be sparse. `SizeX_scene` and `SizeY_scene` describe the
+first stored scene, while `SizeX` and `SizeY` describe the total stored spatial
+extent.
+
+XML remains the source for acquisition-plan semantics such as well names,
+plate layout, and scene-center positions. For split acquisitions, use these
+attributes to compare both views:
+
+```python
+mdata = CziMetadata(filepath, filter_hcs_to_stored_scenes=True)
+
+print(mdata.stored_scene_indices)  # physical global S keys
+print(mdata.hcs)                   # physically stored HCS subset
+print(mdata.hcs_declared)          # complete XML-declared HCS model
+```
+
+`filter_hcs_to_stored_scenes` defaults to `False` in the Python API for
+backward compatibility. The HCS inspector enables it by default and offers
+`--show-declared` for the complete XML model.
+
 The `*_required` properties return a non-optional value or raise a clear error.
 Frequently used groups are:
 
-| Property                              | Contents                                     |
-| ------------------------------------- | -------------------------------------------- |
-| `image`                               | Dimension sizes                              |
-| `bbox`                                | Total and per-scene bounding boxes           |
-| `channelinfo`                         | Channel acquisition and display information  |
-| `scale`                               | Physical scaling                             |
-| `objective`, `detector`, `microscope` | Instrument information                       |
-| `sample`                              | Per-scene sample and well information        |
-| `attachments`                         | CZI attachment availability                  |
-| `hcs`, `hcs_status`                   | Validated HCS hierarchy and detection result |
+| Property                              | Contents                                    |
+| ------------------------------------- | ------------------------------------------- |
+| `image`                               | Full-resolution subblock-derived dimensions |
+| `bbox`                                | Total and per-scene bounding boxes          |
+| `channelinfo`                         | Channel acquisition and display information |
+| `scale`                               | Physical scaling                            |
+| `objective`, `detector`, `microscope` | Instrument information                      |
+| `sample`                              | Per-scene sample and well information       |
+| `attachments`                         | CZI attachment availability                 |
+| `hcs`, `hcs_status`                   | Active HCS hierarchy and detection result   |
 
 Metadata can also be read selectively using the individual classes:
 

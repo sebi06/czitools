@@ -1,6 +1,9 @@
-import pytest
-from czitools.utils import pixels
+from types import SimpleNamespace
+
 import numpy as np
+import pytest
+
+from czitools.utils import pixels
 
 
 @pytest.mark.parametrize(
@@ -59,6 +62,16 @@ def test_check_if_rgb(pixeltypes, expected_is_rgb, expected_is_consistent):
     is_rgb, is_consistent = pixels._check_if_rgb(pixeltypes)
     assert is_rgb == expected_is_rgb
     assert is_consistent == expected_is_consistent
+
+
+def test_check_scenes_shape_supports_sparse_global_scene_indices():
+    rectangle = SimpleNamespace(w=512, h=256)
+    czidoc = SimpleNamespace(
+        scenes_bounding_rectangle_no_pyramid={3: rectangle},
+        scenes_bounding_rectangle={3: rectangle},
+    )
+
+    assert pixels.check_scenes_shape(czidoc, size_s=1) is True
 
 
 @pytest.mark.parametrize(

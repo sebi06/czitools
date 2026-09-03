@@ -1,11 +1,11 @@
 """Image dimension metadata for CZI files.
 
-Provides `CziDimensions`, a validated Pydantic dataclass that reads all
-STCZYX(A) image-dimension sizes from CZI metadata.
+Provides `CziDimensions`, a validated Pydantic dataclass that reads
+STCZYX(A) image-dimension sizes from full-resolution CZI subblocks.
 """
 
 import os
-from dataclasses import Field, field, fields
+from dataclasses import field
 
 from box import Box
 from pydantic import ConfigDict
@@ -19,47 +19,40 @@ logger = logging_tools.set_logging()
 
 
 def _string_to_float_list(string: str) -> list[float]:
-    """Converts a space-separated string of numbers into a list of floats.
+    """Convert a space-separated string of numbers to floats.
 
     Args:
-      string: The input string.
+                string (str): Space-separated numeric values.
 
     Returns:
-      A list of floats.
+                list[float]: Converted values.
     """
 
-    numbers = string.split()
-    float_numbers = [float(num) for num in numbers]
-
-    return float_numbers
-
-
-# class Config:
-#     arbitrary_types_allowed = True
+    return [float(number) for number in string.split()]
 
 
 @dataclass(config=ConfigDict(arbitrary_types_allowed=True))
 class CziDimensions:
-    """CziDimensions is a dataclass that encapsulates the dimensions of a CZI image.
+    """Represent the dimensions of a CZI image.
 
     Attributes:
-        czisource (Union[str, os.PathLike[str], Box]): Source of the CZI image.
-        SizeX (Optional[int]): Total size in the X dimension, including scenes.
-        SizeY (Optional[int]): Total size in the Y dimension, including scenes.
-        SizeX_scene (Optional[int]): Size in the X dimension per scene (if equal scene sizes).
-        SizeY_scene (Optional[int]): Size in the Y dimension per scene (if equal scene sizes).
-        SizeS (Optional[int]): Size in the S dimension.
-        SizeT (Optional[int]): Size in the T dimension.
-        SizeZ (Optional[int]): Size in the Z dimension.
-        SizeC (Optional[int]): Size in the C dimension.
-        SizeM (Optional[int]): Size in the M dimension.
-        SizeR (Optional[int]): Size in the R dimension.
-        SizeH (Optional[int]): Size in the H dimension.
-        SizeI (Optional[int]): Size in the I dimension.
-        SizeV (Optional[int]): Size in the V dimension.
-        SizeB (Optional[int]): Size in the B dimension.
-        posZ (Optional[List[float]]): List of Z positions in microns, if they exist.
-        posT (Optional[List[float]]): List of T positions in seconds, if they exist.
+        czisource (str | os.PathLike[str] | Box): Source of the CZI image.
+        SizeX (int | None): Total size in X, including scenes.
+        SizeY (int | None): Total size in Y, including scenes.
+        SizeX_scene (int | None): X size of the first stored scene.
+        SizeY_scene (int | None): Y size of the first stored scene.
+        SizeS (int | None): Number of stored scenes.
+        SizeT (int | None): Size in T.
+        SizeZ (int | None): Size in Z.
+        SizeC (int | None): Size in C.
+        SizeM (int | None): Number of mosaic indices.
+        SizeR (int | None): Size in R.
+        SizeH (int | None): Size in H.
+        SizeI (int | None): Size in I.
+        SizeV (int | None): Size in V.
+        SizeB (int | None): Size in B.
+        posZ (list[float] | None): Z positions in microns, when available.
+        posT (list[float] | None): T positions in seconds, when available.
         verbose (bool): Flag to enable verbose logging.
 
     Notes:
@@ -101,7 +94,7 @@ class CziDimensions:
     posT: list[float] | None = field(init=False, default=None)
     verbose: bool = False
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
 
         if self.verbose:
             logger.info("Reading Dimensions from CZI image data.")
@@ -111,18 +104,14 @@ class CziDimensions:
         self.SizeX_sf = self.SizeX
         self.SizeY_sf = self.SizeY
 
-    def set_dimensions(self):
-        """Populate the image dimensions with the detected values from the metadata.
+    def set_dimensions(self) -> None:
+        """Populate dimensions from full-resolution CZI subblocks.
 
-        This method sets the dimensions of the image based on the metadata extracted
-        from the CZI file. It handles various dimensions such as SizeX, SizeY, SizeS,
-        SizeT, SizeZ, SizeC, SizeM, SizeR, SizeH, SizeI, SizeV, and SizeB.
-        Additionally, it processes scene dimensions and time (T) and z-position (Z)
-        lists if available.
+        Dimension sizes are derived from pylibCZIrw bounding boxes, which are
+        calculated from stored subblock headers rather than XML ``Size*`` values.
+        Time and Z positions remain optional XML metadata because they are physical
+        coordinates rather than index ranges.
 
-        Raises:
-            KeyError: If scene bounding rectangle information is not found.
-            Exception: If there is an error converting string to a float list for posT or posZ.
         """
 
         # get the Box and extract the relevant dimension metadata_tools
@@ -133,37 +122,36 @@ class CziDimensions:
 
         dimensions = czi_box.ImageDocument.Metadata.Information.Image
 
-        # define the image dimensions to check for
-        dims = [
-            "SizeX",
-            "SizeY",
-            "SizeS",
-            "SizeT",
-            "SizeZ",
-            "SizeC",
-            "SizeM",
-            "SizeR",
-            "SizeH",
-            "SizeI",
-            "SizeV",
-            "SizeB",
-        ]
+        with pyczi.open_czi(str(czi_box.filepath), czi_box.czi_open_arg) as czidoc:
+            bounding_box = czidoc.total_bounding_box_no_pyramid
+            for dim in ("X", "Y", "T", "Z", "C", "R", "H", "I", "V", "B"):
+                if dim in bounding_box:
+                    start, end = bounding_box[dim]
+                    setattr(self, f"Size{dim}", end - start)
 
-        cls_fields: tuple[Field, ...] = fields(self.__class__)
-        for fd in cls_fields:
-            if fd.name in dims and dimensions[fd.name] is not None:
-                setattr(self, fd.name, int(dimensions[fd.name]))
+            scene_rectangles = czidoc.scenes_bounding_rectangle_no_pyramid
+            declared_dimensions = dimensions.Dimensions
+            has_scene_dimension = (
+                declared_dimensions is not None and "S" in declared_dimensions
+            ) or dimensions.SizeS is not None
+            if has_scene_dimension and scene_rectangles:
+                self.SizeS = len(scene_rectangles)
+                first_scene = scene_rectangles[min(scene_rectangles)]
+                self.SizeX_scene = first_scene.w
+                self.SizeY_scene = first_scene.h
 
-        if czi_box.has_scenes:
-            try:
-                with pyczi.open_czi(czi_box.filepath, czi_box.czi_open_arg) as czidoc:
-                    self.SizeX_scene = czidoc.scenes_bounding_rectangle_no_pyramid[0].w
-                    self.SizeY_scene = czidoc.scenes_bounding_rectangle_no_pyramid[0].h
-            except KeyError:
-                self.SizeX_scene = None
-                self.SizeY_scene = None
-                if self.verbose:
-                    logger.warning("Scenes Dimension detected but no bounding rectangle information found.")
+            mosaic_indices: set[int] = set()
+
+            def collect_mosaic_index(_index, info):
+                if info.is_mindex_valid():
+                    mosaic_indices.add(info.mIndex)
+                return True
+
+            enumerate_layer0 = getattr(czidoc, "enumerate_subblocks_subset", None)
+            if enumerate_layer0 is not None:
+                enumerate_layer0(collect_mosaic_index, only_layer0=True)
+            if mosaic_indices:
+                self.SizeM = max(mosaic_indices) + 1
 
         if czi_box.has_T:
             # check if there is a list with timepoints (is not in very CZI)
@@ -196,126 +184,3 @@ class CziDimensions:
             else:
                 if self.verbose:
                     logger.warning("No posZ list found under 'dimensions.Dimensions.Z.Positions'")
-
-    # # THIS IS STILL EXPERIMENTAL AND NOT USED YET
-    # def set_dimensions_adv(self):
-    #     """
-    #     Set the dimensions of the CZI file based on metadata and subblock information.
-    #     This method extracts dimension metadata from the provided CZI source and calculates
-    #     the sizes of various dimensions (e.g., X, Y, T, Z, etc.) using the total bounding box
-    #     of the CZI file. It also attempts to retrieve positional information for time (T) and
-    #     Z-dimensions if available.
-
-    #     Attributes Set:
-    #         - SizeX, SizeY, SizeT, SizeZ, SizeC, SizeR, SizeH, SizeI, SizeV, SizeB:
-    #           Sizes of respective dimensions if present in the total bounding box.
-    #         - SizeS: Number of scenes in the CZI file.
-    #         - SizeM: Number of mosaic tiles, determined using BioImage or metadata.
-    #         - SizeX_scene, SizeY_scene: Scene dimensions if bounding rectangle information is available.
-    #         - posT: List of time positions if available in the metadata.
-    #         - posZ: List of Z positions if available in the metadata.
-
-    #     Notes:
-    #         - The method uses `pyczi.open_czi` to open the CZI file and extract subblock information.
-    #         - Positional information for T and Z dimensions is optional and may not be present in all CZI files.
-    #         - Verbose logging is used to provide detailed warnings or errors during execution.
-
-    #     Raises:
-    #         - Exception: If an error occurs while parsing positional information for T or Z dimensions.
-    #     """
-
-    #     from bioio import BioImage
-
-    #     # get the Box and extract the relevant dimension metadata_tools
-    #     if isinstance(self.czisource, Box):
-    #         czi_box = self.czisource
-    #     else:
-    #         czi_box = get_czimd_box(self.czisource)
-
-    #     dimensions = czi_box.ImageDocument.Metadata.Information.Image
-
-    #     with pyczi.open_czi(self.czisource, czi_box.czi_open_arg) as czidoc:
-
-    #         # get the sizes from the subblocks and not from the metadata
-    #         tb = czidoc.total_bounding_box_no_pyramid
-
-    #         for dim in ["X", "Y", "T", "Z", "C", "R", "H", "I", "V", "B"]:
-    #             if dim in tb.keys():
-    #                 setattr(self, f"Size{dim}", tb[dim][1])
-
-    #         self.SizeS = len(czidoc.scenes_bounding_rectangle_no_pyramid)
-
-    #         if czi_box.czi_open_arg == pyczi.ReaderFileInputTypes.Standard:
-
-    #             # try to read the number of Mosaic tiles in using bioio-czi and aicspylibczi
-    #             img = BioImage(
-    #                 self.czisource,
-    #                 reconstruct_mosaic=False,
-    #                 include_subblock_metadata=True,
-    #                 use_aicspylibczi=True,
-    #             )
-
-    #             if hasattr(img.dims, "M"):
-    #                 self.SizeM = img.dims.M
-
-    #         elif czi_box.czi_open_arg == pyczi.ReaderFileInputTypes.Curl:
-
-    #             if dimensions.SizeM is not None:
-    #                 # try to read the number of Mosaic tiles from the metadata XML
-    #                 self.SizeM = dimensions.SizeM
-
-    #         if self.SizeS is not None:
-
-    #             for s in range(len(czidoc.scenes_bounding_rectangle_no_pyramid)):
-    #                 if czidoc.scenes_bounding_rectangle_no_pyramid[s].w is not None:
-    #                     self.SizeX_scene.append(
-    #                         czidoc.scenes_bounding_rectangle_no_pyramid[s].w
-    #                     )
-    #                 if czidoc.scenes_bounding_rectangle_no_pyramid[s].h is not None:
-    #                     self.SizeY_scene.append(
-    #                         czidoc.scenes_bounding_rectangle_no_pyramid[s].h
-    #                     )
-
-    #     if czi_box.has_T:
-    #         # check if there is a list with timepoints (is not in very CZI)
-    #         if dimensions.Dimensions.T.Positions is not None:
-    #             if dimensions.Dimensions.T.Positions.List is not None:
-    #                 try:
-    #                     self.posT = string_to_float_list(
-    #                         dimensions.Dimensions.T.Positions.List.Offsets
-    #                     )
-    #                 except Exception as e:
-    #                     if self.verbose:
-    #                         logger.error(f"{e}")
-    #             else:
-    #                 if self.verbose:
-    #                     logger.warning(
-    #                         "No posT list found under 'dimensions.Dimensions.T.Positions.List'"
-    #                     )
-    #         else:
-    #             if self.verbose:
-    #                 logger.warning(
-    #                     "No posT list found under 'dimensions.Dimensions.T.Positions'"
-    #                 )
-
-    #     if czi_box.has_Z:
-    #         # check if there is a list with z-positions (is not in very CZI)
-    #         if dimensions.Dimensions.Z.Positions is not None:
-    #             if dimensions.Dimensions.Z.Positions.List is not None:
-    #                 try:
-    #                     self.posZ = string_to_float_list(
-    #                         dimensions.Dimensions.Z.Positions.List.Offsets
-    #                     )
-    #                 except Exception as e:
-    #                     if self.verbose:
-    #                         logger.error(f"{e}")
-    #             else:
-    #                 if self.verbose:
-    #                     logger.warning(
-    #                         "No posZ list found under 'dimensions.Dimensions.Z.Positions.List'"
-    #                     )
-    #         else:
-    #             if self.verbose:
-    #                 logger.warning(
-    #                     "No posZ list found under 'dimensions.Dimensions.Z.Positions'"
-    #                 )

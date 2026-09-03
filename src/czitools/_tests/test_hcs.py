@@ -11,6 +11,7 @@ from czitools.metadata_tools.czi_metadata import CziMetadata
 from czitools.metadata_tools.hcs import (
     build_hcs_metadata,
     enrich_hcs_with_planetable,
+    filter_hcs_by_scene_indices,
     normalize_well_name,
     resolve_field,
     resolve_well,
@@ -104,6 +105,42 @@ def test_build_hcs_model_and_source_scoped_ids() -> None:
         well.fields[0].scene_index = 99  # type: ignore[misc]
 
 
+def test_filter_hcs_by_scene_indices_preserves_global_indices() -> None:
+    result = build_hcs_metadata(
+        _metadata_box(
+            [
+                _scene(0, "B4", 2, 4, "region-1"),
+                _scene(1, "B4", 2, 4, "region-2"),
+                _scene(2, "B5", 2, 5, "region-3"),
+            ]
+        )
+    )
+    assert result.plate is not None
+
+    filtered = filter_hcs_by_scene_indices(result.plate, {1, 2})
+
+    assert filtered is not result.plate
+    assert [well.canonical_name for well in filtered.wells] == ["B4", "B5"]
+    assert filtered.observed_column_indices == (3, 4)
+    assert filtered.get_well("B4").fields[0].scene_index == 1
+    assert filtered.get_well("B4").fields[0].field_index == 0
+    assert filtered.get_well("B5").fields[0].scene_index == 2
+    assert [field.scene_index for field in result.plate.get_well("B4").fields] == [
+        0,
+        1,
+    ]
+
+
+def test_filter_hcs_by_scene_indices_allows_empty_payload() -> None:
+    plate = _plate()
+
+    filtered = filter_hcs_by_scene_indices(plate, set())
+
+    assert filtered.wells == ()
+    assert filtered.observed_row_indices == ()
+    assert filtered.observed_column_indices == ()
+
+
 @pytest.mark.parametrize(
     "scenes, reason_fragment",
     [
@@ -129,6 +166,19 @@ def test_czi_metadata_exposes_hcs_for_included_wellplate() -> None:
     assert len(metadata.hcs.wells) == 7
     assert sum(len(well.fields) for well in metadata.hcs.wells) == 28
     assert metadata.hcs.get_well("B4").fields[0].region_id == "637232309317131710"
+
+
+def test_czi_metadata_can_filter_hcs_to_stored_scenes() -> None:
+    metadata = CziMetadata(
+        str(BASEDIR / "data" / "WP96_4Pos_B4-10_DAPI.czi"),
+        filter_hcs_to_stored_scenes=True,
+    )
+
+    assert metadata.hcs_declared is not None
+    assert metadata.hcs is not None
+    assert metadata.stored_scene_indices == tuple(range(28))
+    assert sum(len(well.fields) for well in metadata.hcs.wells) == 28
+    assert "28 of 28 declared fields" in metadata.hcs_status.reason
 
 
 def test_multiscene_non_plate_has_explanatory_status() -> None:

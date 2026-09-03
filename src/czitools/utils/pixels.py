@@ -103,26 +103,17 @@ def check_scenes_shape(czidoc: pyczi.CziReader, size_s: int | None, tolerance: i
     Returns:
         bool: True if all scenes have XY shapes within ``tolerance`` pixels
     """
-    scene_width = []
-    scene_height = []
-    scene_shape_is_consistent = False
+    if size_s is None:
+        return True
 
-    if size_s is not None:
-        for s in range(size_s):
-            scene_width.append(czidoc.scenes_bounding_rectangle[s].w)
-            scene_height.append(czidoc.scenes_bounding_rectangle[s].h)
+    scene_rectangles = czidoc.scenes_bounding_rectangle_no_pyramid or czidoc.scenes_bounding_rectangle
+    if not scene_rectangles:
+        return True
 
-        # check if all entries are within the allowed tolerance
-        sw = (max(scene_width) - min(scene_width)) <= tolerance
-        sh = (max(scene_height) - min(scene_height)) <= tolerance
+    scene_width = [rectangle.w for rectangle in scene_rectangles.values()]
+    scene_height = [rectangle.h for rectangle in scene_rectangles.values()]
 
-        if sw and sh:
-            scene_shape_is_consistent = True
-
-    else:
-        scene_shape_is_consistent = True
-
-    return scene_shape_is_consistent
+    return (max(scene_width) - min(scene_width)) <= tolerance and (max(scene_height) - min(scene_height)) <= tolerance
 
 
 def _get_dimorder(dim_string: str) -> tuple[dict, list, int]:

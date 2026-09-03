@@ -80,6 +80,7 @@ from czitools.read_tools import read_6darray, read_stacks_list
 
 # Read metadata without loading pixels.
 mdata = CziMetadata("path/to/file.czi")
+print(mdata.image_required.SizeS)
 print(mdata.image_required.SizeC)
 print(mdata.scale_required.X)
 print(mdata.scene_shape_is_consistent)  # True when all scenes can be stacked
@@ -113,6 +114,13 @@ scenes, dims, scene_count, mdata = read_stacks_list(
 )
 first_plane = scenes[0].isel(T=0, C=0, Z=0).compute()
 ```
+
+Image dimension sizes (`SizeS`, `SizeT`, `SizeC`, `SizeZ`, `SizeY`, `SizeX`,
+and optional dimensions) describe the full-resolution data physically stored
+in CZI subblocks. They do not use numeric XML `Size*` declarations. This is
+important for split acquisitions, where every child file can retain XML for
+the complete acquisition while storing only a subset of the global scene
+indices. Use `mdata.stored_scene_indices` to inspect those physical `S` keys.
 
 `read_6darray(..., use_dask=True)` also provides genuinely lazy pixel access
 when the CZI has equal-sized scenes and consistent pixel types.
@@ -186,10 +194,12 @@ plate → well → field image → multiscale level.
 ### HCS Plate Inspection CLI
 
 Use `demo/scripts/czi_hcs_check.py` to inspect CZI well-plate metadata from
-the command line with colorized output:
+the command line with colorized output. The inspector displays all
+full-resolution, subblock-derived dimension sizes and, by default, limits the
+HCS hierarchy to fields physically stored in the selected file:
 
 ```bash
-# Inspect entire plate (all wells and fields)
+# Inspect dimensions and HCS fields physically stored in this file
 python demo/scripts/czi_hcs_check.py -f plate.czi
 
 # Inspect a specific well
@@ -198,12 +208,17 @@ python demo/scripts/czi_hcs_check.py -f plate.czi --well B4
 # Omit the well summary table while retaining plate, sample, and field details
 python demo/scripts/czi_hcs_check.py -f plate.czi --no-well-table
 
+# Show the complete acquisition model declared by the CZI XML
+python demo/scripts/czi_hcs_check.py -f plate.czi --show-declared
+
 # Get help
 python demo/scripts/czi_hcs_check.py --help
 ```
 
 Use `--no-well-table` for large plates when the per-well summary would make
-the terminal output unnecessarily long.
+the terminal output unnecessarily long. `--show-declared` is useful for split
+acquisitions when you want the planned plate layout rather than only the
+payload of the current file.
 
 Or use the utility functions in Python:
 
