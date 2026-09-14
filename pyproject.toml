@@ -75,6 +75,7 @@ omezarr = [
 omezarr-gui = [
     "czitools[omezarr]",
     "magicgui",
+    "PySide6",
     "qtpy",
     "napari>=0.9.0",
     "napari-ome-zarr>=0.10.0",
