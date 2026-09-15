@@ -35,7 +35,7 @@ dependencies = [
     "python-box[all]",
     "czifile>=2026.6.6",
     "loguru",
-    "colorlog",
+    "colorlog>=6.8.2",
     "pydantic",
     "xarray",
     "dask[array]",
@@ -68,7 +68,7 @@ all = [
 ]
 # OME-Zarr / OME-NGFF export (czitools.export_tools): conversion + validation.
 omezarr = [
-    "ngff-zarr[cli, dask-image,validate]>=0.45.0",
+    "ngff-zarr[dask-image,validate]>=0.45.0",
     "ome-zarr>=0.18.0",
     "ome-zarr-models>=1.8,<2",
 ]

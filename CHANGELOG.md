@@ -8,6 +8,16 @@ and the project adheres to [Semantic Versioning](https://semver.org/).
 
 ## Unreleased
 
+## [0.25.1] — 2026-09-15
+
+### Fixed
+
+- The `[omezarr]` and `[omezarr-gui]` extras no longer request the unused
+  `ngff-zarr[cli]` dependencies, which conflicted with the `imagecodecs`
+  version required by `czifile`. The minimum `colorlog` version now prevents
+  pip backtracking into obsolete source distributions that masked this
+  dependency conflict with a build error.
+
 ## [0.25.0] — 2026-09-15
 
 ### Added
