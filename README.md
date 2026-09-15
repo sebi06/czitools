@@ -193,26 +193,26 @@ plate → well → field image → multiscale level.
 
 ### HCS Plate Inspection CLI
 
-Use `demo/scripts/czi_hcs_check.py` to inspect CZI well-plate metadata from
-the command line with colorized output. The inspector displays all
+Use `czi_hcs_check` to inspect CZI well-plate metadata from the command line
+with colorized output. The inspector displays all
 full-resolution, subblock-derived dimension sizes and, by default, limits the
 HCS hierarchy to fields physically stored in the selected file:
 
 ```bash
 # Inspect dimensions and HCS fields physically stored in this file
-python demo/scripts/czi_hcs_check.py -f plate.czi
+czi_hcs_check -f plate.czi
 
 # Inspect a specific well
-python demo/scripts/czi_hcs_check.py -f plate.czi --well B4
+czi_hcs_check -f plate.czi --well B4
 
 # Omit the well summary table while retaining plate, sample, and field details
-python demo/scripts/czi_hcs_check.py -f plate.czi --no-well-table
+czi_hcs_check -f plate.czi --no-well-table
 
 # Show the complete acquisition model declared by the CZI XML
-python demo/scripts/czi_hcs_check.py -f plate.czi --show-declared
+czi_hcs_check -f plate.czi --show-declared
 
 # Get help
-python demo/scripts/czi_hcs_check.py --help
+czi_hcs_check --help
 ```
 
 Use `--no-well-table` for large plates when the per-well summary would make

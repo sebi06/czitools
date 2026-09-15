@@ -16,7 +16,7 @@ filepath = Path("data/WP96_4Pos_B4-10_DAPI.czi")
 
 ### Command-Line Tool
 
-The `czi_hcs_check.py` script provides a convenient way to inspect CZI
+The `czi_hcs_check` command provides a convenient way to inspect CZI
 well-plate metadata from the terminal with rich, colorized output. It first
 shows every full-resolution dimension size derived from stored subblocks. The
 HCS plate view contains only physically stored fields by default.
@@ -24,7 +24,7 @@ HCS plate view contains only physically stored fields by default.
 #### Inspect entire plate
 
 ```bash
-python demo/scripts/czi_hcs_check.py plate.czi
+czi_hcs_check plate.czi
 ```
 
 For split acquisitions, the default output may contain fewer fields than the
@@ -36,7 +36,7 @@ differ.
 #### Show the complete XML-declared acquisition
 
 ```bash
-python demo/scripts/czi_hcs_check.py plate.czi --show-declared
+czi_hcs_check plate.czi --show-declared
 ```
 
 `--show-declared` disables payload filtering and shows every HCS field in the
@@ -45,7 +45,7 @@ acquisition plan, including fields stored in other split files.
 #### Inspect a specific well
 
 ```bash
-python demo/scripts/czi_hcs_check.py -f plate.czi --well B4
+czi_hcs_check -f plate.czi --well B4
 ```
 
 When you specify a well with `--well`, the tool displays:
@@ -58,19 +58,19 @@ This provides consistent context when inspecting a particular well.
 #### Using the --filepath flag
 
 ```bash
-python demo/scripts/czi_hcs_check.py --filepath plate.czi
+czi_hcs_check --filepath plate.czi
 ```
 
 #### View all options
 
 ```bash
-python demo/scripts/czi_hcs_check.py --help
+czi_hcs_check --help
 ```
 
 #### Hide well summary table for large plates
 
 ```bash
-python demo/scripts/czi_hcs_check.py -f plate.czi --no-well-table
+czi_hcs_check -f plate.czi --no-well-table
 ```
 
 The `--no-well-table` flag omits the per-well summary table while retaining
@@ -79,7 +79,7 @@ This is useful for large plates where the summary would make terminal output
 unnecessarily long. It can be combined with `--well`:
 
 ```bash
-python demo/scripts/czi_hcs_check.py -f plate.czi --well B4 --no-well-table
+czi_hcs_check -f plate.czi --well B4 --no-well-table
 ```
 
 **Example output** (showing HCS plate information with rich formatting):
@@ -271,16 +271,17 @@ plate layout, and scene-center positions. For split acquisitions, use these
 attributes to compare both views:
 
 ```python
-mdata = CziMetadata(filepath, filter_hcs_to_stored_scenes=True)
+mdata = CziMetadata(filepath)
 
 print(mdata.stored_scene_indices)  # physical global S keys
 print(mdata.hcs)                   # physically stored HCS subset
 print(mdata.hcs_declared)          # complete XML-declared HCS model
 ```
 
-`filter_hcs_to_stored_scenes` defaults to `False` in the Python API for
-backward compatibility. The HCS inspector enables it by default and offers
-`--show-declared` for the complete XML model.
+`filter_hcs_to_stored_scenes` defaults to `True`, so the active HCS model only
+contains fields backed by layer-0 subblocks. Pass
+`filter_hcs_to_stored_scenes=False` or use the inspector's `--show-declared`
+option to inspect the complete XML acquisition model.
 
 The `*_required` properties return a non-optional value or raise a clear error.
 Frequently used groups are:

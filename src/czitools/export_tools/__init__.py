@@ -38,6 +38,10 @@ _INSTALL_HINT = (
     'Install them with: pip install "czitools[omezarr]" '
     '(or "czitools[omezarr-gui]" for the GUI).'
 )
+_GUI_INSTALL_HINT = (
+    "The OME-Zarr GUI requires a Qt binding and other optional dependencies. "
+    'Install them with: python -m pip install "czitools[omezarr-gui]".'
+)
 
 # public name -> submodule that defines it
 _EXPORTS = {
@@ -76,6 +80,10 @@ def __getattr__(name: str) -> Any:
         module = importlib.import_module(f".{module_name}", __name__)
     except ModuleNotFoundError as error:
         raise ImportError(f"{_INSTALL_HINT}\nMissing dependency: {error.name}") from error
+    except Exception as error:
+        if module_name == "gui" and error.__class__.__name__ == "QtBindingsNotFoundError":
+            raise ImportError(_GUI_INSTALL_HINT) from error
+        raise
     return getattr(module, name)
 
 

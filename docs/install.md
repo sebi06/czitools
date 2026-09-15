@@ -47,6 +47,12 @@ After installing `omezarr-gui`, launch the converter GUI via the console script:
 czitools-omezarr-gui
 ```
 
+The same installation also provides the HCS metadata inspector:
+
+```bash
+czi_hcs_check plate.czi
+```
+
 Install with **all** optional dependencies (visualization, OME-Zarr, GUI, NDV, etc.):
 
 ```bash
@@ -100,7 +106,7 @@ These are installed automatically with `pip install czitools`:
 | Package                                  | Purpose                         |
 | ---------------------------------------- | ------------------------------- |
 | `seaborn` / `plotly` / `matplotlib`      | Plotting and visualization      |
-| `qtpy` / `pyqtgraph`                     | Qt-based visualization          |
+| `PySide6` / `qtpy` / `pyqtgraph`         | Qt binding and visualization    |
 | `colormap`                               | Colormap utilities              |
 | `ngff-zarr` / `ome-zarr` / `zarr`        | OME-Zarr export support         |
 | `bioio` / `bioio-czi` / `bioio-ome-zarr` | BioIO readers                   |
@@ -131,6 +137,7 @@ Adds the MagicGUI converter application on top of `[omezarr]`:
 
 | Package             | Purpose                               |
 | ------------------- | ------------------------------------- |
+| `PySide6`           | Default Qt 6 binding for pip installs |
 | `magicgui` / `qtpy` | GUI widgets and Qt abstraction        |
 | `napari`            | Optional in-app preview of the result |
 | `napari-ome-zarr`   | napari reader plugin for OME-Zarr     |

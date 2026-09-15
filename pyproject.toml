@@ -50,6 +50,7 @@ dependencies = [
 all = [
     "seaborn",
     "plotly",
+    "PySide6",
     "qtpy",
     "pyqtgraph",
     "cmap",
@@ -120,6 +121,7 @@ docs = [
 "User Support" = "https://github.com/sebi06/czitools/issues"
 
 [project.scripts]
+czi_hcs_check = "czitools.hcs_check:main"
 czitools-omezarr-gui = "czitools.export_tools.gui:run_gui"
 
 [tool.setuptools]

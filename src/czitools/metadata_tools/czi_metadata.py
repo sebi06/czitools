@@ -99,10 +99,13 @@ class CziMetadata:
         hcs_status (CziHcsResult): HCS detection result and explanatory reason.
         stored_scene_indices (Tuple[int, ...]): Global scene indices found in
             layer-0 subblocks.
+        stored_dimension_indices (Dict[str, Tuple[int, ...]]): Exact indices
+            found for each dimension in layer-0 subblocks.
         add_metadata (Optional[CziAddMetaData]): Additional metadata.
         scene_size_consistent (Optional[Tuple[int]]): Consistency of scene sizes.
         filter_hcs_to_stored_scenes (bool): Restrict ``hcs`` to physically stored
             scenes while preserving the complete model in ``hcs_declared``.
+            Defaults to True.
         verbose (bool): Verbose output for logging.
     """
 
@@ -148,12 +151,13 @@ class CziMetadata:
         init=False, default_factory=lambda: CziHcsResult(False, "HCS detection has not run.")
     )
     stored_scene_indices: tuple[int, ...] = field(init=False, default_factory=tuple)
+    stored_dimension_indices: dict[str, tuple[int, ...]] = field(init=False, default_factory=dict)
     add_metadata: CziAddMetaData | None = field(init=False, default=None)
     scene_size_consistent: tuple[int, ...] | None = field(init=False, default_factory=lambda: ())
     scene_shape_is_consistent: bool = field(init=False, default=True)
     array6d_size: tuple[int, ...] | None = field(init=False, default=None)
     scene_shape_tolerance: int = 1
-    filter_hcs_to_stored_scenes: bool = False
+    filter_hcs_to_stored_scenes: bool = True
     verbose: bool = False
 
     def __post_init__(self):
@@ -193,6 +197,8 @@ class CziMetadata:
 
         # get the dimensions and order
         self.image = CziDimensions(self.czi_box, verbose=self.verbose)
+        self.stored_dimension_indices = self.image.dimension_indices
+        self.stored_scene_indices = self.stored_dimension_indices.get("S", ())
 
         # get metadata_tools using pylibCZIrw
         with pyczi.open_czi(str(self.filepath), self.pyczi_readertype) as czidoc:
@@ -207,22 +213,6 @@ class CziMetadata:
             self.scene_shape_is_consistent = pixels.check_scenes_shape(
                 czidoc, size_s=self.image.SizeS, tolerance=self.scene_shape_tolerance
             )
-
-            stored_scene_indices: set[int] = set()
-
-            def collect_scene_index(_index, info):
-                coordinate = info.coordinate.to_dict()
-                if "S" in coordinate:
-                    stored_scene_indices.add(int(coordinate["S"]))
-                return True
-
-            enumerate_layer0 = getattr(czidoc, "enumerate_subblocks_subset", None)
-            if enumerate_layer0 is not None:
-                enumerate_layer0(collect_scene_index, only_layer0=True)
-            else:
-                scene_rectangles = czidoc.scenes_bounding_rectangle_no_pyramid
-                stored_scene_indices.update(scene_rectangles)
-            self.stored_scene_indices = tuple(sorted(stored_scene_indices))
 
         if not self.is_url:
             # get additional dimension info using czifile (replaces aicspylibczi)

@@ -168,6 +168,16 @@ def test_czi_metadata_exposes_hcs_for_included_wellplate() -> None:
     assert metadata.hcs.get_well("B4").fields[0].region_id == "637232309317131710"
 
 
+def test_czi_dimensions_expose_layer0_bounds_and_indices() -> None:
+    metadata = CziMetadata(str(BASEDIR / "data" / "WP96_4Pos_B4-10_DAPI.czi"))
+
+    assert metadata.image is not None
+    assert metadata.image.dimension_indices["S"] == tuple(range(28))
+    assert metadata.image.dimension_indices["Z"] == (0,)
+    assert metadata.image.dimension_bounds["S"] == (0, 28)
+    assert metadata.stored_dimension_indices is metadata.image.dimension_indices
+
+
 def test_czi_metadata_can_filter_hcs_to_stored_scenes() -> None:
     metadata = CziMetadata(
         str(BASEDIR / "data" / "WP96_4Pos_B4-10_DAPI.czi"),
@@ -177,6 +187,8 @@ def test_czi_metadata_can_filter_hcs_to_stored_scenes() -> None:
     assert metadata.hcs_declared is not None
     assert metadata.hcs is not None
     assert metadata.stored_scene_indices == tuple(range(28))
+    assert metadata.stored_dimension_indices["S"] == tuple(range(28))
+    assert metadata.stored_dimension_indices["Z"] == (0,)
     assert sum(len(well.fields) for well in metadata.hcs.wells) == 28
     assert "28 of 28 declared fields" in metadata.hcs_status.reason
 

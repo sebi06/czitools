@@ -5,6 +5,10 @@ serializer and do not claim complete compliance with either specification.
 Source row and column indices are retained as written by CZI (normally
 1-based), while normalized indices are always 0-based.
 
+Scene XML supplies plate semantics such as well names and field centers.
+Physical field existence is determined separately from layer-0 subblock scene
+indices and applied with :func:`filter_hcs_by_scene_indices`.
+
 Schema version: ``1.0``.
 """
 
@@ -148,7 +152,7 @@ def normalize_well_name(name: str) -> tuple[str, int, int]:
 
 
 def build_hcs_metadata(czi_box: Box) -> CziHcsResult:
-    """Build an HCS plate from scene XML, or return a precise rejection reason."""
+    """Build the declared HCS plate from XML, or return a rejection reason."""
 
     scenes = _get_scenes(czi_box)
     if not scenes:

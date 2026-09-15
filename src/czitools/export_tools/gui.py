@@ -28,7 +28,7 @@ from importlib.metadata import version
 from pathlib import Path
 
 # QtPy and MagicGUI select their Qt binding when they are first imported.
-os.environ["QT_API"] = "pyside6"
+os.environ.setdefault("QT_API", "pyside6")
 
 import ngff_zarr as nz
 import ome_zarr.format

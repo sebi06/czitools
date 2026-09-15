@@ -6,6 +6,25 @@ and the project adheres to [Semantic Versioning](https://semver.org/).
 
 ---
 
+## Unreleased
+
+### Added
+
+- The HCS inspector is installed from PyPI as the `czi_hcs_check` console
+  command; the source-tree demo now delegates to the packaged CLI.
+
+### Changed
+
+- `CziDimensions` now owns full-resolution layer-0 dimension bounds and exact
+  non-spatial indices. Scene counts and bounds are derived from stored `S`
+  keys without requiring an XML scene declaration.
+- `CziMetadata.hcs` now defaults to fields backed by stored layer-0 subblocks;
+  the complete XML acquisition model remains available as `hcs_declared` or
+  by passing `filter_hcs_to_stored_scenes=False`.
+- The `[all]` extra now installs the PySide6 Qt binding required by the GUI.
+  The GUI respects an existing `QT_API` selection and reports the
+  `czitools[omezarr-gui]` install command when no Qt binding is available.
+
 ## [0.24.0] — 2026-09-03
 
 ### Added

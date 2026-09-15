@@ -6,6 +6,7 @@ including plate hierarchy, sample metadata, and detailed field information.
 
 from __future__ import annotations
 
+from collections import Counter
 from typing import TYPE_CHECKING
 
 from rich.console import Console
@@ -108,25 +109,42 @@ def print_sample_metadata(metadata: CziMetadata, well_name: str | None = None) -
         console.print("[yellow]⚠ No sample metadata available.[/yellow]")
         return
 
-    print_section_header("📊 Sample Metadata")
+    if metadata.filter_hcs_to_stored_scenes:
+        scene_indices = tuple(index for index in metadata.stored_scene_indices if 0 <= index < sample.scene_count)
+        section_title = "📊 Sample Metadata (Stored Scenes)"
+    else:
+        scene_indices = tuple(range(sample.scene_count))
+        section_title = "📊 Sample Metadata (XML Declared)"
+
+    selected_wells = [
+        sample.well_array_names[index]
+        for index in scene_indices
+        if index < len(sample.well_array_names) and sample.well_array_names[index]
+    ]
+    well_counts = Counter(selected_wells)
+
+    print_section_header(section_title)
 
     # Create a table for basic sample info
     info_table = Table(show_header=False, box=None, padding=(0, 2))
-    info_table.add_row("[bold]Scene Count:[/bold]", f"[green]{sample.scene_count}[/green]")
-    info_table.add_row("[bold]Unique Wells:[/bold]", f"[green]{sample.well_unique_number}[/green]")
-    info_table.add_row("[bold]Fields per Well:[/bold]", f"[green]{sample.multipos_per_well}[/green]")
+    info_table.add_row("[bold]Scene Count:[/bold]", f"[green]{len(scene_indices)}[/green]")
+    info_table.add_row("[bold]Unique Wells:[/bold]", f"[green]{len(well_counts)}[/green]")
+    info_table.add_row(
+        "[bold]Multiple Fields per Well:[/bold]",
+        f"[green]{any(count > 1 for count in well_counts.values())}[/green]",
+    )
     console.print(info_table)
 
     # Per-scene collection summary
     per_scene_lengths = {
-        "well names": len(sample.well_array_names),
-        "well indices": len(sample.well_indices),
-        "position names": len(sample.well_position_names),
-        "row indices": len(sample.well_rowID),
-        "column indices": len(sample.well_colID),
-        "field center X": len(sample.field_centerX),
-        "field center Y": len(sample.field_centerY),
-        "region IDs": len(sample.well_region_ids),
+        "well names": sum(index < len(sample.well_array_names) for index in scene_indices),
+        "well indices": sum(index < len(sample.well_indices) for index in scene_indices),
+        "position names": sum(index < len(sample.well_position_names) for index in scene_indices),
+        "row indices": sum(index < len(sample.well_rowID) for index in scene_indices),
+        "column indices": sum(index < len(sample.well_colID) for index in scene_indices),
+        "field center X": sum(index < len(sample.field_centerX) for index in scene_indices),
+        "field center Y": sum(index < len(sample.field_centerY) for index in scene_indices),
+        "region IDs": sum(index < len(sample.well_region_ids) for index in scene_indices),
     }
 
     console.print(f"\n[bold cyan]Per-Scene Collections[/bold cyan] [dim]({len(per_scene_lengths)} entries)[/dim]")
@@ -136,9 +154,9 @@ def print_sample_metadata(metadata: CziMetadata, well_name: str | None = None) -
     console.print(coll_table)
 
     # First scene details
-    if sample.scene_count:
+    if scene_indices:
         # Determine which scene index to display
-        scene_index = 0
+        scene_index = scene_indices[0]
         scene_label = "First Scene Details"
 
         if well_name is not None:
@@ -158,9 +176,10 @@ def print_sample_metadata(metadata: CziMetadata, well_name: str | None = None) -
                     normalized_well = well_name.upper()
 
                 # Find first scene for this well
-                for idx, scene_well in enumerate(sample.well_array_names):
+                for index in scene_indices:
+                    scene_well = sample.well_array_names[index]
                     if scene_well and scene_well.upper() == normalized_well:
-                        scene_index = idx
+                        scene_index = index
                         scene_label = f"First Scene Details (Well {normalized_well})"
                         break
             except (AttributeError, IndexError):

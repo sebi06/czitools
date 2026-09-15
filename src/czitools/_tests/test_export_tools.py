@@ -29,12 +29,26 @@ from czitools.export_tools import (
     validate_ome_zarr,
     write_omezarr_ngff,
 )
+import czitools.export_tools as export_tools
 from czitools.export_tools import conversion
 from czitools.export_tools import _logging as export_logging
 from czitools.metadata_tools.czi_metadata import CziMetadata
 
 BASEDIR = Path(__file__).resolve().parents[3]
 WELLPLATE = BASEDIR / "data" / "WP96_4Pos_B4-10_DAPI.czi"
+
+
+def test_gui_import_without_qt_binding_has_install_hint(monkeypatch) -> None:
+    class QtBindingsNotFoundError(RuntimeError):
+        pass
+
+    def raise_missing_binding(*_args, **_kwargs):
+        raise QtBindingsNotFoundError("No Qt bindings could be found")
+
+    monkeypatch.setattr(export_tools.importlib, "import_module", raise_missing_binding)
+
+    with pytest.raises(ImportError, match=r'pip install "czitools\[omezarr-gui\]"'):
+        export_tools.__getattr__("run_gui")
 
 
 def test_legacy_export_options_are_not_public() -> None:

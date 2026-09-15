@@ -51,6 +51,10 @@ class CziDimensions:
         SizeI (int | None): Size in I.
         SizeV (int | None): Size in V.
         SizeB (int | None): Size in B.
+        dimension_bounds (dict[str, tuple[int, int]]): Half-open layer-0
+            bounds keyed by dimension.
+        dimension_indices (dict[str, tuple[int, ...]]): Exact layer-0 indices
+            keyed by non-spatial dimension.
         posZ (list[float] | None): Z positions in microns, when available.
         posT (list[float] | None): T positions in seconds, when available.
         verbose (bool): Flag to enable verbose logging.
@@ -90,6 +94,8 @@ class CziDimensions:
     SizeI: int | None = field(init=False, default=None)
     SizeV: int | None = field(init=False, default=None)
     SizeB: int | None = field(init=False, default=None)
+    dimension_bounds: dict[str, tuple[int, int]] = field(init=False, default_factory=dict)
+    dimension_indices: dict[str, tuple[int, ...]] = field(init=False, default_factory=dict)
     posZ: list[float] | None = field(init=False, default=None)
     posT: list[float] | None = field(init=False, default=None)
     verbose: bool = False
@@ -124,34 +130,54 @@ class CziDimensions:
 
         with pyczi.open_czi(str(czi_box.filepath), czi_box.czi_open_arg) as czidoc:
             bounding_box = czidoc.total_bounding_box_no_pyramid
+            self.dimension_bounds = dict(bounding_box)
             for dim in ("X", "Y", "T", "Z", "C", "R", "H", "I", "V", "B"):
                 if dim in bounding_box:
                     start, end = bounding_box[dim]
                     setattr(self, f"Size{dim}", end - start)
 
             scene_rectangles = czidoc.scenes_bounding_rectangle_no_pyramid
-            declared_dimensions = dimensions.Dimensions
-            has_scene_dimension = (
-                declared_dimensions is not None and "S" in declared_dimensions
-            ) or dimensions.SizeS is not None
-            if has_scene_dimension and scene_rectangles:
-                self.SizeS = len(scene_rectangles)
+            stored_indices: dict[str, set[int]] = {}
+            if scene_rectangles:
+                stored_indices["S"] = set(scene_rectangles)
                 first_scene = scene_rectangles[min(scene_rectangles)]
                 self.SizeX_scene = first_scene.w
                 self.SizeY_scene = first_scene.h
 
-            mosaic_indices: set[int] = set()
-
-            def collect_mosaic_index(_index, info):
+            def collect_dimension_indices(_index, info):
+                for dimension, value in info.coordinate.to_dict().items():
+                    stored_indices.setdefault(dimension, set()).add(int(value))
                 if info.is_mindex_valid():
-                    mosaic_indices.add(info.mIndex)
+                    stored_indices.setdefault("M", set()).add(int(info.mIndex))
                 return True
 
             enumerate_layer0 = getattr(czidoc, "enumerate_subblocks_subset", None)
             if enumerate_layer0 is not None:
-                enumerate_layer0(collect_mosaic_index, only_layer0=True)
+                enumerate_layer0(collect_dimension_indices, only_layer0=True)
+
+            for dimension, (start, end) in bounding_box.items():
+                if dimension not in stored_indices and end - start == 1:
+                    stored_indices[dimension] = {start}
+
+            scene_indices = stored_indices.get("S")
+            if scene_indices:
+                self.SizeS = len(scene_indices)
+                self.dimension_bounds["S"] = (
+                    min(scene_indices),
+                    max(scene_indices) + 1,
+                )
+
+            mosaic_indices = stored_indices.get("M")
             if mosaic_indices:
-                self.SizeM = max(mosaic_indices) + 1
+                self.SizeM = len(mosaic_indices)
+                self.dimension_bounds["M"] = (
+                    min(mosaic_indices),
+                    max(mosaic_indices) + 1,
+                )
+
+            self.dimension_indices = {
+                dimension: tuple(sorted(indices)) for dimension, indices in stored_indices.items()
+            }
 
         if czi_box.has_T:
             # check if there is a list with timepoints (is not in very CZI)
