@@ -5,6 +5,7 @@ from typing import Dict
 
 basedir = Path(__file__).resolve().parents[3]
 
+
 @pytest.mark.parametrize(
     "czifile, results",
     [
@@ -19,9 +20,12 @@ basedir = Path(__file__).resolve().parents[3]
         ("newCZI_zloc.czi", {"X": [], "Y": []}),
         ("FOV7_HV110_P0500510000.czi", {"X": 0.0, "Y": 0.0}),
         ("Tumor_HE_RGB.czi", {"X": 0.0, "Y": 0.0}),
-        ("S3_1Pos_2Mosaic_T2_Z3_CH2_sm.czi", {"X": [38397.296, 37980.0, 38679.412], "Y": [12724.718, 13020.0, 13260.298]}),
-        ("DAPI_GFP.czi", {"X": 0.0, "Y": 0.0})
-    ]
+        (
+            "S3_1Pos_2Mosaic_T2_Z3_CH2_sm.czi",
+            {"X": [38397.296, 37980.0, 38679.412], "Y": [12724.718, 13020.0, 13260.298]},
+        ),
+        ("DAPI_GFP.czi", {"X": 0.0, "Y": 0.0}),
+    ],
 )
 def test_stage_xy(czifile: str, results: Dict) -> None:
 
@@ -31,9 +35,9 @@ def test_stage_xy(czifile: str, results: Dict) -> None:
     # read the metadata_tools
     md = czimd.CziMetadata(filepath)
 
-    if md.image.SizeS is not None:
-        assert (md.sample.scene_stageX == results["X"])
-        assert (md.sample.scene_stageY == results["Y"])
-    if md.image.SizeS is None:
-        assert (md.sample.image_stageX == results["X"])
-        assert (md.sample.image_stageY == results["Y"])
+    if md.has_scenes:
+        assert md.sample.scene_stageX == results["X"]
+        assert md.sample.scene_stageY == results["Y"]
+    else:
+        assert md.sample.image_stageX == results["X"]
+        assert md.sample.image_stageY == results["Y"]

@@ -18,7 +18,6 @@ from collections import Counter
 from czitools.utils import logging_tools
 from czitools.utils.box import get_czimd_box, box_to_pydantic
 from czitools.utils.planetable import get_planetable
-from czitools.metadata_tools.dimension import CziDimensions
 import traceback
 
 logger = logging_tools.set_logging()
@@ -107,12 +106,10 @@ class CziSampleInfo:
             if self.verbose:
                 logger.info("CZI metadata do not contain specimen information.")
 
-        # Determine whether the CZI contains explicit scene/well information
-        # using the pylibCZIrw-backed `CziDimensions` helper. If `SizeS` is
-        # set the file contains scenes that may include well metadata.
-        size_s = CziDimensions(czi_box).SizeS
-
-        if size_s is not None:
+        # Physical subblocks always carry an S index, including ordinary
+        # single-image files. Use the XML metadata flag to distinguish files
+        # that actually declare scenes and wells.
+        if czi_box.has_scenes:
             try:
                 allscenes = czi_box.ImageDocument.Metadata.Information.Image.Dimensions.S.Scenes.Scene
 
