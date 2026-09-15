@@ -8,6 +8,8 @@ and the project adheres to [Semantic Versioning](https://semver.org/).
 
 ## Unreleased
 
+## [0.25.0] — 2026-09-15
+
 ### Added
 
 - The HCS inspector is installed from PyPI as the `czi_hcs_check` console
@@ -24,6 +26,13 @@ and the project adheres to [Semantic Versioning](https://semver.org/).
 - The `[all]` extra now installs the PySide6 Qt binding required by the GUI.
   The GUI respects an existing `QT_API` selection and reports the
   `czitools[omezarr-gui]` install command when no Qt binding is available.
+
+### Fixed
+
+- Stage-position extraction now uses semantic scene metadata instead of the
+  physical `S` index that is also present in ordinary single-image CZI files.
+- The Voronoi-Otsu segmentation notebook now uses the same semantic scene
+  check when selecting the pylibCZIrw plane-reading mode.
 
 ## [0.24.0] — 2026-09-03
 
