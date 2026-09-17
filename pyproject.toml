@@ -54,8 +54,8 @@ all = [
     "qtpy",
     "pyqtgraph",
     "cmap",
-    "ngff-zarr[dask-image,validate]>=0.45.0",
-    "ome-zarr>=0.18.0",
+    "ngff-zarr[dask-image,validate]>=0.46.1",
+    "ome-zarr>=0.19.2",
     "ome-zarr-models>=1.7,<2",
     "magicgui",
     "napari>=0.9.0",
@@ -68,8 +68,8 @@ all = [
 ]
 # OME-Zarr / OME-NGFF export (czitools.export_tools): conversion + validation.
 omezarr = [
-    "ngff-zarr[dask-image,validate]>=0.45.0",
-    "ome-zarr>=0.18.0",
+    "ngff-zarr[dask-image,validate]>=0.46.1",
+    "ome-zarr>=0.19.2",
     "ome-zarr-models>=1.8,<2",
 ]
 # OME-Zarr export plus the MagicGUI converter application.
@@ -106,8 +106,8 @@ docs = [
     "plotly",
     # Installed so the auto-generated czitools.export_tools API pages resolve
     # signature type references during the docs build.
-    "ngff-zarr>=0.45.0",
-    "ome-zarr>=0.18.0",
+    "ngff-zarr>=0.46.1",
+    "ome-zarr>=0.19.2",
     "zarr>=3.0",
     "ome-zarr-models>=1.8,<2",
     "magicgui",

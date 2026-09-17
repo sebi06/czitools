@@ -1,0 +1,388 @@
+{
+  "schema_version": "1.0",
+  "source": {
+    "uri": "file:///F:/GitHub/czitools/data/CellDivision_T10_Z15_CH2_DCV_small.czi",
+    "filename": "CellDivision_T10_Z15_CH2_DCV_small.czi",
+    "suffix": ".czi",
+    "source_kind": "file",
+    "size_bytes": 40233568,
+    "sha256": null
+  },
+  "provenance": {
+    "extractor": "czitools",
+    "extractor_version": "0.25.1",
+    "generated_at_utc": "2026-09-17T07:15:58.046945+00:00"
+  },
+  "acquisition": {
+    "acquisition_date": "2016-02-12T09:41:02.4915604Z",
+    "creation_date": "2016-02-12T10:41:02.5655647+01:00",
+    "software_name": "ZEN 3.1 (blue edition)",
+    "software_version": "3.1.0.0000",
+    "user_name": "M1SRH",
+    "has_scenes": false,
+    "is_mosaic": false,
+    "pixel_types": {
+      "0": "Gray16",
+      "1": "Gray16"
+    },
+    "consistent_pixel_types": true
+  },
+  "image": {
+    "dimension_order": "BSTCZYX",
+    "axes": [
+      {
+        "code": "S",
+        "meaning": "Scene",
+        "size": null,
+        "start": null,
+        "end": null,
+        "valid_indices": [],
+        "unit": null,
+        "coordinates": []
+      },
+      {
+        "code": "T",
+        "meaning": "Time",
+        "size": 10,
+        "start": 0,
+        "end": 10,
+        "valid_indices": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9
+        ],
+        "unit": "second",
+        "coordinates": [
+          0.0,
+          60.075,
+          120.151,
+          180.226,
+          240.302,
+          300.377,
+          360.452,
+          420.528,
+          480.603,
+          540.679
+        ]
+      },
+      {
+        "code": "C",
+        "meaning": "Channel",
+        "size": 2,
+        "start": 0,
+        "end": 2,
+        "valid_indices": [
+          0,
+          1
+        ],
+        "unit": null,
+        "coordinates": []
+      },
+      {
+        "code": "Z",
+        "meaning": "Z-slice",
+        "size": 15,
+        "start": 0,
+        "end": 15,
+        "valid_indices": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14
+        ],
+        "unit": "micrometer",
+        "coordinates": [
+          0.0,
+          0.32,
+          0.64,
+          0.96,
+          1.28,
+          1.6,
+          1.92,
+          2.24,
+          2.56,
+          2.88,
+          3.2,
+          3.52,
+          3.84,
+          4.16,
+          4.48
+        ]
+      },
+      {
+        "code": "Y",
+        "meaning": "Height",
+        "size": 256,
+        "start": 0,
+        "end": 256,
+        "valid_indices": [],
+        "unit": null,
+        "coordinates": []
+      },
+      {
+        "code": "X",
+        "meaning": "Width",
+        "size": 256,
+        "start": 0,
+        "end": 256,
+        "valid_indices": [],
+        "unit": null,
+        "coordinates": []
+      },
+      {
+        "code": "M",
+        "meaning": "Mosaic",
+        "size": null,
+        "start": null,
+        "end": null,
+        "valid_indices": [],
+        "unit": null,
+        "coordinates": []
+      },
+      {
+        "code": "R",
+        "meaning": "Rotation",
+        "size": null,
+        "start": null,
+        "end": null,
+        "valid_indices": [],
+        "unit": null,
+        "coordinates": []
+      },
+      {
+        "code": "I",
+        "meaning": "Illumination",
+        "size": null,
+        "start": null,
+        "end": null,
+        "valid_indices": [],
+        "unit": null,
+        "coordinates": []
+      },
+      {
+        "code": "H",
+        "meaning": "Phase",
+        "size": null,
+        "start": null,
+        "end": null,
+        "valid_indices": [],
+        "unit": null,
+        "coordinates": []
+      },
+      {
+        "code": "V",
+        "meaning": "View",
+        "size": null,
+        "start": null,
+        "end": null,
+        "valid_indices": [],
+        "unit": null,
+        "coordinates": []
+      },
+      {
+        "code": "B",
+        "meaning": "Block",
+        "size": 1,
+        "start": 0,
+        "end": 1,
+        "valid_indices": [
+          0
+        ],
+        "unit": null,
+        "coordinates": []
+      }
+    ],
+    "first_scene_shape_yx": null,
+    "total_bounding_box": {
+      "T": [
+        0,
+        10
+      ],
+      "Z": [
+        0,
+        15
+      ],
+      "C": [
+        0,
+        2
+      ],
+      "B": [
+        0,
+        1
+      ],
+      "X": [
+        0,
+        256
+      ],
+      "Y": [
+        0,
+        256
+      ]
+    },
+    "scene_shape_is_consistent": true,
+    "scene_shape_tolerance_px": 1
+  },
+  "channels": [
+    {
+      "index": 0,
+      "name": "LED555",
+      "dye": "LED555",
+      "dye_short": "AF555",
+      "description": "",
+      "color": "#FFFF7E00",
+      "black_point": 0.0,
+      "white_point": 0.07479972533760586,
+      "gamma": 0.7999999999999998,
+      "pixel_type": "Gray16",
+      "is_rgb": false
+    },
+    {
+      "index": 1,
+      "name": "LED470",
+      "dye": "LED470",
+      "dye_short": "AF488",
+      "description": "",
+      "color": "#FF00FF33",
+      "black_point": 0.0,
+      "white_point": 0.341191729610132,
+      "gamma": 0.7999999999999998,
+      "pixel_type": "Gray16",
+      "is_rgb": false
+    }
+  ],
+  "instrument": {
+    "microscope": {
+      "id": "Microscope:1",
+      "name": "Castor.Stand",
+      "system": null
+    },
+    "detectors": [
+      {
+        "index": 0,
+        "id": "Detector:Axiocam 506",
+        "name": "Axiocam 506",
+        "model": null,
+        "model_type": null,
+        "gain": null,
+        "zoom": null,
+        "amplification_gain": null
+      }
+    ],
+    "objectives": [
+      {
+        "index": 0,
+        "id": "Objective:1",
+        "name": "Plan-Apochromat 50x/1.2",
+        "model": null,
+        "immersion": "Water",
+        "numerical_aperture": 1.2,
+        "nominal_magnification": 50.0,
+        "tube_lens_magnification": 1.0,
+        "total_magnification": 50.0
+      }
+    ],
+    "scaling": {
+      "x": 0.091,
+      "y": 0.091,
+      "z": 0.32,
+      "unit": "micron",
+      "value_source": "CZI Scaling.Items.Distance"
+    }
+  },
+  "sample": {
+    "carrier": {
+      "@Name": "Multichamber 384",
+      "AnchorPoint": "-9900,-2750",
+      "BoundsSize": "127800,85500",
+      "Category": "Multichamber",
+      "HasRegularShapes": "true",
+      "ReferencePoint": "0,0",
+      "ReferencePointLocationMode": "TopLeft",
+      "ShapeType": "Rectangle",
+      "ShapeColumns": "24",
+      "ShapeRows": "16",
+      "ShapeWidth": "3450",
+      "ShapeHeight": "3450",
+      "ShapeDistanceX": "4500",
+      "ShapeDistanceY": "4500",
+      "OriginalShapeWidth": "3450",
+      "OriginalShapeHeight": "3450",
+      "OriginalShapeDistanceX": "4500",
+      "OriginalShapeDistanceY": "4500",
+      "AreShapesCenteredX": "true",
+      "AreShapesCenteredY": "true",
+      "ShapesDistanceToBorderX": "0",
+      "ShapesDistanceToBorderY": "0",
+      "Rotation": "0",
+      "ImmersionPoint": "63900,42750",
+      "BottomMaterial": "Glass",
+      "BottomThickness": "170",
+      "BottomOffset": "1500",
+      "BottomOffsetMeasured": "NaN",
+      "BottomRefractiveIndex": "1.52",
+      "InsertType": "Default",
+      "BottomColor": "Unknown",
+      "BottomDetectionShape": "H12"
+    },
+    "carrier_source": "SampleCarrierInfo",
+    "specimen": {
+      "CoverglassThickness": "175",
+      "CoverglassRefractiveIndex": "1.52",
+      "CoverglassOffset": "995",
+      "CoverglassMaterial": "Glass"
+    },
+    "specimen_source": "SpecimenInfo",
+    "image_stage_x": 16977.153,
+    "image_stage_y": 18621.489,
+    "stage_unit": "micrometer"
+  },
+  "hcs": {
+    "detected": false,
+    "detection_reason": "No scene XML is available.",
+    "declared_plate": null,
+    "stored_plate": null,
+    "stored_scene_indices": [],
+    "declared_field_count": 0,
+    "stored_field_count": 0
+  },
+  "attachments": {
+    "has_label": false,
+    "has_preview": false,
+    "has_prescan": false,
+    "names": [
+      "EventList",
+      "TimeStamps",
+      "Thumbnail"
+    ]
+  },
+  "quality": {
+    "status": "warning",
+    "issues": [
+      {
+        "severity": "warning",
+        "code": "HCS_NOT_DETECTED",
+        "message": "No scene XML is available.",
+        "path": "hcs"
+      }
+    ]
+  },
+  "extensions": {}
+}

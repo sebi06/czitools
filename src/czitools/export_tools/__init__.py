@@ -2,8 +2,9 @@
 """OME-Zarr / OME-NGFF export tools for czitools (Stage 5).
 
 Convert CZI files to OME-Zarr, including HCS (high-content-screening) plate
-layouts, using either the ngff-zarr (OME-NGFF v0.5) or ome-zarr-py
-(OME-NGFF v0.4) backend. A MagicGUI application is also provided.
+layouts. The default ngff-zarr backend writes OME-NGFF 0.6 images; its HCS
+and RFC-9 OZX writers use 0.5. The ome-zarr-py compatibility backend writes
+its current 0.5 format. A MagicGUI application is also provided.
 
 These features require optional dependencies. Install them with::
 

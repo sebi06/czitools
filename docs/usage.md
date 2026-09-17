@@ -237,6 +237,67 @@ if plate is not None:
               f"Center: ({field.scene_center_x}, {field.scene_center_y}) µm")
 ```
 
+### Machine-Readable HCS Metadata Export (JSON)
+
+The `czi_hcs_export.py` demo script is only a thin wrapper around the library
+API. The same functionality is available programmatically from any Python
+script, without invoking the command line. The entry point is
+`extract_hcs_document`, which returns a validated, immutable
+`CziHcsDocument` that serializes losslessly to JSON.
+
+```python
+from datetime import datetime, timezone
+
+from czitools.metadata_tools import CziHcsDocument, extract_hcs_document
+
+# 1. Extract straight into an object
+doc = extract_hcs_document(
+    "plate.czi",
+    include_checksum=True,   # add a SHA-256 of the source file (optional)
+    redact_user=True,        # omit the acquisition user name (optional)
+    enrich_positions=False,  # scan subblocks for stage/focus positions (optional)
+    generated_at=datetime(2020, 1, 1, tzinfo=timezone.utc),  # reproducible output (optional)
+)
+
+# 2. Use the data in memory
+print(doc.hcs.detected, doc.hcs.stored_field_count)
+for well in doc.iter_well_rows():
+    print(well["well_name"], well["field_count"])
+
+# 3. Serialize / persist
+payload = doc.to_dict()           # JSON-safe dict
+text = doc.to_json(indent=2)      # JSON string
+doc.write_json("plate.hcs.json")  # write UTF-8 JSON file
+
+# 4. Read back and validate
+restored = CziHcsDocument.read_json("plate.hcs.json")
+assert restored == doc
+```
+
+Each action performed by the CLI maps to a real method:
+
+- **extract** — `extract_hcs_document(path, ...)`
+- **write JSON** — `doc.write_json(path)`
+- **reload** — `CziHcsDocument.read_json(path)`
+- **summary values** — `doc.hcs`, `doc.channels`, `doc.quality`
+- **analytics rows** — `doc.iter_well_rows()`, `doc.iter_field_rows()`,
+  `doc.iter_channel_rows()`
+
+If you already hold a `CziMetadata` object (for example from a pixel reader),
+skip the file read entirely and build the document directly:
+
+```python
+from czitools.metadata_tools import CziHcsDocument, CziMetadata
+
+mdata = CziMetadata("plate.czi")
+doc = CziHcsDocument.from_metadata(mdata, redact_user=True)
+```
+
+All symbols are exported from `czitools.metadata_tools`, so the demo script is
+optional. `to_dict(exclude_none=True)` produces a compact payload, while the
+default retains `None` values so a known-but-missing property stays
+distinguishable from a property absent in an older schema.
+
 ## General Metadata Access
 
 For most workflows, create one `CziMetadata` object and use its grouped

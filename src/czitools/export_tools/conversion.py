@@ -40,6 +40,7 @@ from ngff_zarr.v04.zarr_metadata import (
 )
 from numcodecs import Blosc as NumcodecsBlosc
 from numcodecs import Zstd as NumcodecsZstd
+from ome_zarr import OMEZarrImage, OMEZarrMultiscale
 from ome_zarr.io import parse_url
 from ome_zarr.writer import write_plate_metadata, write_well_metadata
 from zarr.codecs import Blosc, Zstd
@@ -715,7 +716,8 @@ def convert_czi2hcs_ngff(
         log_file_path (Optional[Union[str, os.PathLike, Path]]): Log file path.
             Defaults to ``<stem>_hcs_ngff.log``.
         write_ozx_directly (bool): Write a single-file ``.ozx`` archive directly.
-        version (str): NGFF version string. Defaults to ``"0.5"``.
+        version (str): NGFF version string. Defaults to ``"0.5"`` because
+            the ngff-zarr HCS writer currently supports versions 0.4 and 0.5.
         output_dir (Optional[Union[str, os.PathLike, Path]]): Output directory.
             Defaults to the CZI file's parent directory.
         pad_columns (bool): Zero-pad column numbers in well paths (e.g. ``"04"``).
@@ -739,6 +741,8 @@ def convert_czi2hcs_ngff(
     """
     conversion_started = time.perf_counter()
     full_logging = _validate_logging_detail(logging_detail)
+    if version not in {"0.4", "0.5"}:
+        raise ValueError("ngff-zarr HCS writing currently supports OME-NGFF versions 0.4 and 0.5.")
     if spatial_chunk_size < 1:
         raise ValueError("spatial_chunk_size must be at least 1.")
     if planes_per_chunk < 1:
@@ -919,6 +923,7 @@ def write_omezarr(
     overwrite: bool = False,
     log_file_path: str | Path | None = None,
     compression: compression_type | None = compression_type.BLOSC,
+    version: str = "0.6",
 ) -> Path | None:
     """Write a single 5D image to OME-Zarr using the ome-zarr-py backend.
 
@@ -932,6 +937,7 @@ def write_omezarr(
             ``<stem>_omezarr.log``.
         compression (Optional[compression_type]): Chunk compression type.
             Defaults to ``compression_type.BLOSC``. Set to ``None`` for no compression
+        version (str): OME-NGFF specification version. Defaults to ``"0.6"``.
 
     Returns:
         Optional[Path]: Path to the written OME-Zarr file, or ``None`` on failure.
@@ -966,12 +972,7 @@ def write_omezarr(
         logger.info(f"File already exists at {zarr_path}. Set overwrite=True to remove.")
         return None
 
-    _fmt = ome_zarr.format.CurrentFormat()
     logger.info("Zarr storage format: v3")
-
-    parsed = parse_url(zarr_path, mode="w", fmt=_fmt)
-    assert parsed is not None, f"Failed to open zarr store at {zarr_path}"
-    root = zarr.group(store=parsed.store, zarr_format=3)
 
     # Chunk the full Z-stack per (T, C) instead of one XY plane per chunk. Single-
     # plane chunks explode the file count (T*C*Z chunks/level), which makes writing
@@ -995,23 +996,37 @@ def write_omezarr(
         _phys_scale["z"],
     )
 
-    # Parallel write: dask-wrap + compute=False yields a chunk-parallel write graph
-    # that we execute with a single dask.compute (threads release the GIL during
-    # zarr chunk writes + compression), roughly halving write time on large images.
-    delayed = _write_image_delayed(
-        _to_ome_zarr_image(array5d),
-        root,
-        axes,
-        chunks,
-        compression=compression,
-        fmt=_fmt,
+    compressor = None
+    if compression == compression_type.BLOSC:
+        compressor = Blosc()
+    elif compression == compression_type.ZSTD:
+        compressor = Zstd()
+
+    image = OMEZarrImage(
+        data=_to_ome_zarr_image(array5d),
+        axes=axes,
         scale=_phys_scale,
         axes_units=_phys_units,
+        name=metadata.filename,
+    )
+    multiscales = OMEZarrMultiscale(
+        image=image,
+        scale_factors=[2, 4, 8, 16],
+        method="nearest",
+    )
+    delayed = _retry_io(
+        multiscales.to_ome_zarr,
+        str(zarr_path),
+        storage_options={"chunks": chunks, "compressors": compressor},
+        version=version,
+        compute=False,
+        overwrite=True,
     )
     if delayed:
         logger.info("Writing %d pyramid level(s) in parallel (dask)...", len(delayed))
         _retry_io(dask.compute, *delayed)
 
+    root = zarr.open_group(zarr_path, mode="r+")
     channels_list = create_channel_list(metadata)
     _retry_io(
         ome_zarr.writer.add_metadata,
@@ -1022,7 +1037,7 @@ def write_omezarr(
                 "channels": channels_list,
             }
         },
-        fmt=_fmt,
+        fmt=ome_zarr.format.CurrentFormat(),
     )
 
     logger.info("OME-ZARR writing completed successfully!")
@@ -1042,7 +1057,7 @@ def write_omezarr_ngff(
     metadata: CziMetadata,
     scale_factors: list | None = None,
     overwrite: bool = False,
-    version: str = "0.5",
+    version: str = "0.6",
     chunks: tuple | None = None,
     chunks_per_shard: dict[str, int] | int | None = 2,
     compression: compression_type | None = compression_type.BLOSC,
@@ -1062,7 +1077,8 @@ def write_omezarr_ngff(
             None (default), size-aware Y/X-only factors are computed from the plane
             size via :func:`compute_pyramid_scale_factors` (``min_size``/``max_levels``).
         overwrite (bool): Remove existing output if True.
-        version (str): NGFF version string. Defaults to ``"0.5"``.
+        version (str): NGFF version string. Defaults to ``"0.6"``. RFC-9
+            ``.ozx`` outputs always use the required version ``"0.5"``.
         chunks (Union[tuple, None]): Explicit ``TCZYX`` chunk shape. Defaults
             to one T/C/Z plane and at most 512 x 512 pixels per chunk.
         chunks_per_shard (Union[Dict[str, int], int, None]): Chunks per shard.
@@ -1106,6 +1122,12 @@ def write_omezarr_ngff(
         return None
 
     output_path = Path(zarr_path)
+    if output_path.suffix.lower() == ".ozx" and version != "0.5":
+        logger.info(
+            "Using OME-NGFF 0.5 for RFC-9 .ozx output instead of requested version %s.",
+            version,
+        )
+        version = "0.5"
     if output_path.exists() and overwrite:
         if output_path.is_dir():
             shutil.rmtree(output_path)
@@ -1195,6 +1217,14 @@ def write_omezarr_ngff(
             multiscales=multiscales,
             progress=progress,
         )
+
+    if version == "0.6" and output_path.is_dir():
+        # ngff-zarr 0.46.1 writes the finalized 0.6 model with its former
+        # release-candidate tag. Publish the requested final version instead.
+        root = zarr.open_group(zarr_path, mode="r+")
+        ome_attrs = dict(root.attrs["ome"])
+        ome_attrs["version"] = "0.6"
+        root.attrs["ome"] = ome_attrs
 
     logger.info("NGFF OME-ZARR writing completed successfully!")
     logger.info(f"Output file: {zarr_path}")

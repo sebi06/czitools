@@ -16,6 +16,7 @@ import numpy as np
 import pytest
 import xarray as xr
 import dask.array as da
+import zarr
 from dask.array import Array as DaskArray
 from numcodecs import Blosc as NumcodecsBlosc
 
@@ -32,6 +33,7 @@ from czitools.export_tools import (
 import czitools.export_tools as export_tools
 from czitools.export_tools import conversion
 from czitools.export_tools import _logging as export_logging
+from czitools.export_tools import validation
 from czitools.metadata_tools.czi_metadata import CziMetadata
 
 BASEDIR = Path(__file__).resolve().parents[3]
@@ -57,10 +59,30 @@ def test_legacy_export_options_are_not_public() -> None:
     assert "normalize_level_paths" not in signature(conversion.convert_czi2hcs_omezarr).parameters
     assert "normalize_level_paths" not in signature(conversion.convert_czi2hcs_ngff).parameters
     assert "use_tensorstore" not in signature(conversion.write_omezarr_ngff).parameters
+    assert signature(conversion.write_omezarr).parameters["version"].default == "0.6"
+    assert signature(conversion.write_omezarr_ngff).parameters["version"].default == "0.6"
     assert signature(conversion.convert_czi2hcs_ngff).parameters["chunks_per_shard"].default == {"y": 4, "x": 4}
     assert signature(conversion.convert_czi2hcs_ngff).parameters["max_workers"].default == 4
     assert signature(conversion.convert_czi2hcs_omezarr).parameters["logging_detail"].default == "basic"
     assert signature(conversion.convert_czi2hcs_ngff).parameters["logging_detail"].default == "basic"
+
+
+def test_ngff_hcs_rejects_unsupported_version() -> None:
+    with pytest.raises(ValueError, match="HCS writing currently supports"):
+        convert_czi2hcs_ngff(WELLPLATE, version="0.6")
+
+
+def test_validation_dispatches_ome_ngff_06_to_ngff_zarr(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    output = tmp_path / "image.ome.zarr"
+    group = zarr.open_group(output, mode="w")
+    group.attrs["ome"] = {"version": "0.6"}
+    parsed = SimpleNamespace(metadata=SimpleNamespace(version="0.6"))
+    monkeypatch.setattr(validation.nz, "from_ngff_zarr", lambda path: parsed)
+
+    assert validate_ome_zarr(output) is True
 
 
 def test_hcs_basic_logging_bounds_progress_messages(caplog: pytest.LogCaptureFixture) -> None:
@@ -378,8 +400,52 @@ def test_write_omezarr_ngff_to_local_path(tmp_path: Path, monkeypatch: pytest.Mo
     assert captured["image_data"].chunks[1] == (1, 1, 1)
     assert captured["store"] == output
     assert isinstance(captured["compressor"], NumcodecsBlosc)
+    assert captured["version"] == "0.6"
     assert "storage_options" not in captured
     assert "use_tensorstore" not in captured
+
+
+def test_write_omezarr_defaults_to_real_ome_ngff_06_store(tmp_path: Path) -> None:
+    metadata = SimpleNamespace(
+        filename="test.czi",
+        scale=SimpleNamespace(X=1.0, Y=1.0, Z=1.0),
+        image=None,
+        channelinfo=None,
+    )
+    output = tmp_path / "image.ome.zarr"
+    array = xr.DataArray(
+        np.zeros((1, 1, 1, 32, 32), dtype=np.uint16),
+        dims=("T", "C", "Z", "Y", "X"),
+    )
+
+    conversion.write_omezarr(array, output, metadata, compression=None)
+
+    root_metadata = json.loads((output / "zarr.json").read_text(encoding="utf-8"))
+    assert root_metadata["attributes"]["ome"]["version"] == "0.6"
+
+
+def test_write_omezarr_ngff_defaults_to_real_ome_ngff_06_store(tmp_path: Path) -> None:
+    metadata = SimpleNamespace(
+        filename="test.czi",
+        scale=SimpleNamespace(X=1.0, Y=1.0, Z=1.0),
+        image=None,
+        channelinfo=None,
+    )
+    output = tmp_path / "image.ome.zarr"
+
+    write_omezarr_ngff(
+        np.zeros((1, 1, 1, 32, 32), dtype=np.uint16),
+        output,
+        metadata,
+        scale_factors=[],
+        chunks=(1, 1, 1, 16, 16),
+        chunks_per_shard=None,
+        compression=None,
+    )
+
+    root_metadata = json.loads((output / "zarr.json").read_text(encoding="utf-8"))
+    assert root_metadata["attributes"]["ome"]["version"] == "0.6"
+    assert validate_ome_zarr(output) is True
 
 
 def test_write_omezarr_ngff_directory_uses_bounded_default_chunks(
@@ -442,7 +508,12 @@ def test_write_omezarr_ngff_overwrites_ozx_file(
     multiscales = SimpleNamespace(metadata=SimpleNamespace(omero=None))
     monkeypatch.setattr(conversion.nz, "to_ngff_image", lambda *args, **kwargs: "image")
     monkeypatch.setattr(conversion.nz, "to_multiscales", lambda *args, **kwargs: multiscales)
-    monkeypatch.setattr(conversion.nz, "to_ngff_zarr", lambda *args, **kwargs: None)
+    captured: dict = {}
+
+    def capture_write(*args, **kwargs) -> None:
+        captured.update(kwargs)
+
+    monkeypatch.setattr(conversion.nz, "to_ngff_zarr", capture_write)
 
     write_omezarr_ngff(
         np.zeros((1, 1, 1, 8, 8), dtype=np.uint16),
@@ -453,6 +524,7 @@ def test_write_omezarr_ngff_overwrites_ozx_file(
     )
 
     assert not output.exists()
+    assert captured["version"] == "0.5"
 
 
 def test_write_omezarr_ngff_logs_progress_and_total_time(

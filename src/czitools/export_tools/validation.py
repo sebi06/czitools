@@ -1,4 +1,4 @@
-"""Validate local OME-Zarr files against the OME-NGFF v0.5 specification.
+"""Validate local OME-Zarr image and HCS stores.
 
 Vendored (with light edits) from ``czi_omezarr_utils.validation`` in the
 ``omezarr_playground`` repository as part of czitools Stage 5.
@@ -8,6 +8,7 @@ import logging
 from pathlib import Path
 from typing import Any, cast
 
+import ngff_zarr as nz
 import zarr
 from ome_zarr_models.v05.image import Image
 from ome_zarr_models.v05.plate import Plate
@@ -17,10 +18,11 @@ logger = logging.getLogger(__name__)
 
 
 def validate_ome_zarr(path: str | Path) -> bool:
-    """Validate a local OME-Zarr file against the OME-NGFF v0.5 specification.
+    """Validate a local OME-Zarr file against its declared OME-NGFF version.
 
-    Supports both standard image and HCS plate layouts using ``ome-zarr-models``
-    Pydantic models.
+    OME-NGFF 0.5 image and HCS layouts use ``ome-zarr-models`` Pydantic
+    models. OME-NGFF 0.6 images are parsed by ``ngff-zarr``, whose reader
+    understands the RFC-5 coordinate-system and transformation model.
 
     Args:
         path (Union[str, Path]): Path to the OME-Zarr directory or archive.
@@ -33,6 +35,12 @@ def validate_ome_zarr(path: str | Path) -> bool:
         group = zarr.open_group(path, mode="r")
         root_attrs = group.attrs.asdict()
         ome_attrs = root_attrs.get("ome", {})
+        declared_version = ome_attrs.get("version") if isinstance(ome_attrs, dict) else None
+
+        if declared_version in {"0.6", "0.6rc0", "0.6.dev4"}:
+            nz.from_ngff_zarr(path)
+            logger.info(f"Valid OME-ZARR {declared_version} image: {path}")
+            return True
 
         if isinstance(ome_attrs, dict) and "plate" in ome_attrs:
             plate = Plate.model_validate(ome_attrs["plate"])

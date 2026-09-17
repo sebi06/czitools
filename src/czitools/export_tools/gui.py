@@ -31,7 +31,6 @@ from pathlib import Path
 os.environ.setdefault("QT_API", "pyside6")
 
 import ngff_zarr as nz
-import ome_zarr.format
 import xarray as xr
 import zarr
 from magicgui import magicgui, widgets
@@ -340,7 +339,7 @@ def perform_conversion(
                     output_path,
                 )
             else:
-                logger.info("Validating OME-ZARR output against OME-NGFF v0.5...")
+                logger.info("Validating OME-ZARR output against its declared OME-NGFF version...")
                 try:
                     is_valid = validate_ome_zarr(output_path)
                     if is_valid:
@@ -473,7 +472,9 @@ log_viewer.read_only = True  # Make it read-only but scrollable
 
 # Create version info widget
 try:
-    version_info = f"""NGFF Version: {ome_zarr.format.CurrentFormat().version}
+    version_info = f"""NGFF-ZARR image spec: 0.6 (default)
+OME-ZARR-PY image spec: 0.6 (default)
+HCS / OZX spec: 0.5
 
 ZARR Package: {zarr.__version__}
 NGFF-ZARR Package: {nz.__version__}
