@@ -148,6 +148,8 @@ examples/pylibCZIrw_docu/newCZI_zscenes.czi
 **/demo/experimental/**
 /.vscode/
 **/experimental/**
+!src/czitools/metadata_tools/experimental/
+!src/czitools/metadata_tools/experimental/*.py
 **/demo/pylibCZIrw_docu/**
 demo/experimental/
 demo/experimental/**
