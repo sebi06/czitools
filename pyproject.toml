@@ -157,6 +157,10 @@ python_files = ["test_*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
 addopts = "--ignore=old/napari_tools/test_napari_tools.py"
+filterwarnings = [
+    # napari 0.9.1 still configures EventedModel with Pydantic's deprecated json_encoders API.
+    "ignore:`json_encoders` is deprecated:pydantic.warnings.PydanticDeprecatedSince20",
+]
 markers = [
     "network: marks tests that require network connectivity (deselect with '-m \"not network\"')",
 ]

@@ -218,10 +218,11 @@ def test_convert_czi2hcs_ngff_and_validate(tmp_path: Path) -> None:
 
     array_metadata_path = output / "B" / "04" / "0" / "scale0" / WELLPLATE.name / "zarr.json"
     array_metadata = json.loads(array_metadata_path.read_text(encoding="utf-8"))
-    assert array_metadata["chunk_grid"]["configuration"]["chunk_shape"][-2:] == [640, 640]
+    assert array_metadata["shape"][-2:] == [640, 640]
+    assert array_metadata["chunk_grid"]["configuration"]["chunk_shape"][-2:] == [1024, 1024]
     sharding_codec = array_metadata["codecs"][0]
     assert sharding_codec["name"] == "sharding_indexed"
-    assert sharding_codec["configuration"]["chunk_shape"][-2:] == [320, 320]
+    assert sharding_codec["configuration"]["chunk_shape"][-2:] == [512, 512]
     assert sharding_codec["configuration"]["codecs"][1]["name"] == "blosc"
 
 

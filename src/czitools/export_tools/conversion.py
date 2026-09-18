@@ -12,6 +12,7 @@ import os
 import shutil
 import sys
 import time
+import warnings
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from contextlib import contextmanager
 from pathlib import Path
@@ -1014,14 +1015,20 @@ def write_omezarr(
         scale_factors=[2, 4, 8, 16],
         method="nearest",
     )
-    delayed = _retry_io(
-        multiscales.to_ome_zarr,
-        str(zarr_path),
-        storage_options={"chunks": chunks, "compressors": compressor},
-        version=version,
-        compute=False,
-        overwrite=True,
-    )
+    with warnings.catch_warnings():
+        warnings.filterwarnings(
+            "ignore",
+            message=r"Pydantic serializer warnings:\s*PydanticSerializationUnexpectedValue\(Expected `tuple\[Dataset, \.\.\.\]`",
+            category=UserWarning,
+        )
+        delayed = _retry_io(
+            multiscales.to_ome_zarr,
+            str(zarr_path),
+            storage_options={"chunks": chunks, "compressors": compressor},
+            version=version,
+            compute=False,
+            overwrite=True,
+        )
     if delayed:
         logger.info("Writing %d pyramid level(s) in parallel (dask)...", len(delayed))
         _retry_io(dask.compute, *delayed)
