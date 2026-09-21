@@ -45,8 +45,8 @@ def print_subblock_dimensions(metadata: CziMetadata) -> None:
         ("T", "Time", image.SizeT),
         ("C", "Channel", image.SizeC),
         ("Z", "Z-slice", image.SizeZ),
-        ("Y", "Height", image.SizeY),
-        ("X", "Width", image.SizeX),
+        ("Y", "Height (all-scenes bbox)", image.SizeY),
+        ("X", "Width (all-scenes bbox)", image.SizeX),
         ("M", "Mosaic", image.SizeM),
         ("R", "Rotation", image.SizeR),
         ("I", "Illumination", image.SizeI),
@@ -89,12 +89,9 @@ def print_subblock_dimensions(metadata: CziMetadata) -> None:
             _format_valid_indices(valid_indices),
         )
 
-    scene_size = (
-        f"{image.SizeY_scene} x {image.SizeX_scene} px"
-        if image.SizeY_scene is not None and image.SizeX_scene is not None
-        else "not available"
-    )
-    table.caption = f"First stored scene Y x X: {scene_size}"
+    scene_y = image.SizeY_scene if image.SizeY_scene is not None else "not available"
+    scene_x = image.SizeX_scene if image.SizeX_scene is not None else "not available"
+    table.caption = f"First stored scene: Y={scene_y} px, X={scene_x} px"
     console.print(table)
 
 
