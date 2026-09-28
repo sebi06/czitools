@@ -16,7 +16,8 @@ gui = pytest.importorskip("czitools.export_tools.gui")
 
 def test_ngff_zarr_is_default_backend() -> None:
     assert gui.czi_to_omezarr_converter.package_choice.value == gui.omezarr_package.NGFF_ZARR
-    assert gui.czi_to_omezarr_converter.conversion_preset.value is gui.NgffConversionPreset.FAST_BALANCED
+    assert gui.czi_to_omezarr_converter.conversion_preset.value is gui.NgffConversionPreset.QUALITY
+    assert gui.czi_to_omezarr_converter.pyramid_levels.value == 3
     assert "use_tensorstore" not in signature(gui.perform_conversion).parameters
 
 
@@ -100,12 +101,40 @@ def test_hcs_mode_allows_single_ozx_option(
     gui.update_use_ozx_format_enabled_state()
 
     assert gui.czi_to_omezarr_converter.use_ozx_format.enabled
+    assert gui.czi_to_omezarr_converter.conversion_preset.native.isHidden()
+    assert gui.czi_to_omezarr_converter.pyramid_levels.native.isHidden()
+    assert gui.hcs_pyramid_policy.visible
+    assert "CZI-stored levels" in gui.hcs_pyramid_policy.value
+    assert "512 px" in gui.hcs_pyramid_policy.value
     assert not hasattr(gui.czi_to_omezarr_converter, "use_ozx_write_directly")
     assert not hasattr(gui.czi_to_omezarr_converter, "use_ozx_after_writing")
 
     gui.czi_to_omezarr_converter.use_ozx_format.value = True
 
     assert not gui.czi_to_omezarr_converter.show_napari.enabled
+
+    gui.czi_to_omezarr_converter.write_hcs.value = False
+    gui.update_use_ozx_format_enabled_state()
+
+    assert not gui.czi_to_omezarr_converter.conversion_preset.native.isHidden()
+    assert not gui.czi_to_omezarr_converter.pyramid_levels.native.isHidden()
+    assert not gui.hcs_pyramid_policy.visible
+
+
+def test_omezarr_hcs_mode_shows_fixed_pyramid_policy(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(gui, "metadata", object())
+    monkeypatch.setattr(gui, "selected_file", tmp_path / "plate.czi")
+    gui.czi_to_omezarr_converter.package_choice.value = gui.omezarr_package.OME_ZARR
+    gui.czi_to_omezarr_converter.write_hcs.value = True
+
+    gui.update_use_ozx_format_enabled_state()
+
+    assert gui.hcs_pyramid_policy.visible
+    assert "2x, 4x, 8x, and 16x" in gui.hcs_pyramid_policy.value
+    assert "5 total" in gui.hcs_pyramid_policy.value
 
 
 def test_fast_balanced_preset_allows_ozx_and_enforces_blosc(
@@ -157,14 +186,51 @@ def test_fast_balanced_preset_forwards_writer_settings(
         scene_id=0,
         compression_choice=gui.compression_type.NONE,
         conversion_preset=gui.NgffConversionPreset.FAST_BALANCED,
+        pyramid_levels=2,
     )
 
     assert output is not None and output.endswith("_ngff.ozx")
     assert captured["path"] == Path(output)
     assert captured["compression"] is gui.compression_type.BLOSC
     assert captured["chunks"] == (1, 1, 4, 1024, 1024)
-    assert captured["chunks_per_shard"] == {"y": 2, "x": 2}
+    assert captured["chunks_per_shard"] == {"z": 2, "y": 2, "x": 2}
+    assert captured["pyramid_levels"] == 2
     assert captured["downsampling_method"] is gui.nz.Methods.DASK_BIN_SHRINK
+
+
+def test_quality_preset_forwards_3d_layout(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    filepath = tmp_path / "volume.czi"
+    filepath.touch()
+    array = xr.DataArray(
+        np.zeros((1, 1, 2, 16, 32, 32), dtype=np.uint16),
+        dims=("S", "T", "C", "Z", "Y", "X"),
+    )
+    captured: dict = {}
+    monkeypatch.setattr(gui.read_tools, "read_6darray", lambda *args, **kwargs: (array, object()))
+
+    def capture_writer(*args, **kwargs) -> str:
+        captured.update(kwargs)
+        return "image"
+
+    monkeypatch.setattr(gui, "write_omezarr_ngff", capture_writer)
+    monkeypatch.setattr(gui, "validate_ome_zarr", lambda _: True)
+
+    gui.perform_conversion(
+        filepath=filepath,
+        use_ozx_format=False,
+        write_hcs=False,
+        package_choice=gui.omezarr_package.NGFF_ZARR,
+        scene_id=0,
+        conversion_preset=gui.NgffConversionPreset.QUALITY,
+        pyramid_levels=3,
+    )
+
+    assert captured["chunks"] == (1, 1, 8, 256, 256)
+    assert captured["chunks_per_shard"] == {"z": 4, "y": 4, "x": 4}
+    assert captured["pyramid_levels"] == 3
 
 
 def test_hcs_details_are_plain_text() -> None:
@@ -189,6 +255,13 @@ def test_hcs_details_are_plain_text() -> None:
     metadata = SimpleNamespace(
         hcs=plate,
         hcs_status=SimpleNamespace(detected=True, reason="HCS metadata found."),
+        image=SimpleNamespace(
+            SizeX_scene=2752,
+            SizeY_scene=2208,
+            SizeC=3,
+            SizeZ=1,
+            SizeT=1,
+        ),
         sample=SimpleNamespace(
             scene_count=4,
             well_unique_number=1,
@@ -200,6 +273,8 @@ def test_hcs_details_are_plain_text() -> None:
 
     assert "HCS PLATE INFORMATION" in output
     assert "Total wells: 1" in output
+    assert "Image size: 2752 × 2208 pixels (X × Y)" in output
+    assert "Channels: 3" in output
     assert "Field 0: scene 4" in output
     assert "\x1b" not in output
     assert "╭" not in output
@@ -216,7 +291,9 @@ def test_metadata_display_precedes_conversion_options() -> None:
     assert conversion_options[0] is gui.czi_to_omezarr_converter.write_hcs
     assert conversion_options[1] is gui.czi_to_omezarr_converter.scene_id
     assert conversion_options[2] is gui.czi_to_omezarr_converter.conversion_preset
-    assert conversion_options[3] is gui.czi_to_omezarr_converter.use_ozx_format
-    assert conversion_options[4] is gui.czi_to_omezarr_converter.compression_choice
-    assert conversion_options[5] is gui.czi_to_omezarr_converter.show_napari
+    assert conversion_options[3] is gui.czi_to_omezarr_converter.pyramid_levels
+    assert conversion_options[4] is gui.hcs_pyramid_policy
+    assert conversion_options[5] is gui.czi_to_omezarr_converter.use_ozx_format
+    assert conversion_options[6] is gui.czi_to_omezarr_converter.compression_choice
+    assert conversion_options[7] is gui.czi_to_omezarr_converter.show_napari
     assert not hasattr(gui.czi_to_omezarr_converter, "use_tensorstore")

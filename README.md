@@ -191,6 +191,11 @@ Well names accept forms such as `B4`, `b04`, and `B/4`. Field indices are
 zero-based within a well. The OME-Zarr converter writes the HCS hierarchy
 plate → well → field image → multiscale level.
 
+`convert_czi2hcs_ngff()` writes OME-NGFF v0.5 by default and supports v0.6
+when requested. OME-NGFF v0.6 HCS output requires `ngff-zarr>=0.47.0`; the
+validator selects the image or HCS reader from the store layout and declared
+version.
+
 ### HCS Plate Inspection CLI
 
 Use `czi_hcs_check` to inspect CZI well-plate metadata from the command line

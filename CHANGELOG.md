@@ -8,6 +8,34 @@ and the project adheres to [Semantic Versioning](https://semver.org/).
 
 ## Unreleased
 
+## [0.26.0] — 2026-09-28
+
+### Added
+
+- HCS NGFF conversion now supports explicit OME-NGFF v0.6 output in addition
+  to the v0.5 default, with version-aware HCS validation.
+- HCS conversion now exposes configurable pyramid levels, spatial chunking,
+  sharding, and bounded field concurrency across all generated levels.
+- The OME-Zarr GUI now exposes HCS backend policy, individual scene
+  dimensions, compression choices, and conversion progress details.
+
+### Changed
+
+- The GUI now uses the **Quality** conversion preset by default while keeping
+  **Fast balanced** available for non-HCS NGFF exports.
+- HCS conversion reuses stored CZI pyramid levels where available and applies
+  suitable chunking and sharding to spatial and 3D data.
+- The optional `ngff-zarr` dependency floor for the full and documentation
+  extras is now 0.47.0.
+
+### Fixed
+
+- OME-NGFF v0.6 HCS validation now dispatches plate stores to
+  `ngff_zarr.from_hcs_zarr()` instead of the image reader.
+- The GUI no longer exposes a confusing nullable compression placeholder.
+- HCS logs now report individual scene dimensions and the selected output
+  layout.
+
 ## [0.25.1] — 2026-09-15
 
 ### Fixed

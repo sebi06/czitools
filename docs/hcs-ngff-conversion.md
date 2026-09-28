@@ -1,7 +1,9 @@
 # HCS NGFF Conversion Workflow
 
-The ngff-zarr HCS exporter converts a CZI plate into an OME-NGFF v0.5,
-Zarr v3 hierarchy. The optimized path is designed around three constraints:
+The ngff-zarr HCS exporter converts a CZI plate into an OME-NGFF v0.5 or v0.6,
+Zarr v3 hierarchy. It writes v0.5 by default; v0.6 can be selected explicitly
+with `version="0.6"` and requires `ngff-zarr>=0.47.0`. The optimized path is
+designed around three constraints:
 
 - parse expensive CZI metadata once and reuse it;
 - read stored CZI pyramid levels directly, using native libCZI zoom only when
@@ -31,8 +33,9 @@ For every requested level:
 5. `chunks_per_shard={"y": 4, "x": 4}` requests up to four inner chunks per
    spatial shard axis. Blosc compresses the inner chunks.
 
-TensorStore is not part of this path. ngff-zarr 0.45 uses zarrista and receives
-filesystem or `.ozx` paths directly.
+TensorStore is not part of this path. ngff-zarr uses zarrista and receives
+filesystem or `.ozx` paths directly. HCS validation selects the version-aware
+HCS reader for v0.6 stores and retains the v0.5 model validation path.
 
 ## Metadata reuse
 

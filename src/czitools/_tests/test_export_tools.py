@@ -61,6 +61,7 @@ def test_legacy_export_options_are_not_public() -> None:
     assert "use_tensorstore" not in signature(conversion.write_omezarr_ngff).parameters
     assert signature(conversion.write_omezarr).parameters["version"].default == "0.6"
     assert signature(conversion.write_omezarr_ngff).parameters["version"].default == "0.6"
+    assert signature(conversion.convert_czi2hcs_ngff).parameters["version"].default == "0.5"
     assert signature(conversion.convert_czi2hcs_ngff).parameters["chunks_per_shard"].default == {"y": 4, "x": 4}
     assert signature(conversion.convert_czi2hcs_ngff).parameters["max_workers"].default == 4
     assert signature(conversion.convert_czi2hcs_omezarr).parameters["logging_detail"].default == "basic"
@@ -69,7 +70,7 @@ def test_legacy_export_options_are_not_public() -> None:
 
 def test_ngff_hcs_rejects_unsupported_version() -> None:
     with pytest.raises(ValueError, match="HCS writing currently supports"):
-        convert_czi2hcs_ngff(WELLPLATE, version="0.6")
+        convert_czi2hcs_ngff(WELLPLATE, version="0.7")
 
 
 def test_validation_dispatches_ome_ngff_06_to_ngff_zarr(
@@ -83,6 +84,30 @@ def test_validation_dispatches_ome_ngff_06_to_ngff_zarr(
     monkeypatch.setattr(validation.nz, "from_ngff_zarr", lambda path: parsed)
 
     assert validate_ome_zarr(output) is True
+
+
+def test_validation_dispatches_ome_ngff_06_hcs_to_hcs_reader(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    output = tmp_path / "plate.ome.zarr"
+    group = zarr.open_group(output, mode="w")
+    group.attrs["ome"] = {"version": "0.6", "plate": {}}
+    calls: list[tuple[str, bool]] = []
+
+    def fake_from_hcs_zarr(path: str, validate: bool = False) -> object:
+        calls.append((path, validate))
+        return object()
+
+    monkeypatch.setattr(validation.nz, "from_hcs_zarr", fake_from_hcs_zarr)
+    monkeypatch.setattr(
+        validation.nz,
+        "from_ngff_zarr",
+        lambda _path: pytest.fail("HCS validation used the image reader"),
+    )
+
+    assert validate_ome_zarr(output) is True
+    assert calls == [(str(output), True)]
 
 
 def test_hcs_basic_logging_bounds_progress_messages(caplog: pytest.LogCaptureFixture) -> None:
@@ -103,6 +128,23 @@ def test_hcs_full_logging_reports_every_field(caplog: pytest.LogCaptureFixture) 
 
     progress_records = [record for record in caplog.records if record.message.startswith("HCS conversion progress:")]
     assert len(progress_records) == 6
+
+
+def test_hcs_scene_dimensions_are_logged(caplog: pytest.LogCaptureFixture) -> None:
+    metadata = SimpleNamespace(
+        image=SimpleNamespace(
+            SizeX_scene=2752,
+            SizeY_scene=2208,
+            SizeC=3,
+            SizeZ=1,
+            SizeT=1,
+        )
+    )
+
+    with caplog.at_level(logging.INFO, logger=conversion.__name__):
+        conversion._log_hcs_scene_dimensions(metadata)  # type: ignore[arg-type]
+
+    assert "Individual scene dimensions: X=2752, Y=2208, C=3, Z=1, T=1" in caplog.text
 
 
 @pytest.mark.parametrize(
@@ -418,11 +460,28 @@ def test_write_omezarr_defaults_to_real_ome_ngff_06_store(tmp_path: Path) -> Non
         np.zeros((1, 1, 1, 32, 32), dtype=np.uint16),
         dims=("T", "C", "Z", "Y", "X"),
     )
+    log_path = tmp_path / "conversion.log"
 
-    conversion.write_omezarr(array, output, metadata, compression=None)
+    conversion.write_omezarr(
+        array,
+        output,
+        metadata,
+        compression=None,
+        log_file_path=log_path,
+    )
 
     root_metadata = json.loads((output / "zarr.json").read_text(encoding="utf-8"))
     assert root_metadata["attributes"]["ome"]["version"] == "0.6"
+    datasets = root_metadata["attributes"]["ome"]["multiscales"][0]["datasets"]
+    assert len(datasets) == 4
+    for dataset in datasets:
+        array_metadata = json.loads((output / dataset["path"] / "zarr.json").read_text(encoding="utf-8"))
+        assert array_metadata["codecs"][0]["name"] == "sharding_indexed"
+    verified = [
+        line for line in log_path.read_text(encoding="utf-8").splitlines() if "OME-Zarr layout verified" in line
+    ]
+    assert len(verified) == 4
+    assert all("inner_chunk=" in line and "shard=" in line for line in verified)
 
 
 def test_write_omezarr_ngff_defaults_to_real_ome_ngff_06_store(tmp_path: Path) -> None:
@@ -488,10 +547,48 @@ def test_write_omezarr_ngff_directory_uses_bounded_default_chunks(
         overwrite=True,
     )
 
-    assert captured["chunks"] == (1, 1, 1, 512, 512)
+    assert captured["chunks"] == (1, 1, 8, 256, 256)
     assert captured["method"] is conversion.nz.Methods.DASK_BIN_SHRINK
-    assert captured["image_data"].chunksize == (1, 1, 1, 512, 512)
+    assert captured["image_data"].chunksize == (1, 1, 2, 256, 256)
     assert captured["store"] == output
+
+
+def test_write_omezarr_ngff_shards_every_pyramid_level(tmp_path: Path) -> None:
+    metadata = SimpleNamespace(
+        filename="volume.czi",
+        scale=SimpleNamespace(X=1.0, Y=1.0, Z=1.0),
+        image=None,
+        channelinfo=None,
+    )
+    output = tmp_path / "volume.ome.zarr"
+    log_path = tmp_path / "conversion.log"
+
+    write_omezarr_ngff(
+        np.zeros((1, 1, 9, 64, 64), dtype=np.uint16),
+        output,
+        metadata,
+        pyramid_levels=2,
+        compression=None,
+        overwrite=True,
+        log_file_path=log_path,
+    )
+
+    root_metadata = json.loads((output / "zarr.json").read_text(encoding="utf-8"))
+    arrays = [
+        metadata
+        for metadata in root_metadata["consolidated_metadata"]["metadata"].values()
+        if metadata.get("node_type") == "array"
+    ]
+    assert len(arrays) == 3
+    for array_metadata in arrays:
+        sharding_codec = array_metadata["codecs"][0]
+        assert sharding_codec["name"] == "sharding_indexed"
+        assert sharding_codec["configuration"]["chunk_shape"][:3] == [1, 1, 8]
+    verified = [
+        line for line in log_path.read_text(encoding="utf-8").splitlines() if "OME-Zarr layout verified" in line
+    ]
+    assert len(verified) == 3
+    assert all("codec=sharding_indexed" in line for line in verified)
 
 
 def test_write_omezarr_ngff_overwrites_ozx_file(

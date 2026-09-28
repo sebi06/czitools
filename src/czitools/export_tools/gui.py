@@ -44,6 +44,9 @@ from czitools.read_tools import read_tools
 # Internal imports from sibling modules (avoid lazy-loading parent package)
 from ._logging import compression_type, omezarr_package, setup_logging
 from .conversion import (
+    DEFAULT_PYRAMID_LEVELS,
+    QUALITY_CHUNKS,
+    QUALITY_CHUNKS_PER_SHARD,
     convert_czi2hcs_ngff,
     convert_czi2hcs_omezarr,
     write_omezarr,
@@ -197,8 +200,9 @@ def perform_conversion(
     write_hcs: bool,
     package_choice: omezarr_package,
     scene_id: int,
-    compression_choice: compression_type | None = compression_type.BLOSC,
+    compression_choice: compression_type = compression_type.BLOSC,
     conversion_preset: NgffConversionPreset = NgffConversionPreset.QUALITY,
+    pyramid_levels: int = DEFAULT_PYRAMID_LEVELS,
 ) -> str | None:
     """
     Perform the CZI to OME-ZARR conversion with specified parameters.
@@ -211,6 +215,7 @@ def perform_conversion(
         scene_id: Scene index to convert (for non-HCS mode with multiple scenes)
         compression_choice: Compression type for OME-ZARR output (default: Blosc).
         conversion_preset: Performance preset for non-HCS ngff-zarr output.
+        pyramid_levels: Number of additional 2x Y/X pyramid levels.
     Returns:
         str: Path to output OME-ZARR file, or None if conversion failed
     """
@@ -290,12 +295,13 @@ def perform_conversion(
                     metadata=mdata,
                     overwrite=True,
                     log_file_path=str(log_file_path),
+                    compression=compression_choice,
+                    pyramid_levels=pyramid_levels,
                 )
 
                 logger.info("OME-ZARR created: %s", output_path)
 
             elif package_choice == omezarr_package.NGFF_ZARR:
-
                 if use_ozx_format:
                     # Generate output path with _ngff.ozx extension
                     zarr_output_path: Path = Path(str(filepath)[:-4] + "_ngff.ozx")
@@ -312,13 +318,14 @@ def perform_conversion(
                     mdata,
                     scale_factors=None,
                     overwrite=True,
-                    chunks=(1, 1, 4, 1024, 1024) if fast_balanced else None,
-                    chunks_per_shard={"y": 2, "x": 2} if fast_balanced else 2,
+                    chunks=(1, 1, 4, 1024, 1024) if fast_balanced else QUALITY_CHUNKS,
+                    chunks_per_shard=({"z": 2, "y": 2, "x": 2} if fast_balanced else QUALITY_CHUNKS_PER_SHARD),
                     compression=compression_choice,
                     downsampling_method=(
                         nz.Methods.DASK_BIN_SHRINK if fast_balanced else nz.Methods.DASK_IMAGE_GAUSSIAN
                     ),
                     log_file_path=str(log_file_path),
+                    pyramid_levels=pyramid_levels,
                 )
 
                 output_path = str(zarr_output_path)
@@ -398,6 +405,12 @@ def perform_conversion(
         ],
         "tooltip": "Choose pyramid quality or faster directory-based conversion",
     },
+    pyramid_levels={
+        "label": "Pyramid levels",
+        "min": 0,
+        "max": 8,
+        "tooltip": "Number of additional 2x Y/X resolution levels",
+    },
     compression_choice={
         "label": "Compression",
         "choices": [
@@ -424,8 +437,9 @@ def czi_to_omezarr_converter(
     package_choice: omezarr_package = omezarr_package.NGFF_ZARR,
     write_hcs: bool = False,
     use_ozx_format: bool = False,
-    conversion_preset: NgffConversionPreset = NgffConversionPreset.FAST_BALANCED,
-    compression_choice: compression_type | None = compression_type.BLOSC,
+    conversion_preset: NgffConversionPreset = NgffConversionPreset.QUALITY,
+    pyramid_levels: int = DEFAULT_PYRAMID_LEVELS,
+    compression_choice: compression_type = compression_type.BLOSC,
     scene_id: int = 0,
     show_napari: bool = False,
 ):
@@ -454,6 +468,12 @@ info_display.read_only = True
 info_display.native.setFont(QFontDatabase.systemFont(QFontDatabase.SystemFont.FixedFont))
 info_display.native.setLineWrapMode(QTextEdit.LineWrapMode.NoWrap)
 
+hcs_pyramid_policy = widgets.Label(
+    value="",
+    label="HCS pyramid policy",
+    visible=False,
+)
+
 # Create "Convert to OME-ZARR" button (separate from the main widget)
 convert_button = widgets.PushButton(
     text="Convert to OME-ZARR",
@@ -473,12 +493,14 @@ log_viewer.read_only = True  # Make it read-only but scrollable
 # Create version info widget
 try:
     version_info = f"""NGFF-ZARR image spec: 0.6 (default)
-OME-ZARR-PY image spec: 0.6 (default)
-HCS / OZX spec: 0.5
+OME-ZARR-PY image spec: 0.5 (CurrentFormat)
+NGFF-ZARR HCS spec: 0.5 (default; writer supports 0.6)
+OME-ZARR-PY HCS spec: 0.5 (CurrentFormat)
+OZX (RFC-9): NGFF-ZARR 0.5 (current output)
 
 ZARR Package: {zarr.__version__}
 NGFF-ZARR Package: {nz.__version__}
-OME-ZARR Package: {version('ome-zarr')}"""
+OME-ZARR Package: {version("ome-zarr")}"""
 except Exception:
     version_info = "Version information unavailable"
 
@@ -498,6 +520,7 @@ def _conversion_controls() -> tuple[widgets.Widget, ...]:
         czi_to_omezarr_converter.package_choice,
         czi_to_omezarr_converter.write_hcs,
         czi_to_omezarr_converter.conversion_preset,
+        czi_to_omezarr_converter.pyramid_levels,
         czi_to_omezarr_converter.use_ozx_format,
         czi_to_omezarr_converter.compression_choice,
         czi_to_omezarr_converter.scene_id,
@@ -532,6 +555,25 @@ def _format_hcs_details(mdata: CziMetadata) -> str:
         f"Total wells: {len(plate.wells)}",
         f"Total fields: {sum(len(well.fields) for well in plate.wells)}",
     ]
+
+    image = mdata.image
+    if image is not None:
+        scene_x = getattr(image, "SizeX_scene", None) or getattr(image, "SizeX", None)
+        scene_y = getattr(image, "SizeY_scene", None) or getattr(image, "SizeY", None)
+        scene_c = getattr(image, "SizeC", None)
+        scene_z = getattr(image, "SizeZ", None)
+        scene_t = getattr(image, "SizeT", None)
+        lines.extend(
+            [
+                "",
+                "INDIVIDUAL SCENE DIMENSIONS",
+                "",
+                f"Image size: {scene_x} × {scene_y} pixels (X × Y)",
+                f"Channels: {scene_c}",
+                f"Z-slices: {scene_z}",
+                f"Time points: {scene_t}",
+            ]
+        )
 
     sample = mdata.sample
     if sample is not None:
@@ -752,6 +794,7 @@ def on_convert_clicked() -> None:
     scene_id = czi_to_omezarr_converter.scene_id.value
     compression = czi_to_omezarr_converter.compression_choice.value
     conversion_preset = czi_to_omezarr_converter.conversion_preset.value
+    pyramid_levels = czi_to_omezarr_converter.pyramid_levels.value
 
     # Validate that file exists
     if not czi_file.exists():
@@ -819,6 +862,7 @@ def on_convert_clicked() -> None:
             scene_id=scene_id,
             compression_choice=compression,
             conversion_preset=conversion_preset,
+            pyramid_levels=pyramid_levels,
         )
 
         # Store result and mark as complete
@@ -855,6 +899,14 @@ def update_use_ozx_format_enabled_state() -> None:
     metadata_ready = metadata is not None and selected_file is not None
     preset_supported = metadata_ready and package_choice is omezarr_package.NGFF_ZARR and not write_hcs
     czi_to_omezarr_converter.conversion_preset.enabled = preset_supported
+    czi_to_omezarr_converter.pyramid_levels.enabled = metadata_ready and not write_hcs
+    czi_to_omezarr_converter.conversion_preset.visible = not write_hcs
+    czi_to_omezarr_converter.pyramid_levels.visible = not write_hcs
+    hcs_pyramid_policy.visible = metadata_ready and write_hcs
+    if package_choice is omezarr_package.NGFF_ZARR:
+        hcs_pyramid_policy.value = "Use CZI-stored levels; add 2x Y/X levels until the coarsest edge is <= 512 px."
+    else:
+        hcs_pyramid_policy.value = "Base plus 2x, 4x, 8x, and 16x Y/X levels (5 total)."
     fast_balanced = (
         preset_supported and czi_to_omezarr_converter.conversion_preset.value is NgffConversionPreset.FAST_BALANCED
     )
@@ -1010,6 +1062,8 @@ def create_gui() -> widgets.Container:
             czi_to_omezarr_converter.write_hcs,
             czi_to_omezarr_converter.scene_id,
             czi_to_omezarr_converter.conversion_preset,
+            czi_to_omezarr_converter.pyramid_levels,
+            hcs_pyramid_policy,
             czi_to_omezarr_converter.use_ozx_format,
             czi_to_omezarr_converter.compression_choice,
             czi_to_omezarr_converter.show_napari,

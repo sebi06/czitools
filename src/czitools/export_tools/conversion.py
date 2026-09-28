@@ -7,12 +7,14 @@ OME-Zarr outputs use Zarr 3 and retain their backend's native pyramid paths.
 """
 
 import gc
+import json
 import logging
 import os
 import shutil
 import sys
 import time
 import warnings
+import zipfile
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from contextlib import contextmanager
 from pathlib import Path
@@ -56,6 +58,75 @@ from .resolver import resolve_hcs_layout
 logger = logging.getLogger(__name__)
 
 LoggingDetail = Literal["basic", "full"]
+
+DEFAULT_PYRAMID_LEVELS = 3
+QUALITY_CHUNKS = (1, 1, 8, 256, 256)
+QUALITY_CHUNKS_PER_SHARD = {"z": 4, "y": 4, "x": 4}
+
+
+def _pyramid_scale_factors(pyramid_levels: int) -> list[dict[str, int]]:
+    """Return cumulative Y/X scale factors for additional pyramid levels."""
+    if pyramid_levels < 0:
+        raise ValueError("pyramid_levels must be at least 0.")
+    return [{"z": 1, "y": 2**level, "x": 2**level} for level in range(1, pyramid_levels + 1)]
+
+
+def _shard_shape(
+    chunks: tuple[int, ...],
+    chunks_per_shard: dict[str, int],
+) -> tuple[int, ...]:
+    """Return a TCZYX shard shape while preserving T/C independence."""
+    dims = ("t", "c", "z", "y", "x")
+    return tuple(chunk * chunks_per_shard.get(dim, 1) for dim, chunk in zip(dims, chunks, strict=True))
+
+
+def _log_omezarr_layout(zarr_path: str | os.PathLike | Path) -> None:
+    """Log the effective chunk and shard layout of every Zarr v3 array."""
+    path = Path(zarr_path)
+    metadata_entries: list[tuple[str, dict]] = []
+    try:
+        if path.is_dir():
+            for metadata_path in sorted(path.rglob("zarr.json")):
+                metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
+                metadata_entries.append((metadata_path.relative_to(path).as_posix(), metadata))
+        elif path.is_file() and zipfile.is_zipfile(path):
+            with zipfile.ZipFile(path) as archive:
+                for name in sorted(name for name in archive.namelist() if name.endswith("zarr.json")):
+                    metadata_entries.append((name, json.loads(archive.read(name))))
+    except (OSError, json.JSONDecodeError, zipfile.BadZipFile) as exc:
+        logger.warning("Could not verify OME-Zarr chunk and shard layout for %s: %s", path, exc)
+        return
+
+    array_count = 0
+    for name, metadata in metadata_entries:
+        if metadata.get("node_type") != "array":
+            continue
+        array_count += 1
+        shard_codec = next(
+            (codec for codec in metadata.get("codecs", []) if codec.get("name") == "sharding_indexed"),
+            None,
+        )
+        outer_shape = tuple(metadata["chunk_grid"]["configuration"]["chunk_shape"])
+        inner_shape = tuple(shard_codec["configuration"]["chunk_shape"]) if shard_codec is not None else outer_shape
+        if shard_codec is None:
+            logger.warning(
+                "OME-Zarr layout is unsharded: path=%s shape=%s chunk=%s codecs=%s",
+                name,
+                tuple(metadata["shape"]),
+                inner_shape,
+                [codec.get("name") for codec in metadata.get("codecs", [])],
+            )
+            continue
+        logger.info(
+            "OME-Zarr layout verified: path=%s shape=%s inner_chunk=%s shard=%s codec=sharding_indexed",
+            name,
+            tuple(metadata["shape"]),
+            inner_shape,
+            outer_shape,
+        )
+
+    if array_count == 0:
+        logger.warning("No Zarr v3 array metadata found for layout verification: %s", path)
 
 
 def _validate_logging_detail(logging_detail: LoggingDetail) -> bool:
@@ -152,7 +223,7 @@ class _LoggedNgffProgress(NgffProgressCallback):
             )
         elif self._finalizing_storage:
             logger.info(
-                "%s progress: [%s.] finalizing storage " "(Dask tasks complete, elapsed %.1f s)",
+                "%s progress: [%s.] finalizing storage (Dask tasks complete, elapsed %.1f s)",
                 self.label,
                 "=" * (self.width - 1),
                 time.perf_counter() - self.started,
@@ -347,6 +418,25 @@ def _validate_metadata_h_dimension(metadata: CziMetadata) -> None:
     """Validate the H dimension reported by CZI metadata before writing."""
     image = metadata.image
     _validate_h_size(image.SizeH if image is not None else None, "metadata")
+
+
+def _log_hcs_scene_dimensions(metadata: CziMetadata) -> None:
+    """Log the metadata-reported dimensions of an individual HCS scene."""
+    image = metadata.image
+    if image is None:
+        logger.warning("Individual scene dimensions unavailable in CZI metadata.")
+        return
+
+    scene_x = getattr(image, "SizeX_scene", None) or getattr(image, "SizeX", None)
+    scene_y = getattr(image, "SizeY_scene", None) or getattr(image, "SizeY", None)
+    logger.info(
+        "Individual scene dimensions: X=%s, Y=%s, C=%s, Z=%s, T=%s",
+        scene_x,
+        scene_y,
+        getattr(image, "SizeC", None),
+        getattr(image, "SizeZ", None),
+        getattr(image, "SizeT", None),
+    )
 
 
 def _normalize_h_dimension(array: xr.DataArray, scene_index: int) -> xr.DataArray:
@@ -600,6 +690,7 @@ def convert_czi2hcs_omezarr(
     # supported -- reading the whole plate at once returns None in that case.
     mdata = CziMetadata(str(czi_path))
     _validate_metadata_h_dimension(mdata)
+    _log_hcs_scene_dimensions(mdata)
 
     layout = resolve_hcs_layout(mdata, pad_columns=pad_columns)
     logger.info(f"Resolved plate layout from '{layout.source}': {len(layout.wells)} well(s)")
@@ -679,6 +770,7 @@ def convert_czi2hcs_omezarr(
         logger.info("Writing %d field-pyramid task(s) in parallel (dask)...", len(delayed_writes))
         _retry_io(dask.compute, *delayed_writes)
 
+    _log_omezarr_layout(zarr_output_path)
     logger.info("=" * 80)
     logger.info("Conversion completed successfully!")
     logger.info(f"Output HCS OME-ZARR file: {zarr_output_path}")
@@ -717,8 +809,8 @@ def convert_czi2hcs_ngff(
         log_file_path (Optional[Union[str, os.PathLike, Path]]): Log file path.
             Defaults to ``<stem>_hcs_ngff.log``.
         write_ozx_directly (bool): Write a single-file ``.ozx`` archive directly.
-        version (str): NGFF version string. Defaults to ``"0.5"`` because
-            the ngff-zarr HCS writer currently supports versions 0.4 and 0.5.
+        version (str): NGFF version string. Defaults to ``"0.5"``. The
+            ngff-zarr HCS writer supports versions 0.4, 0.5, and 0.6.
         output_dir (Optional[Union[str, os.PathLike, Path]]): Output directory.
             Defaults to the CZI file's parent directory.
         pad_columns (bool): Zero-pad column numbers in well paths (e.g. ``"04"``).
@@ -742,8 +834,8 @@ def convert_czi2hcs_ngff(
     """
     conversion_started = time.perf_counter()
     full_logging = _validate_logging_detail(logging_detail)
-    if version not in {"0.4", "0.5"}:
-        raise ValueError("ngff-zarr HCS writing currently supports OME-NGFF versions 0.4 and 0.5.")
+    if version not in {"0.4", "0.5", "0.6"}:
+        raise ValueError("ngff-zarr HCS writing currently supports OME-NGFF versions 0.4, 0.5, and 0.6.")
     if spatial_chunk_size < 1:
         raise ValueError("spatial_chunk_size must be at least 1.")
     if planes_per_chunk < 1:
@@ -768,7 +860,7 @@ def convert_czi2hcs_ngff(
     logger.info(f"Input CZI file: {czi_path.absolute()}")
     logger.info(f"Plate name: {plate_name}")
     logger.info(
-        "NGFF HCS tuning: chunk=%dx%d, chunks_per_shard=%s, " "planes_per_chunk=%d, max_workers=%d",
+        "NGFF HCS tuning: chunk=%dx%d, chunks_per_shard=%s, planes_per_chunk=%d, max_workers=%d",
         spatial_chunk_size,
         spatial_chunk_size,
         chunks_per_shard,
@@ -799,6 +891,7 @@ def convert_czi2hcs_ngff(
     # supported -- reading the whole plate at once returns None in that case.
     mdata = CziMetadata(str(czi_path))
     _validate_metadata_h_dimension(mdata)
+    _log_hcs_scene_dimensions(mdata)
 
     layout = resolve_hcs_layout(mdata, pad_columns=pad_columns)
     logger.info(f"Resolved plate layout from '{layout.source}': {len(layout.wells)} well(s)")
@@ -903,6 +996,7 @@ def convert_czi2hcs_ngff(
     if not write_ozx_directly:
         _ensure_plate_version_metadata(zarr_output_path, version)
 
+    _log_omezarr_layout(zarr_output_path)
     logger.info("=" * 80)
     logger.info("Conversion completed successfully!")
     logger.info(f"Output HCS OME-ZARR file: {zarr_output_path}")
@@ -925,6 +1019,7 @@ def write_omezarr(
     log_file_path: str | Path | None = None,
     compression: compression_type | None = compression_type.BLOSC,
     version: str = "0.6",
+    pyramid_levels: int = DEFAULT_PYRAMID_LEVELS,
 ) -> Path | None:
     """Write a single 5D image to OME-Zarr using the ome-zarr-py backend.
 
@@ -939,6 +1034,8 @@ def write_omezarr(
         compression (Optional[compression_type]): Chunk compression type.
             Defaults to ``compression_type.BLOSC``. Set to ``None`` for no compression
         version (str): OME-NGFF specification version. Defaults to ``"0.6"``.
+        pyramid_levels (int): Number of additional 2x Y/X pyramid levels.
+            Defaults to 3.
 
     Returns:
         Optional[Path]: Path to the written OME-Zarr file, or ``None`` on failure.
@@ -975,10 +1072,8 @@ def write_omezarr(
 
     logger.info("Zarr storage format: v3")
 
-    # Chunk the full Z-stack per (T, C) instead of one XY plane per chunk. Single-
-    # plane chunks explode the file count (T*C*Z chunks/level), which makes writing
-    # large images pathologically slow on Windows.
-    chunks = (1, 1, array5d.sizes["Z"], array5d.sizes["Y"], array5d.sizes["X"])
+    chunks = QUALITY_CHUNKS
+    shards = _shard_shape(chunks, QUALITY_CHUNKS_PER_SHARD)
     axes = "".join(str(d).lower() for d in array5d.dims)
 
     _mscale = metadata.scale
@@ -1012,7 +1107,7 @@ def write_omezarr(
     )
     multiscales = OMEZarrMultiscale(
         image=image,
-        scale_factors=[2, 4, 8, 16],
+        scale_factors=[factor["y"] for factor in _pyramid_scale_factors(pyramid_levels)],
         method="nearest",
     )
     with warnings.catch_warnings():
@@ -1024,7 +1119,11 @@ def write_omezarr(
         delayed = _retry_io(
             multiscales.to_ome_zarr,
             str(zarr_path),
-            storage_options={"chunks": chunks, "compressors": compressor},
+            storage_options={
+                "chunks": chunks,
+                "shards": shards,
+                "compressors": compressor,
+            },
             version=version,
             compute=False,
             overwrite=True,
@@ -1047,6 +1146,7 @@ def write_omezarr(
         fmt=ome_zarr.format.CurrentFormat(),
     )
 
+    _log_omezarr_layout(zarr_path)
     logger.info("OME-ZARR writing completed successfully!")
     logger.info(f"Output file: {zarr_path}")
 
@@ -1066,12 +1166,13 @@ def write_omezarr_ngff(
     overwrite: bool = False,
     version: str = "0.6",
     chunks: tuple | None = None,
-    chunks_per_shard: dict[str, int] | int | None = 2,
+    chunks_per_shard: dict[str, int] | int | None = QUALITY_CHUNKS_PER_SHARD,
     compression: compression_type | None = compression_type.BLOSC,
     log_file_path: Path | str | None = None,
     min_size: int = 512,
     max_levels: int = 6,
     downsampling_method: "nz.Methods" = nz.Methods.DASK_IMAGE_GAUSSIAN,
+    pyramid_levels: int | None = DEFAULT_PYRAMID_LEVELS,
 ) -> "nz.NgffImage | None":
     """Write a single 5D image to OME-Zarr NGFF format with multi-scale pyramids.
 
@@ -1099,16 +1200,25 @@ def write_omezarr_ngff(
             ``scale_factors`` is None. Defaults to 6.
         downsampling_method (nz.Methods): Pyramid downsampling method. Defaults
             to ``DASK_IMAGE_GAUSSIAN``.
+        pyramid_levels (Optional[int]): Number of additional 2x Y/X pyramid
+            levels used when ``scale_factors`` is None. Defaults to 3. Set to
+            ``None`` to retain size-aware level selection using ``min_size``
+            and ``max_levels``.
     Returns:
         Optional[nz.NgffImage]: The written NgffImage, or ``None`` on failure.
     """
     conversion_started = time.perf_counter()
 
     if scale_factors is None:
-        # Size-aware, Y/X-only pyramid depth derived from the plane size.
-        scale_factors = compute_pyramid_scale_factors(
-            int(array5d.shape[-2]), int(array5d.shape[-1]), min_size=min_size, max_levels=max_levels
-        )
+        if pyramid_levels is None:
+            scale_factors = compute_pyramid_scale_factors(
+                int(array5d.shape[-2]),
+                int(array5d.shape[-1]),
+                min_size=min_size,
+                max_levels=max_levels,
+            )
+        else:
+            scale_factors = _pyramid_scale_factors(pyramid_levels)
 
     if log_file_path is None:
         zarr_path_obj = Path(zarr_path)
@@ -1148,13 +1258,7 @@ def write_omezarr_ngff(
     _filename = metadata.filename or "image.czi"
 
     if chunks is None:
-        chunks = (
-            1,
-            1,
-            1,
-            min(512, int(array5d.shape[-2])),
-            min(512, int(array5d.shape[-1])),
-        )
+        chunks = QUALITY_CHUNKS
     logger.info("Chunk shape (TCZYX): %s", chunks)
 
     image_data = array5d.data if isinstance(array5d, xr.DataArray) else array5d
@@ -1233,6 +1337,7 @@ def write_omezarr_ngff(
         ome_attrs["version"] = "0.6"
         root.attrs["ome"] = ome_attrs
 
+    _log_omezarr_layout(output_path)
     logger.info("NGFF OME-ZARR writing completed successfully!")
     logger.info(f"Output file: {zarr_path}")
     logger.info("Total conversion time: %.2f seconds", time.perf_counter() - conversion_started)

@@ -37,12 +37,12 @@ def validate_ome_zarr(path: str | Path) -> bool:
         ome_attrs = root_attrs.get("ome", {})
         declared_version = ome_attrs.get("version") if isinstance(ome_attrs, dict) else None
 
-        if declared_version in {"0.6", "0.6rc0", "0.6.dev4"}:
-            nz.from_ngff_zarr(path)
-            logger.info(f"Valid OME-ZARR {declared_version} image: {path}")
-            return True
-
         if isinstance(ome_attrs, dict) and "plate" in ome_attrs:
+            if declared_version in {"0.6", "0.6rc0", "0.6.dev4"}:
+                nz.from_hcs_zarr(path, validate=True)
+                logger.info(f"Valid OME-ZARR {declared_version} HCS plate: {path}")
+                return True
+
             plate = Plate.model_validate(ome_attrs["plate"])
             for well in plate.wells:
                 well_group = group[well.path]
@@ -66,6 +66,11 @@ def validate_ome_zarr(path: str | Path) -> bool:
 
             logger.info(f"Valid OME-ZARR HCS plate: {path}")
         else:
+            if declared_version in {"0.6", "0.6rc0", "0.6.dev4"}:
+                nz.from_ngff_zarr(path)
+                logger.info(f"Valid OME-ZARR {declared_version} image: {path}")
+                return True
+
             Image.from_zarr(group)
             logger.info(f"Valid OME-ZARR image: {path}")
 
