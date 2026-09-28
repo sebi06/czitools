@@ -1,0 +1,21 @@
+flowchart TD
+    input[Input CZI plate] --> metadata[Parse CziMetadata once]
+    metadata --> layout[Resolve plate, well, field, and scene layout]
+    metadata --> pyramid[Detect stored CZI pyramid levels]
+    layout --> queue[Create bounded field job queue]
+    pyramid --> queue
+    queue --> scene[Select one scene for one field]
+    scene --> levels[Build lazy multiscale arrays]
+    levels --> decision{Stored coarse level available?}
+    decision -- Yes --> stored[Read stored CZI subblocks]
+    decision -- No --> native[Read lower level with native libCZI zoom]
+    stored --> chunks[Rechunk spatial axes toward 512 x 512]
+    native --> chunks
+    chunks --> ngff[Create NGFF multiscales and OMERO metadata]
+    ngff --> writer[ngff-zarr HCSPlateWriter]
+    writer --> shard[Configure Zarr v3 indexed sharding]
+    shard --> compress[Compress inner chunks with Blosc]
+    compress --> field[Write plate / well / field / scale arrays]
+    field --> remaining{More fields?}
+    remaining -- Yes --> queue
+    remaining -- No --> validate[Validate OME-NGFF v0.5 output]

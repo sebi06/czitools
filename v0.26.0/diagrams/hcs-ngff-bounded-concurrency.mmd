@@ -1,0 +1,26 @@
+flowchart LR
+    czi[(One shared CZI file)] --> queue[Field job queue]
+    queue --> worker1[Worker 1]
+    queue --> worker2[Worker 2]
+    queue --> worker3[Worker 3]
+    queue --> worker4[Worker 4]
+
+    subgraph active[At most max_workers active fields]
+        worker1 --> graph1[Lazy field graph and active chunks]
+        worker2 --> graph2[Lazy field graph and active chunks]
+        worker3 --> graph3[Lazy field graph and active chunks]
+        worker4 --> graph4[Lazy field graph and active chunks]
+    end
+
+    graph1 --> store[(Sharded Zarr v3 plate)]
+    graph2 --> store
+    graph3 --> store
+    graph4 --> store
+
+    metadata[Shared parsed metadata] -. shallow per-read copy .-> graph1
+    metadata -. shallow per-read copy .-> graph2
+    metadata -. shallow per-read copy .-> graph3
+    metadata -. shallow per-read copy .-> graph4
+
+    note[The complete plate is never materialized in RAM]
+    active --- note
