@@ -8,6 +8,42 @@ and the project adheres to [Semantic Versioning](https://semver.org/).
 
 ## Unreleased
 
+## [0.27.0] - 2026-10-13
+
+### Added
+
+- The OME-Zarr GUI offers 256, 512, and 1024-pixel spatial output chunks,
+  defaulting to 512 independently of CZI read tile size.
+- Individual-image exports select Dask concurrency automatically from
+  available RAM and CPU capacity, with manual GUI overrides from 1 to 32.
+  The resolved worker count is shown in the GUI and recorded in the log.
+- Both single-image Python writers accept supplied lazy pyramid levels via
+  `source_multiscales` and configurable concurrency via `worker_count`.
+
+### Changed
+
+- Individual-image GUI exports read CZI pixels lazily using spatial ROI
+  tiles up to 4096 pixels within a 32 MiB per-tile budget.
+- Both ngff-zarr and ome-zarr-py reuse stored CZI pyramid levels for
+  individual images and HCS plates, preserving native pixels and physical
+  transforms, including non-2x pyramid steps. Only a missing coarse tail is
+  synthesized within libCZI's supported zoom range.
+- NGFF directory exports write directly to the final store. Regenerated
+  levels use the preceding written level instead of retaining source-based
+  graphs across the full pyramid; regenerated archives use disk staging.
+- The `[omezarr]` extra now requires `ngff-zarr>=0.47.0`. Export and full
+  extras include `psutil>=5.9` for Auto concurrency metrics.
+- README and usage/installation documentation now explain pyramid reuse,
+  output chunking, worker selection, and temporary-storage requirements.
+
+### Fixed
+
+- Large individual-image exports no longer materialize entire channel
+  planes through the GUI's eager read path.
+- NGFF cache and write progress are visible in conversion logs, including
+  graph-preparation elapsed time and archive staging activity.
+- Temporary NGFF caches are cleaned up after successful or failed exports.
+
 ## [0.26.0] — 2026-09-28
 
 ### Added

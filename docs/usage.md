@@ -921,7 +921,11 @@ assert validate_ome_zarr(out)
 ```
 
 Both export backends write Zarr v3 stores and retain the pyramid paths produced
-by their underlying writer libraries.
+by their underlying writer libraries. Both reuse stored CZI pyramid levels,
+including non-2x steps, while preserving their pixels and physical transforms.
+Only a missing coarse tail is synthesized, targeting a longest edge of
+512 pixels within libCZI's supported zoom range. Files without stored coarse
+levels use the same lazy reader fallback.
 
 See [HCS NGFF Conversion Workflow](hcs-ngff-conversion.md) for the optimized
 reader/writer pipeline, Mermaid architecture diagrams, sharding behavior, and
@@ -951,18 +955,38 @@ existing export must be preserved.
 ### Single-image export
 
 ```python
-from czitools.read_tools import read_6darray
+from czitools.read_tools import read_stacks
 from czitools.export_tools import compression_type, write_omezarr, write_omezarr_ngff
 
-array, mdata = read_6darray("image.czi", planes={"S": (0, 0)}, use_xarray=True)
-array = array.squeeze("S")  # 6D -> 5D (T, C, Z, Y, X)
+arrays, _, _, mdata = read_stacks(
+  "image.czi",
+  planes={"S": (0, 0)},
+  use_dask=True,
+  use_xarray=True,
+  stack_scenes=False,
+  planes_per_chunk=1,
+  tile_size=4096,
+  chunk_memory_limit=32 * 1024 * 1024,
+)
+array = arrays[0]  # One lazy scene in (T, C, Z, Y, X) order.
 
-# ngff-zarr backend (multi-scale pyramid, OME-NGFF v0.5)
+# ngff-zarr backend (generated pyramid, OME-NGFF v0.6 by default)
 write_omezarr_ngff(array, "image_ngff.ome.zarr", mdata, scale_factors=[2, 4], overwrite=True)
 
 # ome-zarr-py backend (Zarr v3)
 write_omezarr(array, zarr_path="image.ome.zarr", metadata=mdata, overwrite=True)
 ```
+
+These raw-array writer calls generate lower-resolution levels. To reuse a
+CZI's stored pyramid, use the GUI's default **Reuse CZI pyramid** mode, or
+pass lazy `ngff_zarr.NgffMultiscales` through `source_multiscales` to either
+writer. Supplied levels are written without replacement downsampling and
+retain their per-level scale and translation.
+
+CZI ROI tiles and destination chunks are independent: the example reads
+tiles up to 4096 pixels within a 32 MiB per-tile budget, while the writer
+uses its output chunk policy. Pixel processing is lazy; the task graph still
+needs enough RAM for its metadata.
 
 For both directory-backed `.ome.zarr` stores and file-backed `.ozx` archives,
 omitting `chunks` makes `write_omezarr_ngff()` use bounded TCZYX chunks:
@@ -1005,15 +1029,30 @@ write_omezarr_ngff(
 )
 ```
 
-The converter GUI uses this configuration by default as the **Fast balanced**
-preset for non-HCS ngff-zarr exports. It supports both directory-backed
-`.ome.zarr` and single-file `.ozx` output, enforces Blosc compression, and
-disables the conflicting compression control. Select **Quality** to retain
-512 x 512 spatial chunks and Dask Gaussian pyramids. Bin-shrink computes local
-means and is appropriate for intensity images, but Gaussian downsampling
-generally produces fewer aliasing artifacts. OZX conversion remains slower
-than directory output because ngff-zarr packages a temporary directory store
-into the final archive after writing the pyramid.
+The converter GUI defaults to **Reuse CZI pyramid**, so regeneration presets
+are disabled until reuse is unchecked. **Quality** is the default regeneration
+preset and uses Dask Gaussian downsampling. **Fast balanced** uses bin-shrink
+and enforces Blosc compression; the spatial chunk selector is independent
+and defaults to 512 pixels for either preset. Bin-shrink computes local means
+and is appropriate for intensity images, but Gaussian downsampling generally
+produces fewer aliasing artifacts.
+
+NGFF directory exports write the base directly to the final store and append
+supplied CZI levels. With regeneration, each next level is built from its
+previously written predecessor, avoiding an extra intermediate pyramid copy.
+For `.ozx` output, supplied CZI levels are written directly; regenerated
+pyramids are staged in temporary disk-backed caches beside the destination
+and removed on success or failure. Allow room for both the intermediate
+pyramid and final archive. Progress logs cover caching and writing, while
+task percentages describe the current region rather than the full export.
+
+Both single-image writers accept `worker_count=0` (the default) for Auto or
+a positive count for a fixed pool. Auto reserves the larger of 2 GiB or 20%
+of total RAM, budgets 1 GiB per worker from the remaining available RAM,
+and limits the pool to half the logical CPU count and at most eight workers,
+with a minimum of one. If memory metrics are unavailable, it uses at most
+two workers. This is a starting heuristic, not a hard memory cap or a pool
+that resizes while running. HCS retains its existing field-concurrency policy.
 
 For file-backed `.ozx` output, `overwrite=True` removes either a completed or
 incomplete existing archive before writing. This makes retries after an
@@ -1025,7 +1064,7 @@ stores.
 The experimental CZI to OME-Zarr converter provides a graphical interface for
 exporting individual images and HCS plates. It supports the `ome-zarr-py` and
 `ngff-zarr` backends, Zarr v3 output, compression selection, and single-file
-`.ozx` output where supported. ngff-zarr 0.45 uses its zarrista backend
+`.ozx` output where supported. ngff-zarr uses its zarrista backend
 automatically; no storage-engine control is required. The GUI can optionally
 open directory outputs in napari.
 
@@ -1042,10 +1081,20 @@ From a Pixi checkout, use the equivalent task:
 pixi run omezarr-gui
 ```
 
-Select a CZI file, choose the backend and output options, and click **Read
-Metadata**. Review the detected dimensions and scene information before
-clicking **Convert to OME-ZARR**. Conversion progress is displayed in the log
-panel at the bottom of the window.
+Selecting a CZI file loads its metadata automatically. Review the detected
+dimensions and scene information, choose the backend and output options,
+and click **Convert to OME-ZARR**. Conversion progress appears in the log panel.
+
+For individual images, **Spatial chunk size (pixels)** offers 256, 512, or
+1024, defaulting to 512. **Reuse CZI pyramid** is enabled for either backend;
+uncheck it to enable regeneration controls. HCS uses native pyramid reuse
+with both backends and does not use these individual-image controls.
+
+**Dask workers (0 = Auto)** defaults to Auto; manual values from 1 to 32
+override the memory/CPU policy. **Selected Dask workers** shows the resolved
+pool size during conversion, for example **8 (Auto)**, and the conversion
+log records the same count. It is not an instantaneous count of busy tasks.
+Changing the selected file clears the previous status.
 
 ![CZI to OME-Zarr converter GUI](https://github.com/sebi06/czitools/raw/main/_images/czi_omezarr_gui.png){ width="800" }
 

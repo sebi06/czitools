@@ -14,6 +14,16 @@ available as a [Python package on PyPI](https://pypi.org/project/czitools/).
 
 For full documentation see **[sebi06.github.io/czitools](https://sebi06.github.io/czitools/)**.
 
+## 0.27.0 Highlights
+
+- Large-image exports use lazy CZI ROI reads instead of loading whole scenes.
+- Both export backends reuse native CZI pyramids for individual images and
+    HCS plates, preserving their pixels and physical transforms.
+- NGFF directory exports write directly to the final store; regenerated
+    levels use their previously written predecessor.
+- The GUI offers 256/512/1024-pixel output chunks and RAM/CPU-based Auto
+    concurrency, with the selected worker count shown and logged.
+
 ## Installation
 
 ### Basic Installation
