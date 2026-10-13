@@ -118,13 +118,13 @@ These are installed automatically with `pip install czitools`:
 
 Required by `czitools.export_tools` for CZI → OME-Zarr conversion and validation:
 
-| Package                   | Purpose                                              |
-| ------------------------- | ---------------------------------------------------- |
-| `ngff-zarr>=0.47.0`       | Primary zarrista backend with incremental writes    |
-| `ome-zarr>=0.19.2`        | Secondary write backend (Zarr v3)                    |
-| `zarr>=3.0`               | Direct dependency used by the ome-zarr backend       |
-| `ome-zarr-models>=1.8,<2` | OME-NGFF schema validation                           |
-| `psutil>=5.9`             | Available-memory metrics for Auto Dask concurrency  |
+| Package                   | Purpose                                            |
+| ------------------------- | -------------------------------------------------- |
+| `ngff-zarr>=0.47.0`       | Primary zarrista backend with incremental writes   |
+| `ome-zarr>=0.19.2`        | Secondary write backend (Zarr v3)                  |
+| `zarr>=3.0`               | Direct dependency used by the ome-zarr backend     |
+| `ome-zarr-models>=1.8,<2` | OME-NGFF schema validation                         |
+| `psutil>=5.9`             | Available-memory metrics for Auto Dask concurrency |
 
 ngff-zarr uses zarrista for its read and write paths. TensorStore is no
 longer an ngff-zarr extra or a configurable export backend. czitools writes to
