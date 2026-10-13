@@ -12,20 +12,24 @@ import logging
 import os
 import shutil
 import sys
+import threading
 import time
 import warnings
 import zipfile
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from contextlib import contextmanager
+from contextlib import contextmanager, nullcontext
 from pathlib import Path
+from tempfile import TemporaryDirectory
 from typing import Iterator, Literal
 
 import dask
 import dask.array as da
 import ngff_zarr as nz
+from ngff_zarr.config import config as ngff_config
 import numpy as np
 import ome_zarr.format
 import ome_zarr.writer
+import psutil
 import xarray as xr
 import zarr
 from ngff_zarr.hcs import HCSPlateWriter
@@ -60,8 +64,196 @@ logger = logging.getLogger(__name__)
 LoggingDetail = Literal["basic", "full"]
 
 DEFAULT_PYRAMID_LEVELS = 3
-QUALITY_CHUNKS = (1, 1, 8, 256, 256)
+QUALITY_CHUNKS = (1, 1, 8, 512, 512)
 QUALITY_CHUNKS_PER_SHARD = {"z": 4, "y": 4, "x": 4}
+_NGFF_CACHE_LOCK = threading.RLock()
+
+
+def _resolve_worker_count(worker_count: int = 0) -> int:
+    """Choose a conservative thread count from available RAM, or honor an override."""
+    if worker_count < 0:
+        raise ValueError("worker_count must be non-negative (0 selects Auto).")
+    if worker_count:
+        return worker_count
+    cpu_limit = max(1, (os.cpu_count() or 2) // 2)
+    try:
+        memory = psutil.virtual_memory()
+    except (OSError, psutil.Error):
+        workers = min(2, cpu_limit)
+        logger.warning("Cannot determine available RAM; Auto uses %d Dask worker(s).", workers)
+        return workers
+    reserve = max(2 * 2**30, memory.total // 5)
+    memory_limit = max(1, (memory.available - reserve) // 2**30)
+    workers = min(8, cpu_limit, memory_limit)
+    logger.info(
+        "Auto Dask workers: %d (available RAM %.1f GiB; reserve %.1f GiB; 1 GiB/worker; CPU limit %d; cap 8)",
+        workers,
+        memory.available / 2**30,
+        reserve / 2**30,
+        cpu_limit,
+    )
+    return workers
+
+
+@contextmanager
+def _ngff_conversion_resources(output_path: Path, use_cache: bool = True, worker_count: int = 0) -> Iterator[None]:
+    """Limit conversion concurrency and clean up its output-local disk cache."""
+    worker_count = _resolve_worker_count(worker_count)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    cache_context = (
+        TemporaryDirectory(prefix=".czitools-cache-", dir=output_path.parent) if use_cache else nullcontext(None)
+    )
+    with _NGFF_CACHE_LOCK, cache_context as cache_dir:
+        previous_store = ngff_config.cache_store
+        previous_target = ngff_config.memory_target
+        try:
+            if cache_dir is not None:
+                ngff_config.cache_store = Path(cache_dir)
+                logger.info("Temporary NGFF cache: %s", cache_dir)
+            ngff_config.memory_target = 256 * 1024 * 1024
+            logger.info("Dask worker count: %d", worker_count)
+            with dask.config.set(scheduler="threads", num_workers=worker_count):
+                yield
+        finally:
+            ngff_config.cache_store = previous_store
+            ngff_config.memory_target = previous_target
+
+
+def _cache_ngff_image(
+    image: nz.NgffImage, chunks: tuple, method: nz.Methods, label: str = "base image"
+) -> nz.NgffImage:
+    """Stage an image to disk, using strips for singleton-Z images."""
+    dims = list(image.dims)
+    singleton_z = "z" in dims and image.data.shape[dims.index("z")] == 1
+    z_index = dims.index("z") if singleton_z else None
+    cache_dims = [dim for dim in dims if dim != "z"] if singleton_z else dims
+    cache_data = image.data.squeeze(axis=z_index) if singleton_z else image.data
+    logger.info(
+        "Staging %s to disk: shape=%s, uncompressed=%.2f GiB", label, image.data.shape, image.data.nbytes / 2**30
+    )
+    with _logged_progress_bar(f"NGFF cache {label}") as progress:
+        cached = nz.to_multiscales(
+            nz.NgffImage(
+                data=cache_data,
+                dims=cache_dims,
+                scale={dim: image.scale[dim] for dim in cache_dims},
+                translation={dim: image.translation.get(dim, 0.0) for dim in cache_dims},
+                axes_units=image.axes_units,
+                name=image.name,
+            ),
+            scale_factors=[],
+            chunks=tuple(chunk for dim, chunk in zip(dims, chunks) if dim in cache_dims),
+            method=method,
+            cache=True,
+            progress=progress,
+        ).images[0]
+    return nz.NgffImage(
+        data=da.expand_dims(cached.data, axis=z_index) if singleton_z else cached.data,
+        dims=dims,
+        scale=dict(image.scale),
+        translation=dict(image.translation),
+        axes_units=image.axes_units,
+        name=image.name,
+    )
+
+
+def _bounded_ngff_multiscales(
+    image: nz.NgffImage, scale_factors: list, chunks: tuple, method: nz.Methods
+) -> nz.NgffMultiscales:
+    """Build each pyramid level from the preceding disk-backed level."""
+    images = [_cache_ngff_image(image, chunks, method)]
+    previous_factors = dict.fromkeys(image.dims, 1)
+    for index, factor in enumerate(scale_factors, start=1):
+        absolute = factor if isinstance(factor, dict) else {dim: factor for dim in ("z", "y", "x")}
+        relative = {dim: value / previous_factors[dim] for dim, value in absolute.items()}
+        logger.info("Building disk-backed pyramid level %d of %d", index, len(scale_factors))
+        step = nz.to_multiscales(images[-1], scale_factors=[relative], chunks=chunks, method=method, cache=False)
+        level = step.images[-1]
+        level.name = image.name
+        images.append(_cache_ngff_image(level, chunks, method, label=f"level {index}/{len(scale_factors)}"))
+        previous_factors.update(absolute)
+    return _ngff_multiscales_metadata(images, scale_factors, chunks, method)
+
+
+def _ngff_multiscales_metadata(
+    images: list[nz.NgffImage], scale_factors: list, chunks: tuple, method: nz.Methods
+) -> nz.NgffMultiscales:
+    """Describe completed levels without constructing additional pixel graphs."""
+    image = images[0]
+    dims = list(image.dims)
+    datasets = [
+        Dataset(
+            path=f"scale{index}/{image.name}",
+            coordinateTransformations=[
+                Scale([level.scale[dim] for dim in dims]),
+                Translation([level.translation.get(dim, 0.0) for dim in dims]),
+            ],
+        )
+        for index, level in enumerate(images)
+    ]
+    axes = [
+        Axis(
+            name=dim,
+            type="space" if dim in {"z", "y", "x"} else "channel" if dim == "c" else "time",
+            unit=(image.axes_units or {}).get(dim),
+        )
+        for dim in dims
+    ]
+    return nz.NgffMultiscales(
+        images=images,
+        metadata=Metadata(axes=axes, datasets=datasets, name=image.name, coordinateTransformations=None),
+        scale_factors=scale_factors,
+        method=method,
+        chunks=chunks,
+    )
+
+
+def _write_ngff_directory(
+    output_path: Path,
+    image: nz.NgffImage,
+    scale_factors: list,
+    chunks: tuple,
+    method: nz.Methods,
+    version: str,
+    chunks_per_shard: dict[str, int] | int | None,
+    compressor,
+    channels: list,
+    source_multiscales: nz.NgffMultiscales | None = None,
+) -> None:
+    """Write supplied levels directly, or derive each from its stored predecessor."""
+    images = [image]
+    previous_factors = dict.fromkeys(image.dims, 1)
+    level_count = len(source_multiscales.images) if source_multiscales is not None else len(scale_factors) + 1
+    for index in range(level_count):
+        if index and source_multiscales is not None:
+            images.append(source_multiscales.images[index])
+        elif index:
+            factor = scale_factors[index - 1]
+            absolute = factor if isinstance(factor, dict) else {dim: factor for dim in ("z", "y", "x")}
+            relative = {dim: value / previous_factors[dim] for dim, value in absolute.items()}
+            logger.info("Building level %d from the preceding written level", index)
+            step = nz.to_multiscales(images[-1], scale_factors=[relative], chunks=chunks, method=method, cache=False)
+            level = step.images[-1]
+            level.name = image.name
+            images.append(level)
+            previous_factors.update(absolute)
+        multiscales = _ngff_multiscales_metadata(
+            images, [] if source_multiscales is not None else scale_factors[:index], chunks, method
+        )
+        multiscales.metadata.omero = nz.Omero(channels=channels)
+        logger.info("Writing level %d/%d directly to final store", index, level_count - 1)
+        with _logged_progress_bar(f"NGFF write level {index}/{level_count - 1}") as progress:
+            nz.to_ngff_zarr(
+                output_path,
+                multiscales=multiscales,
+                version=version,
+                overwrite=index == 0,
+                start_level=index,
+                chunks_per_shard=chunks_per_shard,
+                compressor=compressor,
+                progress=progress,
+            )
+        images[-1].data = da.from_zarr(str(output_path), component=multiscales.metadata.datasets[-1].path)
 
 
 def _pyramid_scale_factors(pyramid_levels: int) -> list[dict[str, int]]:
@@ -157,7 +349,7 @@ class _LoggedNgffProgress(NgffProgressCallback):
     def add_task(self, description: str, total: int | None = None) -> int:
         """Create a log-backed task for ngff-zarr's Dask callback."""
         self._task_counter += 1
-        self._task_description = description.replace("[green]", "")
+        self._task_description = description.replace("[green]", "").replace("[blue]", "")
         self._task_completed = 0
         self._task_total = total or 0
         self._task_visible = True
@@ -455,8 +647,10 @@ def _read_single_scene_multiscales(
     spatial_chunk_size: int,
     planes_per_chunk: int,
     full_logging: bool = False,
+    tile_size: int = 4096,
+    chunk_memory_limit: int = 256 * 1024 * 1024,
 ) -> nz.NgffMultiscales:
-    """Read a scene's stored CZI pyramid levels as NGFF multiscales."""
+    """Read a scene's stored CZI levels, extending only the coarse tail if needed."""
     levels, level_infos, _, _, _ = read_tools.read_stacks_multiscale(
         filepath=czi_path,
         use_xarray=True,
@@ -466,6 +660,8 @@ def _read_single_scene_multiscales(
         max_coarse_edge=512,
         planes_per_chunk=planes_per_chunk,
         metadata=metadata,
+        tile_size=tile_size,
+        chunk_memory_limit=chunk_memory_limit,
     )
 
     level_arrays: list[xr.DataArray] = []
@@ -609,6 +805,45 @@ def _write_image_delayed(
     return list(delayed) if delayed else []
 
 
+def _write_czi_multiscales_delayed(
+    multiscales: nz.NgffMultiscales,
+    group,
+    chunks: tuple[int, ...],
+    compression: compression_type | None,
+    fmt,
+    shards: tuple[int, ...] | None = None,
+) -> list:
+    """Schedule supplied CZI levels without ome-zarr-py downsampling."""
+    image = multiscales.images[0]
+    compressor = (
+        Blosc() if compression == compression_type.BLOSC else Zstd() if compression == compression_type.ZSTD else None
+    )
+    storage_options = {"chunks": chunks, "overwrite": True, "compressors": compressor}
+    if shards is not None:
+        storage_options["shards"] = shards
+    transforms = [
+        [
+            {"type": "scale", "scale": [level.scale[dim] for dim in image.dims]},
+            {"type": "translation", "translation": [level.translation.get(dim, 0.0) for dim in image.dims]},
+        ]
+        for level in multiscales.images
+    ]
+    delayed = _retry_io(
+        ome_zarr.writer.write_multiscale,
+        pyramid=[level.data.rechunk(chunks) for level in multiscales.images],
+        group=group,
+        axes=list(image.dims),
+        scale=image.scale,
+        axes_units=image.axes_units,
+        coordinate_transformations=transforms,
+        storage_options=storage_options,
+        name=image.name,
+        fmt=fmt,
+        compute=False,
+    )
+    return list(delayed) if delayed else []
+
+
 def _ensure_plate_version_metadata(zarr_path: str | os.PathLike | Path, version: str) -> None:
     """Ensure nested ome.plate.version exists in root metadata."""
     parsed = parse_url(Path(zarr_path), mode="r+")
@@ -722,7 +957,6 @@ def convert_czi2hcs_omezarr(
         "y": float(_mscale.Y) if (_mscale is not None and _mscale.Y is not None) else 1.0,
         "x": float(_mscale.X) if (_mscale is not None and _mscale.X is not None) else 1.0,
     }
-    _phys_units = {"t": "second", "z": "micrometer", "y": "micrometer", "x": "micrometer"}
     logger.info(
         "Physical scale (um): X=%.6f  Y=%.6f  Z=%.6f",
         _phys_scale["x"],
@@ -733,6 +967,7 @@ def convert_czi2hcs_omezarr(
     # Collect chunk-parallel write tasks across ALL fields, then execute once with a
     # single dask.compute so fields (and their chunks) are written in parallel.
     delayed_writes: list = []
+    pyramid_zooms = read_tools.get_pyramid_zooms(str(czi_path))
 
     for well in layout.wells:
         well_group = root.require_group(well.row).require_group(well.column)
@@ -743,22 +978,18 @@ def convert_czi2hcs_omezarr(
             image_group = well_group.require_group(str(field_index))
             if full_logging:
                 logger.info(f"Scheduling Well: {well.path}, Field: {field_index}, Scene Index: {scene_index}")
-            # Read one scene at a time (scenes may differ in Y/X size across the plate).
-            image = _read_single_scene(czi_path, scene_index).isel(S=0)
-            # Full Z-stack per (T, C); computed per scene since sizes may vary.
-            chunks = (1, 1, image.sizes["Z"], image.sizes["Y"], image.sizes["X"])
-            delayed_writes.extend(
-                _write_image_delayed(
-                    _to_ome_zarr_image(image),
-                    image_group,
-                    "".join(str(d).lower() for d in image.dims),
-                    chunks,
-                    compression=compression,
-                    fmt=_fmt,
-                    scale=_phys_scale,
-                    axes_units=_phys_units,
-                )
+            multiscales = _read_single_scene_multiscales(
+                czi_path,
+                scene_index,
+                mdata,
+                pyramid_zooms,
+                512,
+                1,
+                full_logging=full_logging,
+                chunk_memory_limit=32 * 1024 * 1024,
             )
+            chunks = tuple(512 if dim in {"y", "x"} else 1 for dim in multiscales.images[0].dims)
+            delayed_writes.extend(_write_czi_multiscales_delayed(multiscales, image_group, chunks, compression, _fmt))
             _retry_io(
                 ome_zarr.writer.add_metadata,
                 image_group,
@@ -1020,6 +1251,9 @@ def write_omezarr(
     compression: compression_type | None = compression_type.BLOSC,
     version: str = "0.6",
     pyramid_levels: int = DEFAULT_PYRAMID_LEVELS,
+    spatial_chunk_size: int = 512,
+    source_multiscales: nz.NgffMultiscales | None = None,
+    worker_count: int = 0,
 ) -> Path | None:
     """Write a single 5D image to OME-Zarr using the ome-zarr-py backend.
 
@@ -1036,15 +1270,23 @@ def write_omezarr(
         version (str): OME-NGFF specification version. Defaults to ``"0.6"``.
         pyramid_levels (int): Number of additional 2x Y/X pyramid levels.
             Defaults to 3.
+        spatial_chunk_size (int): Y/X chunk edge in pixels. Defaults to 512.
+        source_multiscales (Optional[nz.NgffMultiscales]): Lazy CZI levels to
+            write as supplied, preserving their physical transforms.
+        worker_count (int): Concurrent Dask threads; 0 (default) selects Auto
+            using available RAM and CPU capacity.
 
     Returns:
         Optional[Path]: Path to the written OME-Zarr file, or ``None`` on failure.
     """
+    if worker_count < 0:
+        raise ValueError("worker_count must be non-negative (0 selects Auto).")
     if log_file_path is None:
         zarr_path_obj = Path(zarr_path)
         log_file_path = zarr_path_obj.parent / f"{zarr_path_obj.stem}_omezarr.log"
 
     setup_logging(log_file_path)
+    worker_count = _resolve_worker_count(worker_count)
 
     logger.info("=" * 80)
     logger.info("Writing OME-ZARR (ome-zarr-py backend)")
@@ -1052,7 +1294,9 @@ def write_omezarr(
     logger.info(f"Input array shape: {array5d.shape}")
     logger.info(f"Output path: {zarr_path}")
 
-    assert isinstance(array5d, xr.DataArray), "write_omezarr requires an xarray DataArray"
+    assert (
+        isinstance(array5d, xr.DataArray) or source_multiscales is not None
+    ), "write_omezarr requires an xarray DataArray"
 
     zarr_path = Path(zarr_path)
 
@@ -1072,9 +1316,13 @@ def write_omezarr(
 
     logger.info("Zarr storage format: v3")
 
-    chunks = QUALITY_CHUNKS
+    chunks = (*QUALITY_CHUNKS[:3], spatial_chunk_size, spatial_chunk_size)
     shards = _shard_shape(chunks, QUALITY_CHUNKS_PER_SHARD)
-    axes = "".join(str(d).lower() for d in array5d.dims)
+    axes = (
+        "".join(source_multiscales.images[0].dims)
+        if source_multiscales is not None
+        else "".join(str(d).lower() for d in array5d.dims)
+    )
 
     _mscale = metadata.scale
     _phys_scale = {
@@ -1098,39 +1346,53 @@ def write_omezarr(
     elif compression == compression_type.ZSTD:
         compressor = Zstd()
 
-    image = OMEZarrImage(
-        data=_to_ome_zarr_image(array5d),
-        axes=axes,
-        scale=_phys_scale,
-        axes_units=_phys_units,
-        name=metadata.filename,
-    )
-    multiscales = OMEZarrMultiscale(
-        image=image,
-        scale_factors=[factor["y"] for factor in _pyramid_scale_factors(pyramid_levels)],
-        method="nearest",
-    )
-    with warnings.catch_warnings():
-        warnings.filterwarnings(
-            "ignore",
-            message=r"Pydantic serializer warnings:\s*PydanticSerializationUnexpectedValue\(Expected `tuple\[Dataset, \.\.\.\]`",
-            category=UserWarning,
+    if source_multiscales is not None:
+        parsed = parse_url(zarr_path, mode="w", fmt=ome_zarr.format.CurrentFormat())
+        assert parsed is not None, f"Failed to open zarr store at {zarr_path}"
+        root = zarr.group(store=parsed.store)
+        delayed = _write_czi_multiscales_delayed(
+            source_multiscales,
+            root,
+            chunks,
+            compression,
+            ome_zarr.format.CurrentFormat(),
+            shards=shards,
         )
-        delayed = _retry_io(
-            multiscales.to_ome_zarr,
-            str(zarr_path),
-            storage_options={
-                "chunks": chunks,
-                "shards": shards,
-                "compressors": compressor,
-            },
-            version=version,
-            compute=False,
-            overwrite=True,
+        logger.info(
+            "Reusing %d CZI-backed pyramid levels without ome-zarr-py downsampling", len(source_multiscales.images)
         )
+    else:
+        image = OMEZarrImage(
+            data=_to_ome_zarr_image(array5d),
+            axes=axes,
+            scale=_phys_scale,
+            axes_units=_phys_units,
+            name=metadata.filename,
+        )
+        multiscales = OMEZarrMultiscale(
+            image=image,
+            scale_factors=[factor["y"] for factor in _pyramid_scale_factors(pyramid_levels)],
+            method="nearest",
+        )
+        with warnings.catch_warnings():
+            warnings.filterwarnings(
+                "ignore",
+                message=r"Pydantic serializer warnings:\s*PydanticSerializationUnexpectedValue\(Expected `tuple\[Dataset, \.\.\.\]`",
+                category=UserWarning,
+            )
+            delayed = _retry_io(
+                multiscales.to_ome_zarr,
+                str(zarr_path),
+                storage_options={"chunks": chunks, "shards": shards, "compressors": compressor},
+                version=version,
+                compute=False,
+                overwrite=True,
+            )
     if delayed:
         logger.info("Writing %d pyramid level(s) in parallel (dask)...", len(delayed))
-        _retry_io(dask.compute, *delayed)
+        logger.info("Dask worker count: %d", worker_count)
+        with dask.config.set(scheduler="threads", num_workers=worker_count):
+            _retry_io(dask.compute, *delayed)
 
     root = zarr.open_group(zarr_path, mode="r+")
     channels_list = create_channel_list(metadata)
@@ -1173,6 +1435,8 @@ def write_omezarr_ngff(
     max_levels: int = 6,
     downsampling_method: "nz.Methods" = nz.Methods.DASK_IMAGE_GAUSSIAN,
     pyramid_levels: int | None = DEFAULT_PYRAMID_LEVELS,
+    source_multiscales: nz.NgffMultiscales | None = None,
+    worker_count: int = 0,
 ) -> "nz.NgffImage | None":
     """Write a single 5D image to OME-Zarr NGFF format with multi-scale pyramids.
 
@@ -1188,7 +1452,7 @@ def write_omezarr_ngff(
         version (str): NGFF version string. Defaults to ``"0.6"``. RFC-9
             ``.ozx`` outputs always use the required version ``"0.5"``.
         chunks (Union[tuple, None]): Explicit ``TCZYX`` chunk shape. Defaults
-            to one T/C/Z plane and at most 512 x 512 pixels per chunk.
+            to ``(1, 1, 8, 512, 512)``.
         chunks_per_shard (Union[Dict[str, int], int, None]): Chunks per shard.
         compression (Optional[compression_type]): Chunk compression type. Defaults to
             ``compression_type.BLOSC``. Set to ``None`` for no compression.
@@ -1204,12 +1468,28 @@ def write_omezarr_ngff(
             levels used when ``scale_factors`` is None. Defaults to 3. Set to
             ``None`` to retain size-aware level selection using ``min_size``
             and ``max_levels``.
+        source_multiscales (Optional[nz.NgffMultiscales]): Preloaded lazy CZI
+            pyramid levels. When supplied, preserve these levels and their
+            transforms instead of generating a new pyramid.
+        worker_count (int): Concurrent Dask threads; 0 (default) selects Auto
+            using available RAM and CPU capacity.
+    Notes:
+        Directory output writes each level directly and builds the next from
+        the preceding stored level, without an intermediate pyramid cache.
+        Archive output stages levels to a temporary cache beside the output,
+        removed on success or failure. Both paths use configurable Dask workers and a
+        256 MiB region target; archives require additional temporary disk space.
+
     Returns:
         Optional[nz.NgffImage]: The written NgffImage, or ``None`` on failure.
     """
     conversion_started = time.perf_counter()
+    if worker_count < 0:
+        raise ValueError("worker_count must be non-negative (0 selects Auto).")
 
-    if scale_factors is None:
+    if source_multiscales is not None:
+        scale_factors = []
+    elif scale_factors is None:
         if pyramid_levels is None:
             scale_factors = compute_pyramid_scale_factors(
                 int(array5d.shape[-2]),
@@ -1285,13 +1565,11 @@ def write_omezarr_ngff(
         },
         name=_filename[:-4] + ".ome.zarr",
     )
-
-    multiscales = nz.to_multiscales(
-        image,
-        scale_factors=scale_factors,
-        chunks=chunks,
-        method=downsampling_method,
-    )
+    if source_multiscales is not None:
+        image = source_multiscales.images[0]
+        for level in source_multiscales.images:
+            level.data = level.data.rechunk(chunks)
+        logger.info("Reusing %d CZI-backed pyramid levels without NGFF downsampling", len(source_multiscales.images))
 
     channels_list = create_channel_list(metadata)
     channels = []
@@ -1307,10 +1585,6 @@ def write_omezarr_ngff(
             label=ch["label"],
         )
         channels.append(omero_channel)
-    multiscales.metadata.omero = nz.Omero(channels=channels)
-
-    logger.info("Writing NGFF pyramid with the zarrista backend...")
-
     # Convert compression_type enum to actual codec instance
     compressor = None
     if compression == compression_type.BLOSC:
@@ -1319,15 +1593,41 @@ def write_omezarr_ngff(
         compressor = NumcodecsZstd()
     # compression_type.NONE or None → compressor stays None
 
-    with _logged_progress_bar("NGFF write") as progress:
-        nz.to_ngff_zarr(
-            zarr_path,
-            version=version,
-            chunks_per_shard=chunks_per_shard,
-            compressor=compressor,
-            multiscales=multiscales,
-            progress=progress,
-        )
+    is_archive = output_path.suffix.lower() == ".ozx"
+    with _ngff_conversion_resources(
+        output_path, use_cache=is_archive and source_multiscales is None, worker_count=worker_count
+    ):
+        if is_archive:
+            multiscales = (
+                source_multiscales
+                if source_multiscales is not None
+                else _bounded_ngff_multiscales(image, scale_factors, chunks, downsampling_method)
+            )
+            multiscales.metadata.omero = nz.Omero(channels=channels)
+            logger.info("Writing NGFF pyramid with the zarrista backend...")
+            with _logged_progress_bar("NGFF write") as progress:
+                nz.to_ngff_zarr(
+                    zarr_path,
+                    version=version,
+                    chunks_per_shard=chunks_per_shard,
+                    compressor=compressor,
+                    multiscales=multiscales,
+                    progress=progress,
+                )
+        else:
+            directory_options = {"source_multiscales": source_multiscales} if source_multiscales is not None else {}
+            _write_ngff_directory(
+                output_path,
+                image,
+                scale_factors,
+                chunks,
+                downsampling_method,
+                version,
+                chunks_per_shard,
+                compressor,
+                channels,
+                **directory_options,
+            )
 
     if version == "0.6" and output_path.is_dir():
         # ngff-zarr 0.46.1 writes the finalized 0.6 model with its former

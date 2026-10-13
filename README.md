@@ -256,6 +256,79 @@ napari viewing. The `ngff-zarr` backend uses zarrista automatically. The
 metadata preview shows the detected dimensions and scenes before conversion,
 while the log panel reports progress.
 
+For individual images, **Spatial chunk size (pixels)** selects **256, 512,
+or 1024**, with **512** as the default. The choice applies to both backends;
+larger chunks reduce Dask
+task overhead; 256 can be useful when smaller storage chunks are required.
+
+**Reuse CZI pyramid** is enabled by default for individual images with both
+`ngff-zarr` and `ome-zarr-py`. HCS conversion also reuses stored levels with
+both backends. Native levels, including ZEN's approximately 3x pyramid
+steps, are exported without generating replacement 2x levels. Their pixels,
+dimensions, physical scales, and translations are preserved. Only a missing
+coarse tail is added through the lazy CZI reader, targeting a longest edge
+of 512 pixels within libCZI's supported zoom range. Files without stored
+lower-resolution levels use that reader's synthetic pyramid fallback.
+Reuse still requires decoding CZI data and encoding the destination arrays;
+it is not a compressed-byte copy.
+
+To regenerate an individual image's pyramid, uncheck **Reuse CZI pyramid**.
+**Pyramid levels** then selects the number of additional 2x Y/X levels.
+The `ngff-zarr` quality and fast/balanced presets select Gaussian and
+bin-shrink downsampling, respectively. These regeneration controls are
+disabled while reuse is enabled; compression remains independently selectable.
+Python callers of `write_omezarr` and `write_omezarr_ngff` can supply lazy
+levels through `source_multiscales`; raw-array calls retain their existing
+generated-pyramid behavior.
+
+Individual scenes are read lazily with spatial CZI ROI tiles instead of
+allocating entire channel planes. CZI read tiles are up to **4096 pixels**
+with a **32 MiB per-tile budget**, independent of the selected output chunk
+size. Larger read tiles reduce CZI file opens and ROI task overhead; the
+reader reduces tile dimensions when needed to stay within the budget.
+For individual images, **Dask workers** defaults to **Auto**. At conversion
+start, Auto reads currently available RAM, reserves the larger of **2 GiB**
+or **20% of total RAM**, and budgets **1 GiB per worker**. It selects at most
+half the logical CPU count and caps automatic concurrency at **8 workers**,
+with a minimum of one. When RAM metrics are unavailable, it uses at most two.
+The selected count and memory budget appear in the conversion log.
+**Selected Dask workers** also shows the resolved count beside the worker
+control during conversion, for example **8 (Auto)**. This is the selected
+pool size, not an instantaneous count of busy tasks. Manual selections are
+shown with **(manual)**, and changing files clears the previous status.
+
+Manual values from **1 to 32** override Auto; the Python writers accept
+`worker_count=0` for Auto or a positive count for a manual override. Higher
+counts can overlap CZI reads, compression, and writes, but increase active
+memory use and disk contention. This is a conservative starting heuristic,
+not a hard memory limit or a throughput guarantee, and does not resize the
+pool during a conversion. HCS retains its existing field-concurrency policy.
+
+For `ngff-zarr` directory output, the base image is written directly to the
+final store. Reused CZI levels are read and appended directly. When regeneration
+is selected, each next level is built from the preceding written level and
+appended to that store, avoiding an extra intermediate pyramid copy and
+source-dependent graphs spanning the entire pyramid. Single-file `.ozx`
+output writes supplied CZI levels directly; regenerated pyramids retain
+disk staging before final archive packaging.
+Export requires `ngff-zarr>=0.47.0` for incremental directory writes.
+
+The terminal and GUI log show a progress bar for each directly written
+directory level. Archive output shows base-image caching, each pyramid-level
+cache when regenerating, and final output writing. Task percentages refer to the current
+region, not the entire conversion. Initial graph preparation may show
+elapsed time before task counts become available.
+
+Directory output does not require an intermediate cache. For regenerated
+`.ozx` pyramids, temporary caches are created beside the output and removed on success or
+failure. Allow additional free disk space for an intermediate pyramid
+(approximately 1.33 times the uncompressed base image for a 2x Y/X pyramid,
+before compression), as well as the final output. `.ozx` packaging may need
+additional temporary space. These limits bound active pixel processing, not
+all Python/scheduler memory; very large datasets still need sufficient RAM
+for task metadata. HCS conversion uses stored levels with both backends and
+adds only the missing coarse tail; the chunk selector applies to individual images.
+
 Install and launch it with:
 
 ```bash
