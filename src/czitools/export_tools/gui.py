@@ -26,10 +26,12 @@ import threading
 from enum import Enum
 from importlib.metadata import version
 from pathlib import Path
+from typing import Callable
 
 # QtPy and MagicGUI select their Qt binding when they are first imported.
 os.environ.setdefault("QT_API", "pyside6")
 
+import dask
 import ngff_zarr as nz
 import xarray as xr
 import zarr
@@ -47,6 +49,8 @@ from .conversion import (
     DEFAULT_PYRAMID_LEVELS,
     QUALITY_CHUNKS,
     QUALITY_CHUNKS_PER_SHARD,
+    _read_single_scene_multiscales,
+    _resolve_worker_count,
     convert_czi2hcs_ngff,
     convert_czi2hcs_omezarr,
     write_omezarr,
@@ -203,6 +207,10 @@ def perform_conversion(
     compression_choice: compression_type = compression_type.BLOSC,
     conversion_preset: NgffConversionPreset = NgffConversionPreset.QUALITY,
     pyramid_levels: int = DEFAULT_PYRAMID_LEVELS,
+    spatial_chunk_size: int = 512,
+    reuse_czi_pyramid: bool = True,
+    worker_count: int = 0,
+    on_workers_selected: Callable[[int], None] | None = None,
 ) -> str | None:
     """
     Perform the CZI to OME-ZARR conversion with specified parameters.
@@ -216,14 +224,24 @@ def perform_conversion(
         compression_choice: Compression type for OME-ZARR output (default: Blosc).
         conversion_preset: Performance preset for non-HCS ngff-zarr output.
         pyramid_levels: Number of additional 2x Y/X pyramid levels.
+        spatial_chunk_size: Y/X chunk edge: 256, 512 (default), or 1024.
+        reuse_czi_pyramid: Reuse stored levels for non-HCS output with either backend.
+        worker_count: Concurrent Dask threads for individual images (1-32),
+            or 0 (default) for memory/CPU-based Auto selection.
+        on_workers_selected: Optional callback receiving the resolved count.
     Returns:
         str: Path to output OME-ZARR file, or None if conversion failed
     """
     try:
+        if not 0 <= worker_count <= 32:
+            raise ValueError("Worker count must be between 0 (Auto) and 32.")
+        if spatial_chunk_size not in (256, 512, 1024):
+            raise ValueError("Spatial chunk size must be 256, 512, or 1024.")
         fast_balanced = (
             conversion_preset is NgffConversionPreset.FAST_BALANCED
             and package_choice is omezarr_package.NGFF_ZARR
             and not write_hcs
+            and not reuse_czi_pyramid
         )
         if fast_balanced:
             compression_choice = compression_type.BLOSC
@@ -231,6 +249,12 @@ def perform_conversion(
         # Setup logging
         log_file_path = filepath.parent / f"{filepath.stem}_conversion.log"
         setup_logging(str(log_file_path), force_reconfigure=True, truncate_log_file=True)
+        if not write_hcs:
+            automatic_workers = worker_count == 0
+            worker_count = _resolve_worker_count(worker_count)
+            logger.info("Using %d Dask workers (%s).", worker_count, "Auto" if automatic_workers else "manual")
+            if on_workers_selected is not None:
+                on_workers_selected(worker_count)
 
         logger.info("=" * 80)
         logger.info("CZI to OME-ZARR Conversion Started")
@@ -276,12 +300,43 @@ def perform_conversion(
                 package_choice.name,
             )
 
-            # Read the CZI file as a 6D array
-            array, mdata = read_tools.read_6darray(str(filepath), planes={"S": (scene_id, scene_id)}, use_xarray=True)
-
-            # Extract the specified scene (remove Scene dimension to get 5D array)
-            assert isinstance(array, xr.DataArray), "Expected xarray DataArray from read_6darray with use_xarray=True"
-            array = array.squeeze("S")
+            source_multiscales = None
+            if reuse_czi_pyramid:
+                mdata = CziMetadata(filepath)
+                source_multiscales = _read_single_scene_multiscales(
+                    filepath,
+                    scene_id,
+                    mdata,
+                    read_tools.get_pyramid_zooms(str(filepath)),
+                    spatial_chunk_size,
+                    1,
+                    full_logging=True,
+                    tile_size=4096,
+                    chunk_memory_limit=32 * 1024 * 1024,
+                )
+                base_image = source_multiscales.images[0]
+                array = xr.DataArray(base_image.data, dims=[dim.upper() for dim in base_image.dims])
+            else:
+                arrays, _, _, mdata = read_tools.read_stacks(
+                    str(filepath),
+                    planes={"S": (scene_id, scene_id)},
+                    use_dask=True,
+                    use_xarray=True,
+                    stack_scenes=False,
+                    tile_size=4096,
+                    chunk_memory_limit=32 * 1024 * 1024,
+                    planes_per_chunk=1,
+                )
+                if not isinstance(arrays, list) or len(arrays) != 1 or not isinstance(arrays[0], xr.DataArray):
+                    raise TypeError("Expected one lazy scene from read_stacks.")
+                array = arrays[0]
+                for dim in tuple(array.dims):
+                    if dim not in ("T", "C", "Z", "Y", "X"):
+                        if array.sizes[dim] != 1:
+                            raise ValueError(f"Unsupported non-singleton export dimension: {dim}")
+                        array = array.isel({dim: 0}, drop=True)
+                array = array.transpose("T", "C", "Z", "Y", "X")
+            logger.info("CZI read tiles: up to 4096 px / 32 MiB; output spatial chunks: %d px", spatial_chunk_size)
             logger.info("Array shape: %s, dtype: %s", array.shape, array.dtype)
 
             if package_choice == omezarr_package.OME_ZARR:
@@ -297,6 +352,9 @@ def perform_conversion(
                     log_file_path=str(log_file_path),
                     compression=compression_choice,
                     pyramid_levels=pyramid_levels,
+                    spatial_chunk_size=spatial_chunk_size,
+                    source_multiscales=source_multiscales,
+                    worker_count=worker_count,
                 )
 
                 logger.info("OME-ZARR created: %s", output_path)
@@ -318,7 +376,7 @@ def perform_conversion(
                     mdata,
                     scale_factors=None,
                     overwrite=True,
-                    chunks=(1, 1, 4, 1024, 1024) if fast_balanced else QUALITY_CHUNKS,
+                    chunks=(1, 1, 4 if fast_balanced else QUALITY_CHUNKS[2], spatial_chunk_size, spatial_chunk_size),
                     chunks_per_shard=({"z": 2, "y": 2, "x": 2} if fast_balanced else QUALITY_CHUNKS_PER_SHARD),
                     compression=compression_choice,
                     downsampling_method=(
@@ -326,6 +384,8 @@ def perform_conversion(
                     ),
                     log_file_path=str(log_file_path),
                     pyramid_levels=pyramid_levels,
+                    source_multiscales=source_multiscales,
+                    worker_count=worker_count,
                 )
 
                 output_path = str(zarr_output_path)
@@ -411,6 +471,21 @@ def perform_conversion(
         "max": 8,
         "tooltip": "Number of additional 2x Y/X resolution levels",
     },
+    spatial_chunk_size={
+        "label": "Spatial chunk size (pixels)",
+        "choices": [256, 512, 1024],
+    },
+    reuse_czi_pyramid={"label": "Reuse CZI pyramid"},
+    worker_count={
+        "label": "Dask workers (0 = Auto)",
+        "min": 0,
+        "max": 32,
+        "tooltip": (
+            "0 = Auto: choose workers at conversion start from available RAM and CPUs, "
+            "up to 8 workers. Values 1-32 set a fixed worker count instead. "
+            "More workers increase memory use and may not improve speed if disk I/O is the bottleneck."
+        ),
+    },
     compression_choice={
         "label": "Compression",
         "choices": [
@@ -439,6 +514,9 @@ def czi_to_omezarr_converter(
     use_ozx_format: bool = False,
     conversion_preset: NgffConversionPreset = NgffConversionPreset.QUALITY,
     pyramid_levels: int = DEFAULT_PYRAMID_LEVELS,
+    spatial_chunk_size: int = 512,
+    reuse_czi_pyramid: bool = True,
+    worker_count: int = 0,
     compression_choice: compression_type = compression_type.BLOSC,
     scene_id: int = 0,
     show_napari: bool = False,
@@ -467,6 +545,8 @@ info_display.min_height = 300
 info_display.read_only = True
 info_display.native.setFont(QFontDatabase.systemFont(QFontDatabase.SystemFont.FixedFont))
 info_display.native.setLineWrapMode(QTextEdit.LineWrapMode.NoWrap)
+
+worker_status = widgets.Label(value="", label="Selected Dask workers", visible=False)
 
 hcs_pyramid_policy = widgets.Label(
     value="",
@@ -521,6 +601,9 @@ def _conversion_controls() -> tuple[widgets.Widget, ...]:
         czi_to_omezarr_converter.write_hcs,
         czi_to_omezarr_converter.conversion_preset,
         czi_to_omezarr_converter.pyramid_levels,
+        czi_to_omezarr_converter.spatial_chunk_size,
+        czi_to_omezarr_converter.reuse_czi_pyramid,
+        czi_to_omezarr_converter.worker_count,
         czi_to_omezarr_converter.use_ozx_format,
         czi_to_omezarr_converter.compression_choice,
         czi_to_omezarr_converter.scene_id,
@@ -795,6 +878,9 @@ def on_convert_clicked() -> None:
     compression = czi_to_omezarr_converter.compression_choice.value
     conversion_preset = czi_to_omezarr_converter.conversion_preset.value
     pyramid_levels = czi_to_omezarr_converter.pyramid_levels.value
+    spatial_chunk_size = czi_to_omezarr_converter.spatial_chunk_size.value
+    reuse_czi_pyramid = czi_to_omezarr_converter.reuse_czi_pyramid.value
+    worker_count = czi_to_omezarr_converter.worker_count.value
 
     # Validate that file exists
     if not czi_file.exists():
@@ -810,6 +896,8 @@ def on_convert_clicked() -> None:
     log_viewer.value = "Starting conversion...\n"
     info_display.value = "⏳ Converting... Please wait."
     log_last_position = 0
+    worker_status.value = "" if write_hcs else "Selecting..." if worker_count == 0 else f"{worker_count} (manual)"
+    worker_status.visible = not write_hcs
 
     # Disable convert button during conversion
     convert_button.enabled = False
@@ -823,6 +911,7 @@ def on_convert_clicked() -> None:
         "output_path": None,
         "completed": False,
         "show_napari": show_napari,
+        "workers": None,
     }
 
     # Start timer to update log display every 500ms
@@ -836,6 +925,9 @@ def on_convert_clicked() -> None:
         it triggers UI finalization on the main thread.
         """
         update_log_display()  # Update log with new content
+        resolved_workers = conversion_result["workers"]
+        if resolved_workers is not None and not write_hcs:
+            worker_status.value = f"{resolved_workers} ({'Auto' if worker_count == 0 else 'manual'})"
 
         # Check if conversion is complete
         if conversion_result["completed"]:
@@ -854,16 +946,21 @@ def on_convert_clicked() -> None:
         global conversion_running
 
         # Perform the conversion operation
-        output_path = perform_conversion(
-            filepath=czi_file,
-            use_ozx_format=use_ozx_format,
-            write_hcs=write_hcs,
-            package_choice=package_choice,
-            scene_id=scene_id,
-            compression_choice=compression,
-            conversion_preset=conversion_preset,
-            pyramid_levels=pyramid_levels,
-        )
+        with dask.config.set(scheduler="threads", num_workers=(worker_count or 2) if not write_hcs else 2):
+            output_path = perform_conversion(
+                filepath=czi_file,
+                use_ozx_format=use_ozx_format,
+                write_hcs=write_hcs,
+                package_choice=package_choice,
+                scene_id=scene_id,
+                compression_choice=compression,
+                conversion_preset=conversion_preset,
+                pyramid_levels=pyramid_levels,
+                spatial_chunk_size=spatial_chunk_size,
+                reuse_czi_pyramid=reuse_czi_pyramid,
+                worker_count=worker_count,
+                on_workers_selected=lambda count: conversion_result.__setitem__("workers", count),
+            )
 
         # Store result and mark as complete
         conversion_result["output_path"] = output_path
@@ -900,15 +997,28 @@ def update_use_ozx_format_enabled_state() -> None:
     preset_supported = metadata_ready and package_choice is omezarr_package.NGFF_ZARR and not write_hcs
     czi_to_omezarr_converter.conversion_preset.enabled = preset_supported
     czi_to_omezarr_converter.pyramid_levels.enabled = metadata_ready and not write_hcs
+    reuse_supported = not write_hcs
+    czi_to_omezarr_converter.reuse_czi_pyramid.visible = reuse_supported
+    czi_to_omezarr_converter.reuse_czi_pyramid.enabled = metadata_ready and reuse_supported
+    if reuse_supported and czi_to_omezarr_converter.reuse_czi_pyramid.value:
+        czi_to_omezarr_converter.conversion_preset.enabled = False
+        czi_to_omezarr_converter.pyramid_levels.enabled = False
     czi_to_omezarr_converter.conversion_preset.visible = not write_hcs
     czi_to_omezarr_converter.pyramid_levels.visible = not write_hcs
+    czi_to_omezarr_converter.spatial_chunk_size.visible = not write_hcs
+    czi_to_omezarr_converter.spatial_chunk_size.enabled = metadata_ready and not write_hcs
+    czi_to_omezarr_converter.worker_count.visible = not write_hcs
+    czi_to_omezarr_converter.worker_count.enabled = metadata_ready and not write_hcs
+    worker_status.visible = bool(worker_status.value) and metadata_ready and not write_hcs
     hcs_pyramid_policy.visible = metadata_ready and write_hcs
     if package_choice is omezarr_package.NGFF_ZARR:
         hcs_pyramid_policy.value = "Use CZI-stored levels; add 2x Y/X levels until the coarsest edge is <= 512 px."
     else:
-        hcs_pyramid_policy.value = "Base plus 2x, 4x, 8x, and 16x Y/X levels (5 total)."
+        hcs_pyramid_policy.value = "Use CZI-stored levels; add 2x Y/X levels until the coarsest edge is <= 512 px."
     fast_balanced = (
-        preset_supported and czi_to_omezarr_converter.conversion_preset.value is NgffConversionPreset.FAST_BALANCED
+        preset_supported
+        and not czi_to_omezarr_converter.reuse_czi_pyramid.value
+        and czi_to_omezarr_converter.conversion_preset.value is NgffConversionPreset.FAST_BALANCED
     )
 
     if fast_balanced:
@@ -986,6 +1096,8 @@ def on_file_changed(value: Path) -> None:
         This ensures a clean state when switching between files.
     """
     global metadata, max_scenes
+    worker_status.value = ""
+    worker_status.visible = False
 
     if value and value.is_file() and value.suffix.lower() == ".czi":
         # Calculate width based on file path length
@@ -1024,6 +1136,7 @@ except AttributeError as e:
     logger.warning("Could not set file selector width: %s", e)
 
 _set_conversion_controls_enabled(False)
+czi_to_omezarr_converter.worker_count.native.setSpecialValueText("Auto")
 
 # Connect callback functions to widget signals
 # These callbacks handle user interactions and maintain UI state consistency
@@ -1031,6 +1144,7 @@ convert_button.clicked.connect(on_convert_clicked)
 czi_to_omezarr_converter.write_hcs.changed.connect(on_write_hcs_changed)
 czi_to_omezarr_converter.package_choice.changed.connect(on_package_choice_changed)
 czi_to_omezarr_converter.conversion_preset.changed.connect(on_conversion_preset_changed)
+czi_to_omezarr_converter.reuse_czi_pyramid.changed.connect(lambda _: update_use_ozx_format_enabled_state())
 czi_to_omezarr_converter.use_ozx_format.changed.connect(on_use_ozx_format_changed)
 czi_to_omezarr_converter.czi_file.changed.connect(on_file_changed)
 
@@ -1063,6 +1177,10 @@ def create_gui() -> widgets.Container:
             czi_to_omezarr_converter.scene_id,
             czi_to_omezarr_converter.conversion_preset,
             czi_to_omezarr_converter.pyramid_levels,
+            czi_to_omezarr_converter.spatial_chunk_size,
+            czi_to_omezarr_converter.reuse_czi_pyramid,
+            czi_to_omezarr_converter.worker_count,
+            worker_status,
             hcs_pyramid_policy,
             czi_to_omezarr_converter.use_ozx_format,
             czi_to_omezarr_converter.compression_choice,

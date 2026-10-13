@@ -5,8 +5,10 @@ These tests are skipped automatically when the optional export dependencies
 """
 
 import ast
+import dask
 import json
 import logging
+import threading
 import zipfile
 from inspect import signature
 from pathlib import Path
@@ -420,13 +422,23 @@ def test_write_omezarr_ngff_to_local_path(tmp_path: Path, monkeypatch: pytest.Mo
         return "image"
 
     monkeypatch.setattr(conversion.nz, "to_ngff_image", capture_image)
-    monkeypatch.setattr(conversion.nz, "to_multiscales", lambda *args, **kwargs: multiscales)
+    monkeypatch.setattr(conversion, "_bounded_ngff_multiscales", lambda *args, **kwargs: multiscales)
 
     def capture_write(store, **kwargs) -> None:
         captured["store"] = store
         captured.update(kwargs)
 
     monkeypatch.setattr(conversion.nz, "to_ngff_zarr", capture_write)
+    monkeypatch.setattr(
+        conversion,
+        "_write_ngff_directory",
+        lambda store, image, factors, chunks, method, version, shards, compressor, channels: capture_write(
+            store,
+            version=version,
+            chunks_per_shard=shards,
+            compressor=compressor,
+        ),
+    )
 
     image = write_omezarr_ngff(
         np.zeros((1, 3, 1, 8, 8), dtype=np.uint16),
@@ -508,6 +520,284 @@ def test_write_omezarr_ngff_defaults_to_real_ome_ngff_06_store(tmp_path: Path) -
     assert validate_ome_zarr(output) is True
 
 
+@pytest.mark.parametrize("method", [conversion.nz.Methods.DASK_IMAGE_GAUSSIAN, conversion.nz.Methods.DASK_BIN_SHRINK])
+@pytest.mark.parametrize("suffix", [".ome.zarr", ".ozx"])
+def test_ngff_pyramid_reads_source_once_and_cleans_cache(tmp_path, monkeypatch, method, suffix) -> None:
+    """Generated levels use disk-backed predecessors, including OZX output."""
+    reads = []
+    staged_reads = []
+    cache_image = conversion._cache_ngff_image
+
+    def capture_cache(*args, **kwargs):
+        cached = cache_image(*args, **kwargs)
+        if not staged_reads:
+            staged_reads.append(len(reads))
+        return cached
+
+    monkeypatch.setattr(conversion, "_cache_ngff_image", capture_cache)
+    write_store = conversion.nz.to_ngff_zarr
+
+    def capture_write(*args, **kwargs):
+        if suffix == ".ome.zarr":
+            assert not list(tmp_path.glob(".czitools-cache-*"))
+        write_store(*args, **kwargs)
+        if suffix == ".ome.zarr" and kwargs.get("start_level") == 0:
+            staged_reads.append(len(reads))
+
+    monkeypatch.setattr(conversion.nz, "to_ngff_zarr", capture_write)
+    pixels = np.arange(2 * 65 * 79, dtype=np.uint16).reshape(1, 2, 1, 65, 79)
+
+    @dask.delayed
+    def source(channel):
+        reads.append(channel)
+        return pixels[:, channel : channel + 1]
+
+    data = da.concatenate(
+        [da.from_delayed(source(channel), shape=(1, 1, 1, 65, 79), dtype=pixels.dtype) for channel in range(2)],
+        axis=1,
+    ).rechunk((1, 1, 1, 16, 16))
+    metadata = SimpleNamespace(
+        filename="large.czi", scale=SimpleNamespace(X=0.5, Y=0.5, Z=2.0), image=None, channelinfo=None
+    )
+    output = tmp_path / f"image{suffix}"
+    previous_store = conversion.ngff_config.cache_store
+    previous_target = conversion.ngff_config.memory_target
+    write_omezarr_ngff(data, output, metadata, chunks=(1, 1, 1, 16, 16), pyramid_levels=2, downsampling_method=method)
+    assert set(reads) == {0, 1}
+    assert len(reads) == staged_reads[0]
+    assert not list(tmp_path.glob(".czitools-cache-*"))
+    assert conversion.ngff_config.cache_store == previous_store
+    assert conversion.ngff_config.memory_target == previous_target
+    multiscales = conversion.nz.from_ngff_zarr(output)
+    assert [image.data.shape for image in multiscales.images] == [
+        (1, 2, 1, 65, 79),
+        (1, 2, 1, 32, 39),
+        (1, 2, 1, 16, 19),
+    ]
+    np.testing.assert_array_equal(multiscales.images[0].data.compute(), pixels)
+    reference = conversion.nz.to_multiscales(
+        conversion.nz.to_ngff_image(
+            da.from_array(pixels, chunks=(1, 1, 1, 16, 16)),
+            dims=["t", "c", "z", "y", "x"],
+        ),
+        scale_factors=[{"z": 1, "y": 2, "x": 2}, {"z": 1, "y": 4, "x": 4}],
+        chunks=(1, 1, 1, 16, 16),
+        method=method,
+        cache=False,
+    )
+    for written, expected in zip(multiscales.images[1:], reference.images[1:], strict=True):
+        np.testing.assert_array_equal(written.data.compute(), expected.data.compute())
+    assert multiscales.images[-1].scale["y"] == 2.0
+    assert multiscales.images[-1].scale["z"] == 2.0
+    log_text = (tmp_path / f"{output.stem}_ngff.log").read_text(encoding="utf-8")
+    if suffix == ".ozx":
+        assert "Temporary NGFF cache:" in log_text
+        assert "NGFF cache base image progress: [>" in log_text
+        assert "Caching x-strips" in log_text
+        assert "NGFF cache level 1/2 progress:" in log_text
+        assert "NGFF cache level 2/2 progress:" in log_text
+    else:
+        assert "Temporary NGFF cache:" not in log_text
+        assert "Writing level 0/2 directly to final store" in log_text
+        assert "Building level 1 from the preceding written level" in log_text
+        assert "NGFF write level 2/2 progress:" in log_text
+    assert "[blue]" not in log_text
+
+
+@pytest.mark.parametrize(
+    "available_gib,total_gib,cpus,expected",
+    [(56, 96, 24, 8), (6, 16, 24, 2), (1, 16, 24, 1), (64, 96, 4, 2), (64, 96, 1, 1)],
+)
+def test_auto_workers_balance_memory_and_cpus(monkeypatch, available_gib, total_gib, cpus, expected) -> None:
+    """Auto reserves RAM and respects CPU and concurrency limits."""
+    monkeypatch.setattr(conversion.os, "cpu_count", lambda: cpus)
+    monkeypatch.setattr(
+        conversion.psutil, "virtual_memory",
+        lambda: SimpleNamespace(available=available_gib * 2**30, total=total_gib * 2**30),
+    )
+    assert conversion._resolve_worker_count() == expected
+    assert conversion._resolve_worker_count(12) == 12
+
+
+def test_auto_workers_falls_back_when_memory_is_unavailable(monkeypatch) -> None:
+    """Unavailable memory metrics select a small CPU-bounded fallback."""
+    monkeypatch.setattr(conversion.os, "cpu_count", lambda: 8)
+
+    def unavailable_memory():
+        raise OSError("Memory metrics unavailable")
+
+    monkeypatch.setattr(conversion.psutil, "virtual_memory", unavailable_memory)
+    assert conversion._resolve_worker_count() == 2
+    monkeypatch.setattr(conversion.os, "cpu_count", lambda: 1)
+    assert conversion._resolve_worker_count() == 1
+
+
+@pytest.mark.parametrize("backend", ["ngff", "ome"])
+def test_writers_run_selected_workers_concurrently(tmp_path, backend) -> None:
+    """Four independent source tasks must execute together, not with a fixed two-worker limit."""
+    barrier = threading.Barrier(4, timeout=10)
+    thread_ids = set()
+    lock = threading.Lock()
+
+    @dask.delayed
+    def source(channel):
+        with lock:
+            thread_ids.add(threading.get_ident())
+        barrier.wait()
+        return np.full((1, 1, 1, 8, 8), channel, dtype=np.uint16)
+
+    data = da.concatenate([
+        da.from_delayed(source(channel), shape=(1, 1, 1, 8, 8), dtype=np.uint16)
+        for channel in range(4)
+    ], axis=1)
+    array = xr.DataArray(data, dims=("T", "C", "Z", "Y", "X"))
+    metadata = SimpleNamespace(filename="parallel.czi", scale=None, image=None, channelinfo=None)
+    writer = conversion.write_omezarr_ngff if backend == "ngff" else conversion.write_omezarr
+    writer(array, tmp_path / "parallel.ome.zarr", metadata, pyramid_levels=0, worker_count=4)
+    assert len(thread_ids) == 4
+
+
+@pytest.mark.parametrize("writer", [conversion.write_omezarr_ngff, conversion.write_omezarr])
+def test_writers_reject_negative_worker_count(tmp_path, writer) -> None:
+    """Invalid overrides fail before creating or overwriting output."""
+    output = tmp_path / "invalid.ome.zarr"
+    with pytest.raises(ValueError, match="worker_count must be non-negative"):
+        writer(np.zeros((1, 1, 1, 8, 8)), output, object(), worker_count=-1)
+    assert not output.exists()
+
+
+@pytest.mark.parametrize("worker_count", [1, 2, 4, 8])
+def test_ngff_failure_restores_resources_and_removes_cache(tmp_path, monkeypatch, worker_count) -> None:
+    """A failed disk write must not leave caches or change global settings."""
+    previous_store = conversion.ngff_config.cache_store
+    previous_target = conversion.ngff_config.memory_target
+    previous_workers = dask.config.get("num_workers", default=None)
+
+    def fail(*args, **kwargs):
+        assert dask.config.get("num_workers") == worker_count
+        assert conversion.ngff_config.memory_target == 256 * 1024 * 1024
+        raise OSError("Disk full")
+
+    monkeypatch.setattr(conversion.nz, "to_ngff_zarr", fail)
+    metadata = SimpleNamespace(
+        filename="test.czi", scale=SimpleNamespace(X=1.0, Y=1.0, Z=1.0), image=None, channelinfo=None
+    )
+    with pytest.raises(OSError, match="Disk full"):
+        write_omezarr_ngff(
+            da.zeros((1, 1, 1, 16, 16), chunks=8), tmp_path / "image.ome.zarr", metadata,
+            pyramid_levels=1, worker_count=worker_count,
+        )
+    assert conversion.ngff_config.cache_store == previous_store
+    assert conversion.ngff_config.memory_target == previous_target
+    assert dask.config.get("num_workers", default=None) == previous_workers
+    assert not list(tmp_path.glob(".czitools-cache-*"))
+
+
+@pytest.fixture
+def native_czi_pyramid():
+    """Provide distinct native 3x pixels not reproducible from the base."""
+    images = [
+        conversion.nz.to_ngff_image(
+            da.full((1, 2, 1, height, width), index + 11, dtype=np.uint16, chunks=(1, 1, 1, 16, 16)),
+            dims=["t", "c", "z", "y", "x"],
+            scale={"t": 1.0, "c": 1.0, "z": 2.0, "y": 0.5 * factor, "x": 0.25 * factor},
+            translation={"t": 0.0, "c": 0.0, "z": 0.0, "y": 0.25 * (factor - 1), "x": 0.125 * (factor - 1)},
+            axes_units={"t": "second", "z": "micrometer", "y": "micrometer", "x": "micrometer"},
+            name="native.czi",
+        )
+        for index, (height, width, factor) in enumerate([(82, 94, 1), (27, 31, 3), (9, 10, 9)])
+    ]
+    return conversion._ngff_multiscales_metadata(images, [], (1, 1, 1, 16, 16), None)
+
+
+@pytest.mark.parametrize("backend,suffix", [("ngff", ".ome.zarr"), ("ngff", ".ozx"), ("ome", ".ome.zarr")])
+def test_writers_preserve_native_czi_pyramid(tmp_path, monkeypatch, native_czi_pyramid, backend, suffix) -> None:
+    """Both libraries preserve stored pixels and transforms without resampling."""
+    source = native_czi_pyramid
+    expected = [(level.data.compute(), dict(level.scale), dict(level.translation)) for level in source.images]
+    monkeypatch.setattr(conversion.nz, "to_multiscales", lambda *args, **kwargs: pytest.fail("NGFF resampling used"))
+    monkeypatch.setattr(
+        conversion, "OMEZarrMultiscale", lambda *args, **kwargs: pytest.fail("ome-zarr resampling used")
+    )
+    channels = [
+        {"label": label, "color": color, "window": {"min": 0, "max": 65535, "start": 0, "end": 65535}}
+        for label, color in [("DAPI", "0000FF"), ("EGFP", "00FF00")]
+    ]
+    monkeypatch.setattr(conversion, "create_channel_list", lambda _: channels)
+    metadata = SimpleNamespace(
+        filename="native.czi", scale=SimpleNamespace(X=0.25, Y=0.5, Z=2.0), image=None, channelinfo=None
+    )
+    output = tmp_path / f"image{suffix}"
+    writer = conversion.write_omezarr_ngff if backend == "ngff" else conversion.write_omezarr
+    writer(
+        source.images[0].data,
+        output,
+        metadata,
+        source_multiscales=source,
+        compression=None,
+        pyramid_levels=8,
+    )
+    written = conversion.nz.from_ngff_zarr(output)
+    assert len(written.images) == 3
+    for level, (pixels, scale, translation) in zip(written.images, expected, strict=True):
+        np.testing.assert_array_equal(level.data.compute(), pixels)
+        assert level.scale == scale
+        assert level.translation == translation
+        assert all(level.axes_units.get(dim) == source.images[0].axes_units.get(dim) for dim in level.dims)
+    if suffix == ".ozx":
+        with zipfile.ZipFile(output) as archive:
+            root_metadata = json.loads(archive.read("zarr.json"))
+    else:
+        root_metadata = json.loads((output / "zarr.json").read_text(encoding="utf-8"))
+    written_channels = root_metadata["attributes"]["ome"]["omero"]["channels"]
+    assert [(channel["label"], channel["color"]) for channel in written_channels] == [
+        ("DAPI", "0000FF"),
+        ("EGFP", "00FF00"),
+    ]
+    assert not list(tmp_path.glob(".czitools-cache-*"))
+
+
+@pytest.mark.parametrize("backend", ["ngff", "ome"])
+def test_hcs_writers_preserve_native_czi_pyramid(tmp_path, monkeypatch, native_czi_pyramid, backend) -> None:
+    """Both HCS entry points use the supplied native field levels."""
+    metadata = SimpleNamespace(
+        filename="plate.czi", scale=SimpleNamespace(X=0.25, Y=0.5, Z=2.0), image=None, channelinfo=None
+    )
+    layout = SimpleNamespace(
+        source="hcs",
+        row_names=["B"],
+        col_names=["04"],
+        field_count=1,
+        wells=[SimpleNamespace(row="B", column="04", path="B/04", fields=[(0, 3)])],
+    )
+    calls = []
+
+    def read_levels(path, scene, *args, **kwargs):
+        calls.append(scene)
+        return native_czi_pyramid
+
+    monkeypatch.setattr(conversion, "CziMetadata", lambda _: metadata)
+    monkeypatch.setattr(conversion, "resolve_hcs_layout", lambda *args, **kwargs: layout)
+    monkeypatch.setattr(conversion.read_tools, "get_pyramid_zooms", lambda _: [1.0, 1 / 3, 1 / 9])
+    monkeypatch.setattr(conversion, "_read_single_scene_multiscales", read_levels)
+    monkeypatch.setattr(
+        conversion, "_read_single_scene", lambda *args, **kwargs: pytest.fail("Base-only field reader used")
+    )
+    monkeypatch.setattr(conversion.nz, "to_multiscales", lambda *args, **kwargs: pytest.fail("Stored fields resampled"))
+    if backend == "ngff":
+        output = conversion.convert_czi2hcs_ngff(tmp_path / "plate.czi", output_dir=tmp_path, compression=None)
+    else:
+        output = conversion.convert_czi2hcs_omezarr(tmp_path / "plate.czi", compression=None)
+    assert calls == [3]
+    root = zarr.open_group(output, mode="r")
+    field = root["B/04/0"]
+    datasets = field.attrs["ome"]["multiscales"][0]["datasets"]
+    assert len(datasets) == 3
+    for dataset, level in zip(datasets, native_czi_pyramid.images, strict=True):
+        np.testing.assert_array_equal(field[dataset["path"]][:], level.data.compute())
+        assert dataset["coordinateTransformations"][0]["scale"] == [level.scale[dim] for dim in level.dims]
+
+
 def test_write_omezarr_ngff_directory_uses_bounded_default_chunks(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -525,17 +815,23 @@ def test_write_omezarr_ngff_directory_uses_bounded_default_chunks(
         captured["image_data"] = data
         return "image"
 
-    def capture_multiscales(*args, **kwargs):
-        captured["chunks"] = kwargs["chunks"]
-        captured["method"] = kwargs["method"]
+    def capture_multiscales(image, scale_factors, chunks, method):
+        captured["chunks"] = chunks
+        captured["method"] = method
         return multiscales
 
     def capture_write(store, **kwargs) -> None:
         captured["store"] = store
 
     monkeypatch.setattr(conversion.nz, "to_ngff_image", capture_image)
-    monkeypatch.setattr(conversion.nz, "to_multiscales", capture_multiscales)
+    monkeypatch.setattr(conversion, "_bounded_ngff_multiscales", capture_multiscales)
     monkeypatch.setattr(conversion.nz, "to_ngff_zarr", capture_write)
+
+    def capture_directory(store, image, factors, chunks, method, version, shards, compressor, channels):
+        capture_multiscales(image, factors, chunks, method)
+        capture_write(store)
+
+    monkeypatch.setattr(conversion, "_write_ngff_directory", capture_directory)
 
     output = tmp_path / "large.ome.zarr"
     write_omezarr_ngff(
@@ -547,9 +843,9 @@ def test_write_omezarr_ngff_directory_uses_bounded_default_chunks(
         overwrite=True,
     )
 
-    assert captured["chunks"] == (1, 1, 8, 256, 256)
+    assert captured["chunks"] == (1, 1, 8, 512, 512)
     assert captured["method"] is conversion.nz.Methods.DASK_BIN_SHRINK
-    assert captured["image_data"].chunksize == (1, 1, 2, 256, 256)
+    assert captured["image_data"].chunksize == (1, 1, 2, 512, 512)
     assert captured["store"] == output
 
 
@@ -605,7 +901,7 @@ def test_write_omezarr_ngff_overwrites_ozx_file(
     )
     multiscales = SimpleNamespace(metadata=SimpleNamespace(omero=None))
     monkeypatch.setattr(conversion.nz, "to_ngff_image", lambda *args, **kwargs: "image")
-    monkeypatch.setattr(conversion.nz, "to_multiscales", lambda *args, **kwargs: multiscales)
+    monkeypatch.setattr(conversion, "_bounded_ngff_multiscales", lambda *args, **kwargs: multiscales)
     captured: dict = {}
 
     def capture_write(*args, **kwargs) -> None:
@@ -637,7 +933,7 @@ def test_write_omezarr_ngff_logs_progress_and_total_time(
     )
     multiscales = SimpleNamespace(metadata=SimpleNamespace(omero=None))
     monkeypatch.setattr(conversion.nz, "to_ngff_image", lambda *args, **kwargs: "image")
-    monkeypatch.setattr(conversion.nz, "to_multiscales", lambda *args, **kwargs: multiscales)
+    monkeypatch.setattr(conversion, "_bounded_ngff_multiscales", lambda *args, **kwargs: multiscales)
 
     def write_with_progress(*args, **kwargs) -> None:
         progress = kwargs["progress"]
@@ -646,6 +942,12 @@ def test_write_omezarr_ngff_logs_progress_and_total_time(
         progress.update_multiscales_task_completed(2)
 
     monkeypatch.setattr(conversion.nz, "to_ngff_zarr", write_with_progress)
+
+    def capture_directory(*args):
+        with conversion._logged_progress_bar("NGFF write") as progress:
+            write_with_progress(progress=progress)
+
+    monkeypatch.setattr(conversion, "_write_ngff_directory", capture_directory)
 
     log_path = tmp_path / "conversion.log"
     write_omezarr_ngff(
