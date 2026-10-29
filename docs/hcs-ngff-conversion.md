@@ -54,6 +54,14 @@ CZI XML once and store it at root-relative `CZI/metadata.xml`, referenced by
 `czitools.originalMetadata` in root attributes. This is opt-in and does not
 duplicate XML per field. For `.ozx`, the directory store and XML are staged
 before archive finalization; allow space for both the staging store and archive.
+
+The root-level `CZI` group is auxiliary metadata alongside row groups such
+as `A` and `B`, not an HCS row or well. It is not included in
+`ome.plate.rows` or `ome.plate.wells`; HCS readers should follow the declared
+well paths rather than treat every root group as a row. The custom
+`czitools.originalMetadata` reference makes the XML discoverable, but does
+not define plate membership or make the HCS layout valid. The existing
+plate metadata defines the layout independently of this reference.
 See [Preserving original CZI XML](usage.md#preserving-original-czi-xml) for the
 application convention, CLI flag, and GUI checkbox.
 

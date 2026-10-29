@@ -1096,6 +1096,20 @@ location. Vendor CZI XML is not OME-XML, so the exporter does not write it to
 binary attachments and per-subblock metadata are not copied. The XML may
 include acquisition or user information; review it before sharing exports.
 
+For HCS plates, the root-level `CZI` group is auxiliary metadata, not a row,
+well, or field image. The plate's `ome.plate.rows`, `ome.plate.columns`, and
+`ome.plate.wells` metadata define the HCS layout; well paths such as `A/01`
+identify the well groups. `CZI` is not added to the row or well lists, so its
+presence alongside `A`, `B`, and other row groups does not change the plate
+layout.
+
+`czitools.originalMetadata` is only a discovery reference for the XML. It
+does not register or exclude plate members, and HCS readers do not need to
+understand this custom attribute to read the plate. Readers should follow
+the declared well paths rather than assume that every root-level group is
+a plate row. A reader that blindly enumerates root groups as rows may
+misinterpret the auxiliary `CZI` group.
+
 The option works for individual images, whole plates, and supported `.ozx`
 archives. A plate stores one copy of the complete source XML at its root,
 not one copy per field. Image writers obtain the source path from

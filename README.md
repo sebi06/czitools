@@ -215,6 +215,12 @@ The converter GUI offers **Preserve original CZI XML**; conversion demo
 scripts and the benchmark accept `--preserve-original-metadata`.
 This is a czitools convention, not an NGFF-standard XML location.
 `OME/METADATA.ome.xml` remains reserved for genuine OME-XML.
+
+For HCS plates, `CZI` is an auxiliary group beside the row groups, not a row
+or well. Readers should follow the declared `ome.plate.wells` paths rather
+than treat every root folder as a row. The custom
+`czitools.originalMetadata` reference locates the XML; it does not define or
+change plate membership.
 See [usage details](https://sebi06.github.io/czitools/usage/#preserving-original-czi-xml).
 
 ### HCS Plate Inspection CLI
