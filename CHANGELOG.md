@@ -8,6 +8,20 @@ and the project adheres to [Semantic Versioning](https://semver.org/).
 
 ## Unreleased
 
+## [0.27.1] - 2026-10-29
+
+### Added
+
+- Python 3.14 support, with test coverage on Windows, Linux, and macOS.
+  Python 3.12 remains the minimum supported version.
+- Optional original CZI XML preservation across both OME-Zarr backends,
+  single-image and HCS APIs, conversion scripts, benchmark, and converter GUI.
+  Enable `preserve_original_metadata=True`, `--preserve-original-metadata`,
+  or **Preserve original CZI XML**; the default remains off.
+- Original XML is embedded as `CZI/metadata.xml` with a root
+  `czitools.originalMetadata` reference, including in `.ozx` archives.
+  `OME/METADATA.ome.xml` is not used for vendor CZI XML.
+
 ## [0.27.0] - 2026-10-13
 
 ### Added

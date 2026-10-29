@@ -34,6 +34,11 @@ def main() -> None:
         help="Write backend: 'ngff' (OME-NGFF v0.5) or 'omezarr' (ome-zarr-py, v0.4).",
     )
     parser.add_argument("--no-validate", action="store_true", help="Skip OME-NGFF validation.")
+    parser.add_argument(
+        "--preserve-original-metadata",
+        action="store_true",
+        help="Embed the original CZI XML at CZI/metadata.xml inside the output store.",
+    )
     args = parser.parse_args()
 
     array, mdata = read_tools.read_6darray(str(args.filepath), planes={"S": (args.scene, args.scene)}, use_xarray=True)
@@ -43,10 +48,23 @@ def main() -> None:
     stem = args.filepath.stem
     if args.backend == "ngff":
         output_path = args.filepath.parent / f"{stem}_ngff.ome.zarr"
-        write_omezarr_ngff(array, output_path, mdata, scale_factors=[2, 4], overwrite=True)
+        write_omezarr_ngff(
+            array,
+            output_path,
+            mdata,
+            scale_factors=[2, 4],
+            overwrite=True,
+            preserve_original_metadata=args.preserve_original_metadata,
+        )
     else:
         output_path = args.filepath.parent / f"{stem}.ome.zarr"
-        write_omezarr(array, zarr_path=output_path, metadata=mdata, overwrite=True)
+        write_omezarr(
+            array,
+            zarr_path=output_path,
+            metadata=mdata,
+            overwrite=True,
+            preserve_original_metadata=args.preserve_original_metadata,
+        )
 
     print(f"\nWrote OME-Zarr image: {output_path}")
 

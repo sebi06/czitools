@@ -26,6 +26,8 @@ For full documentation see **[sebi06.github.io/czitools](https://sebi06.github.i
 
 ## Installation
 
+Supported Python versions: **3.12, 3.13, and 3.14**.
+
 ### Basic Installation
 
 Install the core package from PyPI:
@@ -205,6 +207,15 @@ plate → well → field image → multiscale level.
 when requested. OME-NGFF v0.6 HCS output requires `ngff-zarr>=0.47.0`; the
 validator selects the image or HCS reader from the store layout and declared
 version.
+
+All four CZI export APIs accept `preserve_original_metadata=True` (default:
+`False`). This stores the original CZI XML at `CZI/metadata.xml`, referenced
+from root `czitools.originalMetadata` attributes, including in `.ozx` output.
+The converter GUI offers **Preserve original CZI XML**; conversion demo
+scripts and the benchmark accept `--preserve-original-metadata`.
+This is a czitools convention, not an NGFF-standard XML location.
+`OME/METADATA.ome.xml` remains reserved for genuine OME-XML.
+See [usage details](https://sebi06.github.io/czitools/usage/#preserving-original-czi-xml).
 
 ### HCS Plate Inspection CLI
 

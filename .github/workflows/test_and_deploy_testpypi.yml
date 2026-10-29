@@ -25,7 +25,7 @@ jobs:
         strategy:
             matrix:
                 platform: [ubuntu-latest, windows-latest, macos-latest]
-                python-version: ["3.12", "3.13"]
+                python-version: ["3.12", "3.13", "3.14"]
 
         steps:
             - uses: actions/checkout@v6
@@ -49,6 +49,10 @@ jobs:
 
             - name: Lint
               run: ruff check src demo/scripts
+
+            - name: Install macOS build dependencies
+              if: runner.os == 'macOS'
+              run: brew install eigen
 
             # this runs the platform-specific tests declared in tox.ini
             - name: Test with tox

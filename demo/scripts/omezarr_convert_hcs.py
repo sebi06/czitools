@@ -42,14 +42,29 @@ def main() -> None:
         help="Do not zero-pad well column numbers (e.g. use 'B/4' instead of 'B/04').",
     )
     parser.add_argument("--no-validate", action="store_true", help="Skip OME-NGFF validation.")
+    parser.add_argument(
+        "--preserve-original-metadata",
+        action="store_true",
+        help="Embed the original CZI XML at CZI/metadata.xml inside the output store.",
+    )
     args = parser.parse_args()
 
     pad_columns = not args.no_pad_columns
 
     if args.backend == "ngff":
-        output_path = convert_czi2hcs_ngff(args.filepath, overwrite=True, pad_columns=pad_columns)
+        output_path = convert_czi2hcs_ngff(
+            args.filepath,
+            overwrite=True,
+            pad_columns=pad_columns,
+            preserve_original_metadata=args.preserve_original_metadata,
+        )
     else:
-        output_path = convert_czi2hcs_omezarr(args.filepath, overwrite=True, pad_columns=pad_columns)
+        output_path = convert_czi2hcs_omezarr(
+            args.filepath,
+            overwrite=True,
+            pad_columns=pad_columns,
+            preserve_original_metadata=args.preserve_original_metadata,
+        )
 
     print(f"\nWrote HCS OME-Zarr plate: {output_path}")
 

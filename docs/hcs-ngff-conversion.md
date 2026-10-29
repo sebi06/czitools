@@ -49,6 +49,14 @@ that it updates for the current zoom. It also copies image dimensions when
 remain shared and read-only. This avoids both repeated CZI metadata parsing and
 a full `deepcopy()` for every field and pyramid level.
 
+With `preserve_original_metadata=True`, both HCS backends also read the raw
+CZI XML once and store it at root-relative `CZI/metadata.xml`, referenced by
+`czitools.originalMetadata` in root attributes. This is opt-in and does not
+duplicate XML per field. For `.ozx`, the directory store and XML are staged
+before archive finalization; allow space for both the staging store and archive.
+See [Preserving original CZI XML](usage.md#preserving-original-czi-xml) for the
+application convention, CLI flag, and GUI checkbox.
+
 ## Bounded concurrency and memory
 
 ```mermaid

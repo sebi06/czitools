@@ -20,7 +20,7 @@ data to OME-Zarr or analyses HCS plates.
 
 ### Supported Python Versions
 
-- Python 3.12 and 3.13
+- Python 3.12, 3.13, and 3.14
 
 ### Supported Operating Systems
 

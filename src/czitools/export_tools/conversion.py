@@ -33,6 +33,7 @@ import psutil
 import xarray as xr
 import zarr
 from ngff_zarr.hcs import HCSPlateWriter
+from ngff_zarr.rfc9_zip import write_store_to_zip
 from ngff_zarr.rich_dask_progress import NgffProgressCallback
 from ngff_zarr.v04.zarr_metadata import (
     Axis,
@@ -50,6 +51,7 @@ from numcodecs import Zstd as NumcodecsZstd
 from ome_zarr import OMEZarrImage, OMEZarrMultiscale
 from ome_zarr.io import parse_url
 from ome_zarr.writer import write_plate_metadata, write_well_metadata
+from pylibCZIrw import czi as pyczi
 from zarr.codecs import Blosc, Zstd
 
 from czitools.metadata_tools.czi_metadata import CziMetadata
@@ -67,6 +69,59 @@ DEFAULT_PYRAMID_LEVELS = 3
 QUALITY_CHUNKS = (1, 1, 8, 512, 512)
 QUALITY_CHUNKS_PER_SHARD = {"z": 4, "y": 4, "x": 4}
 _NGFF_CACHE_LOCK = threading.RLock()
+
+
+def _write_original_czi_metadata(czi_filepath: str | os.PathLike, zarr_path: Path) -> None:
+    """Preserve source XML in a directory store without reserializing it."""
+    with pyczi.open_czi(str(czi_filepath)) as source:
+        xml = source.raw_metadata
+    if not isinstance(xml, str) or not xml.strip():
+        raise ValueError(f"Original CZI XML metadata is unavailable: {czi_filepath}")
+
+    root = zarr.open_group(zarr_path, mode="r+")
+    root.require_group("CZI")
+    (zarr_path / "CZI" / "metadata.xml").write_bytes(xml.encode("utf-8"))
+    attributes = dict(root.attrs.get("czitools", {}))
+    attributes["originalMetadata"] = {
+        "path": "CZI/metadata.xml",
+        "format": "ZEISS-CZI-XML",
+        "mediaType": "application/xml",
+        "sourceFilename": Path(czi_filepath).name,
+    }
+    root.attrs["czitools"] = attributes
+    logger.info("Preserved original CZI XML at CZI/metadata.xml")
+
+
+@contextmanager
+def _original_metadata_output(
+    czi_filepath: str | os.PathLike,
+    output_path: Path,
+    preserve_original_metadata: bool,
+    version: str,
+) -> Iterator[Path]:
+    """Attach source XML before packaging an optional RFC-9 archive."""
+    if not preserve_original_metadata:
+        yield output_path
+        return
+
+    is_archive = output_path.suffix.lower() == ".ozx"
+    if is_archive and version not in {"0.5", "0.6"}:
+        raise ValueError("RFC-9 .ozx output requires OME-NGFF version 0.5 or 0.6.")
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    staging = (
+        TemporaryDirectory(prefix=".czitools-metadata-", dir=output_path.parent) if is_archive else nullcontext(None)
+    )
+    with staging as directory:
+        store_path = Path(directory) / "image.ome.zarr" if directory is not None else output_path
+        yield store_path
+        _write_original_czi_metadata(czi_filepath, store_path)
+        if is_archive:
+            try:
+                with _logged_progress_bar("OZX archive finalization"):
+                    write_store_to_zip(store_path, output_path, version=version)
+            except BaseException:
+                output_path.unlink(missing_ok=True)
+                raise
 
 
 def _resolve_worker_count(worker_count: int = 0) -> int:
@@ -877,6 +932,7 @@ def convert_czi2hcs_omezarr(
     pad_columns: bool = True,
     compression: compression_type | None = compression_type.BLOSC,
     logging_detail: LoggingDetail = "basic",
+    preserve_original_metadata: bool = False,
 ) -> Path:
     """Convert a CZI file to OME-Zarr HCS format using the ome-zarr-py backend.
 
@@ -891,6 +947,9 @@ def convert_czi2hcs_omezarr(
         logging_detail (Literal["basic", "full"]): Logging detail. Basic logging
             reports milestones; full logging also reports every field. Defaults
             to ``"basic"``.
+        preserve_original_metadata (bool): Save the original CZI XML at
+            ``CZI/metadata.xml`` with a root ``czitools.originalMetadata`` reference.
+            Defaults to False; the XML is not converted to OME-XML.
 
     Returns:
         Path: Output OME-Zarr HCS directory
@@ -1001,6 +1060,8 @@ def convert_czi2hcs_omezarr(
         logger.info("Writing %d field-pyramid task(s) in parallel (dask)...", len(delayed_writes))
         _retry_io(dask.compute, *delayed_writes)
 
+    if preserve_original_metadata:
+        _write_original_czi_metadata(czi_path, zarr_output_path)
     _log_omezarr_layout(zarr_output_path)
     logger.info("=" * 80)
     logger.info("Conversion completed successfully!")
@@ -1030,6 +1091,7 @@ def convert_czi2hcs_ngff(
     planes_per_chunk: int = 64,
     max_workers: int = 4,
     logging_detail: LoggingDetail = "basic",
+    preserve_original_metadata: bool = False,
 ) -> Path:
     """Convert a CZI file to OME-Zarr HCS format using the ngff-zarr backend.
 
@@ -1060,6 +1122,9 @@ def convert_czi2hcs_ngff(
         logging_detail (Literal["basic", "full"]): Logging detail. Basic logging
             reports milestones and bounded progress; full logging also reports
             every well, field, and scene pyramid. Defaults to ``"basic"``.
+        preserve_original_metadata (bool): Save the original CZI XML at
+            ``CZI/metadata.xml`` with a root ``czitools.originalMetadata`` reference,
+            including in ``.ozx`` archives. Defaults to False.
     Returns:
         Path: Output HCS directory (``<stem>_ngff_plate_zarr3.ome.zarr``) or ``.ozx`` file.
     """
@@ -1180,13 +1245,16 @@ def convert_czi2hcs_ngff(
     if version != "0.4":
         write_options["chunks_per_shard"] = chunks_per_shard
 
-    with _hcs_plate_writer(
-        zarr_output_path,
-        plate_metadata,
-        overwrite,
-        write_ozx_directly,
-        version,
-    ) as writer:
+    with (
+        _original_metadata_output(czi_path, zarr_output_path, preserve_original_metadata, version) as output_store,
+        _hcs_plate_writer(
+            output_store,
+            plate_metadata,
+            overwrite,
+            write_ozx_directly and not preserve_original_metadata,
+            version,
+        ) as writer,
+    ):
         field_jobs = []
         for well in layout.wells:
             if full_logging:
@@ -1254,6 +1322,7 @@ def write_omezarr(
     spatial_chunk_size: int = 512,
     source_multiscales: nz.NgffMultiscales | None = None,
     worker_count: int = 0,
+    preserve_original_metadata: bool = False,
 ) -> Path | None:
     """Write a single 5D image to OME-Zarr using the ome-zarr-py backend.
 
@@ -1275,6 +1344,9 @@ def write_omezarr(
             write as supplied, preserving their physical transforms.
         worker_count (int): Concurrent Dask threads; 0 (default) selects Auto
             using available RAM and CPU capacity.
+        preserve_original_metadata (bool): Save the original XML from
+            ``metadata.filepath`` at ``CZI/metadata.xml``, referenced by root
+            ``czitools.originalMetadata`` attributes. Defaults to False.
 
     Returns:
         Optional[Path]: Path to the written OME-Zarr file, or ``None`` on failure.
@@ -1408,6 +1480,8 @@ def write_omezarr(
         fmt=ome_zarr.format.CurrentFormat(),
     )
 
+    if preserve_original_metadata:
+        _write_original_czi_metadata(metadata.filepath, zarr_path)
     _log_omezarr_layout(zarr_path)
     logger.info("OME-ZARR writing completed successfully!")
     logger.info(f"Output file: {zarr_path}")
@@ -1437,6 +1511,7 @@ def write_omezarr_ngff(
     pyramid_levels: int | None = DEFAULT_PYRAMID_LEVELS,
     source_multiscales: nz.NgffMultiscales | None = None,
     worker_count: int = 0,
+    preserve_original_metadata: bool = False,
 ) -> "nz.NgffImage | None":
     """Write a single 5D image to OME-Zarr NGFF format with multi-scale pyramids.
 
@@ -1473,6 +1548,10 @@ def write_omezarr_ngff(
             transforms instead of generating a new pyramid.
         worker_count (int): Concurrent Dask threads; 0 (default) selects Auto
             using available RAM and CPU capacity.
+        preserve_original_metadata (bool): Save the original XML from
+            ``metadata.filepath`` at ``CZI/metadata.xml``, referenced by root
+            ``czitools.originalMetadata`` attributes. Also applies to ``.ozx``
+            archives. Defaults to False.
     Notes:
         Directory output writes each level directly and builds the next from
         the preceding stored level, without an intermediate pyramid cache.
@@ -1594,8 +1673,13 @@ def write_omezarr_ngff(
     # compression_type.NONE or None → compressor stays None
 
     is_archive = output_path.suffix.lower() == ".ozx"
-    with _ngff_conversion_resources(
-        output_path, use_cache=is_archive and source_multiscales is None, worker_count=worker_count
+    with (
+        _ngff_conversion_resources(
+            output_path, use_cache=is_archive and source_multiscales is None, worker_count=worker_count
+        ),
+        _original_metadata_output(
+            metadata.filepath if preserve_original_metadata else "", output_path, preserve_original_metadata, version
+        ) as output_store,
     ):
         if is_archive:
             multiscales = (
@@ -1607,7 +1691,7 @@ def write_omezarr_ngff(
             logger.info("Writing NGFF pyramid with the zarrista backend...")
             with _logged_progress_bar("NGFF write") as progress:
                 nz.to_ngff_zarr(
-                    zarr_path,
+                    output_store,
                     version=version,
                     chunks_per_shard=chunks_per_shard,
                     compressor=compressor,
