@@ -12,6 +12,8 @@ and the project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- Python 3.14 support, with test coverage on Windows, Linux, and macOS.
+  Python 3.12 remains the minimum supported version.
 - Optional original CZI XML preservation across both OME-Zarr backends,
   single-image and HCS APIs, conversion scripts, benchmark, and converter GUI.
   Enable `preserve_original_metadata=True`, `--preserve-original-metadata`,

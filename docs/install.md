@@ -8,7 +8,7 @@
 
 | Requirement      | Details               |
 | ---------------- | --------------------- |
-| Python           | 3.12, 3.13            |
+| Python           | 3.12, 3.13, 3.14      |
 | Operating System | Windows, Linux, macOS |
 
 ## Install from PyPI
