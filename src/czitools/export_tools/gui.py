@@ -211,6 +211,7 @@ def perform_conversion(
     reuse_czi_pyramid: bool = True,
     worker_count: int = 0,
     on_workers_selected: Callable[[int], None] | None = None,
+    preserve_original_metadata: bool = False,
 ) -> str | None:
     """
     Perform the CZI to OME-ZARR conversion with specified parameters.
@@ -229,6 +230,7 @@ def perform_conversion(
         worker_count: Concurrent Dask threads for individual images (1-32),
             or 0 (default) for memory/CPU-based Auto selection.
         on_workers_selected: Optional callback receiving the resolved count.
+        preserve_original_metadata: Embed the original CZI XML in the output store.
     Returns:
         str: Path to output OME-ZARR file, or None if conversion failed
     """
@@ -263,6 +265,7 @@ def perform_conversion(
         logger.info(f"Package: {package_choice.name}")
         logger.info(f"HCS mode: {write_hcs}")
         logger.info(f"Single-file (.ozx): {use_ozx_format}")
+        logger.info("Preserve original CZI XML: %s", preserve_original_metadata)
         logger.info("Conversion preset: %s", conversion_preset.value)
         logger.info(f"Scene ID: {scene_id}")
 
@@ -279,6 +282,7 @@ def perform_conversion(
                     log_file_path=str(log_file_path),
                     compression=compression_choice,
                     logging_detail="basic",
+                    preserve_original_metadata=preserve_original_metadata,
                 )
             elif package_choice == omezarr_package.NGFF_ZARR:
                 output_path = convert_czi2hcs_ngff(
@@ -288,6 +292,7 @@ def perform_conversion(
                     log_file_path=str(log_file_path),
                     compression=compression_choice,
                     logging_detail="basic",
+                    preserve_original_metadata=preserve_original_metadata,
                 )
 
             logger.info("HCS-ZARR created: %s", output_path)
@@ -355,6 +360,7 @@ def perform_conversion(
                     spatial_chunk_size=spatial_chunk_size,
                     source_multiscales=source_multiscales,
                     worker_count=worker_count,
+                    preserve_original_metadata=preserve_original_metadata,
                 )
 
                 logger.info("OME-ZARR created: %s", output_path)
@@ -386,6 +392,7 @@ def perform_conversion(
                     pyramid_levels=pyramid_levels,
                     source_multiscales=source_multiscales,
                     worker_count=worker_count,
+                    preserve_original_metadata=preserve_original_metadata,
                 )
 
                 output_path = str(zarr_output_path)
@@ -476,6 +483,10 @@ def perform_conversion(
         "choices": [256, 512, 1024],
     },
     reuse_czi_pyramid={"label": "Reuse CZI pyramid"},
+    preserve_original_metadata={
+        "label": "Preserve original CZI XML",
+        "tooltip": "Store the source XML at CZI/metadata.xml, including in OZX archives",
+    },
     worker_count={
         "label": "Dask workers (0 = Auto)",
         "min": 0,
@@ -520,6 +531,7 @@ def czi_to_omezarr_converter(
     compression_choice: compression_type = compression_type.BLOSC,
     scene_id: int = 0,
     show_napari: bool = False,
+    preserve_original_metadata: bool = False,
 ):
     """
     Main widget for CZI to OME-ZARR conversion configuration.
@@ -603,6 +615,7 @@ def _conversion_controls() -> tuple[widgets.Widget, ...]:
         czi_to_omezarr_converter.pyramid_levels,
         czi_to_omezarr_converter.spatial_chunk_size,
         czi_to_omezarr_converter.reuse_czi_pyramid,
+        czi_to_omezarr_converter.preserve_original_metadata,
         czi_to_omezarr_converter.worker_count,
         czi_to_omezarr_converter.use_ozx_format,
         czi_to_omezarr_converter.compression_choice,
@@ -880,6 +893,7 @@ def on_convert_clicked() -> None:
     pyramid_levels = czi_to_omezarr_converter.pyramid_levels.value
     spatial_chunk_size = czi_to_omezarr_converter.spatial_chunk_size.value
     reuse_czi_pyramid = czi_to_omezarr_converter.reuse_czi_pyramid.value
+    preserve_original_metadata = czi_to_omezarr_converter.preserve_original_metadata.value
     worker_count = czi_to_omezarr_converter.worker_count.value
 
     # Validate that file exists
@@ -960,6 +974,7 @@ def on_convert_clicked() -> None:
                 reuse_czi_pyramid=reuse_czi_pyramid,
                 worker_count=worker_count,
                 on_workers_selected=lambda count: conversion_result.__setitem__("workers", count),
+                preserve_original_metadata=preserve_original_metadata,
             )
 
         # Store result and mark as complete
@@ -1179,6 +1194,7 @@ def create_gui() -> widgets.Container:
             czi_to_omezarr_converter.pyramid_levels,
             czi_to_omezarr_converter.spatial_chunk_size,
             czi_to_omezarr_converter.reuse_czi_pyramid,
+            czi_to_omezarr_converter.preserve_original_metadata,
             czi_to_omezarr_converter.worker_count,
             worker_status,
             hcs_pyramid_policy,

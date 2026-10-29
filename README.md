@@ -206,6 +206,15 @@ when requested. OME-NGFF v0.6 HCS output requires `ngff-zarr>=0.47.0`; the
 validator selects the image or HCS reader from the store layout and declared
 version.
 
+All four CZI export APIs accept `preserve_original_metadata=True` (default:
+`False`). This stores the original CZI XML at `CZI/metadata.xml`, referenced
+from root `czitools.originalMetadata` attributes, including in `.ozx` output.
+The converter GUI offers **Preserve original CZI XML**; conversion demo
+scripts and the benchmark accept `--preserve-original-metadata`.
+This is a czitools convention, not an NGFF-standard XML location.
+`OME/METADATA.ome.xml` remains reserved for genuine OME-XML.
+See [usage details](https://sebi06.github.io/czitools/usage/#preserving-original-czi-xml).
+
 ### HCS Plate Inspection CLI
 
 Use `czi_hcs_check` to inspect CZI well-plate metadata from the command line

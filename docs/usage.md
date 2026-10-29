@@ -1059,6 +1059,68 @@ incomplete existing archive before writing. This makes retries after an
 interrupted or failed conversion behave the same as retries for directory
 stores.
 
+### Preserving original CZI XML
+
+Original CZI XML preservation is opt-in. All four conversion APIs accept
+`preserve_original_metadata=True`: `write_omezarr`, `write_omezarr_ngff`,
+`convert_czi2hcs_omezarr`, and `convert_czi2hcs_ngff`.
+For example:
+
+```python
+write_omezarr_ngff(
+    array, "image_ngff.ome.zarr", mdata,
+    overwrite=True, preserve_original_metadata=True,
+)
+```
+
+The exporter saves the source reader's raw XML text as UTF-8, without parsing
+or reserializing it, at `CZI/metadata.xml` inside the store. `CZI` is a Zarr
+group. Root group attributes contain this reference, outside `ome`:
+
+```json
+{
+  "czitools": {
+    "originalMetadata": {
+      "path": "CZI/metadata.xml",
+      "format": "ZEISS-CZI-XML",
+      "mediaType": "application/xml",
+      "sourceFilename": "image.czi"
+    }
+  }
+}
+```
+
+This is an application convention, not a standardized OME-NGFF metadata
+location. Vendor CZI XML is not OME-XML, so the exporter does not write it to
+`OME/METADATA.ome.xml`. The preserved document is the CZI's global XML;
+binary attachments and per-subblock metadata are not copied. The XML may
+include acquisition or user information; review it before sharing exports.
+
+The option works for individual images, whole plates, and supported `.ozx`
+archives. A plate stores one copy of the complete source XML at its root,
+not one copy per field. Image writers obtain the source path from
+`mdata.filepath`, which must still be readable when preservation is enabled.
+Missing or unreadable source XML fails the conversion rather than silently
+omitting it. Disabled preservation does not perform an extra source read.
+
+For opted-in `.ozx` exports, a temporary directory store beside the destination
+is finalized with the XML before packaging. Allow space for both that store
+and the final archive, in addition to any pyramid caches. Temporary metadata
+staging is removed on success or failure.
+
+Enable **Preserve original CZI XML** in the standalone or napari-embedded
+converter GUI, or use the flag in the conversion scripts:
+
+```bash
+python demo/scripts/omezarr_convert_single_scene.py image.czi --preserve-original-metadata
+python demo/scripts/omezarr_convert_hcs.py plate.czi --preserve-original-metadata
+python demo/scripts/benchmark_omezarr_conversion.py --czi plate.czi --preserve-original-metadata
+python demo/scripts/write_omezarr.py image.czi --preserve-original-metadata
+```
+
+Both backend choices support the option. It defaults to off in Python,
+scripts, and the GUI.
+
 ### OME-Zarr Converter GUI
 
 The experimental CZI to OME-Zarr converter provides a graphical interface for

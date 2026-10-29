@@ -8,8 +8,11 @@ import ast
 import dask
 import json
 import logging
+import runpy
+import sys
 import threading
 import zipfile
+from contextlib import nullcontext
 from inspect import signature
 from pathlib import Path
 from types import SimpleNamespace
@@ -42,6 +45,193 @@ BASEDIR = Path(__file__).resolve().parents[3]
 WELLPLATE = BASEDIR / "data" / "WP96_4Pos_B4-10_DAPI.czi"
 
 
+def test_original_czi_metadata_preserves_xml_and_existing_attributes(tmp_path, monkeypatch) -> None:
+    xml = '<?xml version="1.0" encoding="utf-8"?>\n<ImageDocument>\n  <Name>\u00b5m</Name>\n</ImageDocument>\n'
+    source = tmp_path / "source.czi"
+    output = tmp_path / "image.ome.zarr"
+    root = zarr.open_group(output, mode="w")
+    root.attrs.update({"ome": {"version": "0.6"}, "czitools": {"existing": True}})
+    opened = []
+
+    def open_source(path):
+        opened.append(path)
+        return nullcontext(SimpleNamespace(raw_metadata=xml))
+
+    monkeypatch.setattr(conversion.pyczi, "open_czi", open_source)
+    conversion._write_original_czi_metadata(source, output)
+
+    assert opened == [str(source)]
+    assert (output / "CZI" / "metadata.xml").read_bytes() == xml.encode("utf-8")
+    root = zarr.open_group(output, mode="r")
+    assert "CZI" in root
+    assert root.attrs["ome"] == {"version": "0.6"}
+    assert root.attrs["czitools"] == {
+        "existing": True,
+        "originalMetadata": {
+            "path": "CZI/metadata.xml",
+            "format": "ZEISS-CZI-XML",
+            "mediaType": "application/xml",
+            "sourceFilename": "source.czi",
+        },
+    }
+    assert not (output / "OME" / "METADATA.ome.xml").exists()
+
+
+@pytest.mark.parametrize("xml", [None, "", "  "])
+def test_original_czi_metadata_rejects_missing_xml(tmp_path, monkeypatch, xml) -> None:
+    monkeypatch.setattr(conversion.pyczi, "open_czi", lambda path: nullcontext(SimpleNamespace(raw_metadata=xml)))
+    with pytest.raises(ValueError, match="Original CZI XML metadata is unavailable"):
+        conversion._write_original_czi_metadata(tmp_path / "source.czi", tmp_path / "output.ome.zarr")
+
+
+@pytest.mark.parametrize("archive", [False, True])
+def test_original_czi_metadata_roundtrips_real_source(tmp_path, archive) -> None:
+    with conversion.pyczi.open_czi(str(WELLPLATE)) as source:
+        expected = source.raw_metadata.encode("utf-8")
+    output = tmp_path / ("plate.ozx" if archive else "plate.ome.zarr")
+    with conversion._original_metadata_output(WELLPLATE, output, True, "0.5") as store:
+        zarr.open_group(store, mode="w", zarr_format=3)
+    if archive:
+        with zipfile.ZipFile(output) as result:
+            assert result.read("CZI/metadata.xml") == expected
+    else:
+        assert (output / "CZI/metadata.xml").read_bytes() == expected
+
+
+@pytest.mark.parametrize("backend", ["omezarr", "ngff", "ozx"])
+@pytest.mark.parametrize("preserve", [False, True])
+def test_image_writers_preserve_original_czi_metadata(tmp_path, monkeypatch, backend, preserve) -> None:
+    xml = '<?xml version="1.0" encoding="utf-8"?>\n<ImageDocument />\n'
+    opened = []
+
+    def open_source(path):
+        opened.append(path)
+        return nullcontext(SimpleNamespace(raw_metadata=xml))
+
+    monkeypatch.setattr(conversion.pyczi, "open_czi", open_source)
+    metadata = SimpleNamespace(
+        filepath=tmp_path / "source.czi",
+        filename="source.czi",
+        scale=SimpleNamespace(X=1.0, Y=1.0, Z=1.0),
+        image=None,
+        channelinfo=None,
+    )
+    array = xr.DataArray(np.zeros((1, 1, 1, 8, 8), dtype=np.uint16), dims=("T", "C", "Z", "Y", "X"))
+    output = tmp_path / ("image.ozx" if backend == "ozx" else "image.ome.zarr")
+    writer = conversion.write_omezarr if backend == "omezarr" else conversion.write_omezarr_ngff
+    writer(array, output, metadata, pyramid_levels=0, compression=None, preserve_original_metadata=preserve)
+
+    if backend == "ozx":
+        with zipfile.ZipFile(output) as archive:
+            names = archive.namelist()
+            assert names[0] == "zarr.json"
+            assert len(names) == len(set(names))
+            assert all(entry.compress_type == zipfile.ZIP_STORED for entry in archive.infolist())
+            root_metadata = json.loads(archive.read("zarr.json"))
+            assert ("CZI/metadata.xml" in names) is preserve
+            if preserve:
+                assert archive.read("CZI/metadata.xml") == xml.encode("utf-8")
+            assert "OME/METADATA.ome.xml" not in names
+    else:
+        root_metadata = json.loads((output / "zarr.json").read_text(encoding="utf-8"))
+        assert (output / "CZI" / "metadata.xml").exists() is preserve
+        if preserve:
+            assert (output / "CZI" / "metadata.xml").read_bytes() == xml.encode("utf-8")
+        assert validate_ome_zarr(output) is True
+
+    assert ("czitools" in root_metadata["attributes"]) is preserve
+    if preserve:
+        assert opened == [str(metadata.filepath)]
+        assert root_metadata["attributes"]["czitools"]["originalMetadata"]["path"] == "CZI/metadata.xml"
+    else:
+        assert opened == []
+    assert not list(tmp_path.glob(".czitools-metadata-*"))
+
+
+@pytest.mark.parametrize("backend", ["omezarr", "ngff", "ozx"])
+@pytest.mark.parametrize("preserve", [False, True])
+def test_hcs_writers_preserve_original_czi_metadata(tmp_path, monkeypatch, backend, preserve) -> None:
+    xml = "<ImageDocument>\n  <Metadata />\n</ImageDocument>"
+    metadata = SimpleNamespace(
+        filename="source.czi",
+        image=None,
+        channelinfo=None,
+        scale=SimpleNamespace(X=1.0, Y=1.0, Z=1.0),
+    )
+    well = SimpleNamespace(row="A", column="01", path="A/01", well_id="A1", fields=[(0, 0)])
+    layout = SimpleNamespace(source="hcs", row_names=["A"], col_names=["01"], field_count=1, wells=[well])
+    image = conversion.nz.to_ngff_image(
+        da.zeros((1, 1, 1, 8, 8), chunks=(1, 1, 1, 8, 8), dtype=np.uint16),
+        dims=["t", "c", "z", "y", "x"],
+        name="source.czi",
+        scale=dict.fromkeys(("t", "c", "z", "y", "x"), 1.0),
+        translation=dict.fromkeys(("t", "c", "z", "y", "x"), 0.0),
+    )
+    multiscales = conversion.nz.to_multiscales(image, scale_factors=[], chunks=(1, 1, 1, 8, 8), cache=False)
+    monkeypatch.setattr(conversion, "CziMetadata", lambda path: metadata)
+    monkeypatch.setattr(conversion, "resolve_hcs_layout", lambda *args, **kwargs: layout)
+    monkeypatch.setattr(conversion, "_read_single_scene_multiscales", lambda *args, **kwargs: multiscales)
+    monkeypatch.setattr(conversion.read_tools, "get_pyramid_zooms", lambda path: [1.0])
+    opened = []
+
+    def open_source(path):
+        opened.append(path)
+        return nullcontext(SimpleNamespace(raw_metadata=xml))
+
+    monkeypatch.setattr(conversion.pyczi, "open_czi", open_source)
+    source = tmp_path / "source.czi"
+    options = {"compression": None, "preserve_original_metadata": preserve}
+    if backend == "omezarr":
+        output = conversion.convert_czi2hcs_omezarr(source, **options)
+    else:
+        output = conversion.convert_czi2hcs_ngff(source, write_ozx_directly=backend == "ozx", **options)
+
+    if backend == "ozx":
+        with zipfile.ZipFile(output) as archive:
+            names = archive.namelist()
+            assert names[0] == "zarr.json"
+            assert len(names) == len(set(names))
+            attributes = json.loads(archive.read("zarr.json"))["attributes"]
+            assert ("CZI/metadata.xml" in names) is preserve
+            if preserve:
+                assert archive.read("CZI/metadata.xml") == xml.encode("utf-8")
+    else:
+        attributes = zarr.open_group(output, mode="r").attrs.asdict()
+        assert (output / "CZI" / "metadata.xml").exists() is preserve
+        if preserve:
+            assert (output / "CZI" / "metadata.xml").read_bytes() == xml.encode("utf-8")
+
+    assert "plate" in attributes["ome"]
+    assert ("czitools" in attributes) is preserve
+    assert opened == ([str(source)] if preserve else [])
+    assert not list(tmp_path.glob(".czitools-metadata-*"))
+
+
+@pytest.mark.parametrize("failure", ["writing", "metadata", "packaging"])
+def test_original_czi_metadata_archive_cleans_up_on_failure(tmp_path, monkeypatch, failure) -> None:
+    output = tmp_path / "image.ozx"
+    monkeypatch.setattr(
+        conversion.pyczi,
+        "open_czi",
+        lambda path: nullcontext(SimpleNamespace(raw_metadata=None if failure == "metadata" else "<ImageDocument />")),
+    )
+
+    def failed_packaging(source, destination, **kwargs):
+        destination.write_bytes(b"incomplete")
+        raise OSError("packaging failed")
+
+    if failure == "packaging":
+        monkeypatch.setattr(conversion, "write_store_to_zip", failed_packaging)
+    with pytest.raises((RuntimeError, ValueError, OSError)):
+        with conversion._original_metadata_output(tmp_path / "source.czi", output, True, "0.5") as store:
+            zarr.open_group(store, mode="w")
+            if failure == "writing":
+                raise RuntimeError("writing failed")
+
+    assert not output.exists()
+    assert not list(tmp_path.glob(".czitools-metadata-*"))
+
+
 def test_gui_import_without_qt_binding_has_install_hint(monkeypatch) -> None:
     class QtBindingsNotFoundError(RuntimeError):
         pass
@@ -53,6 +243,71 @@ def test_gui_import_without_qt_binding_has_install_hint(monkeypatch) -> None:
 
     with pytest.raises(ImportError, match=r'pip install "czitools\[omezarr-gui\]"'):
         export_tools.__getattr__("run_gui")
+
+
+@pytest.mark.parametrize("script", ["omezarr_convert_single_scene.py", "omezarr_convert_hcs.py"])
+@pytest.mark.parametrize("backend", ["ngff", "omezarr"])
+@pytest.mark.parametrize("preserve", [False, True])
+def test_conversion_scripts_forward_original_metadata_option(tmp_path, monkeypatch, script, backend, preserve) -> None:
+    captured = {}
+    array = xr.DataArray(np.zeros((1, 1, 1, 1, 8, 8), dtype=np.uint16), dims=("S", "T", "C", "Z", "Y", "X"))
+    monkeypatch.setattr(conversion.read_tools, "read_6darray", lambda *args, **kwargs: (array, object()))
+
+    def write_output(*args, **kwargs):
+        captured.update(kwargs)
+        return tmp_path / "output.ome.zarr"
+
+    for name in ("write_omezarr", "write_omezarr_ngff", "convert_czi2hcs_omezarr", "convert_czi2hcs_ngff"):
+        monkeypatch.setattr(export_tools, name, write_output)
+    arguments = [script, str(tmp_path / "source.czi"), "--backend", backend, "--no-validate"]
+    if preserve:
+        arguments.append("--preserve-original-metadata")
+    monkeypatch.setattr(sys, "argv", arguments)
+    runpy.run_path(str(BASEDIR / "demo/scripts" / script), run_name="__main__")
+
+    assert captured["preserve_original_metadata"] is preserve
+
+
+@pytest.mark.parametrize(
+    "script",
+    [
+        "omezarr_convert_single_scene.py",
+        "omezarr_convert_hcs.py",
+        "benchmark_omezarr_conversion.py",
+        "write_omezarr.py",
+    ],
+)
+def test_conversion_scripts_advertise_original_metadata_option(monkeypatch, capsys, script) -> None:
+    monkeypatch.setattr(sys, "argv", [script, "--help"])
+    with pytest.raises(SystemExit) as result:
+        runpy.run_path(str(BASEDIR / "demo/scripts" / script), run_name="__main__")
+    assert result.value.code == 0
+    assert "--preserve-original-metadata" in capsys.readouterr().out
+
+
+@pytest.mark.parametrize("backend", ["ngff", "omezarr"])
+@pytest.mark.parametrize("preserve", [False, True])
+def test_benchmark_forwards_original_metadata_option(tmp_path, monkeypatch, backend, preserve) -> None:
+    captured = []
+
+    def write_output(*args, **kwargs):
+        captured.append(kwargs["preserve_original_metadata"])
+
+    for name in ("write_omezarr", "write_omezarr_ngff", "convert_czi2hcs_omezarr", "convert_czi2hcs_ngff"):
+        monkeypatch.setattr(conversion, name, write_output)
+    root_logger = logging.getLogger()
+    package_logger = logging.getLogger("czitools")
+    previous_levels = root_logger.level, package_logger.level
+    try:
+        script = runpy.run_path(str(BASEDIR / "demo/scripts/benchmark_omezarr_conversion.py"))
+        source = tmp_path / "source.czi"
+        source.touch()
+        script["_time_convert"](backend, str(source), 1, preserve)
+        script["_time_standard"](backend, object(), object(), 1, preserve)
+    finally:
+        root_logger.setLevel(previous_levels[0])
+        package_logger.setLevel(previous_levels[1])
+    assert captured == [preserve, preserve]
 
 
 def test_legacy_export_options_are_not_public() -> None:
@@ -189,6 +444,25 @@ def test_gui_single_image_writers_share_conversion_log() -> None:
         assert isinstance(log_keywords[0].value, ast.Call)
         assert isinstance(log_keywords[0].value.func, ast.Name)
         assert log_keywords[0].value.func.id == "str"
+
+
+def test_gui_forwards_original_metadata_through_background_worker() -> None:
+    tree = ast.parse((BASEDIR / "src/czitools/export_tools/gui.py").read_text(encoding="utf-8"))
+    writer_names = {
+        "write_omezarr",
+        "write_omezarr_ngff",
+        "convert_czi2hcs_omezarr",
+        "convert_czi2hcs_ngff",
+        "perform_conversion",
+    }
+    calls = [
+        node
+        for node in ast.walk(tree)
+        if isinstance(node, ast.Call) and isinstance(node.func, ast.Name) and node.func.id in writer_names
+    ]
+    assert {call.func.id for call in calls} == writer_names
+    for call in calls:
+        assert any(keyword.arg == "preserve_original_metadata" for keyword in call.keywords)
 
 
 def test_gui_hcs_converters_use_basic_logging() -> None:
@@ -612,7 +886,8 @@ def test_auto_workers_balance_memory_and_cpus(monkeypatch, available_gib, total_
     """Auto reserves RAM and respects CPU and concurrency limits."""
     monkeypatch.setattr(conversion.os, "cpu_count", lambda: cpus)
     monkeypatch.setattr(
-        conversion.psutil, "virtual_memory",
+        conversion.psutil,
+        "virtual_memory",
         lambda: SimpleNamespace(available=available_gib * 2**30, total=total_gib * 2**30),
     )
     assert conversion._resolve_worker_count() == expected
@@ -646,10 +921,9 @@ def test_writers_run_selected_workers_concurrently(tmp_path, backend) -> None:
         barrier.wait()
         return np.full((1, 1, 1, 8, 8), channel, dtype=np.uint16)
 
-    data = da.concatenate([
-        da.from_delayed(source(channel), shape=(1, 1, 1, 8, 8), dtype=np.uint16)
-        for channel in range(4)
-    ], axis=1)
+    data = da.concatenate(
+        [da.from_delayed(source(channel), shape=(1, 1, 1, 8, 8), dtype=np.uint16) for channel in range(4)], axis=1
+    )
     array = xr.DataArray(data, dims=("T", "C", "Z", "Y", "X"))
     metadata = SimpleNamespace(filename="parallel.czi", scale=None, image=None, channelinfo=None)
     writer = conversion.write_omezarr_ngff if backend == "ngff" else conversion.write_omezarr
@@ -684,8 +958,11 @@ def test_ngff_failure_restores_resources_and_removes_cache(tmp_path, monkeypatch
     )
     with pytest.raises(OSError, match="Disk full"):
         write_omezarr_ngff(
-            da.zeros((1, 1, 1, 16, 16), chunks=8), tmp_path / "image.ome.zarr", metadata,
-            pyramid_levels=1, worker_count=worker_count,
+            da.zeros((1, 1, 1, 16, 16), chunks=8),
+            tmp_path / "image.ome.zarr",
+            metadata,
+            pyramid_levels=1,
+            worker_count=worker_count,
         )
     assert conversion.ngff_config.cache_store == previous_store
     assert conversion.ngff_config.memory_target == previous_target

@@ -11,8 +11,11 @@
 #
 #################################################################
 
+import argparse
+
 from czitools.read_tools import read_tools
 from czitools.metadata_tools import czi_metadata as czimd
+from czitools.export_tools.conversion import _write_original_czi_metadata
 import ngff_zarr as nz
 from pathlib import Path
 import dask.array as da
@@ -33,31 +36,28 @@ def write_omezarr(
     zarr_path: str,
     axes: str = "tczyx",
     overwrite: bool = False,
+    czi_filepath: str | Path | None = None,
+    preserve_original_metadata: bool = False,
 ) -> str:
-    """
-     Writes a 5D array to an OME-ZARR file.
-    Parameters:
-    -----------
-    array5d : Union[np.ndarray, da.Array]
-        The 5D array to be written. The dimensions should not exceed 5.
-    zarr_path : str
-        The path where the OME-ZARR file will be saved.
-    axes : str, optional
-        The order of axes in the array. Default is "tczyx".
-    overwrite : bool, optional
-        If True, the existing file at zarr_path will be overwritten. Default is False.
+    """Write a 5D image with optional original CZI XML preservation.
+
+    Args:
+        array5d (np.ndarray | da.Array): Pixels in the selected axis order.
+        zarr_path (str): Destination directory store.
+        axes (str): Axis order, defaulting to TCZYX.
+        overwrite (bool): Replace an existing output store.
+        czi_filepath (str | Path | None): Source CZI path for XML preservation.
+        preserve_original_metadata (bool): Embed source XML at CZI/metadata.xml.
+
     Returns:
-    --------
-    str
-        The path to the written OME-ZARR folder if successful, otherwise None.
-    Notes:
-    ------
-    - The function ensures the axes are in lowercase and removes any invalid dimensions.
-    - If the zarr_path already exists and overwrite is True, the existing directory will be removed.
-    - The function logs the NGFF format version being used.
-    - The function writes the image data to the specified zarr_path.
-    - If the writing process is successful, the function returns the zarr_path; otherwise, it returns None.
+        str: Output path on success, or None when the write is skipped.
+
+    Raises:
+        ValueError: XML preservation is requested without a source path.
     """
+
+    if preserve_original_metadata and czi_filepath is None:
+        raise ValueError("czi_filepath is required to preserve original CZI XML.")
 
     # check number of dimension of input array
     if len(array5d.shape) > 5:
@@ -75,9 +75,7 @@ def write_omezarr(
     if Path(zarr_path).exists() and overwrite:
         shutil.rmtree(zarr_path, ignore_errors=False, onerror=None)
     elif Path(zarr_path).exists() and not overwrite:
-        logger.warning(
-            f"File already exists at {zarr_path}. Set overwrite=True to remove."
-        )
+        logger.warning(f"File already exists at {zarr_path}. Set overwrite=True to remove.")
         return None
 
     # show currently used version of NGFF specification
@@ -111,6 +109,9 @@ def write_omezarr(
         storage_options=dict(chunks=array5d.shape),
     )
 
+    if preserve_original_metadata:
+        _write_original_czi_metadata(czi_filepath, Path(zarr_path))
+
     logger.info(f"Finished writing OME-ZARR to: {zarr_path}")
 
     return zarr_path
@@ -119,6 +120,15 @@ def write_omezarr(
 # open s simple dialog to select a CZI file
 defaultdir = Path(Path(__file__).resolve().parents[2]) / "data"
 filepath = defaultdir / "CellDivision_T3_Z5_CH2_X240_Y170.czi"
+parser = argparse.ArgumentParser(description="Write a CZI scene with both OME-Zarr backends.")
+parser.add_argument("filepath", nargs="?", type=Path, default=filepath)
+parser.add_argument(
+    "--preserve-original-metadata",
+    action="store_true",
+    help="Embed the original CZI XML at CZI/metadata.xml in both output stores.",
+)
+args = parser.parse_args()
+filepath = args.filepath
 
 # get the metadata_tools at once as one big class
 mdata = czimd.CziMetadata(filepath)
@@ -134,7 +144,12 @@ zarr_path1 = Path(str(filepath)[:-4] + "_1.ome.zarr")
 
 # write OME-ZARR using utility function
 zarr_path1 = write_omezarr(
-    array, zarr_path=str(zarr_path1), axes="tczyx", overwrite=True
+    array,
+    zarr_path=str(zarr_path1),
+    axes="tczyx",
+    overwrite=True,
+    czi_filepath=filepath,
+    preserve_original_metadata=args.preserve_original_metadata,
 )
 
 print(f"Written OME-ZARR using ome-zarr.py: {zarr_path1}")
@@ -155,5 +170,7 @@ multiscales = nz.to_multiscales(image, [2, 4], method=nz.Methods.DASK_IMAGE_GAUS
 
 # write using ngff-zarr
 nz.to_ngff_zarr(zarr_path2, multiscales)
+if args.preserve_original_metadata:
+    _write_original_czi_metadata(filepath, zarr_path2)
 print(f"NGFF Image: {image}")
 print(f"Written OME-ZARR using ngff-zarr: {zarr_path2}")

@@ -22,6 +22,7 @@ def test_ngff_zarr_is_default_backend() -> None:
     assert gui.czi_to_omezarr_converter.spatial_chunk_size.value == 512
     assert gui.czi_to_omezarr_converter.spatial_chunk_size.choices == (256, 512, 1024)
     assert gui.czi_to_omezarr_converter.reuse_czi_pyramid.value is True
+    assert gui.czi_to_omezarr_converter.preserve_original_metadata.value is False
     assert gui.czi_to_omezarr_converter.worker_count.value == 0
     assert gui.czi_to_omezarr_converter.worker_count.native.specialValueText() == "Auto"
     assert gui.czi_to_omezarr_converter.worker_count.label == "Dask workers (0 = Auto)"
@@ -29,6 +30,36 @@ def test_ngff_zarr_is_default_backend() -> None:
     assert "1-32" in gui.czi_to_omezarr_converter.worker_count.tooltip
     assert "up to 8 workers" in gui.czi_to_omezarr_converter.worker_count.tooltip
     assert "use_tensorstore" not in signature(gui.perform_conversion).parameters
+
+
+@pytest.mark.parametrize("backend", [gui.omezarr_package.NGFF_ZARR, gui.omezarr_package.OME_ZARR])
+@pytest.mark.parametrize("hcs", [False, True])
+@pytest.mark.parametrize("preserve", [False, True])
+def test_original_metadata_option_reaches_all_gui_writers(tmp_path, monkeypatch, backend, hcs, preserve) -> None:
+    captured = {}
+    array = xr.DataArray(np.zeros((1, 1, 1, 8, 8), dtype=np.uint16), dims=("T", "C", "Z", "Y", "X"))
+    monkeypatch.setattr(gui.read_tools, "read_stacks", lambda *args, **kwargs: ([array], {}, 1, object()))
+    monkeypatch.setattr(gui, "validate_ome_zarr", lambda path: True)
+
+    def write_output(*args, **kwargs):
+        captured.update(kwargs)
+        return tmp_path / "output.ome.zarr"
+
+    for name in ("write_omezarr", "write_omezarr_ngff", "convert_czi2hcs_omezarr", "convert_czi2hcs_ngff"):
+        monkeypatch.setattr(gui, name, write_output)
+
+    result = gui.perform_conversion(
+        tmp_path / "source.czi",
+        False,
+        hcs,
+        backend,
+        0,
+        reuse_czi_pyramid=False,
+        preserve_original_metadata=preserve,
+    )
+
+    assert result is not None
+    assert captured["preserve_original_metadata"] is preserve
 
 
 def test_controls_require_selected_czi() -> None:
@@ -427,10 +458,12 @@ def test_conversion_displays_resolved_workers(tmp_path, monkeypatch, requested, 
     monkeypatch.setattr(gui, "finish_conversion", lambda *args: None)
 
     def convert(**kwargs):
+        assert kwargs["preserve_original_metadata"] is True
         kwargs["on_workers_selected"](resolved)
         return str(tmp_path / "image.ome.zarr")
 
     monkeypatch.setattr(gui, "perform_conversion", convert)
+    monkeypatch.setattr(gui.czi_to_omezarr_converter.preserve_original_metadata, "value", True)
     gui.on_convert_clicked()
     assert gui.worker_status.visible
     callbacks[0]()
@@ -455,10 +488,11 @@ def test_metadata_display_precedes_conversion_options() -> None:
     assert conversion_options[3] is gui.czi_to_omezarr_converter.pyramid_levels
     assert conversion_options[4] is gui.czi_to_omezarr_converter.spatial_chunk_size
     assert conversion_options[5] is gui.czi_to_omezarr_converter.reuse_czi_pyramid
-    assert conversion_options[6] is gui.czi_to_omezarr_converter.worker_count
-    assert conversion_options[7] is gui.worker_status
-    assert conversion_options[8] is gui.hcs_pyramid_policy
-    assert conversion_options[9] is gui.czi_to_omezarr_converter.use_ozx_format
-    assert conversion_options[10] is gui.czi_to_omezarr_converter.compression_choice
-    assert conversion_options[11] is gui.czi_to_omezarr_converter.show_napari
+    assert conversion_options[6] is gui.czi_to_omezarr_converter.preserve_original_metadata
+    assert conversion_options[7] is gui.czi_to_omezarr_converter.worker_count
+    assert conversion_options[8] is gui.worker_status
+    assert conversion_options[9] is gui.hcs_pyramid_policy
+    assert conversion_options[10] is gui.czi_to_omezarr_converter.use_ozx_format
+    assert conversion_options[11] is gui.czi_to_omezarr_converter.compression_choice
+    assert conversion_options[12] is gui.czi_to_omezarr_converter.show_napari
     assert not hasattr(gui.czi_to_omezarr_converter, "use_tensorstore")

@@ -82,7 +82,7 @@ def _measure_read(czi: str, repeats: int) -> tuple[float, float, tuple, np.dtype
     return best, mean, shape, dtype, size_mb
 
 
-def _time_convert(kind: str, czi: str, repeats: int) -> float:
+def _time_convert(kind: str, czi: str, repeats: int, preserve_original_metadata: bool = False) -> float:
     """Time a full HCS conversion, isolating each run in a fresh temp dir.
 
     The CZI is copied into a unique temp directory (untimed) so every timed run
@@ -98,9 +98,13 @@ def _time_convert(kind: str, czi: str, repeats: int) -> float:
         gc.collect()
         start = time.perf_counter()
         if kind == "ngff":
-            convert_czi2hcs_ngff(czi_filepath=str(czi_copy), overwrite=True)
+            convert_czi2hcs_ngff(
+                czi_filepath=str(czi_copy), overwrite=True, preserve_original_metadata=preserve_original_metadata
+            )
         else:
-            convert_czi2hcs_omezarr(czi_filepath=str(czi_copy), overwrite=True)
+            convert_czi2hcs_omezarr(
+                czi_filepath=str(czi_copy), overwrite=True, preserve_original_metadata=preserve_original_metadata
+            )
         timings.append(time.perf_counter() - start)
         shutil.rmtree(work, ignore_errors=True)
     return min(timings)
@@ -116,7 +120,7 @@ def _is_hcs(czi: str) -> bool:
         return False
 
 
-def _time_standard(kind: str, array5d, mdata, repeats: int) -> float:
+def _time_standard(kind: str, array5d, mdata, repeats: int, preserve_original_metadata: bool = False) -> float:
     """Time a standard (single-image) write using a pre-read 5D array.
 
     The array is already in memory, so this measures write-only time directly
@@ -130,9 +134,22 @@ def _time_standard(kind: str, array5d, mdata, repeats: int) -> float:
         gc.collect()
         start = time.perf_counter()
         if kind == "ngff":
-            write_omezarr_ngff(array5d, out, mdata, scale_factors=None, overwrite=True)
+            write_omezarr_ngff(
+                array5d,
+                out,
+                mdata,
+                scale_factors=None,
+                overwrite=True,
+                preserve_original_metadata=preserve_original_metadata,
+            )
         else:
-            write_omezarr(array5d, zarr_path=out, metadata=mdata, overwrite=True)
+            write_omezarr(
+                array5d,
+                zarr_path=out,
+                metadata=mdata,
+                overwrite=True,
+                preserve_original_metadata=preserve_original_metadata,
+            )
         timings.append(time.perf_counter() - start)
         shutil.rmtree(work, ignore_errors=True)
     return min(timings)
@@ -142,6 +159,11 @@ def _run() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--czi", default=DEFAULT_CZI, help="Path to the input CZI file.")
     parser.add_argument("--repeats", type=int, default=1, help="Number of timed repetitions (best reported).")
+    parser.add_argument(
+        "--preserve-original-metadata",
+        action="store_true",
+        help="Include original CZI XML preservation in each timed conversion.",
+    )
     args = parser.parse_args()
 
     czi = str(Path(args.czi))
@@ -175,7 +197,7 @@ def _run() -> None:
         print(f"{'Backend':40s} {'total(s)':>9s} {'write~(s)':>10s} {'write%':>7s}")
         print("-" * 78)
         for name, kind in backends:
-            t_best = _time_convert(kind, czi, repeats)
+            t_best = _time_convert(kind, czi, repeats, args.preserve_original_metadata)
             write_s = max(0.0, t_best - r_best)
             write_pct = 100.0 * write_s / t_best if t_best > 0 else 0.0
             print(f"{name:40s} {t_best:9.3f} {write_s:10.3f} {write_pct:6.1f}%")
@@ -190,7 +212,7 @@ def _run() -> None:
         print(f"{'Backend':40s} {'write(s)':>9s}  (read={r_best:.2f}s, {'write%':>6s})")
         print("-" * 78)
         for name, kind in backends_std:
-            w_best = _time_standard(kind, array5d, mdata, repeats)
+            w_best = _time_standard(kind, array5d, mdata, repeats, args.preserve_original_metadata)
             total = w_best + r_best
             write_pct = 100.0 * w_best / total if total > 0 else 0.0
             print(f"{name:40s} {w_best:9.3f}  ({write_pct:6.1f}% of read+write)")
