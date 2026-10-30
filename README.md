@@ -14,15 +14,17 @@ available as a [Python package on PyPI](https://pypi.org/project/czitools/).
 
 For full documentation see **[sebi06.github.io/czitools](https://sebi06.github.io/czitools/)**.
 
-## 0.27.0 Highlights
+## 0.27.2 Highlights
 
-- Large-image exports use lazy CZI ROI reads instead of loading whole scenes.
-- Both export backends reuse native CZI pyramids for individual images and
-    HCS plates, preserving their pixels and physical transforms.
-- NGFF directory exports write directly to the final store; regenerated
-    levels use their previously written predecessor.
-- The GUI offers 256/512/1024-pixel output chunks and RAM/CPU-based Auto
-    concurrency, with the selected worker count shown and logged.
+- Both export backends default to OME-NGFF 0.6 for individual images and
+    HCS plates, including native CZI pyramids and ngff-zarr `.ozx` output.
+- Low-level ome-zarr-py metadata is converted to genuine 0.6 metadata,
+    preserving channels, physical scaling, and pyramid translations.
+- Explicit version profiles and axis checks reject unsupported exports before
+    overwriting output. Validation rejects mixed-version hierarchies and
+    incomplete channel display metadata; draft 0.9 output remains disabled.
+- OZX packaging preserves the source store's declared NGFF version instead
+    of silently downgrading to 0.5. Existing stores are not migrated.
 
 ## Installation
 
