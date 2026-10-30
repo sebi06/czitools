@@ -38,6 +38,7 @@ from czitools.export_tools import (
 import czitools.export_tools as export_tools
 from czitools.export_tools import conversion
 from czitools.export_tools import _logging as export_logging
+from czitools.export_tools import _spec
 from czitools.export_tools import validation
 from czitools.metadata_tools.czi_metadata import CziMetadata
 
@@ -139,6 +140,8 @@ def test_image_writers_preserve_original_czi_metadata(tmp_path, monkeypatch, bac
             assert (output / "CZI" / "metadata.xml").read_bytes() == xml.encode("utf-8")
         assert validate_ome_zarr(output) is True
 
+    assert root_metadata["attributes"]["ome"]["version"] == "0.6"
+    assert "coordinateSystems" in root_metadata["attributes"]["ome"]["multiscales"][0]
     assert ("czitools" in root_metadata["attributes"]) is preserve
     if preserve:
         assert opened == [str(metadata.filepath)]
@@ -202,6 +205,22 @@ def test_hcs_writers_preserve_original_czi_metadata(tmp_path, monkeypatch, backe
             assert (output / "CZI" / "metadata.xml").read_bytes() == xml.encode("utf-8")
 
     assert "plate" in attributes["ome"]
+    assert attributes["ome"]["version"] == "0.6"
+    if backend == "ozx":
+        with zipfile.ZipFile(output) as archive:
+            well_attrs = json.loads(archive.read("A/01/zarr.json"))["attributes"]["ome"]
+            image_attrs = json.loads(archive.read("A/01/0/zarr.json"))["attributes"]["ome"]
+    else:
+        well_attrs = zarr.open_group(output / "A" / "01", mode="r").attrs["ome"]
+        image_attrs = zarr.open_group(output / "A" / "01" / "0", mode="r").attrs["ome"]
+    assert well_attrs["version"] == "0.6"
+    assert image_attrs["version"] == "0.6"
+    multiscale = image_attrs["multiscales"][0]
+    coordinate_system = multiscale["coordinateSystems"][0]
+    for dataset in multiscale["datasets"]:
+        (transform,) = dataset["coordinateTransformations"]
+        assert transform["input"] == {"path": dataset["path"]}
+        assert transform["output"] == {"name": coordinate_system["name"]}
     assert ("czitools" in attributes) is preserve
     assert opened == ([str(source)] if preserve else [])
     assert not list(tmp_path.glob(".czitools-metadata-*"))
@@ -318,7 +337,8 @@ def test_legacy_export_options_are_not_public() -> None:
     assert "use_tensorstore" not in signature(conversion.write_omezarr_ngff).parameters
     assert signature(conversion.write_omezarr).parameters["version"].default == "0.6"
     assert signature(conversion.write_omezarr_ngff).parameters["version"].default == "0.6"
-    assert signature(conversion.convert_czi2hcs_ngff).parameters["version"].default == "0.5"
+    assert signature(conversion.convert_czi2hcs_omezarr).parameters["version"].default == "0.6"
+    assert signature(conversion.convert_czi2hcs_ngff).parameters["version"].default == "0.6"
     assert signature(conversion.convert_czi2hcs_ngff).parameters["chunks_per_shard"].default == {"y": 4, "x": 4}
     assert signature(conversion.convert_czi2hcs_ngff).parameters["max_workers"].default == 4
     assert signature(conversion.convert_czi2hcs_omezarr).parameters["logging_detail"].default == "basic"
@@ -330,6 +350,337 @@ def test_ngff_hcs_rejects_unsupported_version() -> None:
         convert_czi2hcs_ngff(WELLPLATE, version="0.7")
 
 
+@pytest.mark.parametrize("version", ["0.7", "0.9.dev1", "0.9.dev2"])
+@pytest.mark.parametrize(
+    "writer_name",
+    ["write_omezarr", "write_omezarr_ngff", "convert_czi2hcs_omezarr", "convert_czi2hcs_ngff"],
+)
+def test_writers_reject_unsupported_versions_before_io(tmp_path, monkeypatch, writer_name, version) -> None:
+    """Reject future versions before logging, reading pixels, or replacing output."""
+    output = tmp_path / "existing.ome.zarr"
+    output.mkdir()
+    marker = output / "keep.txt"
+    marker.write_text("existing output", encoding="utf-8")
+    monkeypatch.setattr(conversion, "setup_logging", lambda *args: pytest.fail("Version check ran after I/O"))
+    writer = getattr(conversion, writer_name)
+
+    with pytest.raises(ValueError):
+        if writer_name.startswith("convert_"):
+            writer(WELLPLATE, version=version)
+        else:
+            array = xr.DataArray(np.zeros((1, 1, 1, 2, 2)), dims=("T", "C", "Z", "Y", "X"))
+            writer(array, output, object(), version=version, overwrite=True)
+
+    assert marker.read_text(encoding="utf-8") == "existing output"
+
+
+@pytest.mark.parametrize("version", [None, {}, "0.7", "0.9.dev1", "0.9.dev2", "0.6.dev5", "0.6-extra"])
+def test_ngff_profiles_reject_unknown_versions(version) -> None:
+    """Version support is exact, not inferred from a prefix or library enum."""
+    with pytest.raises(ValueError, match="Unsupported OME-NGFF version"):
+        _spec.get_version_profile(version)
+
+
+@pytest.mark.parametrize("version", ["0.6rc0", "0.6.dev4"])
+def test_ngff_prerelease_aliases_are_read_only(version) -> None:
+    """Recognized old stores remain readable without enabling prerelease writes."""
+    assert _spec.get_version_profile(version).version == "0.6"
+    with pytest.raises(ValueError, match="writing currently supports"):
+        _spec.get_export_profile(version, "ngff-zarr")
+
+
+def test_ngff_axis_descriptions_preserve_custom_semantics() -> None:
+    """Internal metadata can describe axes beyond the current export profile."""
+    axes = _spec.describe_axes(
+        ("view", "t", "c", "y", "x"),
+        units={"t": "second", "y": "micrometer", "x": "micrometer"},
+        axis_types={"view": "view"},
+        discrete={"view": True},
+    )
+    assert axes[0] == _spec.AxisDescription("view", "view", discrete=True)
+    assert axes[1] == _spec.AxisDescription("t", "time", "second", False)
+    assert axes[2] == _spec.AxisDescription("c", "channel", discrete=True)
+    assert _spec.describe_axes(("phase",))[0] == _spec.AxisDescription("phase", None)
+    with pytest.raises(ValueError, match="one time and one channel/custom"):
+        _spec.get_version_profile("0.6").validate_axes(axes, (2, 3, 4, 5, 6))
+
+
+@pytest.mark.parametrize("dims", [("y", "x"), ("c", "y", "x"), ("t", "z", "y", "x"), _spec.TCZYX, ("phase", "y", "x")])
+def test_ngff_06_profile_accepts_supported_axis_layouts(dims) -> None:
+    """The spec profile remains broader than the fixed TCZYX writer API."""
+    _spec.get_version_profile("0.6").validate_axes(_spec.describe_axes(dims), (2,) * len(dims))
+
+
+@pytest.mark.parametrize(
+    "dims, shape, types, message",
+    [
+        (("view", "t", "c", "z", "y", "x"), (2,) * 6, {}, "2-5 dimensions"),
+        (("t", "c", "x"), (2,) * 3, {}, "2-3 spatial axes"),
+        (("t", "elapsed", "y", "x"), (2,) * 4, {"elapsed": "time"}, "one time"),
+        (("phase", "c", "y", "x"), (2,) * 4, {}, "channel/custom"),
+        (("y", "x", "t"), (2,) * 3, {}, "axis order"),
+        (("y", "y"), (2, 2), {}, "unique"),
+        (("", "y", "x"), (2,) * 3, {}, "non-empty"),
+        (("y", "x"), (2,) * 3, {}, "dimensionality"),
+    ],
+)
+def test_ngff_06_profile_rejects_invalid_axis_layouts(dims, shape, types, message) -> None:
+    """Draft dimensional freedom must not leak into released output."""
+    with pytest.raises(ValueError, match=message):
+        _spec.get_version_profile("0.6").validate_axes(_spec.describe_axes(dims, axis_types=types), shape)
+
+
+@pytest.mark.parametrize("writer", [conversion.write_omezarr, conversion.write_omezarr_ngff])
+@pytest.mark.parametrize(
+    "dims",
+    [("V", "T", "C", "Z", "Y", "X"), ("C", "T", "Z", "Y", "X"), ("T", "C", "Z", "X", "Y"), ("Y", "X")],
+)
+def test_image_writers_reject_unsupported_axes_before_overwrite(tmp_path, monkeypatch, writer, dims) -> None:
+    """Invalid layouts cannot delete output or silently reinterpret array axes."""
+    output = tmp_path / "existing.ome.zarr"
+    output.mkdir()
+    marker = output / "keep.txt"
+    marker.write_text("existing output", encoding="utf-8")
+    monkeypatch.setattr(conversion, "setup_logging", lambda *args: pytest.fail("Axis check ran after I/O"))
+    array = xr.DataArray(np.zeros((2,) * len(dims)), dims=dims)
+
+    with pytest.raises(ValueError):
+        writer(array, output, object(), overwrite=True)
+
+    assert marker.read_text(encoding="utf-8") == "existing output"
+
+
+@pytest.mark.parametrize("writer", [conversion.write_omezarr, conversion.write_omezarr_ngff])
+def test_image_writers_reject_misordered_source_pyramids(tmp_path, monkeypatch, writer) -> None:
+    """Native pyramid input cannot bypass the TCZYX boundary or mutate chunks."""
+    source = SimpleNamespace(
+        images=[
+            SimpleNamespace(
+                dims=("t", "c", "z", "x", "y"),
+                axes_units={},
+                data=da.zeros((1, 1, 1, 2, 2), chunks=1),
+            )
+        ]
+    )
+    before = source.images[0].data
+    array = xr.DataArray(np.zeros((1, 1, 1, 2, 2)), dims=("T", "C", "Z", "Y", "X"))
+    output = tmp_path / "image.ome.zarr"
+    monkeypatch.setattr(conversion, "setup_logging", lambda *args: pytest.fail("Source axis check ran after I/O"))
+
+    with pytest.raises(ValueError, match="Source pyramid levels"):
+        writer(array, output, object(), source_multiscales=source)
+
+    assert source.images[0].data is before
+    assert not output.exists()
+
+
+@pytest.mark.parametrize("backend", ["ome", "ngff"])
+def test_hcs_metadata_rejection_preserves_existing_output(tmp_path, monkeypatch, backend) -> None:
+    """An unsupported multi-phase acquisition cannot destroy an existing plate."""
+    source = tmp_path / "plate.czi"
+    suffix = "_HCSplate_zarr3.ome.zarr" if backend == "ome" else "_ngff_plate_zarr3.ome.zarr"
+    output = tmp_path / f"plate{suffix}"
+    output.mkdir()
+    marker = output / "keep.txt"
+    marker.write_text("existing output", encoding="utf-8")
+    metadata = SimpleNamespace(image=SimpleNamespace(SizeH=3))
+    monkeypatch.setattr(conversion, "CziMetadata", lambda *args: metadata)
+    writer = conversion.convert_czi2hcs_omezarr if backend == "ome" else conversion.convert_czi2hcs_ngff
+
+    with pytest.raises(ValueError, match="SizeH=3"):
+        writer(source, overwrite=True)
+
+    assert marker.read_text(encoding="utf-8") == "existing output"
+
+
+@pytest.mark.parametrize("hcs", [False, True])
+def test_ngff_writers_reject_zarr2_archives_before_io(tmp_path, monkeypatch, hcs) -> None:
+    """RFC-9 archives cannot silently package legacy Zarr 2 exports."""
+    monkeypatch.setattr(conversion, "setup_logging", lambda *args, **kwargs: pytest.fail("Archive check ran after I/O"))
+    with pytest.raises(ValueError, match="RFC-9 .ozx output"):
+        if hcs:
+            convert_czi2hcs_ngff(WELLPLATE, version="0.4", write_ozx_directly=True)
+        else:
+            write_omezarr_ngff(np.zeros((1, 1, 1, 2, 2)), tmp_path / "image.ozx", object(), version="0.4")
+
+
+def test_ngff_multiscale_metadata_does_not_invent_time_axes() -> None:
+    """Unknown axis names retain their identity and have no inferred time unit."""
+    image = conversion.nz.NgffImage(
+        data=da.zeros((2, 3, 4), chunks=(1, 3, 4)),
+        dims=["phase", "y", "x"],
+        scale={"phase": 1.0, "y": 0.2, "x": 0.2},
+        translation={"phase": 0.0, "y": 0.0, "x": 0.0},
+        axes_units={"y": "micrometer", "x": "micrometer"},
+    )
+    result = conversion._ngff_multiscales_metadata([image], [], (1, 3, 4), conversion.nz.Methods.DASK_BIN_SHRINK)
+
+    assert [axis.name for axis in result.metadata.axes] == ["phase", "y", "x"]
+    assert result.metadata.axes[0].type is None
+    assert result.metadata.axes[0].unit is None
+    assert result.metadata.datasets[0].coordinateTransformations[0].scale == [1.0, 0.2, 0.2]
+
+
+@pytest.mark.parametrize("version", ["0.4", "0.5", "0.6"])
+def test_ngff_export_profiles_roundtrip_released_versions(tmp_path, version) -> None:
+    """Explicit legacy output still round-trips without changing stable defaults."""
+    metadata = SimpleNamespace(
+        filename="image.czi", scale=SimpleNamespace(X=0.2, Y=0.2, Z=1.0), image=None, channelinfo=None
+    )
+    data = np.arange(16, dtype=np.uint16).reshape((1, 1, 1, 4, 4))
+    output = tmp_path / "image.ome.zarr"
+    write_omezarr_ngff(
+        data, output, metadata, version=version, scale_factors=[], chunks_per_shard=None, compression=None
+    )
+
+    assert validate_ome_zarr(output) is True
+    parsed = conversion.nz.from_ngff_zarr(str(output), validate=True)
+    np.testing.assert_array_equal(parsed.images[0].data.compute(), data)
+
+
+@pytest.mark.parametrize("version", ["0.5", "0.6"])
+def test_ngff_export_profiles_validate_archives(tmp_path, version) -> None:
+    """Archived output retains the requested version and is validated read-only."""
+    metadata = SimpleNamespace(
+        filename="image.czi", scale=SimpleNamespace(X=0.2, Y=0.2, Z=1.0), image=None, channelinfo=None
+    )
+    data = np.arange(16, dtype=np.uint16).reshape((1, 1, 1, 4, 4))
+    output = tmp_path / "image.ozx"
+    write_omezarr_ngff(
+        data, output, metadata, version=version, scale_factors=[], chunks_per_shard=None, compression=None
+    )
+
+    assert validate_ome_zarr(output) is True
+    with zipfile.ZipFile(output) as archive:
+        attrs = json.loads(archive.read("zarr.json"))["attributes"]
+    assert attrs["ome"]["version"] == version
+    parsed = conversion.nz.from_ngff_zarr(str(output), validate=True)
+    np.testing.assert_array_equal(parsed.images[0].data.compute(), data)
+
+
+@pytest.mark.parametrize("version", [None, "0.7", "0.9.dev1", "0.9.dev2"])
+@pytest.mark.parametrize("hcs", [False, True])
+def test_validation_rejects_unknown_versions_without_fallback(tmp_path, monkeypatch, version, hcs) -> None:
+    """Unrecognized stores must never be accepted by a legacy schema validator."""
+    output = tmp_path / "unknown.ome.zarr"
+    group = zarr.open_group(output, mode="w")
+    group.attrs["ome"] = {"version": version, **({"plate": {}} if hcs else {})}
+    for owner, name in [
+        (validation.nz, "from_ngff_zarr"),
+        (validation.nz, "from_hcs_zarr"),
+        (validation.Image, "from_zarr"),
+        (validation.Plate, "model_validate"),
+    ]:
+        monkeypatch.setattr(owner, name, lambda *args, **kwargs: pytest.fail("Unsupported schema fallback"))
+
+    assert validate_ome_zarr(output) is False
+
+
+@pytest.mark.parametrize("child_version", [None, "0.5", "0.6rc0", "0.9.dev2"])
+def test_validation_rejects_mixed_hierarchy_versions(tmp_path, monkeypatch, child_version) -> None:
+    """One exact declared version is required across plate, well, and image nodes."""
+    output = tmp_path / "mixed.ome.zarr"
+    group = zarr.open_group(output, mode="w")
+    group.attrs["ome"] = {"version": "0.6", "plate": {}}
+    group.require_group("A/01/0").attrs["ome"] = {"version": child_version}
+    monkeypatch.setattr(validation.nz, "from_hcs_zarr", lambda *args, **kwargs: pytest.fail("Mixed hierarchy accepted"))
+
+    assert validate_ome_zarr(output) is False
+
+
+@pytest.mark.parametrize("dims", [("view", "t", "c", "z", "y", "x"), ("y", "x", "t"), ("phase", "c", "y", "x")])
+def test_validation_rejects_draft_axis_layouts_in_06(tmp_path, monkeypatch, dims) -> None:
+    """Validate dimensional restrictions even when the dependency accepts a layout."""
+    output = tmp_path / "invalid.ome.zarr"
+    group = zarr.open_group(output, mode="w")
+    group.create_array("s0", shape=(2,) * len(dims), dtype="uint8")
+    group.attrs["ome"] = {
+        "version": "0.6",
+        "multiscales": [
+            {
+                "coordinateSystems": [
+                    {
+                        "name": "intrinsic",
+                        "axes": [{"name": axis.name, "type": axis.type} for axis in _spec.describe_axes(dims)],
+                    }
+                ],
+                "datasets": [{"path": "s0"}],
+            }
+        ],
+    }
+    monkeypatch.setattr(validation.nz, "from_ngff_zarr", lambda *args, **kwargs: pytest.fail("Draft layout accepted"))
+
+    assert validate_ome_zarr(output) is False
+
+
+@pytest.mark.parametrize("missing", ["color", "min", "max", "start", "end"])
+def test_validation_requires_complete_06_channel_metadata(tmp_path, monkeypatch, missing) -> None:
+    """Do not adopt the draft's relaxed channel requirements for 0.6 stores."""
+    output = tmp_path / "invalid.ome.zarr"
+    group = zarr.open_group(output, mode="w")
+    channel = {"color": "00FF00", "window": {"min": 0, "max": 255, "start": 0, "end": 255}}
+    if missing == "color":
+        channel.pop("color")
+    else:
+        channel["window"].pop(missing)
+    group.attrs["ome"] = {"version": "0.6", "omero": {"channels": [channel]}}
+    monkeypatch.setattr(
+        validation.nz, "from_ngff_zarr", lambda *args, **kwargs: pytest.fail("Incomplete channels accepted")
+    )
+
+    assert validate_ome_zarr(output) is False
+
+
+def test_ngff_hierarchy_guard_does_not_read_pixels(tmp_path, monkeypatch) -> None:
+    """Inspect only metadata and preserve unrelated source/provenance attributes."""
+    group = zarr.open_group(tmp_path / "image.ome.zarr", mode="w")
+    group.create_array("s0", shape=(3, 4), dtype="uint16")
+    group.attrs["ome"] = {
+        "version": "0.6",
+        "multiscales": [
+            {
+                "coordinateSystems": [
+                    {
+                        "name": "intrinsic",
+                        "axes": [
+                            {"name": "y", "type": "space"},
+                            {"name": "x", "type": "space"},
+                        ],
+                    }
+                ],
+                "datasets": [{"path": "s0"}],
+            }
+        ],
+    }
+    group.attrs["czitools"] = {"originalMetadata": {"path": "CZI/metadata.xml"}}
+    group.require_group("CZI")
+    before = group.attrs.asdict()
+    monkeypatch.setattr(zarr.Array, "__getitem__", lambda *args: pytest.fail("Pixel read during metadata check"))
+
+    _spec.validate_hierarchy_metadata(group, "0.6")
+
+    assert group.attrs.asdict() == before
+
+
+def test_archive_packaging_rejects_mixed_versions_without_modification(tmp_path, monkeypatch) -> None:
+    """Do not overwrite an archive or remove a source with incompatible metadata."""
+    from czitools.export_tools import plate
+
+    source = tmp_path / "plate.ome.zarr"
+    group = zarr.open_group(source, mode="w")
+    group.attrs["ome"] = {"version": "0.6"}
+    group.require_group("A/01/0").attrs["ome"] = {"version": "0.9.dev2"}
+    archive = tmp_path / "plate.ozx"
+    archive.write_bytes(b"existing archive")
+    monkeypatch.setattr(plate, "write_store_to_zip", lambda *args, **kwargs: pytest.fail("Mixed hierarchy packaged"))
+
+    with pytest.raises(ValueError, match="Mixed or missing NGFF version"):
+        plate.convert_hcs_omezarr2ozx(source, remove_omezarr=True)
+
+    assert archive.read_bytes() == b"existing archive"
+    assert source.exists()
+
+
 def test_validation_dispatches_ome_ngff_06_to_ngff_zarr(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -338,9 +689,40 @@ def test_validation_dispatches_ome_ngff_06_to_ngff_zarr(
     group = zarr.open_group(output, mode="w")
     group.attrs["ome"] = {"version": "0.6"}
     parsed = SimpleNamespace(metadata=SimpleNamespace(version="0.6"))
-    monkeypatch.setattr(validation.nz, "from_ngff_zarr", lambda path: parsed)
+    calls = []
+
+    def fake_from_ngff_zarr(path, validate=False):
+        calls.append((path, validate))
+        return parsed
+
+    monkeypatch.setattr(validation.nz, "from_ngff_zarr", fake_from_ngff_zarr)
 
     assert validate_ome_zarr(output) is True
+    assert calls == [(str(output), True)]
+
+
+def test_validation_rejects_malformed_ome_ngff_06(tmp_path) -> None:
+    output = tmp_path / "invalid.ome.zarr"
+    group = zarr.open_group(output, mode="w")
+    group.attrs["ome"] = {"version": "0.6", "multiscales": [{"datasets": []}]}
+
+    assert validate_ome_zarr(output) is False
+
+
+def test_archive_packaging_preserves_ngff_version(tmp_path, monkeypatch) -> None:
+    from czitools.export_tools import plate
+
+    source = tmp_path / "plate.ome.zarr"
+    group = zarr.open_group(source, mode="w")
+    group.attrs["ome"] = {"version": "0.6"}
+    calls = []
+    monkeypatch.setattr(plate, "write_store_to_zip", lambda *args, **kwargs: calls.append(kwargs["version"]))
+
+    assert plate.convert_hcs_omezarr2ozx(source) == tmp_path / "plate.ozx"
+    assert calls == ["0.6"]
+    with pytest.raises(ValueError, match="cannot change NGFF versions"):
+        plate.convert_hcs_omezarr2ozx(source, version="0.5")
+    assert source.exists()
 
 
 def test_validation_dispatches_ome_ngff_06_hcs_to_hcs_reader(
@@ -534,8 +916,27 @@ def test_convert_czi2hcs_ngff_and_validate(tmp_path: Path) -> None:
     assert output.name == "WP96_4Pos_B4-10_DAPI_ngff_plate_zarr3.ome.zarr"
     assert validate_ome_zarr(output) is True
 
+    root_metadata = json.loads((output / "zarr.json").read_text(encoding="utf-8"))
+    assert root_metadata["attributes"]["ome"]["version"] == "0.6"
+    well_metadata = json.loads((output / "B" / "04" / "zarr.json").read_text(encoding="utf-8"))
+    assert well_metadata["attributes"]["ome"]["version"] == "0.6"
+    image_metadata = json.loads((output / "B" / "04" / "0" / "zarr.json").read_text(encoding="utf-8"))
+    ome_metadata = image_metadata["attributes"]["ome"]
+    assert ome_metadata["version"] == "0.6"
+    assert ome_metadata["omero"]["channels"][0]["label"] == "DAPI"
+    multiscale = ome_metadata["multiscales"][0]
+    coordinate_system = multiscale["coordinateSystems"][0]
+    assert [axis["name"] for axis in coordinate_system["axes"]] == ["t", "c", "z", "y", "x"]
+    assert all(axis["unit"] == "micrometer" for axis in coordinate_system["axes"][2:])
+    for dataset in multiscale["datasets"]:
+        (transform,) = dataset["coordinateTransformations"]
+        assert transform["input"] == {"path": dataset["path"]}
+        assert transform["output"] == {"name": coordinate_system["name"]}
+        assert transform["type"] in {"scale", "identity", "sequence"}
+
     array_metadata_path = output / "B" / "04" / "0" / "scale0" / WELLPLATE.name / "zarr.json"
     array_metadata = json.loads(array_metadata_path.read_text(encoding="utf-8"))
+    assert array_metadata["dimension_names"] == ["t", "c", "z", "y", "x"]
     assert array_metadata["shape"][-2:] == [640, 640]
     assert array_metadata["chunk_grid"]["configuration"]["chunk_shape"][-2:] == [1024, 1024]
     sharding_codec = array_metadata["codecs"][0]
@@ -758,10 +1159,18 @@ def test_write_omezarr_defaults_to_real_ome_ngff_06_store(tmp_path: Path) -> Non
 
     root_metadata = json.loads((output / "zarr.json").read_text(encoding="utf-8"))
     assert root_metadata["attributes"]["ome"]["version"] == "0.6"
+    multiscale = root_metadata["attributes"]["ome"]["multiscales"][0]
+    coordinate_system = multiscale["coordinateSystems"][0]
+    assert [axis["name"] for axis in coordinate_system["axes"]] == ["t", "c", "z", "y", "x"]
     datasets = root_metadata["attributes"]["ome"]["multiscales"][0]["datasets"]
     assert len(datasets) == 4
     for dataset in datasets:
+        (transform,) = dataset["coordinateTransformations"]
+        assert transform["input"] == {"path": dataset["path"]}
+        assert transform["output"] == {"name": coordinate_system["name"]}
+        assert transform["type"] in {"scale", "identity", "sequence"}
         array_metadata = json.loads((output / dataset["path"] / "zarr.json").read_text(encoding="utf-8"))
+        assert array_metadata["dimension_names"] == ["t", "c", "z", "y", "x"]
         assert array_metadata["codecs"][0]["name"] == "sharding_indexed"
     verified = [
         line for line in log_path.read_text(encoding="utf-8").splitlines() if "OME-Zarr layout verified" in line
@@ -791,6 +1200,16 @@ def test_write_omezarr_ngff_defaults_to_real_ome_ngff_06_store(tmp_path: Path) -
 
     root_metadata = json.loads((output / "zarr.json").read_text(encoding="utf-8"))
     assert root_metadata["attributes"]["ome"]["version"] == "0.6"
+    multiscale = root_metadata["attributes"]["ome"]["multiscales"][0]
+    coordinate_system = multiscale["coordinateSystems"][0]
+    assert [axis["name"] for axis in coordinate_system["axes"]] == ["t", "c", "z", "y", "x"]
+    for dataset in multiscale["datasets"]:
+        (transform,) = dataset["coordinateTransformations"]
+        assert transform["input"] == {"path": dataset["path"]}
+        assert transform["output"] == {"name": coordinate_system["name"]}
+        assert transform["type"] in {"scale", "identity", "sequence"}
+        array_metadata = json.loads((output / dataset["path"] / "zarr.json").read_text(encoding="utf-8"))
+        assert array_metadata["dimension_names"] == ["t", "c", "z", "y", "x"]
     assert validate_ome_zarr(output) is True
 
 
@@ -1014,7 +1433,7 @@ def test_writers_preserve_native_czi_pyramid(tmp_path, monkeypatch, native_czi_p
         compression=None,
         pyramid_levels=8,
     )
-    written = conversion.nz.from_ngff_zarr(output)
+    written = conversion.nz.from_ngff_zarr(output, validate=True)
     assert len(written.images) == 3
     for level, (pixels, scale, translation) in zip(written.images, expected, strict=True):
         np.testing.assert_array_equal(level.data.compute(), pixels)
@@ -1026,6 +1445,8 @@ def test_writers_preserve_native_czi_pyramid(tmp_path, monkeypatch, native_czi_p
             root_metadata = json.loads(archive.read("zarr.json"))
     else:
         root_metadata = json.loads((output / "zarr.json").read_text(encoding="utf-8"))
+    assert root_metadata["attributes"]["ome"]["version"] == "0.6"
+    assert "coordinateSystems" in root_metadata["attributes"]["ome"]["multiscales"][0]
     written_channels = root_metadata["attributes"]["ome"]["omero"]["channels"]
     assert [(channel["label"], channel["color"]) for channel in written_channels] == [
         ("DAPI", "0000FF"),
@@ -1067,12 +1488,18 @@ def test_hcs_writers_preserve_native_czi_pyramid(tmp_path, monkeypatch, native_c
         output = conversion.convert_czi2hcs_omezarr(tmp_path / "plate.czi", compression=None)
     assert calls == [3]
     root = zarr.open_group(output, mode="r")
+    assert root.attrs["ome"]["version"] == "0.6"
+    assert validate_ome_zarr(output) is True
     field = root["B/04/0"]
     datasets = field.attrs["ome"]["multiscales"][0]["datasets"]
     assert len(datasets) == 3
     for dataset, level in zip(datasets, native_czi_pyramid.images, strict=True):
         np.testing.assert_array_equal(field[dataset["path"]][:], level.data.compute())
-        assert dataset["coordinateTransformations"][0]["scale"] == [level.scale[dim] for dim in level.dims]
+        (transform,) = dataset["coordinateTransformations"]
+        assert transform["type"] == "sequence"
+        scale, translation = transform["transformations"]
+        assert scale["scale"] == [level.scale[dim] for dim in level.dims]
+        assert translation["translation"] == [level.translation[dim] for dim in level.dims]
 
 
 def test_write_omezarr_ngff_directory_uses_bounded_default_chunks(
@@ -1195,7 +1622,7 @@ def test_write_omezarr_ngff_overwrites_ozx_file(
     )
 
     assert not output.exists()
-    assert captured["version"] == "0.5"
+    assert captured["version"] == "0.6"
 
 
 def test_write_omezarr_ngff_logs_progress_and_total_time(

@@ -903,8 +903,8 @@ written individually, so fields with different shapes are supported.
 from pathlib import Path
 
 from czitools.export_tools import (
-    convert_czi2hcs_ngff,      # ngff-zarr backend, OME-NGFF v0.5
-    convert_czi2hcs_omezarr,   # ome-zarr-py backend, Zarr v3
+    convert_czi2hcs_ngff,      # ngff-zarr backend, OME-NGFF v0.6
+    convert_czi2hcs_omezarr,   # ome-zarr-py backend, OME-NGFF v0.6
     validate_ome_zarr,
 )
 
@@ -916,12 +916,14 @@ out = convert_czi2hcs_ngff(
     pad_columns=True,
 )
 
-# Validate the result against the OME-NGFF v0.5 schema.
+# Validate the result against OME-NGFF v0.6.
 assert validate_ome_zarr(out)
 ```
 
-Both export backends write Zarr v3 stores and retain the pyramid paths produced
-by their underlying writer libraries. Both reuse stored CZI pyramid levels,
+Both export backends default to OME-NGFF v0.6 with Zarr v3 storage and retain
+the pyramid paths produced by their underlying writer libraries. This also
+applies to ngff-zarr `.ozx` exports; new CZI exports do not silently fall back
+to v0.5. Both reuse stored CZI pyramid levels,
 including non-2x steps, while preserving their pixels and physical transforms.
 Only a missing coarse tail is synthesized, targeting a longest edge of
 512 pixels within libCZI's supported zoom range. Files without stored coarse

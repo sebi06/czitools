@@ -203,10 +203,31 @@ Well names accept forms such as `B4`, `b04`, and `B/4`. Field indices are
 zero-based within a well. The OME-Zarr converter writes the HCS hierarchy
 plate → well → field image → multiscale level.
 
-`convert_czi2hcs_ngff()` writes OME-NGFF v0.5 by default and supports v0.6
-when requested. OME-NGFF v0.6 HCS output requires `ngff-zarr>=0.47.0`; the
-validator selects the image or HCS reader from the store layout and declared
-version.
+Both CZI export backends default to OME-NGFF v0.6 for individual images and
+HCS plates, including ngff-zarr `.ozx` output. Exports contain named coordinate
+systems, explicit transform references, physical scaling, and channel display
+metadata. Low-level ome-zarr-py metadata is converted using ngff-zarr's v0.6
+model after pixel writing. New exports do not silently fall back to v0.5;
+older versions remain explicit Python compatibility options.
+
+OME-NGFF v0.6 output requires `ngff-zarr>=0.47.0`. Validation selects the image
+or HCS reader from the layout and declared version, with validation enabled.
+Packaging an existing directory as `.ozx` preserves its NGFF version rather
+than relabeling it. Existing stores are unchanged; reconvert a CZI to obtain
+v0.6 metadata.
+
+NGFF compatibility is controlled by explicit internal version profiles, not
+the installed library's latest-version setting. Single-image writers require
+TCZYX data; named arrays in another order must be explicitly transposed before
+export. Unsupported versions and axis layouts fail before replacing output.
+Validation and OZX packaging reject mixed-version hierarchies. Channel colors
+and complete display windows remain required when channel metadata is present.
+
+The exporter is prepared for future axis-model extensions, but does not enable
+`0.9.dev1` or `0.9.dev2` output. Draft support requires an exact schema snapshot
+and dedicated round-trip and consumer compatibility tests. A future draft mode
+must be opt-in, use separate output stores, and retain v0.6 as the stable default;
+changing a version tag alone is not a conversion.
 
 All four CZI export APIs accept `preserve_original_metadata=True` (default:
 `False`). This stores the original CZI XML at `CZI/metadata.xml`, referenced
@@ -215,6 +236,9 @@ The converter GUI offers **Preserve original CZI XML**; conversion demo
 scripts and the benchmark accept `--preserve-original-metadata`.
 This is a czitools convention, not an NGFF-standard XML location.
 `OME/METADATA.ome.xml` remains reserved for genuine OME-XML.
+Preserving the XML also retains source stage positions, acquisition timing,
+and axis information when present, for future standardized mappings. It does
+not invent calibration or automatically map CZI scenes to NGFF spatial scenes.
 
 For HCS plates, `CZI` is an auxiliary group beside the row groups, not a row
 or well. Readers should follow the declared `ome.plate.wells` paths rather
@@ -273,7 +297,8 @@ print_well_fields(mdata, well_name="B4")
 ### OME-Zarr Converter GUI
 
 The experimental converter GUI exports individual CZI images and HCS plates
-using either `ome-zarr-py` or `ngff-zarr`. All conversions use Zarr v3. The GUI
+using either `ome-zarr-py` or `ngff-zarr`. All conversions default to OME-NGFF
+v0.6 with Zarr v3 storage. The GUI
 loads the selected file's metadata automatically and enables **Write HCS
 layout** when a plate layout is detected. For multi-scene, non-HCS files, the
 **Scene ID** selector appears directly below the HCS option. A single **Create

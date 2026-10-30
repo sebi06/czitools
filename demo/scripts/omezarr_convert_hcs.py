@@ -34,7 +34,7 @@ def main() -> None:
         "--backend",
         choices=["ngff", "omezarr"],
         default="ngff",
-        help="Write backend: 'ngff' (OME-NGFF v0.5) or 'omezarr' (ome-zarr-py, v0.4).",
+        help="Write backend: 'ngff' or 'omezarr'; both default to OME-NGFF v0.6.",
     )
     parser.add_argument(
         "--no-pad-columns",
@@ -70,10 +70,7 @@ def main() -> None:
 
     if not args.no_validate:
         ok = validate_ome_zarr(output_path)
-        print(
-            f"Validation ({'ngff-zarr v0.5' if args.backend == 'ngff' else 'ome-zarr-py v0.4'}): "
-            f"{'passed' if ok else 'failed'}"
-        )
+        print("Validation (OME-NGFF v0.6): " f"{'passed' if ok else 'failed'}")
 
 
 if __name__ == "__main__":

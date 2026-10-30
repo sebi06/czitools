@@ -18,6 +18,7 @@ import warnings
 import zipfile
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from contextlib import contextmanager, nullcontext
+from dataclasses import asdict
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from typing import Iterator, Literal
@@ -58,6 +59,7 @@ from czitools.metadata_tools.czi_metadata import CziMetadata
 from czitools.read_tools import read_tools
 
 from ._logging import compression_type, setup_logging
+from ._spec import DEFAULT_NGFF_VERSION, TCZYX, VersionProfile, describe_axes, get_export_profile, get_version_profile
 from .display import compute_pyramid_scale_factors, create_channel_list, create_ngff_omero_channels
 from .resolver import resolve_hcs_layout
 
@@ -105,8 +107,8 @@ def _original_metadata_output(
         return
 
     is_archive = output_path.suffix.lower() == ".ozx"
-    if is_archive and version not in {"0.5", "0.6"}:
-        raise ValueError("RFC-9 .ozx output requires OME-NGFF version 0.5 or 0.6.")
+    if is_archive:
+        get_export_profile(version, "ngff-zarr", archive=True)
     output_path.parent.mkdir(parents=True, exist_ok=True)
     staging = (
         TemporaryDirectory(prefix=".czitools-metadata-", dir=output_path.parent) if is_archive else nullcontext(None)
@@ -234,8 +236,16 @@ def _ngff_multiscales_metadata(
     images: list[nz.NgffImage], scale_factors: list, chunks: tuple, method: nz.Methods
 ) -> nz.NgffMultiscales:
     """Describe completed levels without constructing additional pixel graphs."""
+    if not images:
+        raise ValueError("At least one pyramid level is required.")
     image = images[0]
     dims = list(image.dims)
+    descriptions = describe_axes(dims, image.axes_units)
+    profile = get_version_profile(DEFAULT_NGFF_VERSION)
+    for level in images:
+        profile.validate_axes(descriptions, level.data.shape)
+        if list(level.dims) != dims:
+            raise ValueError("Pyramid levels must have identical axis names and order.")
     datasets = [
         Dataset(
             path=f"scale{index}/{image.name}",
@@ -246,14 +256,7 @@ def _ngff_multiscales_metadata(
         )
         for index, level in enumerate(images)
     ]
-    axes = [
-        Axis(
-            name=dim,
-            type="space" if dim in {"z", "y", "x"} else "channel" if dim == "c" else "time",
-            unit=(image.axes_units or {}).get(dim),
-        )
-        for dim in dims
-    ]
+    axes = [Axis(name=axis.name, type=axis.type, unit=axis.unit) for axis in descriptions]
     return nz.NgffMultiscales(
         images=images,
         metadata=Metadata(axes=axes, datasets=datasets, name=image.name, coordinateTransformations=None),
@@ -785,14 +788,9 @@ def _read_single_scene_multiscales(
             )
         )
 
-    axes = [
-        Axis(
-            name=dim,
-            type="space" if dim in {"z", "y", "x"} else "channel" if dim == "c" else "time",
-            unit=axes_units.get(dim),
-        )
-        for dim in dims
-    ]
+    descriptions = describe_axes(dims, axes_units)
+    get_version_profile(DEFAULT_NGFF_VERSION).validate_axes(descriptions, level_arrays[0].shape)
+    axes = [Axis(name=axis.name, type=axis.type, unit=axis.unit) for axis in descriptions]
     multiscales_metadata = Metadata(
         axes=axes,
         datasets=datasets,
@@ -899,6 +897,42 @@ def _write_czi_multiscales_delayed(
     return list(delayed) if delayed else []
 
 
+def _omit_none_values(value: object) -> object:
+    """Omit unset dataclass fields throughout serialized NGFF metadata."""
+    if isinstance(value, dict):
+        return {key: _omit_none_values(item) for key, item in value.items() if item is not None}
+    if isinstance(value, list):
+        return [_omit_none_values(item) for item in value]
+    return value
+
+
+def _finalize_ome_zarr_metadata(zarr_path: Path, version: str) -> None:
+    """Convert low-level ome-zarr-py metadata to the requested NGFF version."""
+    if version != "0.6":
+        return
+
+    root = zarr.open_group(zarr_path, mode="r+")
+    ome_attrs = dict(root.attrs["ome"])
+    if "plate" in ome_attrs:
+        for well in ome_attrs["plate"]["wells"]:
+            well_path = zarr_path / well["path"]
+            well_group = zarr.open_group(well_path, mode="r+")
+            well_attrs = dict(well_group.attrs["ome"])
+            for image in well_attrs["well"]["images"]:
+                _finalize_ome_zarr_metadata(well_path / image["path"], version)
+            well_attrs["version"] = version
+            well_group.attrs["ome"] = well_attrs
+    elif ome_attrs.get("version") != version:
+        metadata = nz.from_ngff_zarr(str(zarr_path)).metadata.to_version(version)
+        multiscale = asdict(metadata)
+        multiscale.pop("omero", None)
+        multiscale.pop("extra", None)
+        ome_attrs["multiscales"] = [_omit_none_values(multiscale)]
+
+    ome_attrs["version"] = version
+    root.attrs["ome"] = ome_attrs
+
+
 def _ensure_plate_version_metadata(zarr_path: str | os.PathLike | Path, version: str) -> None:
     """Ensure nested ome.plate.version exists in root metadata."""
     parsed = parse_url(Path(zarr_path), mode="r+")
@@ -933,6 +967,7 @@ def convert_czi2hcs_omezarr(
     compression: compression_type | None = compression_type.BLOSC,
     logging_detail: LoggingDetail = "basic",
     preserve_original_metadata: bool = False,
+    version: str = DEFAULT_NGFF_VERSION,
 ) -> Path:
     """Convert a CZI file to OME-Zarr HCS format using the ome-zarr-py backend.
 
@@ -950,11 +985,14 @@ def convert_czi2hcs_omezarr(
         preserve_original_metadata (bool): Save the original CZI XML at
             ``CZI/metadata.xml`` with a root ``czitools.originalMetadata`` reference.
             Defaults to False; the XML is not converted to OME-XML.
+        version (str): OME-NGFF version, either ``"0.5"`` or ``"0.6"``.
+            Defaults to ``"0.6"``.
 
     Returns:
         Path: Output OME-Zarr HCS directory
             (``<stem>_HCSplate_zarr3.ome.zarr``).
     """
+    get_export_profile(version, "ome-zarr-py", hcs=True)
     full_logging = _validate_logging_detail(logging_detail)
     czi_path = Path(czi_filepath)
     if log_file_path is None:
@@ -971,13 +1009,9 @@ def convert_czi2hcs_omezarr(
 
     zarr_output_path = czi_path.parent / f"{czi_path.stem}_HCSplate_zarr3.ome.zarr"
 
-    if zarr_output_path.exists():
-        if overwrite:
-            logger.info(f"Removing existing directory: {zarr_output_path}")
-            shutil.rmtree(zarr_output_path)
-        else:
-            logger.info(f"File exists at {zarr_output_path}. Set overwrite=True to remove.")
-            return zarr_output_path
+    if zarr_output_path.exists() and not overwrite:
+        logger.info(f"File exists at {zarr_output_path}. Set overwrite=True to remove.")
+        return zarr_output_path
 
     # Read metadata once; scenes are read individually in the field loop below so
     # plates with inconsistent scene shapes (variable well/field sizes) are
@@ -988,6 +1022,10 @@ def convert_czi2hcs_omezarr(
 
     layout = resolve_hcs_layout(mdata, pad_columns=pad_columns)
     logger.info(f"Resolved plate layout from '{layout.source}': {len(layout.wells)} well(s)")
+
+    if zarr_output_path.exists():
+        logger.info(f"Removing existing directory: {zarr_output_path}")
+        shutil.rmtree(zarr_output_path)
 
     _fmt = ome_zarr.format.CurrentFormat()
     logger.info("Zarr storage format: v3")
@@ -1060,6 +1098,7 @@ def convert_czi2hcs_omezarr(
         logger.info("Writing %d field-pyramid task(s) in parallel (dask)...", len(delayed_writes))
         _retry_io(dask.compute, *delayed_writes)
 
+    _finalize_ome_zarr_metadata(zarr_output_path, version)
     if preserve_original_metadata:
         _write_original_czi_metadata(czi_path, zarr_output_path)
     _log_omezarr_layout(zarr_output_path)
@@ -1082,7 +1121,7 @@ def convert_czi2hcs_ngff(
     overwrite: bool = True,
     log_file_path: str | os.PathLike | Path | None = None,
     write_ozx_directly: bool = False,
-    version: str = "0.5",
+    version: str = DEFAULT_NGFF_VERSION,
     output_dir: str | os.PathLike | Path | None = None,
     pad_columns: bool = True,
     compression: compression_type | None = compression_type.BLOSC,
@@ -1102,7 +1141,7 @@ def convert_czi2hcs_ngff(
         log_file_path (Optional[Union[str, os.PathLike, Path]]): Log file path.
             Defaults to ``<stem>_hcs_ngff.log``.
         write_ozx_directly (bool): Write a single-file ``.ozx`` archive directly.
-        version (str): NGFF version string. Defaults to ``"0.5"``. The
+        version (str): NGFF version string. Defaults to ``"0.6"``. The
             ngff-zarr HCS writer supports versions 0.4, 0.5, and 0.6.
         output_dir (Optional[Union[str, os.PathLike, Path]]): Output directory.
             Defaults to the CZI file's parent directory.
@@ -1130,8 +1169,7 @@ def convert_czi2hcs_ngff(
     """
     conversion_started = time.perf_counter()
     full_logging = _validate_logging_detail(logging_detail)
-    if version not in {"0.4", "0.5", "0.6"}:
-        raise ValueError("ngff-zarr HCS writing currently supports OME-NGFF versions 0.4, 0.5, and 0.6.")
+    get_export_profile(version, "ngff-zarr", hcs=True, archive=write_ozx_directly)
     if spatial_chunk_size < 1:
         raise ValueError("spatial_chunk_size must be at least 1.")
     if planes_per_chunk < 1:
@@ -1169,18 +1207,9 @@ def convert_czi2hcs_ngff(
     base_dir = output_path_obj if output_path_obj is not None else czi_path.parent
     zarr_output_path = base_dir / f"{stem}{suffix}"
 
-    if zarr_output_path.exists():
-        if overwrite:
-            logger.info(f"Removing existing file/directory: {zarr_output_path}")
-            if zarr_output_path.is_dir():
-                shutil.rmtree(zarr_output_path)
-            else:
-                os.remove(zarr_output_path)
-            gc.collect()
-            time.sleep(0.5)
-        else:
-            logger.info(f"File exists at {zarr_output_path}. Set overwrite=True to remove.")
-            return zarr_output_path
+    if zarr_output_path.exists() and not overwrite:
+        logger.info(f"File exists at {zarr_output_path}. Set overwrite=True to remove.")
+        return zarr_output_path
 
     # Read metadata once; scenes are read individually in the writer loop below so
     # plates with inconsistent scene shapes (variable well/field sizes) are
@@ -1191,6 +1220,15 @@ def convert_czi2hcs_ngff(
 
     layout = resolve_hcs_layout(mdata, pad_columns=pad_columns)
     logger.info(f"Resolved plate layout from '{layout.source}': {len(layout.wells)} well(s)")
+
+    if zarr_output_path.exists():
+        logger.info(f"Removing existing file/directory: {zarr_output_path}")
+        if zarr_output_path.is_dir():
+            shutil.rmtree(zarr_output_path)
+        else:
+            os.remove(zarr_output_path)
+        gc.collect()
+        time.sleep(0.5)
 
     columns = [PlateColumn(name=c) for c in sorted(layout.col_names, key=int)]
     rows = [PlateRow(name=r) for r in sorted(layout.row_names)]
@@ -1310,6 +1348,25 @@ def convert_czi2hcs_ngff(
 # ---------------------------------------------------------------------------
 
 
+def _validate_image_axes(
+    array: np.ndarray | xr.DataArray | da.Array,
+    source_multiscales: nz.NgffMultiscales | None,
+    profile: VersionProfile,
+) -> None:
+    """Check fixed-format writer inputs before overwriting or rechunking data."""
+    dims = tuple(str(dim).lower() for dim in array.dims) if isinstance(array, xr.DataArray) else TCZYX
+    profile.validate_axes(describe_axes(dims), array.shape)
+    if dims != TCZYX:
+        raise ValueError("Single-image writers require TCZYX axis order; transpose explicitly before export.")
+    if source_multiscales is not None:
+        if not source_multiscales.images:
+            raise ValueError("At least one source pyramid level is required.")
+        for level in source_multiscales.images:
+            profile.validate_axes(describe_axes(level.dims, level.axes_units), level.data.shape)
+            if tuple(level.dims) != dims:
+                raise ValueError("Source pyramid levels must have TCZYX axis names and order.")
+
+
 def write_omezarr(
     array5d: np.ndarray | xr.DataArray | da.Array,
     zarr_path: str | Path,
@@ -1317,7 +1374,7 @@ def write_omezarr(
     overwrite: bool = False,
     log_file_path: str | Path | None = None,
     compression: compression_type | None = compression_type.BLOSC,
-    version: str = "0.6",
+    version: str = DEFAULT_NGFF_VERSION,
     pyramid_levels: int = DEFAULT_PYRAMID_LEVELS,
     spatial_chunk_size: int = 512,
     source_multiscales: nz.NgffMultiscales | None = None,
@@ -1353,6 +1410,8 @@ def write_omezarr(
     """
     if worker_count < 0:
         raise ValueError("worker_count must be non-negative (0 selects Auto).")
+    profile = get_export_profile(version, "ome-zarr-py")
+    _validate_image_axes(array5d, source_multiscales, profile)
     if log_file_path is None:
         zarr_path_obj = Path(zarr_path)
         log_file_path = zarr_path_obj.parent / f"{zarr_path_obj.stem}_omezarr.log"
@@ -1480,6 +1539,7 @@ def write_omezarr(
         fmt=ome_zarr.format.CurrentFormat(),
     )
 
+    _finalize_ome_zarr_metadata(zarr_path, version)
     if preserve_original_metadata:
         _write_original_czi_metadata(metadata.filepath, zarr_path)
     _log_omezarr_layout(zarr_path)
@@ -1500,7 +1560,7 @@ def write_omezarr_ngff(
     metadata: CziMetadata,
     scale_factors: list | None = None,
     overwrite: bool = False,
-    version: str = "0.6",
+    version: str = DEFAULT_NGFF_VERSION,
     chunks: tuple | None = None,
     chunks_per_shard: dict[str, int] | int | None = QUALITY_CHUNKS_PER_SHARD,
     compression: compression_type | None = compression_type.BLOSC,
@@ -1524,8 +1584,8 @@ def write_omezarr_ngff(
             None (default), size-aware Y/X-only factors are computed from the plane
             size via :func:`compute_pyramid_scale_factors` (``min_size``/``max_levels``).
         overwrite (bool): Remove existing output if True.
-        version (str): NGFF version string. Defaults to ``"0.6"``. RFC-9
-            ``.ozx`` outputs always use the required version ``"0.5"``.
+        version (str): NGFF version string. Defaults to ``"0.6"``, including
+            RFC-9 ``.ozx`` outputs. Use ``"0.5"`` for older readers.
         chunks (Union[tuple, None]): Explicit ``TCZYX`` chunk shape. Defaults
             to ``(1, 1, 8, 512, 512)``.
         chunks_per_shard (Union[Dict[str, int], int, None]): Chunks per shard.
@@ -1565,6 +1625,8 @@ def write_omezarr_ngff(
     conversion_started = time.perf_counter()
     if worker_count < 0:
         raise ValueError("worker_count must be non-negative (0 selects Auto).")
+    profile = get_export_profile(version, "ngff-zarr", archive=Path(zarr_path).suffix.lower() == ".ozx")
+    _validate_image_axes(array5d, source_multiscales, profile)
 
     if source_multiscales is not None:
         scale_factors = []
@@ -1598,12 +1660,6 @@ def write_omezarr_ngff(
         return None
 
     output_path = Path(zarr_path)
-    if output_path.suffix.lower() == ".ozx" and version != "0.5":
-        logger.info(
-            "Using OME-NGFF 0.5 for RFC-9 .ozx output instead of requested version %s.",
-            version,
-        )
-        version = "0.5"
     if output_path.exists() and overwrite:
         if output_path.is_dir():
             shutil.rmtree(output_path)
@@ -1712,14 +1768,6 @@ def write_omezarr_ngff(
                 channels,
                 **directory_options,
             )
-
-    if version == "0.6" and output_path.is_dir():
-        # ngff-zarr 0.46.1 writes the finalized 0.6 model with its former
-        # release-candidate tag. Publish the requested final version instead.
-        root = zarr.open_group(zarr_path, mode="r+")
-        ome_attrs = dict(root.attrs["ome"])
-        ome_attrs["version"] = "0.6"
-        root.attrs["ome"] = ome_attrs
 
     _log_omezarr_layout(output_path)
     logger.info("NGFF OME-ZARR writing completed successfully!")

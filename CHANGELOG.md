@@ -8,6 +8,27 @@ and the project adheres to [Semantic Versioning](https://semver.org/).
 
 ## Unreleased
 
+## [0.27.2] - 2026-10-30
+
+### Changed
+
+- Both CZI export backends now default to OME-NGFF 0.6 for individual images
+  and HCS plates, including native CZI pyramids and ngff-zarr OZX output.
+- Low-level ome-zarr-py output is finalized with ngff-zarr's 0.6 metadata
+  converter, preserving channels, physical scaling, and pyramid translations.
+- OZX exports no longer silently downgrade to 0.5. Packaging an existing
+  directory preserves its declared version and rejects version mismatches.
+- OME-NGFF 0.6 image validation now enables ngff-zarr metadata validation.
+- NGFF export and validation use explicit version profiles, retaining 0.6 as
+  the stable default and rejecting unsupported draft versions before writes.
+- Internal axis descriptions no longer infer time semantics for unknown axes.
+  Single-image writers reject unsupported layouts before overwriting output.
+- Validation and OZX packaging reject mixed-version hierarchies, invalid
+  released-profile axis layouts, and incomplete channel display metadata.
+  Validation also supports read-only OZX archives and explicit legacy stores.
+- HCS metadata/layout checks run before removing existing output. Native
+  ngff-zarr output no longer receives the obsolete version-tag rewrite.
+
 ## [0.27.1] - 2026-10-29
 
 ### Added

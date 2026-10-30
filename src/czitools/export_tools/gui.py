@@ -585,10 +585,10 @@ log_viewer.read_only = True  # Make it read-only but scrollable
 # Create version info widget
 try:
     version_info = f"""NGFF-ZARR image spec: 0.6 (default)
-OME-ZARR-PY image spec: 0.5 (CurrentFormat)
-NGFF-ZARR HCS spec: 0.5 (default; writer supports 0.6)
-OME-ZARR-PY HCS spec: 0.5 (CurrentFormat)
-OZX (RFC-9): NGFF-ZARR 0.5 (current output)
+OME-ZARR-PY image spec: 0.6 (default)
+NGFF-ZARR HCS spec: 0.6 (default)
+OME-ZARR-PY HCS spec: 0.6 (default)
+OZX (RFC-9): NGFF-ZARR 0.6 (default)
 
 ZARR Package: {zarr.__version__}
 NGFF-ZARR Package: {nz.__version__}

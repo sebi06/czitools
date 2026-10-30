@@ -1,9 +1,11 @@
 # HCS NGFF Conversion Workflow
 
-The ngff-zarr HCS exporter converts a CZI plate into an OME-NGFF v0.5 or v0.6,
-Zarr v3 hierarchy. It writes v0.5 by default; v0.6 can be selected explicitly
-with `version="0.6"` and requires `ngff-zarr>=0.47.0`. The optimized path is
-designed around three constraints:
+The ngff-zarr HCS exporter converts a CZI plate into an OME-NGFF v0.6,
+Zarr v3 hierarchy by default, including `.ozx` output. It requires
+`ngff-zarr>=0.47.0` and does not silently downgrade new exports. The
+ome-zarr-py HCS backend also defaults to v0.6, using ngff-zarr's metadata
+converter after pixel writing. The optimized path is designed around three
+constraints:
 
 - parse expensive CZI metadata once and reuse it;
 - read stored CZI pyramid levels directly, using native libCZI zoom only when
@@ -35,7 +37,36 @@ For every requested level:
 
 TensorStore is not part of this path. ngff-zarr uses zarrista and receives
 filesystem or `.ozx` paths directly. HCS validation selects the version-aware
-HCS reader for v0.6 stores and retains the v0.5 model validation path.
+HCS reader with validation enabled for v0.6 stores. Older versions remain
+available through explicit Python compatibility options and legacy validation.
+
+## Version compatibility
+
+Version profiles keep NGFF v0.6 as the stable default independently of the
+installed backend's latest version. Explicit v0.5 compatibility output remains
+available; ngff-zarr also supports v0.4 directory output, but not RFC-9 archives.
+Known v0.6 prerelease aliases are recognized only for reading, not writing.
+Unknown versions, including `0.9.dev1` and `0.9.dev2`, are rejected rather than
+validated against an older schema or relabeled.
+
+Internal axis descriptions retain names, types, units, and discrete semantics
+without treating unknown axes as time. Released profiles retain their 2-5D,
+time/channel/spatial ordering constraints. Single-image APIs still require
+TCZYX; future arbitrary-axis support must use an explicit profile and cannot
+silently squeeze, reorder, or discard dimensions to produce v0.6 output.
+
+Validation checks metadata across the hierarchy without reading pixel chunks.
+All NGFF nodes must declare the same exact version. Display metadata retains
+complete channel colors and min/max/start/end windows, even where a draft might
+allow fewer fields. Packaging an existing store also checks these guardrails
+before writing an archive or removing its source; it never upgrades metadata.
+
+Adding a draft profile requires verified support for the exact draft version,
+pinned schema fixtures, negative axis/layout tests, image and HCS round trips,
+and tests with target readers. Draft output must remain opt-in in a separate
+store, while v0.6 pixels, scaling, pyramid alignment, channels, and layout stay
+covered by released-profile regression tests. No draft writer is enabled by
+this preparation.
 
 ## Metadata reuse
 

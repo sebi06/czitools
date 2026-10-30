@@ -23,8 +23,11 @@ from dataclasses import dataclass
 from enum import Enum, unique
 from pathlib import Path
 
+import zarr
 from ngff_zarr import write_store_to_zip
 from ngff_zarr.v04.zarr_metadata import Plate, PlateColumn, PlateRow, PlateWell
+
+from ._spec import get_export_profile, validate_hierarchy_metadata
 
 logger = logging.getLogger(__name__)
 
@@ -175,14 +178,15 @@ def define_plate_by_well_count(well_count: int, field_count: int = 1) -> Plate:
 def convert_hcs_omezarr2ozx(
     hcs_omezarr_path: str | Path,
     remove_omezarr: bool = False,
-    version: str = "0.5",
+    version: str | None = None,
 ) -> Path | None:
     """Convert an HCS OME-Zarr directory into a single-file ``.ozx`` archive.
 
     Args:
         hcs_omezarr_path (Union[str, Path]): Path to the input HCS OME-Zarr directory.
         remove_omezarr (bool): Remove the original directory after conversion.
-        version (str): NGFF version string. Defaults to ``"0.5"``.
+        version (str | None): Expected NGFF version. Defaults to the source
+            store's declared version; packaging does not change NGFF versions.
 
     Returns:
         Optional[Path]: Path to the created ``.ozx`` file, or ``None`` if the source
@@ -195,6 +199,14 @@ def convert_hcs_omezarr2ozx(
         return None
 
     logger.info(f"Converting HCS OME-ZARR at {hcs_omezarr_path} to OZX format.")
+
+    source = zarr.open_group(hcs_omezarr_path, mode="r")
+    source_version = source.attrs.get("ome", {}).get("version")
+    get_export_profile(source_version, "ngff-zarr", archive=True)
+    if version is not None and version != source_version:
+        raise ValueError("OZX packaging cannot change NGFF versions; reconvert the source store first.")
+    validate_hierarchy_metadata(source, source_version)
+    version = source_version
 
     if hcs_omezarr_path.name.endswith(".ome.zarr"):
         ozx_name = hcs_omezarr_path.name.replace(".ome.zarr", ".ozx")
