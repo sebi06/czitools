@@ -49,6 +49,7 @@ dependencies = [
 
 [project.optional-dependencies]
 all = [
+    "refkv[zarr,images]>=0.2.0",
     "seaborn",
     "plotly",
     "PySide6",
@@ -67,6 +68,9 @@ all = [
     "bioio-ome-zarr",
     "ndv[pyqt,vispy]",
     "scikit-image",
+]
+vzip = [
+    "refkv[zarr,images]>=0.2.0",
 ]
 # OME-Zarr / OME-NGFF export (czitools.export_tools): conversion + validation.
 omezarr = [

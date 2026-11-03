@@ -49,12 +49,50 @@ pip install "czitools[omezarr]"
 # OME-Zarr export with GUI converter application
 pip install "czitools[omezarr-gui]"
 
+# Reference-backed CZI vzip archives (no pixel copying)
+pip install "czitools[vzip]"
+
 # HCS plate analysis and visualization
 pip install "czitools[analysis]"
 
 # Everything (all optional dependencies)
 pip install "czitools[all]"
 ```
+
+### CZI Reference Archives
+
+Create a virtual OME-Zarr hierarchy backed by an existing local CZI:
+
+```python
+from czitools.export_tools import create_czi_vzip
+
+archive = create_czi_vzip("image.czi")  # writes image.vzip beside the CZI
+archive = create_czi_vzip("image.czi", "archives/image.vzip", overwrite=False)
+```
+
+The destination directory must already exist. Existing archives are protected
+unless `overwrite=True`. The API returns an absolute `Path`, imports refkv only
+when called, and does not import napari or Qt. It is synchronous and can be
+called from a background worker in a GUI application.
+
+**A vzip is not a standalone pixel export.** It contains metadata and references
+to the source CZI. Keep that file unchanged at its original location; moving
+only the archive does not relocate its source. Supported CZI layouts and codecs
+are determined by refkv. Errors from unsupported inputs are not suppressed.
+
+Examples, run from the repository root in an activated environment:
+
+```bash
+python demo/scripts/create_czi_vzip.py image.czi
+python demo/scripts/create_czi_vzip.py image.czi -o archives/image.vzip --overwrite
+# Requires napari and a working Qt installation in addition to czitools[vzip].
+python demo/scripts/view_czi_vzip_napari.py image.vzip
+```
+
+The viewer example opens the saved archive, without rerunning CZI zarrification,
+and displays full lazy image arrays with channel names and OME spatial scaling.
+It uses the first resolution level of each image series, not a multiscale pyramid.
+This is a scripting example, not a napari drag-and-drop reader plugin.
 
 ### Development Installation
 

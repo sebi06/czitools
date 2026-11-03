@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""OME-Zarr / OME-NGFF export tools for czitools (Stage 5).
+"""OME-Zarr / OME-NGFF and reference-backed vzip export tools for czitools.
 
 Convert CZI files to OME-Zarr, including HCS (high-content-screening) plate
 layouts. Both backends default to OME-NGFF 0.6 for images and HCS plates,
@@ -10,11 +10,13 @@ These features require optional dependencies. Install them with::
 
     pip install "czitools[omezarr]"        # conversion + validation
     pip install "czitools[omezarr-gui]"    # additionally the MagicGUI app
+    pip install "czitools[vzip]"           # reference-backed CZI archives
 
 Public API (import lazily; a clear :class:`ImportError` is raised when the
 optional dependencies are missing)::
 
     from czitools.export_tools import (
+        create_czi_vzip,
         convert_czi2hcs_ngff,
         convert_czi2hcs_omezarr,
         write_omezarr,
@@ -46,6 +48,7 @@ _GUI_INSTALL_HINT = (
 
 # public name -> submodule that defines it
 _EXPORTS = {
+    "create_czi_vzip": "vzip",
     "compression_type": "_logging",
     "omezarr_package": "_logging",
     "setup_logging": "_logging",
