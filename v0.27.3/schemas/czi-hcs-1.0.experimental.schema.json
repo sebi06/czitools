@@ -1,0 +1,1497 @@
+{
+  "$defs": {
+    "AcquisitionInfo": {
+      "properties": {
+        "acquisition_date": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Acquisition Date"
+        },
+        "creation_date": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Creation Date"
+        },
+        "software_name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Software Name"
+        },
+        "software_version": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Software Version"
+        },
+        "user_name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "User Name"
+        },
+        "has_scenes": {
+          "title": "Has Scenes",
+          "type": "boolean"
+        },
+        "is_mosaic": {
+          "title": "Is Mosaic",
+          "type": "boolean"
+        },
+        "pixel_types": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "title": "Pixel Types",
+          "type": "object"
+        },
+        "consistent_pixel_types": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Consistent Pixel Types"
+        }
+      },
+      "required": [
+        "acquisition_date",
+        "creation_date",
+        "software_name",
+        "software_version",
+        "user_name",
+        "has_scenes",
+        "is_mosaic",
+        "pixel_types",
+        "consistent_pixel_types"
+      ],
+      "title": "AcquisitionInfo",
+      "type": "object"
+    },
+    "AttachmentInfo": {
+      "properties": {
+        "has_label": {
+          "title": "Has Label",
+          "type": "boolean"
+        },
+        "has_preview": {
+          "title": "Has Preview",
+          "type": "boolean"
+        },
+        "has_prescan": {
+          "title": "Has Prescan",
+          "type": "boolean"
+        },
+        "names": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Names",
+          "type": "array"
+        }
+      },
+      "required": [
+        "has_label",
+        "has_preview",
+        "has_prescan",
+        "names"
+      ],
+      "title": "AttachmentInfo",
+      "type": "object"
+    },
+    "AxisInfo": {
+      "properties": {
+        "code": {
+          "title": "Code",
+          "type": "string"
+        },
+        "meaning": {
+          "title": "Meaning",
+          "type": "string"
+        },
+        "size": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Size"
+        },
+        "start": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Start"
+        },
+        "end": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "End"
+        },
+        "valid_indices": {
+          "items": {
+            "type": "integer"
+          },
+          "title": "Valid Indices",
+          "type": "array"
+        },
+        "unit": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Unit"
+        },
+        "coordinates": {
+          "default": [],
+          "items": {
+            "type": "number"
+          },
+          "title": "Coordinates",
+          "type": "array"
+        }
+      },
+      "required": [
+        "code",
+        "meaning",
+        "size",
+        "start",
+        "end",
+        "valid_indices"
+      ],
+      "title": "AxisInfo",
+      "type": "object"
+    },
+    "ChannelInfo": {
+      "properties": {
+        "index": {
+          "title": "Index",
+          "type": "integer"
+        },
+        "name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Name"
+        },
+        "dye": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Dye"
+        },
+        "dye_short": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Dye Short"
+        },
+        "description": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Description"
+        },
+        "color": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Color"
+        },
+        "black_point": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Black Point"
+        },
+        "white_point": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "White Point"
+        },
+        "gamma": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Gamma"
+        },
+        "pixel_type": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Pixel Type"
+        },
+        "is_rgb": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Is Rgb"
+        }
+      },
+      "required": [
+        "index",
+        "name",
+        "dye",
+        "dye_short",
+        "description",
+        "color",
+        "black_point",
+        "white_point",
+        "gamma",
+        "pixel_type",
+        "is_rgb"
+      ],
+      "title": "ChannelInfo",
+      "type": "object"
+    },
+    "CziField": {
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "field_index": {
+          "title": "Field Index",
+          "type": "integer"
+        },
+        "scene_index": {
+          "title": "Scene Index",
+          "type": "integer"
+        },
+        "region_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Region Id"
+        },
+        "position_name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Position Name"
+        },
+        "scene_center_x": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Scene Center X"
+        },
+        "scene_center_y": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Scene Center Y"
+        },
+        "position_unit": {
+          "default": "micrometer",
+          "title": "Position Unit",
+          "type": "string"
+        },
+        "position_source": {
+          "default": "Scene.CenterPosition",
+          "title": "Position Source",
+          "type": "string"
+        },
+        "acquisition_z": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Acquisition Z"
+        },
+        "stage_x": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Stage X"
+        },
+        "stage_y": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Stage Y"
+        },
+        "stage_x_range": {
+          "anyOf": [
+            {
+              "maxItems": 2,
+              "minItems": 2,
+              "prefixItems": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "number"
+                }
+              ],
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Stage X Range"
+        },
+        "stage_y_range": {
+          "anyOf": [
+            {
+              "maxItems": 2,
+              "minItems": 2,
+              "prefixItems": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "number"
+                }
+              ],
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Stage Y Range"
+        },
+        "acquisition_z_range": {
+          "anyOf": [
+            {
+              "maxItems": 2,
+              "minItems": 2,
+              "prefixItems": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "number"
+                }
+              ],
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Acquisition Z Range"
+        },
+        "stage_unit": {
+          "default": "micrometer",
+          "title": "Stage Unit",
+          "type": "string"
+        },
+        "stage_source": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Stage Source"
+        },
+        "subblock_count": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Subblock Count"
+        },
+        "position_conflict": {
+          "default": false,
+          "title": "Position Conflict",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "id",
+        "field_index",
+        "scene_index",
+        "region_id",
+        "position_name",
+        "scene_center_x",
+        "scene_center_y"
+      ],
+      "title": "CziField",
+      "type": "object"
+    },
+    "CziPlate": {
+      "properties": {
+        "schema_version": {
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Name"
+        },
+        "declared_rows": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Declared Rows"
+        },
+        "declared_columns": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Declared Columns"
+        },
+        "naming_convention": {
+          "title": "Naming Convention",
+          "type": "string"
+        },
+        "barcode": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Barcode"
+        },
+        "external_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "External Id"
+        },
+        "observed_row_indices": {
+          "items": {
+            "type": "integer"
+          },
+          "title": "Observed Row Indices",
+          "type": "array"
+        },
+        "observed_column_indices": {
+          "items": {
+            "type": "integer"
+          },
+          "title": "Observed Column Indices",
+          "type": "array"
+        },
+        "wells": {
+          "items": {
+            "$ref": "#/$defs/CziWell"
+          },
+          "title": "Wells",
+          "type": "array"
+        }
+      },
+      "required": [
+        "schema_version",
+        "id",
+        "name",
+        "declared_rows",
+        "declared_columns",
+        "naming_convention",
+        "barcode",
+        "external_id",
+        "observed_row_indices",
+        "observed_column_indices",
+        "wells"
+      ],
+      "title": "CziPlate",
+      "type": "object"
+    },
+    "CziWell": {
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "canonical_name": {
+          "title": "Canonical Name",
+          "type": "string"
+        },
+        "canonical_path": {
+          "title": "Canonical Path",
+          "type": "string"
+        },
+        "source_name": {
+          "title": "Source Name",
+          "type": "string"
+        },
+        "source_row_index": {
+          "title": "Source Row Index",
+          "type": "integer"
+        },
+        "source_column_index": {
+          "title": "Source Column Index",
+          "type": "integer"
+        },
+        "row_index": {
+          "title": "Row Index",
+          "type": "integer"
+        },
+        "column_index": {
+          "title": "Column Index",
+          "type": "integer"
+        },
+        "external_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "External Id"
+        },
+        "fields": {
+          "items": {
+            "$ref": "#/$defs/CziField"
+          },
+          "title": "Fields",
+          "type": "array"
+        }
+      },
+      "required": [
+        "id",
+        "canonical_name",
+        "canonical_path",
+        "source_name",
+        "source_row_index",
+        "source_column_index",
+        "row_index",
+        "column_index",
+        "external_id",
+        "fields"
+      ],
+      "title": "CziWell",
+      "type": "object"
+    },
+    "DetectorInfo": {
+      "properties": {
+        "index": {
+          "title": "Index",
+          "type": "integer"
+        },
+        "id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Id"
+        },
+        "name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Name"
+        },
+        "model": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Model"
+        },
+        "model_type": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Model Type"
+        },
+        "gain": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Gain"
+        },
+        "zoom": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Zoom"
+        },
+        "amplification_gain": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Amplification Gain"
+        }
+      },
+      "required": [
+        "index",
+        "id",
+        "name",
+        "model",
+        "model_type",
+        "gain",
+        "zoom",
+        "amplification_gain"
+      ],
+      "title": "DetectorInfo",
+      "type": "object"
+    },
+    "HcsInfo": {
+      "properties": {
+        "detected": {
+          "title": "Detected",
+          "type": "boolean"
+        },
+        "detection_reason": {
+          "title": "Detection Reason",
+          "type": "string"
+        },
+        "declared_plate": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/CziPlate"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "stored_plate": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/CziPlate"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "stored_scene_indices": {
+          "items": {
+            "type": "integer"
+          },
+          "title": "Stored Scene Indices",
+          "type": "array"
+        },
+        "declared_field_count": {
+          "title": "Declared Field Count",
+          "type": "integer"
+        },
+        "stored_field_count": {
+          "title": "Stored Field Count",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "detected",
+        "detection_reason",
+        "declared_plate",
+        "stored_plate",
+        "stored_scene_indices",
+        "declared_field_count",
+        "stored_field_count"
+      ],
+      "title": "HcsInfo",
+      "type": "object"
+    },
+    "ImageInfo": {
+      "properties": {
+        "dimension_order": {
+          "title": "Dimension Order",
+          "type": "string"
+        },
+        "axes": {
+          "items": {
+            "$ref": "#/$defs/AxisInfo"
+          },
+          "title": "Axes",
+          "type": "array"
+        },
+        "first_scene_shape_yx": {
+          "anyOf": [
+            {
+              "maxItems": 2,
+              "minItems": 2,
+              "prefixItems": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "integer"
+                }
+              ],
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "First Scene Shape Yx"
+        },
+        "total_bounding_box": {
+          "additionalProperties": {
+            "maxItems": 2,
+            "minItems": 2,
+            "prefixItems": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "integer"
+              }
+            ],
+            "type": "array"
+          },
+          "title": "Total Bounding Box",
+          "type": "object"
+        },
+        "scene_shape_is_consistent": {
+          "title": "Scene Shape Is Consistent",
+          "type": "boolean"
+        },
+        "scene_shape_tolerance_px": {
+          "title": "Scene Shape Tolerance Px",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "dimension_order",
+        "axes",
+        "first_scene_shape_yx",
+        "total_bounding_box",
+        "scene_shape_is_consistent",
+        "scene_shape_tolerance_px"
+      ],
+      "title": "ImageInfo",
+      "type": "object"
+    },
+    "InstrumentInfo": {
+      "properties": {
+        "microscope": {
+          "$ref": "#/$defs/MicroscopeInfo"
+        },
+        "detectors": {
+          "items": {
+            "$ref": "#/$defs/DetectorInfo"
+          },
+          "title": "Detectors",
+          "type": "array"
+        },
+        "objectives": {
+          "items": {
+            "$ref": "#/$defs/ObjectiveInfo"
+          },
+          "title": "Objectives",
+          "type": "array"
+        },
+        "scaling": {
+          "$ref": "#/$defs/ScalingInfo"
+        }
+      },
+      "required": [
+        "microscope",
+        "detectors",
+        "objectives",
+        "scaling"
+      ],
+      "title": "InstrumentInfo",
+      "type": "object"
+    },
+    "MicroscopeInfo": {
+      "properties": {
+        "id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Id"
+        },
+        "name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Name"
+        },
+        "system": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "System"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "system"
+      ],
+      "title": "MicroscopeInfo",
+      "type": "object"
+    },
+    "ObjectiveInfo": {
+      "properties": {
+        "index": {
+          "title": "Index",
+          "type": "integer"
+        },
+        "id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Id"
+        },
+        "name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Name"
+        },
+        "model": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Model"
+        },
+        "immersion": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Immersion"
+        },
+        "numerical_aperture": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Numerical Aperture"
+        },
+        "nominal_magnification": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Nominal Magnification"
+        },
+        "tube_lens_magnification": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Tube Lens Magnification"
+        },
+        "total_magnification": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Total Magnification"
+        }
+      },
+      "required": [
+        "index",
+        "id",
+        "name",
+        "model",
+        "immersion",
+        "numerical_aperture",
+        "nominal_magnification",
+        "tube_lens_magnification",
+        "total_magnification"
+      ],
+      "title": "ObjectiveInfo",
+      "type": "object"
+    },
+    "ProvenanceInfo": {
+      "properties": {
+        "extractor": {
+          "title": "Extractor",
+          "type": "string"
+        },
+        "extractor_version": {
+          "title": "Extractor Version",
+          "type": "string"
+        },
+        "generated_at_utc": {
+          "title": "Generated At Utc",
+          "type": "string"
+        }
+      },
+      "required": [
+        "extractor",
+        "extractor_version",
+        "generated_at_utc"
+      ],
+      "title": "ProvenanceInfo",
+      "type": "object"
+    },
+    "QualityInfo": {
+      "properties": {
+        "status": {
+          "title": "Status",
+          "type": "string"
+        },
+        "issues": {
+          "items": {
+            "$ref": "#/$defs/QualityIssue"
+          },
+          "title": "Issues",
+          "type": "array"
+        }
+      },
+      "required": [
+        "status",
+        "issues"
+      ],
+      "title": "QualityInfo",
+      "type": "object"
+    },
+    "QualityIssue": {
+      "properties": {
+        "severity": {
+          "title": "Severity",
+          "type": "string"
+        },
+        "code": {
+          "title": "Code",
+          "type": "string"
+        },
+        "message": {
+          "title": "Message",
+          "type": "string"
+        },
+        "path": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Path"
+        }
+      },
+      "required": [
+        "severity",
+        "code",
+        "message"
+      ],
+      "title": "QualityIssue",
+      "type": "object"
+    },
+    "SampleInfo": {
+      "properties": {
+        "carrier": {
+          "anyOf": [
+            {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Carrier"
+        },
+        "carrier_source": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Carrier Source"
+        },
+        "specimen": {
+          "anyOf": [
+            {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Specimen"
+        },
+        "specimen_source": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Specimen Source"
+        },
+        "image_stage_x": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Image Stage X"
+        },
+        "image_stage_y": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Image Stage Y"
+        },
+        "stage_unit": {
+          "title": "Stage Unit",
+          "type": "string"
+        }
+      },
+      "required": [
+        "carrier",
+        "carrier_source",
+        "specimen",
+        "specimen_source",
+        "image_stage_x",
+        "image_stage_y",
+        "stage_unit"
+      ],
+      "title": "SampleInfo",
+      "type": "object"
+    },
+    "ScalingInfo": {
+      "properties": {
+        "x": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "X"
+        },
+        "y": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Y"
+        },
+        "z": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Z"
+        },
+        "unit": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Unit"
+        },
+        "value_source": {
+          "title": "Value Source",
+          "type": "string"
+        }
+      },
+      "required": [
+        "x",
+        "y",
+        "z",
+        "unit",
+        "value_source"
+      ],
+      "title": "ScalingInfo",
+      "type": "object"
+    },
+    "SourceInfo": {
+      "properties": {
+        "uri": {
+          "title": "Uri",
+          "type": "string"
+        },
+        "filename": {
+          "title": "Filename",
+          "type": "string"
+        },
+        "suffix": {
+          "title": "Suffix",
+          "type": "string"
+        },
+        "source_kind": {
+          "title": "Source Kind",
+          "type": "string"
+        },
+        "size_bytes": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Size Bytes"
+        },
+        "sha256": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Sha256"
+        }
+      },
+      "required": [
+        "uri",
+        "filename",
+        "suffix",
+        "source_kind",
+        "size_bytes",
+        "sha256"
+      ],
+      "title": "SourceInfo",
+      "type": "object"
+    }
+  },
+  "properties": {
+    "schema_version": {
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "source": {
+      "$ref": "#/$defs/SourceInfo"
+    },
+    "provenance": {
+      "$ref": "#/$defs/ProvenanceInfo"
+    },
+    "acquisition": {
+      "$ref": "#/$defs/AcquisitionInfo"
+    },
+    "image": {
+      "$ref": "#/$defs/ImageInfo"
+    },
+    "channels": {
+      "items": {
+        "$ref": "#/$defs/ChannelInfo"
+      },
+      "title": "Channels",
+      "type": "array"
+    },
+    "instrument": {
+      "$ref": "#/$defs/InstrumentInfo"
+    },
+    "sample": {
+      "$ref": "#/$defs/SampleInfo"
+    },
+    "hcs": {
+      "$ref": "#/$defs/HcsInfo"
+    },
+    "attachments": {
+      "$ref": "#/$defs/AttachmentInfo"
+    },
+    "quality": {
+      "$ref": "#/$defs/QualityInfo"
+    },
+    "extensions": {
+      "additionalProperties": true,
+      "title": "Extensions",
+      "type": "object"
+    }
+  },
+  "required": [
+    "schema_version",
+    "source",
+    "provenance",
+    "acquisition",
+    "image",
+    "channels",
+    "instrument",
+    "sample",
+    "hcs",
+    "attachments",
+    "quality",
+    "extensions"
+  ],
+  "title": "CZI Metadata Document with Optional HCS Data (EXPERIMENTAL)",
+  "type": "object",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://czitools.example/schemas/experimental/czi-hcs-1.0.schema.json",
+  "description": "Experimental metadata description for any CZI file. Well-plate/HCS content is optional; non-plate files use hcs.detected=false with null declared_plate and stored_plate values.",
+  "$comment": "EXPERIMENTAL schema for czitools CZI metadata documents, including both well-plate and non-well-plate files (domain schema_version 1.0). The structure is unstable and may change without a version bump.",
+  "x-czitools-schema-version": "1.0",
+  "x-czitools-status": "experimental"
+}
