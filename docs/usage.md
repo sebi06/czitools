@@ -12,6 +12,68 @@ from pathlib import Path
 filepath = Path("data/WP96_4Pos_B4-10_DAPI.czi")
 ```
 
+## CZI Reference Archives
+
+With the optional `czitools[vzip]` extra, create a virtual OME-Zarr archive
+backed by an existing local CZI without copying or converting its pixels:
+
+```python
+from czitools.export_tools import create_czi_vzip
+
+archive = create_czi_vzip(filepath)
+```
+
+The default destination is a sibling `.vzip` file. Pass `output_path` to
+choose a different destination, whose directory must already exist, and
+`overwrite=True` to replace an existing archive. The function returns an
+absolute `Path`; it imports refkv only when called and does not require Qt
+or napari.
+
+The archive contains references, not a standalone copy of the pixels. Keep
+the source CZI unchanged at its original location. Supported layouts and
+codecs are determined by refkv; unsupported inputs raise an error.
+
+From a repository checkout, the scripting examples can create and display
+an archive:
+
+```bash
+python demo/scripts/create_czi_vzip.py image.czi
+python demo/scripts/view_czi_vzip_napari.py image.vzip
+```
+
+The viewer example additionally requires napari and a working Qt backend.
+It displays the first resolution level of each image series lazily, with
+channel names and OME spatial scaling. It is not a multiscale viewer or a
+napari reader plugin.
+
+## Plane Tables and Pyramid Subblocks
+
+Plane tables contain stage positions, timestamps, dimension indices, and
+logical pixel bounding boxes for subblocks of a local CZI. By default,
+only full-resolution subblocks are included:
+
+```python
+from czitools.utils import planetable
+
+table, _ = planetable.get_planetable(filepath)
+table, csv_path = planetable.get_planetable(
+  filepath,
+  include_pyramid=True,
+  planes={"time": 0, "channel": 0},
+  save_table=True,
+)
+pyramid_rows = table[table["is_pyramid"]]
+```
+
+The opt-in mode adds `is_pyramid`, `stored_width`, `stored_height`,
+`downsample_x`, and `downsample_y`. Downsampling factors are logical size
+divided by stored size, independently for X and Y; full resolution is
+`1.0`. Bounding boxes remain in full-resolution pixel coordinates.
+Tile indices are counted independently per resolution and do not imply
+matching source tiles between levels. Filtering and CSV output retain
+the additional columns, including for empty results. Non-positive spatial
+dimensions raise `ValueError` in the opt-in mode.
+
 ## Inspecting HCS Well Plates
 
 ### Command-Line Tool

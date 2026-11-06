@@ -28,7 +28,8 @@ czitools keeps the base install lean. Heavier features are **opt-in** extras:
 | _(core)_      | `pip install czitools`                | Metadata + pixel reading (`CziMetadata`, `read_6darray`, `read_field`, `read_well`, HCS model) |
 | `omezarr`     | `pip install "czitools[omezarr]"`     | OME-Zarr / OME-NGFF export + validation (`czitools.export_tools`)                              |
 | `omezarr-gui` | `pip install "czitools[omezarr-gui]"` | Everything in `omezarr` plus the MagicGUI converter app and napari preview                     |
-| `all`         | `pip install "czitools[all]"`         | All optional features (visualization, BioIO, NDV, export, GUI)                                 |
+| `vzip`        | `pip install "czitools[vzip]"`        | Reference-backed CZI VZIP archives via refkv, without pixel copying or GUI dependencies        |
+| `all`         | `pip install "czitools[all]"`         | All optional features (visualization, BioIO, NDV, export, GUI, VZIP)                           |
 | `docs`        | `pip install "czitools[docs]"`        | Documentation build toolchain (MkDocs)                                                         |
 
 !!! note "Lazy imports — core stays lean"
@@ -105,6 +106,7 @@ These are installed automatically with `pip install czitools`:
 
 | Package                                  | Purpose                         |
 | ---------------------------------------- | ------------------------------- |
+| `refkv[zarr,images]>=0.2.0`              | Reference-backed VZIP archives  |
 | `seaborn` / `plotly` / `matplotlib`      | Plotting and visualization      |
 | `PySide6` / `qtpy` / `pyqtgraph`         | Qt binding and visualization    |
 | `colormap`                               | Colormap utilities              |

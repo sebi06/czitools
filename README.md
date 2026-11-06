@@ -14,17 +14,20 @@ available as a [Python package on PyPI](https://pypi.org/project/czitools/).
 
 For full documentation see **[sebi06.github.io/czitools](https://sebi06.github.io/czitools/)**.
 
-## 0.27.2 Highlights
+## 0.27.3 Highlights
 
-- Both export backends default to OME-NGFF 0.6 for individual images and
-    HCS plates, including native CZI pyramids and ngff-zarr `.ozx` output.
-- Low-level ome-zarr-py metadata is converted to genuine 0.6 metadata,
-    preserving channels, physical scaling, and pyramid translations.
-- Explicit version profiles and axis checks reject unsupported exports before
-    overwriting output. Validation rejects mixed-version hierarchies and
-    incomplete channel display metadata; draft 0.9 output remains disabled.
-- OZX packaging preserves the source store's declared NGFF version instead
-    of silently downgrading to 0.5. Existing stores are not migrated.
+- Create reference-backed virtual OME-Zarr `.vzip` archives from local CZI
+    files with `create_czi_vzip`, without copying or converting image pixels.
+    The original CZI must remain available and unchanged.
+- Install the optional `czitools[vzip]` extra for refkv-backed archive
+    creation. Command-line creation and lazy napari viewing examples are
+    included, without making refkv or GUI packages core dependencies.
+- Include stored image-pyramid subblocks in plane tables with
+    `get_planetable(..., include_pyramid=True)`, including pyramid flags,
+    stored pixel dimensions, and X/Y downsampling factors.
+- Full-resolution-only plane tables remain the default. Bounding boxes stay
+    in full-resolution coordinates, and tile numbering is kept separate
+    for each resolution.
 
 ## Installation
 
@@ -213,6 +216,30 @@ resampling). If the coarsest stored level is still larger than
 `max_coarse_edge` on any edge, additional coarser levels are synthesized
 via libCZI's C++ downsampler so the top of the pyramid always fits in one
 GPU texture.
+
+### Plane Tables and Pyramid Subblocks
+
+Extract stage positions, timestamps, dimension indices, and logical pixel
+bounding boxes from the subblocks of a local CZI:
+
+```python
+from czitools.utils import planetable
+
+# Existing default: full-resolution subblocks only.
+table, _ = planetable.get_planetable("path/to/file.czi")
+
+# Include stored pyramid subblocks as additional rows.
+table, _ = planetable.get_planetable("path/to/file.czi", include_pyramid=True)
+pyramid_rows = table[table["is_pyramid"]]
+```
+
+The opt-in mode adds `is_pyramid`, `stored_width`, `stored_height`,
+`downsample_x`, and `downsample_y`. Downsampling factors are logical size
+divided by stored size; full resolution is `1.0`. Existing bounding-box
+columns remain in full-resolution pixel coordinates. Tile indices are
+counted independently per resolution and do not imply matching source
+tiles between pyramid levels. Plane filtering and CSV saving are available
+in both modes.
 
 For detailed usage examples see the [Usage docs](https://sebi06.github.io/czitools/usage/).
 

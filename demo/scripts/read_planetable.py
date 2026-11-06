@@ -64,14 +64,11 @@ print("SizeX: ", czi_dimensions.SizeX)
 
 # get the planetable for the CZI file with "normed" timestamps
 pt1, _ = planetable.get_planetable(
-    filepath, norm_time=True, save_table=False, planes={"time": 0, "channel": 0, "zplane": 0}
+    filepath,
+    norm_time=True,
+    save_table=True,
+    planes={"time": 0, "channel": 0, "zplane": 0},
+    include_pyramid=True,
 )
 
 print(pt1)
-
-# get the planetable for the CZI file with actual timestamps
-pt2, _ = planetable.get_planetable(
-    filepath, norm_time=False, save_table=False, planes={"time": 0, "channel": 0, "zplane": 0}
-)
-
-print(pt2)

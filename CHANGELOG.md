@@ -8,6 +8,26 @@ and the project adheres to [Semantic Versioning](https://semver.org/).
 
 ## Unreleased
 
+## [0.27.3] - 2026-11-06
+
+### Added
+
+- `create_czi_vzip` creates reference-backed virtual OME-Zarr `.vzip`
+  archives from local CZI files without copying or converting image pixels.
+  The optional `czitools[vzip]` extra installs `refkv[zarr,images]>=0.2.0`;
+  refkv is imported only when needed, without requiring napari or Qt.
+  Archives require the source CZI to remain unchanged at its original path.
+- Script examples for creating CZI VZIP archives and viewing their first
+  resolution level lazily in napari, with channel names and spatial scaling.
+- `get_planetable(..., include_pyramid=True)` includes stored pyramid
+  subblocks and adds `is_pyramid`, `stored_width`, `stored_height`,
+  `downsample_x`, and `downsample_y` columns. Bounding boxes remain in
+  full-resolution coordinates; tile indices are counted independently per
+  resolution. Filtering and CSV output support the additional rows and
+  columns. The default full-resolution-only table is unchanged.
+- README Highlights, installation and usage examples, and regression tests
+  for VZIP creation and pyramid-inclusive plane tables.
+
 ## [0.27.2] - 2026-10-30
 
 ### Changed

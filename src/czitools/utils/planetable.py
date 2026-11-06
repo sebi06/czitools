@@ -76,6 +76,7 @@ def get_planetable(
     table_separator: str | None = ";",
     table_index: bool | None = True,
     planes: dict[str, int] | None = None,
+    include_pyramid: bool = False,
 ) -> tuple[pd.DataFrame, str | None]:
     """
     Extracts the plane table from the individual subblocks of a CZI file.
@@ -83,6 +84,8 @@ def get_planetable(
     Iterates all subblocks directly from the CZI file, extracting per-plane
     position, timing, and bounding-box data.  Mosaic tile indices (M) are
     derived by counting subblocks sharing the same (S, T, C, Z) combination.
+    When pyramid subblocks are included, tile indices are counted separately
+    for each X/Y downsampling-factor pair and pyramid status.
 
     Args:
         czipath (Union[str, os.PathLike[str]]): The path to the CZI image file.
@@ -92,11 +95,27 @@ def get_planetable(
         table_index (Optional[bool]): Whether to include the index in the CSV file. Defaults to True.
         planes (Optional[Dict[str, int]]): Optional dictionary for filtering planes by dimensions.
             Valid keys: 'scene', 'tile', 'time', 'channel', 'zplane'
+        include_pyramid (bool): Include stored pyramid subblocks in addition to
+            full-resolution subblocks. Defaults to False, preserving the
+            existing table columns. When True, adds ``is_pyramid``,
+            ``stored_width``, ``stored_height``, ``downsample_x``, and
+            ``downsample_y``. Downsampling factors are logical size divided
+            by stored size; full resolution is 1.0. Bounding-box columns
+            remain in full-resolution pixel coordinates. Tile indices at
+            different resolutions do not imply matching source tiles.
 
     Returns:
         Tuple[pd.DataFrame, Optional[str]]: A tuple containing:
             - A Pandas DataFrame representing the plane table.
             - The file path of the saved CSV file, if ``save_table`` is True; otherwise, None.
+
+    Raises:
+        ValueError: If pyramid inclusion is requested and a subblock has
+            non-positive logical or stored spatial dimensions.
+
+    Examples:
+        >>> table, _ = get_planetable("image.czi", include_pyramid=True)
+        >>> pyramid_rows = table[table["is_pyramid"]]
     """
     if isinstance(czipath, Path):
         czipath = str(czipath)
@@ -106,8 +125,15 @@ def get_planetable(
         return pd.DataFrame(), None
 
     rows = []
-    # Mosaic tile counter: maps (S, T, C, Z) → next M index
-    tile_counters: dict[tuple[int, int, int, int], int] = {}
+    # Mosaic tile counter per dimension group and, optionally, spatial resolution.
+    tile_counters: dict[tuple[int | float, ...], int] = {}
+    pyramid_dtypes = {
+        "is_pyramid": "bool",
+        "stored_width": "int32",
+        "stored_height": "int32",
+        "downsample_x": "float64",
+        "downsample_y": "float64",
+    }
 
     with czifile_module.CziFile(czipath) as czi:
         subblocks = list(czi.subblocks())
@@ -132,25 +158,36 @@ def get_planetable(
             iterator = enumerate(subblocks)
 
         for sbcount, sb in iterator:
-
             de = sb.directory_entry
 
-            # only consider subblocks at full resolution (no pyramids)
-            if not de.is_pyramid:
-
+            if include_pyramid or not de.is_pyramid:
                 s = _get_scene_index(de)
                 t = _get_dim_start(de, "T")
                 c = _get_dim_start(de, "C")
                 z = _get_dim_start(de, "Z")
 
-                # Derive mosaic tile (M) index by counting subblocks per (S, T, C, Z) group
+                xstart, ystart, width, height = _get_bbox(de)
                 key = (s, t, c, z)
+                pyramid_info = {}
+                if include_pyramid:
+                    stored_width = de.stored_shape[de.dims.index("X")]
+                    stored_height = de.stored_shape[de.dims.index("Y")]
+                    if min(width, height, stored_width, stored_height) <= 0:
+                        raise ValueError(f"Subblock {sbcount} has non-positive spatial dimensions.")
+                    downsample_x = width / stored_width
+                    downsample_y = height / stored_height
+                    key += (de.is_pyramid, downsample_x, downsample_y)
+                    pyramid_info = {
+                        "is_pyramid": de.is_pyramid,
+                        "stored_width": stored_width,
+                        "stored_height": stored_height,
+                        "downsample_x": downsample_x,
+                        "downsample_y": downsample_y,
+                    }
                 m = tile_counters.get(key, 0)
                 tile_counters[key] = m + 1
 
-                xstart, ystart, width, height = _get_bbox(de)
-
-                # sb.metadata() returns an XML string in czifile >= 2026.
+                # sb.metadata() returns an XML string in czifile
                 md_raw = sb.metadata()
                 try:
                     md_xml = ET.fromstring(md_raw) if md_raw else None
@@ -175,16 +212,23 @@ def get_planetable(
                         "ystart": ystart,
                         "width": width,
                         "height": height,
+                        **pyramid_info,
                     }
                 )
 
     df_czi = _initialize_planetable_dataframe()
+    if include_pyramid:
+        for column, dtype in pyramid_dtypes.items():
+            df_czi[column] = pd.Series(dtype=dtype)
     if rows:
         df_czi = pd.concat([df_czi, pd.DataFrame(rows)], ignore_index=True)
 
     # Sort by dimension indices to produce the same ordered output as the old
     # nested-loop implementation, then renumber Subblock sequentially.
-    df_czi = df_czi.sort_values(["S", "M", "T", "C", "Z"]).reset_index(drop=True)
+    sort_columns = ["S", "M", "T", "C", "Z"]
+    if include_pyramid:
+        sort_columns += ["downsample_x", "downsample_y", "is_pyramid"]
+    df_czi = df_czi.sort_values(sort_columns).reset_index(drop=True)
 
     # Apply planes filter
     if planes is not None:
@@ -210,6 +254,9 @@ def get_planetable(
         },
         errors="ignore",
     )
+
+    if include_pyramid:
+        df_czi = df_czi.astype(pyramid_dtypes)
 
     if norm_time:
         df_czi = _norm_columns(df_czi, colname="Time[s]", mode="min")
