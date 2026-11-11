@@ -18,6 +18,7 @@ from czitools.utils.hcs_tools import (
 )
 
 console = Console()
+error_console = Console(stderr=True)
 
 
 def _format_valid_indices(indices: tuple[int, ...]) -> str:
@@ -149,13 +150,12 @@ def main() -> int:
     args = _create_parser().parse_args()
     filepath = args.filepath_flag if args.filepath_flag else args.filepath
     if filepath is None:
-        console.print(
+        error_console.print(
             "[bold red]Error:[/bold red] filepath is required. " "Use -f, --filepath, or a positional path.",
-            file=sys.stderr,
         )
         return 1
     if not filepath.exists():
-        console.print(f"[bold red]Error:[/bold red] File not found: {filepath}", file=sys.stderr)
+        error_console.print(f"[bold red]Error:[/bold red] File not found: {filepath}")
         return 1
 
     try:

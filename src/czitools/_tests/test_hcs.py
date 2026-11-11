@@ -2,11 +2,13 @@
 
 from dataclasses import FrozenInstanceError
 from pathlib import Path
+import sys
 
 from box import Box
 import pandas as pd
 import pytest
 
+from czitools.hcs_check import main
 from czitools.metadata_tools.czi_metadata import CziMetadata
 from czitools.metadata_tools.hcs import (
     build_hcs_metadata,
@@ -19,6 +21,28 @@ from czitools.metadata_tools.hcs import (
 )
 
 BASEDIR = Path(__file__).resolve().parents[3]
+
+
+@pytest.mark.parametrize("filepath_option", [None, "", "-f", "--filepath"])
+def test_hcs_cli_reports_missing_filepath(
+    filepath_option: str | None,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    argv = ["czi_hcs_check"]
+    if filepath_option is not None:
+        if filepath_option:
+            argv.append(filepath_option)
+        argv.append(str(tmp_path / "missing.czi"))
+    monkeypatch.setattr(sys, "argv", argv)
+
+    assert main() == 1
+
+    captured = capsys.readouterr()
+    assert captured.out == ""
+    expected = "filepath is required" if filepath_option is None else "File not found"
+    assert expected in captured.err
 
 
 def _metadata_box(scenes: list[dict], *, rows: int = 8, columns: int = 12) -> Box:
