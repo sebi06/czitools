@@ -1,6 +1,7 @@
 {
   "$defs": {
     "AcquisitionInfo": {
+      "additionalProperties": false,
       "properties": {
         "acquisition_date": {
           "anyOf": [
@@ -99,6 +100,7 @@
       "type": "object"
     },
     "AttachmentInfo": {
+      "additionalProperties": false,
       "properties": {
         "has_label": {
           "title": "Has Label",
@@ -130,6 +132,7 @@
       "type": "object"
     },
     "AxisInfo": {
+      "additionalProperties": false,
       "properties": {
         "code": {
           "title": "Code",
@@ -142,6 +145,7 @@
         "size": {
           "anyOf": [
             {
+              "minimum": 0,
               "type": "integer"
             },
             {
@@ -212,8 +216,10 @@
       "type": "object"
     },
     "ChannelInfo": {
+      "additionalProperties": false,
       "properties": {
         "index": {
+          "minimum": 0,
           "title": "Index",
           "type": "integer"
         },
@@ -345,16 +351,20 @@
       "type": "object"
     },
     "CziField": {
+      "additionalProperties": false,
       "properties": {
         "id": {
+          "minLength": 1,
           "title": "Id",
           "type": "string"
         },
         "field_index": {
+          "minimum": 0,
           "title": "Field Index",
           "type": "integer"
         },
         "scene_index": {
+          "minimum": 0,
           "title": "Scene Index",
           "type": "integer"
         },
@@ -534,6 +544,7 @@
         "subblock_count": {
           "anyOf": [
             {
+              "minimum": 0,
               "type": "integer"
             },
             {
@@ -562,12 +573,15 @@
       "type": "object"
     },
     "CziPlate": {
+      "additionalProperties": false,
       "properties": {
         "schema_version": {
+          "const": "1.0",
           "title": "Schema Version",
           "type": "string"
         },
         "id": {
+          "minLength": 1,
           "title": "Id",
           "type": "string"
         },
@@ -585,6 +599,7 @@
         "declared_rows": {
           "anyOf": [
             {
+              "exclusiveMinimum": 0,
               "type": "integer"
             },
             {
@@ -596,6 +611,7 @@
         "declared_columns": {
           "anyOf": [
             {
+              "exclusiveMinimum": 0,
               "type": "integer"
             },
             {
@@ -632,6 +648,7 @@
         },
         "observed_row_indices": {
           "items": {
+            "minimum": 0,
             "type": "integer"
           },
           "title": "Observed Row Indices",
@@ -639,6 +656,7 @@
         },
         "observed_column_indices": {
           "items": {
+            "minimum": 0,
             "type": "integer"
           },
           "title": "Observed Column Indices",
@@ -669,16 +687,20 @@
       "type": "object"
     },
     "CziWell": {
+      "additionalProperties": false,
       "properties": {
         "id": {
+          "minLength": 1,
           "title": "Id",
           "type": "string"
         },
         "canonical_name": {
+          "pattern": "^[A-Z]+[1-9][0-9]*$",
           "title": "Canonical Name",
           "type": "string"
         },
         "canonical_path": {
+          "pattern": "^[A-Z]+/[1-9][0-9]*$",
           "title": "Canonical Path",
           "type": "string"
         },
@@ -687,18 +709,22 @@
           "type": "string"
         },
         "source_row_index": {
+          "exclusiveMinimum": 0,
           "title": "Source Row Index",
           "type": "integer"
         },
         "source_column_index": {
+          "exclusiveMinimum": 0,
           "title": "Source Column Index",
           "type": "integer"
         },
         "row_index": {
+          "minimum": 0,
           "title": "Row Index",
           "type": "integer"
         },
         "column_index": {
+          "minimum": 0,
           "title": "Column Index",
           "type": "integer"
         },
@@ -737,8 +763,10 @@
       "type": "object"
     },
     "DetectorInfo": {
+      "additionalProperties": false,
       "properties": {
         "index": {
+          "minimum": 0,
           "title": "Index",
           "type": "integer"
         },
@@ -834,6 +862,7 @@
       "type": "object"
     },
     "HcsInfo": {
+      "additionalProperties": false,
       "properties": {
         "detected": {
           "title": "Detected",
@@ -865,16 +894,19 @@
         },
         "stored_scene_indices": {
           "items": {
+            "minimum": 0,
             "type": "integer"
           },
           "title": "Stored Scene Indices",
           "type": "array"
         },
         "declared_field_count": {
+          "minimum": 0,
           "title": "Declared Field Count",
           "type": "integer"
         },
         "stored_field_count": {
+          "minimum": 0,
           "title": "Stored Field Count",
           "type": "integer"
         }
@@ -889,9 +921,50 @@
         "stored_field_count"
       ],
       "title": "HcsInfo",
-      "type": "object"
+      "type": "object",
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "detected": {
+                "const": true
+              }
+            },
+            "required": [
+              "detected"
+            ]
+          },
+          "then": {
+            "properties": {
+              "declared_plate": {
+                "type": "object"
+              },
+              "stored_plate": {
+                "type": "object"
+              }
+            }
+          },
+          "else": {
+            "properties": {
+              "declared_plate": {
+                "type": "null"
+              },
+              "stored_plate": {
+                "type": "null"
+              },
+              "declared_field_count": {
+                "const": 0
+              },
+              "stored_field_count": {
+                "const": 0
+              }
+            }
+          }
+        }
+      ]
     },
     "ImageInfo": {
+      "additionalProperties": false,
       "properties": {
         "dimension_order": {
           "title": "Dimension Order",
@@ -911,9 +984,11 @@
               "minItems": 2,
               "prefixItems": [
                 {
+                  "exclusiveMinimum": 0,
                   "type": "integer"
                 },
                 {
+                  "exclusiveMinimum": 0,
                   "type": "integer"
                 }
               ],
@@ -947,6 +1022,7 @@
           "type": "boolean"
         },
         "scene_shape_tolerance_px": {
+          "minimum": 0,
           "title": "Scene Shape Tolerance Px",
           "type": "integer"
         }
@@ -963,6 +1039,7 @@
       "type": "object"
     },
     "InstrumentInfo": {
+      "additionalProperties": false,
       "properties": {
         "microscope": {
           "$ref": "#/$defs/MicroscopeInfo"
@@ -995,6 +1072,7 @@
       "type": "object"
     },
     "MicroscopeInfo": {
+      "additionalProperties": false,
       "properties": {
         "id": {
           "anyOf": [
@@ -1039,8 +1117,10 @@
       "type": "object"
     },
     "ObjectiveInfo": {
+      "additionalProperties": false,
       "properties": {
         "index": {
+          "minimum": 0,
           "title": "Index",
           "type": "integer"
         },
@@ -1148,6 +1228,7 @@
       "type": "object"
     },
     "ProvenanceInfo": {
+      "additionalProperties": false,
       "properties": {
         "extractor": {
           "title": "Extractor",
@@ -1171,6 +1252,7 @@
       "type": "object"
     },
     "QualityInfo": {
+      "additionalProperties": false,
       "properties": {
         "status": {
           "title": "Status",
@@ -1192,6 +1274,7 @@
       "type": "object"
     },
     "QualityIssue": {
+      "additionalProperties": false,
       "properties": {
         "severity": {
           "title": "Severity",
@@ -1227,6 +1310,7 @@
       "type": "object"
     },
     "SampleInfo": {
+      "additionalProperties": false,
       "properties": {
         "carrier": {
           "anyOf": [
@@ -1314,6 +1398,7 @@
       "type": "object"
     },
     "ScalingInfo": {
+      "additionalProperties": false,
       "properties": {
         "x": {
           "anyOf": [
@@ -1375,6 +1460,7 @@
       "type": "object"
     },
     "SourceInfo": {
+      "additionalProperties": false,
       "properties": {
         "uri": {
           "title": "Uri",
@@ -1395,6 +1481,7 @@
         "size_bytes": {
           "anyOf": [
             {
+              "minimum": 0,
               "type": "integer"
             },
             {
@@ -1427,8 +1514,10 @@
       "type": "object"
     }
   },
+  "additionalProperties": false,
   "properties": {
     "schema_version": {
+      "const": "1.0",
       "title": "Schema Version",
       "type": "string"
     },
@@ -1490,8 +1579,8 @@
   "type": "object",
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://czitools.example/schemas/experimental/czi-hcs-1.0.schema.json",
-  "description": "Experimental metadata description for any CZI file. Well-plate/HCS content is optional; non-plate files use hcs.detected=false with null declared_plate and stored_plate values.",
-  "$comment": "EXPERIMENTAL schema for czitools CZI metadata documents, including both well-plate and non-well-plate files (domain schema_version 1.0). The structure is unstable and may change without a version bump.",
+  "description": "Experimental metadata description for any CZI file. The hcs object is required; non-plate files use hcs.detected=false with null declared_plate and stored_plate values and zero HCS field counts. Unknown structured fields are rejected; custom metadata belongs in extensions.",
+  "$comment": "EXPERIMENTAL schema for czitools CZI metadata documents, including both well-plate and non-well-plate files (domain schema_version 1.0). The structure is unstable and may change without a version bump. Schema validation checks structure and local constraints; CziHcsDocument also validates cross-field relationships, units, and finite numbers. Retain null values for round trips. JSONC requires a separate parser; the czitools reader accepts JSON only.",
   "x-czitools-schema-version": "1.0",
   "x-czitools-status": "experimental"
 }

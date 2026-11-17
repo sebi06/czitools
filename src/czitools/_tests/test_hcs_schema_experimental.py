@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 
-from czitools.metadata_tools import extract_hcs_document
+from czitools.metadata_tools import CziHcsDocument, extract_hcs_document
 from czitools.metadata_tools.experimental.hcs_schema import (
     EXPERIMENTAL_SCHEMA_ID,
     JSON_SCHEMA_DIALECT,
@@ -73,3 +73,55 @@ def test_non_plate_document_validates_against_schema() -> None:
     assert document["hcs"]["declared_plate"] is None
     assert document["hcs"]["stored_plate"] is None
     jsonschema.validate(instance=document, schema=schema)
+
+
+@pytest.mark.parametrize(
+    ("path", "value"),
+    [
+        (("schema_version",), "9.9"),
+        (("hcs", "stored_plate", "schema_version"), "9.9"),
+        (("unexpected",), {"important": "do not discard"}),
+        (("hcs", "stored_plate", "wells", 0, "unexpected"), "metadata"),
+        (("hcs", "detected"), "true"),
+        (("hcs", "stored_field_count"), "28"),
+        (("source", "size_bytes"), -1),
+        (("hcs", "stored_field_count"), -1),
+        (("hcs", "stored_scene_indices"), [-1]),
+        (("hcs", "stored_plate", "declared_rows"), 0),
+        (("hcs", "stored_plate", "wells", 0, "fields", 0, "scene_index"), -1),
+        (("hcs", "detected"), False),
+        (("hcs", "declared_plate"), None),
+        (("hcs", "stored_plate"), None),
+    ],
+)
+def test_schema_and_reader_reject_invalid_contract_values(path, value) -> None:
+    jsonschema = pytest.importorskip("jsonschema")
+    payload = extract_hcs_document(PLATE_CZI).to_dict()
+    target = payload
+    for key in path[:-1]:
+        target = target[key]
+    target[path[-1]] = value
+
+    with pytest.raises(jsonschema.ValidationError):
+        jsonschema.Draft202012Validator(generate_hcs_json_schema(warn=False)).validate(payload)
+    with pytest.raises(ValueError):
+        CziHcsDocument.from_dict(payload)
+
+
+def test_committed_schema_matches_generator_and_validates_dialect() -> None:
+    jsonschema = pytest.importorskip("jsonschema")
+    schema = generate_hcs_json_schema(warn=False)
+    jsonschema.Draft202012Validator.check_schema(schema)
+    committed = json.loads(
+        (BASEDIR / "docs" / "schemas" / "czi-hcs-1.0.experimental.schema.json").read_text(encoding="utf-8")
+    )
+
+    assert committed == schema
+
+
+def test_compact_output_is_not_a_schema_valid_document() -> None:
+    jsonschema = pytest.importorskip("jsonschema")
+    payload = extract_hcs_document(PLATE_CZI).to_dict(exclude_none=True)
+
+    with pytest.raises(jsonschema.ValidationError, match="required"):
+        jsonschema.Draft202012Validator(generate_hcs_json_schema(warn=False)).validate(payload)

@@ -1,12 +1,14 @@
 """Tests for the portable CZI HCS metadata document."""
 
 import json
+from dataclasses import replace
 from datetime import datetime, timezone
 from pathlib import Path
 
 import pytest
 
-from czitools.metadata_tools import CziHcsDocument, extract_hcs_document
+from czitools.metadata_tools import CziHcsDocument, CziMetadata, extract_hcs_document
+from czitools.metadata_tools.hcs import filter_hcs_by_scene_indices
 
 BASEDIR = Path(__file__).resolve().parents[3]
 PLATE_CZI = BASEDIR / "data" / "WP96_4Pos_B4-10_DAPI.czi"
@@ -78,13 +80,15 @@ def test_hcs_document_analytics_rows() -> None:
 
 
 def test_hcs_document_redacts_user_and_excludes_none() -> None:
-    """Privacy and compact-output options affect only their intended fields."""
+    """Compact output is for presentation, not validated round-trip storage."""
     document = extract_hcs_document(PLATE_CZI, redact_user=True)
     payload = document.to_dict(exclude_none=True)
 
     assert document.acquisition.user_name is None
     assert "user_name" not in payload["acquisition"]
     assert payload["hcs"]["stored_field_count"] == 28
+    with pytest.raises(ValueError, match="user_name"):
+        CziHcsDocument.from_dict(payload)
 
 
 def test_non_hcs_file_serializes_without_plate() -> None:
@@ -95,3 +99,80 @@ def test_non_hcs_file_serializes_without_plate() -> None:
     assert document.hcs.stored_plate is None
     assert list(document.iter_well_rows()) == []
     assert json.loads(document.to_json())["hcs"]["detected"] is False
+
+
+@pytest.mark.parametrize(
+    ("path", "value", "message"),
+    [
+        (("hcs", "stored_scene_indices"), [], "stored scene indices"),
+        (("hcs", "stored_scene_indices"), [0, 0], "unique"),
+        (("hcs", "stored_field_count"), 999, "field counts"),
+        (("hcs", "stored_plate", "wells", 0, "canonical_path"), "Z/99", "canonical path"),
+        (("hcs", "stored_plate", "wells", 0, "source_row_index"), 1, "source indices"),
+        (("hcs", "stored_plate", "declared_rows"), 1, "declared rows"),
+        (("hcs", "stored_plate", "declared_columns"), 1, "declared columns"),
+        (("hcs", "stored_plate", "observed_row_indices"), [], "observed row"),
+        (("hcs", "stored_plate", "wells", 0, "fields", 0, "id"), "other-field", "declared field"),
+    ],
+)
+def test_hcs_document_rejects_inconsistent_hierarchy(path, value, message) -> None:
+    payload = extract_hcs_document(PLATE_CZI).to_dict()
+    target = payload
+    for key in path[:-1]:
+        target = target[key]
+    target[path[-1]] = value
+
+    with pytest.raises(ValueError, match=message):
+        CziHcsDocument.from_dict(payload)
+
+
+@pytest.mark.parametrize("scene_indices", [(0, 3, 5), ()])
+def test_hcs_document_preserves_sparse_and_empty_stored_views(scene_indices) -> None:
+    document = extract_hcs_document(PLATE_CZI)
+    assert document.hcs.declared_plate is not None
+    stored = filter_hcs_by_scene_indices(document.hcs.declared_plate, scene_indices)
+    hcs = replace(
+        document.hcs,
+        stored_plate=stored,
+        stored_scene_indices=scene_indices,
+        stored_field_count=len(scene_indices),
+    )
+    document = replace(document, hcs=hcs)
+
+    assert CziHcsDocument.from_dict(document.to_dict()) == document
+
+
+def test_hcs_document_preserves_explicit_metadata_dictionaries() -> None:
+    payload = extract_hcs_document(PLATE_CZI).to_dict()
+    payload["extensions"]["example:analysis"] = {"method": "test", "optional": None}
+    payload["sample"]["carrier"] = {"vendor_specific": {"rows": 8}}
+    payload["sample"]["specimen"] = {"custom": [1, "value", None]}
+
+    assert CziHcsDocument.from_dict(payload).to_dict() == payload
+
+
+def test_hcs_document_rejects_non_string_keys_without_losing_metadata() -> None:
+    payload = extract_hcs_document(PLATE_CZI).to_dict()
+    payload["extensions"]["custom"] = {1: "first", "1": "second"}
+
+    with pytest.raises(ValueError, match="JSON object keys must be strings"):
+        CziHcsDocument.from_dict(payload)
+
+
+def test_hcs_document_filters_stored_view_when_metadata_filtering_is_disabled() -> None:
+    metadata = CziMetadata(PLATE_CZI, filter_hcs_to_stored_scenes=False)
+    metadata.stored_scene_indices = (0, 3)
+
+    document = CziHcsDocument.from_metadata(metadata)
+
+    assert document.hcs.declared_field_count == 28
+    assert document.hcs.stored_field_count == 2
+    assert CziHcsDocument.from_dict(document.to_dict()) == document
+
+
+def test_hcs_document_reader_requires_json_not_jsonc(tmp_path: Path) -> None:
+    output = tmp_path / "commented.jsonc"
+    output.write_text('{\n// illustration only\n"schema_version": "1.0"\n}', encoding="utf-8")
+
+    with pytest.raises(json.JSONDecodeError):
+        CziHcsDocument.read_json(output)

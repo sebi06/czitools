@@ -9,12 +9,17 @@ import os
 from dataclasses import asdict, dataclass, is_dataclass
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Iterator, Mapping
+from typing import TYPE_CHECKING, Any, Iterator, Literal, Mapping
 
-from pydantic import TypeAdapter, ValidationError
+from pydantic import ConfigDict, NonNegativeInt, PositiveInt, TypeAdapter, ValidationError, with_config
 
 from czitools import __version__
-from czitools.metadata_tools.hcs import CziPlate, normalize_well_name
+from czitools.metadata_tools.hcs import (
+    HCS_SCHEMA_VERSION,
+    CziPlate,
+    filter_hcs_by_scene_indices,
+    normalize_well_name,
+)
 
 if TYPE_CHECKING:
     from czitools.metadata_tools.czi_metadata import CziMetadata
@@ -37,6 +42,7 @@ _AXES = (
 )
 
 
+@with_config(ConfigDict(extra="forbid", strict=True))
 @dataclass(frozen=True)
 class SourceInfo:
     """Stable identity of the source CZI."""
@@ -45,10 +51,11 @@ class SourceInfo:
     filename: str
     suffix: str
     source_kind: str
-    size_bytes: int | None
+    size_bytes: NonNegativeInt | None
     sha256: str | None
 
 
+@with_config(ConfigDict(extra="forbid", strict=True))
 @dataclass(frozen=True)
 class ProvenanceInfo:
     """Extractor identity and generation time (volatile provenance)."""
@@ -58,6 +65,7 @@ class ProvenanceInfo:
     generated_at_utc: str
 
 
+@with_config(ConfigDict(extra="forbid", strict=True))
 @dataclass(frozen=True)
 class AcquisitionInfo:
     """File-level acquisition properties."""
@@ -73,13 +81,14 @@ class AcquisitionInfo:
     consistent_pixel_types: bool | None
 
 
+@with_config(ConfigDict(extra="forbid", strict=True))
 @dataclass(frozen=True)
 class AxisInfo:
     """One physically observed image axis."""
 
     code: str
     meaning: str
-    size: int | None
+    size: NonNegativeInt | None
     start: int | None
     end: int | None
     valid_indices: tuple[int, ...]
@@ -87,23 +96,25 @@ class AxisInfo:
     coordinates: tuple[float, ...] = ()
 
 
+@with_config(ConfigDict(extra="forbid", strict=True))
 @dataclass(frozen=True)
 class ImageInfo:
     """Stored image dimensions and bounds."""
 
     dimension_order: str
     axes: tuple[AxisInfo, ...]
-    first_scene_shape_yx: tuple[int, int] | None
+    first_scene_shape_yx: tuple[PositiveInt, PositiveInt] | None
     total_bounding_box: dict[str, tuple[int, int]]
     scene_shape_is_consistent: bool
-    scene_shape_tolerance_px: int
+    scene_shape_tolerance_px: NonNegativeInt
 
 
+@with_config(ConfigDict(extra="forbid", strict=True))
 @dataclass(frozen=True)
 class ChannelInfo:
     """Normalized metadata for one image channel."""
 
-    index: int
+    index: NonNegativeInt
     name: str | None
     dye: str | None
     dye_short: str | None
@@ -116,6 +127,7 @@ class ChannelInfo:
     is_rgb: bool | None
 
 
+@with_config(ConfigDict(extra="forbid", strict=True))
 @dataclass(frozen=True)
 class ScalingInfo:
     """Physical pixel scaling in named axes."""
@@ -127,6 +139,7 @@ class ScalingInfo:
     value_source: str
 
 
+@with_config(ConfigDict(extra="forbid", strict=True))
 @dataclass(frozen=True)
 class MicroscopeInfo:
     """Microscope identity."""
@@ -136,11 +149,12 @@ class MicroscopeInfo:
     system: str | None
 
 
+@with_config(ConfigDict(extra="forbid", strict=True))
 @dataclass(frozen=True)
 class DetectorInfo:
     """Metadata for one detector."""
 
-    index: int
+    index: NonNegativeInt
     id: str | None
     name: str | None
     model: str | None
@@ -150,11 +164,12 @@ class DetectorInfo:
     amplification_gain: float | None
 
 
+@with_config(ConfigDict(extra="forbid", strict=True))
 @dataclass(frozen=True)
 class ObjectiveInfo:
     """Metadata for one objective."""
 
-    index: int
+    index: NonNegativeInt
     id: str | None
     name: str | None
     model: str | None
@@ -165,6 +180,7 @@ class ObjectiveInfo:
     total_magnification: float | None
 
 
+@with_config(ConfigDict(extra="forbid", strict=True))
 @dataclass(frozen=True)
 class InstrumentInfo:
     """Microscope, detector, objective, and scaling metadata."""
@@ -175,6 +191,7 @@ class InstrumentInfo:
     scaling: ScalingInfo
 
 
+@with_config(ConfigDict(extra="forbid", strict=True))
 @dataclass(frozen=True)
 class SampleInfo:
     """Sample carrier, specimen, and image-level stage position."""
@@ -188,6 +205,7 @@ class SampleInfo:
     stage_unit: str
 
 
+@with_config(ConfigDict(extra="forbid", strict=True))
 @dataclass(frozen=True)
 class HcsInfo:
     """HCS detection result and declared/stored plate views."""
@@ -196,11 +214,12 @@ class HcsInfo:
     detection_reason: str
     declared_plate: CziPlate | None
     stored_plate: CziPlate | None
-    stored_scene_indices: tuple[int, ...]
-    declared_field_count: int
-    stored_field_count: int
+    stored_scene_indices: tuple[NonNegativeInt, ...]
+    declared_field_count: NonNegativeInt
+    stored_field_count: NonNegativeInt
 
 
+@with_config(ConfigDict(extra="forbid", strict=True))
 @dataclass(frozen=True)
 class AttachmentInfo:
     """Summary of CZI attachments without binary payloads."""
@@ -211,6 +230,7 @@ class AttachmentInfo:
     names: tuple[str, ...]
 
 
+@with_config(ConfigDict(extra="forbid", strict=True))
 @dataclass(frozen=True)
 class QualityIssue:
     """One non-fatal metadata quality observation."""
@@ -221,6 +241,7 @@ class QualityIssue:
     path: str | None = None
 
 
+@with_config(ConfigDict(extra="forbid", strict=True))
 @dataclass(frozen=True)
 class QualityInfo:
     """Overall metadata quality status and observations."""
@@ -229,11 +250,12 @@ class QualityInfo:
     issues: tuple[QualityIssue, ...]
 
 
+@with_config(ConfigDict(extra="forbid", strict=True))
 @dataclass(frozen=True)
 class CziHcsDocument:
     """One portable, versioned description of a CZI HCS acquisition."""
 
-    schema_version: str
+    schema_version: Literal["1.0"]
     source: SourceInfo
     provenance: ProvenanceInfo
     acquisition: AcquisitionInfo
@@ -309,7 +331,9 @@ class CziHcsDocument:
 
         Args:
             exclude_none (bool): Recursively omit dictionary keys whose value is
-                ``None``. Defaults to False.
+                ``None``. Defaults to False. True produces presentation-only
+                output that may fail schema validation and cannot be relied on
+                for round-trip storage.
 
         Returns:
             dict[str, Any]: JSON-safe document payload.
@@ -345,7 +369,7 @@ class CziHcsDocument:
 
     @classmethod
     def from_dict(cls, payload: Mapping[str, Any]) -> CziHcsDocument:
-        """Strictly validate and reconstruct a document from a mapping."""
+        """Validate a JSON-compatible mapping without scalar coercion or extra fields."""
         if not isinstance(payload, Mapping):
             raise TypeError("The document payload must be a mapping.")
         version = payload.get("schema_version")
@@ -355,13 +379,18 @@ class CziHcsDocument:
                 f"expected {CZI_HCS_DOCUMENT_SCHEMA_VERSION!r}."
             )
         try:
-            return _document_adapter().validate_python(dict(payload))
+            # JSON mode accepts arrays for tuple fields without relaxing scalar types.
+            _validate_json_keys(payload)
+            serialized = json.dumps(dict(payload), allow_nan=False)
+            return _document_adapter().validate_json(serialized)
         except ValidationError as error:
             raise ValueError(f"Invalid CZI HCS document payload: {error}") from error
+        except (TypeError, ValueError) as error:
+            raise ValueError(f"CZI HCS document payload must be JSON-compatible: {error}") from error
 
     @classmethod
     def read_json(cls, path: str | os.PathLike[str]) -> CziHcsDocument:
-        """Read and validate a document from a UTF-8 JSON file."""
+        """Read and validate UTF-8 JSON; JSONC comments are not supported."""
         payload = json.loads(Path(path).read_text(encoding="utf-8"))
         if not isinstance(payload, dict):
             raise TypeError("The JSON document root must be an object.")
@@ -630,6 +659,8 @@ def _build_sample(metadata: CziMetadata) -> SampleInfo:
 def _build_hcs(metadata: CziMetadata) -> HcsInfo:
     declared = metadata.hcs_declared
     stored = metadata.hcs
+    if stored is not None:
+        stored = filter_hcs_by_scene_indices(stored, metadata.stored_scene_indices)
     return HcsInfo(
         detected=bool(metadata.hcs_status.detected),
         detection_reason=metadata.hcs_status.reason,
@@ -742,6 +773,8 @@ def _validate_axes(axes: tuple[AxisInfo, ...]) -> None:
 def _validate_plate(plate: CziPlate | None) -> None:
     if plate is None:
         return
+    if plate.schema_version != HCS_SCHEMA_VERSION:
+        raise ValueError(f"Unsupported plate schema version {plate.schema_version!r}.")
     well_ids = [well.id for well in plate.wells]
     well_names = [well.canonical_name for well in plate.wells]
     if len(well_ids) != len(set(well_ids)) or len(well_names) != len(set(well_names)):
@@ -749,9 +782,18 @@ def _validate_plate(plate: CziPlate | None) -> None:
     field_ids: list[str] = []
     scene_indices: list[int] = []
     for well in plate.wells:
-        _, row_index, column_index = normalize_well_name(well.canonical_name)
+        canonical_name, row_index, column_index = normalize_well_name(well.canonical_name)
+        row_label = canonical_name.rstrip("0123456789")
+        if well.canonical_name != canonical_name or well.canonical_path != f"{row_label}/{column_index + 1}":
+            raise ValueError(f"Well {well.canonical_name!r} has an inconsistent canonical path or name.")
         if (well.row_index, well.column_index) != (row_index, column_index):
             raise ValueError(f"Well {well.canonical_name!r} has inconsistent normalized indices.")
+        if (well.source_row_index, well.source_column_index) != (row_index + 1, column_index + 1):
+            raise ValueError(f"Well {well.canonical_name!r} has inconsistent source indices.")
+        if plate.declared_rows is not None and row_index >= plate.declared_rows:
+            raise ValueError(f"Well {well.canonical_name!r} lies outside the declared rows.")
+        if plate.declared_columns is not None and column_index >= plate.declared_columns:
+            raise ValueError(f"Well {well.canonical_name!r} lies outside the declared columns.")
         if [field.field_index for field in well.fields] != list(range(len(well.fields))):
             raise ValueError(f"Well {well.canonical_name!r} has non-contiguous field indices.")
         field_ids.extend(field.id for field in well.fields)
@@ -760,17 +802,43 @@ def _validate_plate(plate: CziPlate | None) -> None:
         raise ValueError("Field IDs must be unique within a plate view.")
     if len(scene_indices) != len(set(scene_indices)):
         raise ValueError("Scene indices must be unique within a plate view.")
+    for label, observed, expected in (
+        ("row", plate.observed_row_indices, {well.row_index for well in plate.wells}),
+        ("column", plate.observed_column_indices, {well.column_index for well in plate.wells}),
+    ):
+        if len(observed) != len(set(observed)) or set(observed) != expected:
+            raise ValueError(f"Plate observed {label} indices do not match its wells.")
 
 
 def _validate_stored_fields(hcs: HcsInfo) -> None:
-    if hcs.declared_plate is None or hcs.stored_plate is None:
+    if len(hcs.stored_scene_indices) != len(set(hcs.stored_scene_indices)):
+        raise ValueError("Stored scene indices must be unique.")
+    if not hcs.detected:
+        if hcs.declared_plate is not None or hcs.stored_plate is not None:
+            raise ValueError("Non-HCS documents must have null declared and stored plates.")
+        if hcs.declared_field_count != 0 or hcs.stored_field_count != 0:
+            raise ValueError("Non-HCS documents must have zero HCS field counts.")
         return
-    declared = {field.scene_index for well in hcs.declared_plate.wells for field in well.fields}
-    stored = {field.scene_index for well in hcs.stored_plate.wells for field in well.fields}
-    if not stored.issubset(declared):
+    if hcs.declared_plate is None or hcs.stored_plate is None:
+        raise ValueError("Detected HCS requires both declared and stored plate views.")
+    declared = {
+        field.scene_index: (well.id, well.canonical_name, field.id)
+        for well in hcs.declared_plate.wells
+        for field in well.fields
+    }
+    stored = {
+        field.scene_index: (well.id, well.canonical_name, field.id)
+        for well in hcs.stored_plate.wells
+        for field in well.fields
+    }
+    if not stored.keys() <= declared.keys():
         raise ValueError("Every stored field must exist in the declared HCS hierarchy.")
     if hcs.declared_field_count != len(declared) or hcs.stored_field_count != len(stored):
         raise ValueError("HCS field counts do not match their plate views.")
+    if set(stored) != declared.keys() & set(hcs.stored_scene_indices):
+        raise ValueError("Stored plate fields do not match the declared fields present in stored scene indices.")
+    if any(identity != declared[scene_index] for scene_index, identity in stored.items()):
+        raise ValueError("Every stored field must retain its declared field identity and well assignment.")
 
 
 def _validate_finite_values(value: Any, path: str = "document") -> None:
@@ -782,6 +850,17 @@ def _validate_finite_values(value: Any, path: str = "document") -> None:
     elif isinstance(value, (list, tuple)):
         for index, child in enumerate(value):
             _validate_finite_values(child, f"{path}[{index}]")
+
+
+def _validate_json_keys(value: Any) -> None:
+    if isinstance(value, Mapping):
+        for key, child in value.items():
+            if not isinstance(key, str):
+                raise ValueError(f"JSON object keys must be strings, got {key!r}.")
+            _validate_json_keys(child)
+    elif isinstance(value, (list, tuple)):
+        for child in value:
+            _validate_json_keys(child)
 
 
 def _to_json_value(value: Any) -> Any:

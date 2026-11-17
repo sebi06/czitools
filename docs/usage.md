@@ -304,8 +304,10 @@ if plate is not None:
 The `czi_hcs_export.py` demo script is only a thin wrapper around the library
 API. The same functionality is available programmatically from any Python
 script, without invoking the command line. The entry point is
-`extract_hcs_document`, which returns a validated, immutable
-`CziHcsDocument` that serializes losslessly to JSON.
+`extract_hcs_document`, which returns a validated, frozen
+`CziHcsDocument` that serializes losslessly to JSON with the default options.
+It covers both HCS and non-HCS CZI files. This is a czitools metadata format,
+not an OME-Zarr HCS or RFC-8 serialization.
 
 ```python
 from datetime import datetime, timezone
@@ -356,9 +358,79 @@ doc = CziHcsDocument.from_metadata(mdata, redact_user=True)
 ```
 
 All symbols are exported from `czitools.metadata_tools`, so the demo script is
-optional. `to_dict(exclude_none=True)` produces a compact payload, while the
-default retains `None` values so a known-but-missing property stays
-distinguishable from a property absent in an older schema.
+optional.
+
+#### Validation and the experimental JSON Schema
+
+The [experimental JSON Schema](schemas/czi-hcs-1.0.experimental.schema.json)
+uses JSON Schema Draft 2020-12 and is generated from the dataclass model.
+To regenerate it from the repository root:
+
+```shell
+python demo/scripts/dump_hcs_schema.py
+```
+
+The schema and the reader reject unknown fields on structured objects, such as
+the document, plate, well, and field objects. Put custom metadata under the
+document's `extensions` dictionary. The explicit `sample.carrier` and
+`sample.specimen` dictionaries also retain arbitrary source-specific metadata.
+Unknown structured fields are not silently discarded.
+
+The reader validates JSON scalar types without coercing strings such as `"true"`
+or `"28"` into booleans or integers. JSON arrays are reconstructed as tuples
+where required by the Python model. Document and plate versions must be `"1.0"`;
+counts and indexes have non-negative or positive constraints as appropriate.
+
+Validation has two layers:
+
+- **JSON Schema:** required fields, types, supported versions, numeric bounds,
+  unknown-field rejection, and the relationship between HCS detection and the
+  presence of plate views.
+- **`CziHcsDocument.read_json` / `from_dict`:** also checks relationships that
+  require comparing values across the document: well names, paths and indexes,
+  plate bounds and observed rows/columns, unique field identities, field counts,
+  stored-scene membership, explicit units, and finite numbers.
+
+A schema-valid document is therefore not necessarily semantically valid. Use
+the model reader before relying on its HCS relationships. Passing validation
+does not verify that the source CZI or its pixels still match the metadata.
+
+The `hcs` object is **required**, even for a non-plate CZI. Non-plate documents
+use `detected: false`, null `declared_plate` and `stored_plate`, and zero HCS
+field counts. Their `stored_scene_indices` can still describe ordinary CZI
+scenes. Detected HCS requires both plate views; a stored view may be empty if
+none of the declared fields are physically present. Otherwise it contains the
+declared fields whose scene indexes occur in `stored_scene_indices`.
+
+The schema is experimental, not a stable published contract. Its `$id` is a
+placeholder identifier, not a downloadable schema URL. Validation may tighten
+without changing the domain version; this includes rejecting previously
+accepted inconsistent metadata. Regenerate the schema after changing its model
+or generator, and use the schema from the same czitools revision as the reader.
+
+#### Null values and compact output
+
+Keep the default `exclude_none=False` when persisting a document for validation
+or reading it back. Many properties are **required but nullable**: for example,
+an unknown checksum is represented by `"sha256": null`, not by omitting `sha256`.
+
+`to_dict`, `to_json`, and `write_json` also accept `exclude_none=True`, which
+recursively removes null-valued properties. This is **presentation-only compact
+output**, not a separate supported storage format. It can fail both schema and
+model validation and is not guaranteed to round-trip.
+
+#### JSON versus JSONC
+
+JSON Schema validates the parsed data, not comments in a text file. A JSONC-aware
+editor or parser can apply this schema to the data represented by a JSONC file,
+but `CziHcsDocument.read_json` uses standard JSON parsing and **does not accept
+comments or trailing commas**. To use an annotated JSONC example, parse it with
+a separate JSONC-aware parser and pass the resulting object to `from_dict`, or
+save it as plain JSON first. No JSONC parser is included by this feature.
+
+Associate the schema through your editor's settings rather than adding a
+`$schema` property to a metadata document: `$schema` is not a defined document
+field and would be rejected as an unknown field.
 
 ## General Metadata Access
 

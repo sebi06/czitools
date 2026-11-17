@@ -20,14 +20,16 @@ import re
 from dataclasses import dataclass, replace
 from pathlib import Path
 from statistics import median
-from typing import Any, Collection, cast
+from typing import Annotated, Any, Collection, Literal, cast
 
 from box import Box, BoxList
+from pydantic import ConfigDict, Field, NonNegativeInt, PositiveInt, with_config
 
 HCS_SCHEMA_VERSION = "1.0"
 _WELL_NAME = re.compile(r"^([A-Za-z]+)0*([1-9][0-9]*)$")
 
 
+@with_config(ConfigDict(extra="forbid", strict=True))
 @dataclass(frozen=True)
 class CziField:
     """One CZI scene interpreted as a field of view within a well.
@@ -63,9 +65,9 @@ class CziField:
             may be misleading.
     """
 
-    id: str
-    field_index: int
-    scene_index: int
+    id: Annotated[str, Field(min_length=1)]
+    field_index: NonNegativeInt
+    scene_index: NonNegativeInt
     region_id: str | None
     position_name: str | None
     scene_center_x: float | None
@@ -80,40 +82,42 @@ class CziField:
     acquisition_z_range: tuple[float, float] | None = None
     stage_unit: str = "micrometer"
     stage_source: str | None = None
-    subblock_count: int | None = None
+    subblock_count: NonNegativeInt | None = None
     position_conflict: bool = False
 
 
+@with_config(ConfigDict(extra="forbid", strict=True))
 @dataclass(frozen=True)
 class CziWell:
     """A well with both original CZI and normalized 0-based indices."""
 
-    id: str
-    canonical_name: str
-    canonical_path: str
+    id: Annotated[str, Field(min_length=1)]
+    canonical_name: Annotated[str, Field(pattern=r"^[A-Z]+[1-9][0-9]*$")]
+    canonical_path: Annotated[str, Field(pattern=r"^[A-Z]+/[1-9][0-9]*$")]
     source_name: str
-    source_row_index: int
-    source_column_index: int
-    row_index: int
-    column_index: int
+    source_row_index: PositiveInt
+    source_column_index: PositiveInt
+    row_index: NonNegativeInt
+    column_index: NonNegativeInt
     external_id: str | None
     fields: tuple[CziField, ...]
 
 
+@with_config(ConfigDict(extra="forbid", strict=True))
 @dataclass(frozen=True)
 class CziPlate:
     """An immutable plate view built from CZI scene and template metadata."""
 
-    schema_version: str
-    id: str
+    schema_version: Literal["1.0"]
+    id: Annotated[str, Field(min_length=1)]
     name: str | None
-    declared_rows: int | None
-    declared_columns: int | None
+    declared_rows: PositiveInt | None
+    declared_columns: PositiveInt | None
     naming_convention: str
     barcode: str | None
     external_id: str | None
-    observed_row_indices: tuple[int, ...]
-    observed_column_indices: tuple[int, ...]
+    observed_row_indices: tuple[NonNegativeInt, ...]
+    observed_column_indices: tuple[NonNegativeInt, ...]
     wells: tuple[CziWell, ...]
 
     def get_well(self, name: str) -> CziWell:

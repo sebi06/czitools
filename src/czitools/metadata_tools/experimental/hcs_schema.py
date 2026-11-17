@@ -71,19 +71,42 @@ def generate_hcs_json_schema(*, warn: bool = True) -> dict[str, Any]:
         _warn_experimental()
 
     schema = TypeAdapter(CziHcsDocument).json_schema()
+    schema["$defs"]["HcsInfo"]["allOf"] = [
+        {
+            "if": {"properties": {"detected": {"const": True}}, "required": ["detected"]},
+            "then": {
+                "properties": {
+                    "declared_plate": {"type": "object"},
+                    "stored_plate": {"type": "object"},
+                }
+            },
+            "else": {
+                "properties": {
+                    "declared_plate": {"type": "null"},
+                    "stored_plate": {"type": "null"},
+                    "declared_field_count": {"const": 0},
+                    "stored_field_count": {"const": 0},
+                }
+            },
+        }
+    ]
     schema["$schema"] = JSON_SCHEMA_DIALECT
     schema["$id"] = EXPERIMENTAL_SCHEMA_ID
     schema["title"] = "CZI Metadata Document with Optional HCS Data (EXPERIMENTAL)"
     schema["description"] = (
-        "Experimental metadata description for any CZI file. Well-plate/HCS "
-        "content is optional; non-plate files use hcs.detected=false with "
-        "null declared_plate and stored_plate values."
+        "Experimental metadata description for any CZI file. The hcs object is "
+        "required; non-plate files use hcs.detected=false with null declared_plate "
+        "and stored_plate values and zero HCS field counts. Unknown structured "
+        "fields are rejected; custom metadata belongs in extensions."
     )
     schema["$comment"] = (
         "EXPERIMENTAL schema for czitools CZI metadata documents, including "
         "both well-plate and non-well-plate files (domain "
         f"schema_version {CZI_HCS_DOCUMENT_SCHEMA_VERSION}). The structure is "
-        "unstable and may change without a version bump."
+        "unstable and may change without a version bump. Schema validation checks "
+        "structure and local constraints; CziHcsDocument also validates cross-field "
+        "relationships, units, and finite numbers. Retain null values for round trips. "
+        "JSONC requires a separate parser; the czitools reader accepts JSON only."
     )
     schema["x-czitools-schema-version"] = CZI_HCS_DOCUMENT_SCHEMA_VERSION
     schema["x-czitools-status"] = "experimental"
