@@ -1580,7 +1580,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://czitools.example/schemas/experimental/czi-hcs-1.0.schema.json",
   "description": "Experimental metadata description for any CZI file. The hcs object is required; non-plate files use hcs.detected=false with null declared_plate and stored_plate values and zero HCS field counts. Unknown structured fields are rejected; custom metadata belongs in extensions.",
-  "$comment": "EXPERIMENTAL schema for czitools CZI metadata documents, including both well-plate and non-well-plate files (domain schema_version 1.0). The structure is unstable and may change without a version bump. Schema validation checks structure and local constraints; CziHcsDocument also validates cross-field relationships, units, and finite numbers. Retain null values for round trips. JSONC requires a separate parser; the czitools reader accepts JSON only.",
+  "$comment": "EXPERIMENTAL schema for czitools CZI metadata documents, including both well-plate and non-well-plate files (domain schema_version 1.0). The structure is unstable and may change without a version bump. Schema validation checks structure and local constraints; CziHcsDocument also validates cross-field relationships, units, and finite numbers. Retain null values for round trips. The czitools reader accepts comments and trailing commas in .jsonc files; other file suffixes require plain JSON. Both formats use the same metadata validation.",
   "x-czitools-schema-version": "1.0",
   "x-czitools-status": "experimental"
 }

@@ -11,6 +11,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Iterator, Literal, Mapping
 
+import jsonc
 from pydantic import ConfigDict, NonNegativeInt, PositiveInt, TypeAdapter, ValidationError, with_config
 
 from czitools import __version__
@@ -390,8 +391,14 @@ class CziHcsDocument:
 
     @classmethod
     def read_json(cls, path: str | os.PathLike[str]) -> CziHcsDocument:
-        """Read and validate UTF-8 JSON; JSONC comments are not supported."""
-        payload = json.loads(Path(path).read_text(encoding="utf-8"))
+        """Read UTF-8 JSON or .jsonc with comments and trailing commas.
+
+        Both formats undergo the same metadata validation. Other suffixes use
+        strict JSON parsing. Comments are not retained by the data model.
+        """
+        source = Path(path)
+        text = source.read_text(encoding="utf-8")
+        payload = jsonc.loads(text) if source.suffix.lower() == ".jsonc" else json.loads(text)
         if not isinstance(payload, dict):
             raise TypeError("The JSON document root must be an object.")
         return cls.from_dict(payload)

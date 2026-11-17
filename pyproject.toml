@@ -38,6 +38,7 @@ dependencies = [
     "loguru",
     "colorlog>=6.8.2",
     "pydantic",
+    "json-with-comments>=1.3.0",
     "xarray",
     "dask[array]",
     "requests",

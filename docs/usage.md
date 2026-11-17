@@ -422,11 +422,29 @@ model validation and is not guaranteed to round-trip.
 #### JSON versus JSONC
 
 JSON Schema validates the parsed data, not comments in a text file. A JSONC-aware
-editor or parser can apply this schema to the data represented by a JSONC file,
-but `CziHcsDocument.read_json` uses standard JSON parsing and **does not accept
-comments or trailing commas**. To use an annotated JSONC example, parse it with
-a separate JSONC-aware parser and pass the resulting object to `from_dict`, or
-save it as plain JSON first. No JSONC parser is included by this feature.
+editor or parser can apply this schema to the data represented by a JSONC file.
+`CziHcsDocument.read_json` now supports both:
+
+- **`.jsonc` files** (case-insensitive suffix): `//` line comments, `/* ... */`
+  block comments, and trailing commas in objects and arrays, parsed using
+  `json-with-comments`.
+- **`.json` and other suffixes:** standard JSON parsing remains strict; comments
+  and trailing commas are rejected.
+
+```python
+doc = CziHcsDocument.read_json("plate.hcs.jsonc")
+doc.write_json("plate.hcs.json")
+```
+
+Both formats undergo the same metadata validation, including unknown-field
+rejection and HCS consistency checks. Malformed input raises an error rather
+than falling back to another parser. Comment-like text inside strings, such as
+URLs or `"/* literal text */"`, remains data.
+
+Comments and formatting are not stored in the model. `to_json` and `write_json`
+always produce plain JSON, even when the output filename ends in `.jsonc`;
+rewriting an annotated file therefore removes its comments. No schema-version
+change is needed because comments do not change the metadata structure.
 
 Associate the schema through your editor's settings rather than adding a
 `$schema` property to a metadata document: `$schema` is not a defined document

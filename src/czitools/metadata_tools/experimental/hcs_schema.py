@@ -106,7 +106,8 @@ def generate_hcs_json_schema(*, warn: bool = True) -> dict[str, Any]:
         "unstable and may change without a version bump. Schema validation checks "
         "structure and local constraints; CziHcsDocument also validates cross-field "
         "relationships, units, and finite numbers. Retain null values for round trips. "
-        "JSONC requires a separate parser; the czitools reader accepts JSON only."
+        "The czitools reader accepts comments and trailing commas in .jsonc files; "
+        "other file suffixes require plain JSON. Both formats use the same metadata validation."
     )
     schema["x-czitools-schema-version"] = CZI_HCS_DOCUMENT_SCHEMA_VERSION
     schema["x-czitools-status"] = "experimental"

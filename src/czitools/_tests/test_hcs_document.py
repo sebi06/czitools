@@ -170,9 +170,64 @@ def test_hcs_document_filters_stored_view_when_metadata_filtering_is_disabled() 
     assert CziHcsDocument.from_dict(document.to_dict()) == document
 
 
-def test_hcs_document_reader_requires_json_not_jsonc(tmp_path: Path) -> None:
-    output = tmp_path / "commented.jsonc"
+def test_hcs_document_reader_keeps_json_strict(tmp_path: Path) -> None:
+    output = tmp_path / "commented.json"
     output.write_text('{\n// illustration only\n"schema_version": "1.0"\n}', encoding="utf-8")
 
     with pytest.raises(json.JSONDecodeError):
         CziHcsDocument.read_json(output)
+
+
+@pytest.mark.parametrize("suffix", [".jsonc", ".JSONC"])
+def test_hcs_document_reads_jsonc_without_changing_string_values(tmp_path: Path, suffix: str) -> None:
+    payload = extract_hcs_document(PLATE_CZI).to_dict()
+    payload["extensions"]["notes"] = 'https://example.org/a // literal /* text */ "quoted" \\path'
+    payload["extensions"]["jsonc_list"] = [1, 2]
+    text = json.dumps(payload)
+    text = text.replace('"jsonc_list": [1, 2]', '"jsonc_list": [1, 2,]')
+    text = "/* header */\n{// root comment\n" + text[1:-1] + ", /* final comma */\n}"
+    source = tmp_path / f"plate{suffix}"
+    source.write_text(text, encoding="utf-8")
+
+    document = CziHcsDocument.read_json(source)
+
+    assert document.to_dict() == payload
+    output = document.write_json(tmp_path / "plain.json")
+    assert json.loads(output.read_text(encoding="utf-8")) == payload
+
+
+@pytest.mark.parametrize(
+    ("text", "error"),
+    [
+        ('{"schema_version": "1.0" /* unfinished', ValueError),
+        ('{"schema_version": "1.0", "source": }', ValueError),
+        ('[/* not an object */ 1, 2,]', TypeError),
+    ],
+)
+def test_hcs_document_rejects_malformed_or_non_object_jsonc(tmp_path: Path, text: str, error) -> None:
+    source = tmp_path / "invalid.jsonc"
+    source.write_text(text, encoding="utf-8")
+
+    with pytest.raises(error):
+        CziHcsDocument.read_json(source)
+
+
+@pytest.mark.parametrize(
+    ("key", "value", "message"),
+    [
+        ("unexpected", "metadata", "Unexpected keyword argument"),
+        ("hcs", {"detected": "true"}, "boolean"),
+        ("schema_version", "9.9", "Unsupported"),
+    ],
+)
+def test_hcs_document_jsonc_keeps_model_validation(tmp_path: Path, key: str, value, message: str) -> None:
+    payload = extract_hcs_document(PLATE_CZI).to_dict()
+    if key == "hcs":
+        payload[key].update(value)
+    else:
+        payload[key] = value
+    source = tmp_path / "invalid-metadata.jsonc"
+    source.write_text("// valid JSONC, invalid metadata\n" + json.dumps(payload), encoding="utf-8")
+
+    with pytest.raises(ValueError, match=message):
+        CziHcsDocument.read_json(source)
